@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "description": "Fixture for DealsApiController tests only (not bundled in the app JAR).",
+  "packages": [
+    {
+      "packageName": "hospital",
+      "pages": [
+        {
+          "pageId": "book-appointment",
+          "container": {
+            "domId": "hospital-book-appointment-root"
+          }
+        }
+      ]
+    },
+    {
+      "packageName": "social",
+      "pages": [
+        {
+          "pageId": "feed",
+          "container": {
+            "children": [
+              {
+                "id": "social-feed-posts-list",
+                "domId": "social-feed-posts-server-root"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
