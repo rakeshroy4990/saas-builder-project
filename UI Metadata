@@ -1,0 +1,33 @@
+{
+    "version": "1.0",
+    "description": "Optional UI overrides returned by GET /api/deals/uiMetadata. Empty packages array or missing file yields HTTP 204 so the client keeps bundled configs.",
+    "packages": [
+        {
+            "packageName": "hospital",
+            "pages": [
+                {
+                    "pageId": "book-appointment",
+                    "container": {
+                        "domId": "hospital-book-appointment-root"
+                    }
+                }
+            ]
+        },
+        {
+            "packageName": "social",
+            "pages": [
+                {
+                    "pageId": "feed",
+                    "container": {
+                        "children": [
+                            {
+                                "id": "social-feed-posts-list",
+                                "domId": "social-feed-posts-server-root"
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}
