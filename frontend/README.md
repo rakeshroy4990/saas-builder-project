@@ -1,5 +1,15 @@
 # Frontend Dynamic UI Architecture
 
+## Deprecated
+
+This unified frontend is deprecated and replaced by:
+
+- `frontend-ecommerce`
+- `frontend-hospital`
+- `frontend-social`
+
+Use those app-specific projects for all run/build/development workflows.
+
 This frontend uses a declarative, metadata-driven architecture where UI is built from config objects instead of hardcoded domain pages.
 
 ## How UI Is Built

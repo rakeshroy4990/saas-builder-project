@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel target="17" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_STRING" value="-parameters" />
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="backend-auth-lib" options="" />
+      <module name="backend-auth-lib.main" options="" />
+      <module name="backend-auth-lib.test" options="" />
+      <module name="backend-realtime-lib" options="" />
+      <module name="backend-realtime-lib.main" options="" />
+      <module name="backend-realtime-lib.test" options="" />
+      <module name="backend-uimetadata-lib" options="" />
+      <module name="backend-uimetadata-lib.main" options="" />
+      <module name="backend-uimetadata-lib.test" options="" />
+    </option>
+  </component>
+</project>

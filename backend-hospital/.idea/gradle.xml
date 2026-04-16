@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/../backend-auth-lib" name="backend-auth-lib">
+                <projects>
+                  <project path="$PROJECT_DIR$/../backend-auth-lib" />
+                </projects>
+              </build>
+              <build path="$PROJECT_DIR$/../backend-realtime-lib" name="backend-realtime-lib">
+                <projects>
+                  <project path="$PROJECT_DIR$/../backend-realtime-lib" />
+                </projects>
+              </build>
+              <build path="$PROJECT_DIR$/../backend-uimetadata-lib" name="backend-uimetadata-lib">
+                <projects>
+                  <project path="$PROJECT_DIR$/../backend-uimetadata-lib" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/../backend-auth-lib" />
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/../backend-realtime-lib" />
+            <option value="$PROJECT_DIR$/../backend-uimetadata-lib" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>

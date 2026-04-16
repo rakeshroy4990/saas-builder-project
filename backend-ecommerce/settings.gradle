@@ -1,0 +1,4 @@
+rootProject.name = 'flexshell-backend-ecommerce'
+includeBuild('../backend-uimetadata-lib')
+includeBuild('../backend-auth-lib')
+includeBuild('../backend-realtime-lib')

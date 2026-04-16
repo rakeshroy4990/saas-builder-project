@@ -1,0 +1,2 @@
+rootProject.name = 'flexshell-backend-social'
+includeBuild('../backend-uimetadata-lib')

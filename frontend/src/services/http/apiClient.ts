@@ -2,6 +2,7 @@ import axios from 'axios';
 import type { Router } from 'vue-router';
 import { usePopupStore } from '../../store/usePopupStore';
 import { useToastStore } from '../../store/useToastStore';
+import { pinia } from '../../store/pinia';
 import { getApiBaseUrl } from './URLRegistry';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { logClient } from '../logging/clientLogger';
@@ -32,8 +33,8 @@ apiClient.interceptors.response.use(
       url: error.config?.url,
       method: error.config?.method
     });
-    const popupStore = usePopupStore();
-    const toastStore = useToastStore();
+    const popupStore = usePopupStore(pinia);
+    const toastStore = useToastStore(pinia);
 
     if (error.response?.status === 401) {
       toastStore.show('Session expired. Please log in again.', 'error');
