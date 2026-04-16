@@ -19,27 +19,23 @@ const demoHomeContent = {
     subtitle: 'Breathable fabrics, modern fits, and fresh colors curated weekly.',
     ctaPrimary: 'Shop Women',
     ctaSecondary: 'Shop Men',
-    image:
-      'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=80'
+    image: 'sea_xgqlrq.jpg'
   },
   categories: [
     {
       name: 'Women',
       caption: 'Effortless everyday essentials',
-      image:
-        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80'
+      image: 'sea_xgqlrq.jpg'
     },
     {
       name: 'Men',
       caption: 'Relaxed fits and utility layers',
-      image:
-        'https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=800&q=80'
+      image: 'sea_xgqlrq.jpg'
     },
     {
       name: 'Accessories',
       caption: 'Caps, bags, and daily carry',
-      image:
-        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80'
+      image: 'sea_xgqlrq.jpg'
     }
   ],
   products: [
@@ -47,29 +43,25 @@ const demoHomeContent = {
       name: 'Cloud Knit Hoodie',
       price: '$79',
       color: 'Heather Gray',
-      image:
-        'https://images.unsplash.com/photo-1618354691792-d1d42acfd860?auto=format&fit=crop&w=900&q=80'
+      image: 'sea_xgqlrq.jpg'
     },
     {
       name: 'AirFlex Cargo Pants',
       price: '$68',
       color: 'Olive',
-      image:
-        'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=900&q=80'
+      image: 'sea_xgqlrq.jpg'
     },
     {
       name: 'Luna Ribbed Top',
       price: '$44',
       color: 'Ivory',
-      image:
-        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80'
+      image: 'sea_xgqlrq.jpg'
     },
     {
       name: 'Metro Trainer',
       price: '$92',
       color: 'Black / White',
-      image:
-        'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=900&q=80'
+      image: 'sea_xgqlrq.jpg'
     }
   ]
 };

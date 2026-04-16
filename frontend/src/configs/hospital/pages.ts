@@ -28,12 +28,29 @@ export const hospitalPages: PageConfig[] = [
           config: { label: 'Preferred Date', inputType: 'date' }
         },
         {
-          id: 'hospital-book-appointment-submit',
-          type: 'button',
+          id: 'hospital-book-appointment-actions',
+          type: 'container',
           config: {
-            text: 'Book Now',
-            styles: { styleTemplate: 'semantic.button.primary' },
-            click: { actionId: 'book-appointment' }
+            layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3', 'flex-wrap'] },
+            children: [
+              {
+                id: 'hospital-book-appointment-submit',
+                type: 'button',
+                config: {
+                  text: 'Book Now',
+                  styles: { styleTemplate: 'semantic.button.primary' },
+                  click: { actionId: 'book-appointment' }
+                }
+              },
+              {
+                id: 'hospital-book-appointment-login',
+                type: 'button',
+                config: {
+                  text: 'Login',
+                  styles: { styleTemplate: 'semantic.button.primary' }
+                }
+              }
+            ]
           }
         }
       ]
