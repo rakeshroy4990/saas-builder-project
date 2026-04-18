@@ -11,7 +11,7 @@ import { clearAuthToken } from '../auth/authToken';
 import { getAuthToken } from '../auth/authToken';
 import { setAuthTokens } from '../auth/authToken';
 import { isAuthTokenExpired, subscribeAuthToken } from '../auth/authToken';
-import { clearPersistedAuthSessionProfile } from '../auth/authSessionStore';
+import { clearPersistedAuthSessionProfile, syncHospitalUserIdFromAccessToken } from '../auth/authSessionStore';
 import { useAppStore } from '../../store/useAppStore';
 
 let appRouter: Router | null = null;
@@ -29,6 +29,8 @@ export const apiClient = axios.create({
 
 let refreshInFlight: Promise<boolean> | null = null;
 let tokenExpiryTimer: ReturnType<typeof setTimeout> | null = null;
+const AUTH_UNAUTHORIZED_CODE = 'AUTH_UNAUTHORIZED';
+const DEFAULT_AUTH_UNAUTHORIZED_MESSAGE = 'Invalid or expired token, Please login again.';
 
 function clearAuthSessionUi(): void {
   const appStore = useAppStore(pinia);
@@ -51,10 +53,32 @@ function navigateToLogin(): void {
   popupStore.open({ packageName: 'hospital', pageId: 'login-popup', title: 'Login' });
 }
 
-function performLocalLogoutAndRedirect(): void {
+function setLoginErrorMessage(message: string): void {
+  const appStore = useAppStore(pinia);
+  appStore.setProperty('hospital', 'AuthForm', 'identity', '');
+  appStore.setProperty('hospital', 'AuthForm', 'password', '');
+  appStore.setProperty('hospital', 'AuthForm', 'emailError', '');
+  appStore.setProperty('hospital', 'AuthForm', 'loginInfoMessage', '');
+  appStore.setProperty('hospital', 'AuthForm', 'authError', message);
+}
+
+function performLocalLogoutAndRedirect(message = DEFAULT_AUTH_UNAUTHORIZED_MESSAGE): void {
   clearAuthToken();
   clearAuthSessionUi();
+  setLoginErrorMessage(message);
   navigateToLogin();
+}
+
+function readUnauthorizedPayload(payload: unknown): { isUnauthorized: boolean; message: string } {
+  const row = (payload ?? {}) as Record<string, unknown>;
+  const code = String(row.code ?? row.Code ?? '').trim().toUpperCase();
+  const rawMessage = String(row.message ?? row.Message ?? '').trim();
+  const message = rawMessage || DEFAULT_AUTH_UNAUTHORIZED_MESSAGE;
+  const normalized = rawMessage.toLowerCase();
+  const isTokenExpiryMessage =
+    normalized === DEFAULT_AUTH_UNAUTHORIZED_MESSAGE.toLowerCase() ||
+    normalized.includes('invalid or expired token');
+  return { isUnauthorized: code === AUTH_UNAUTHORIZED_CODE && isTokenExpiryMessage, message };
 }
 
 subscribeAuthToken(({ accessToken, expiresAtMs }) => {
@@ -125,7 +149,14 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const authPayload = readUnauthorizedPayload(response.data);
+    if (authPayload.isUnauthorized) {
+      performLocalLogoutAndRedirect(authPayload.message);
+      return Promise.reject(new Error(authPayload.message));
+    }
+    return response;
+  },
   async (error) => {
     void logClient('ERROR', 'HTTP request failed', {
       status: error.response?.status,
@@ -139,6 +170,12 @@ apiClient.interceptors.response.use(
     const isRefreshRequest = requestUrl.includes(URLRegistry.paths.refresh);
     const isDoctorDirectoryRequest = requestUrl.includes(URLRegistry.paths.doctorGet);
     const isMultipartUpload = typeof FormData !== 'undefined' && error.config?.data instanceof FormData;
+    const authPayload = readUnauthorizedPayload(error.response?.data);
+
+    if (authPayload.isUnauthorized) {
+      performLocalLogoutAndRedirect(authPayload.message);
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 || error.response?.status === 403) {
       if (isLoginRequest || isRefreshRequest || isDoctorDirectoryRequest || isMultipartUpload) {
@@ -154,8 +191,11 @@ apiClient.interceptors.response.use(
         }
       }
       if (error.response?.status === 401) {
-        popupStore.openError(new Error('Session expired. Please log in again.'));
-        performLocalLogoutAndRedirect();
+        const message =
+          String(error.response?.data?.message ?? error.response?.data?.Message ?? '').trim() ||
+          DEFAULT_AUTH_UNAUTHORIZED_MESSAGE;
+        popupStore.openError(new Error(message));
+        performLocalLogoutAndRedirect(message);
       } else {
         popupStore.openError(new Error('You do not have permission to perform this action.'));
       }
@@ -181,6 +221,7 @@ async function refreshAccessToken(): Promise<boolean> {
       const refreshToken = String(dataNode.refreshToken ?? dataNode.RefreshToken ?? '').trim();
       if (accessToken && refreshToken) {
         setAuthTokens(accessToken, refreshToken);
+        syncHospitalUserIdFromAccessToken();
       }
       return response.status >= 200 && response.status < 300;
     } catch {

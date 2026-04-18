@@ -7,6 +7,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -43,6 +44,29 @@ public class DoctorDirectoryController {
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+        }
+    }
+
+    @GetMapping(value = "/list-active", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<List<DoctorOptionResponse>>> listActiveForAdmin(
+            Authentication authentication,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "200") int size
+    ) {
+        DoctorDirectoryService service = doctorDirectoryServiceProvider.getIfAvailable();
+        if (service == null) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+        }
+        try {
+            List<DoctorOptionResponse> doctors = service.listActiveDoctorsForAdmin(authentication.getName(), page, size);
+            return ResponseEntity.ok(StandardApiResponse.success("Doctors fetched", doctors));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_LIST_FORBIDDEN"));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
     }
 }

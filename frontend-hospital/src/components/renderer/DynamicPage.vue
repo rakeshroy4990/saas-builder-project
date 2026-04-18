@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { PageRegistry } from '../../core/registry/PageRegistry';
 import { ActionEngine } from '../../core/engine/ActionEngine';
@@ -32,13 +32,24 @@ const pageRootHtmlId = computed(() => {
 const shellPageHost = computed(() => resolveStyle({ styleTemplate: 'shell.page.host' }));
 const notFoundBox = computed(() => resolveStyle({ styleTemplate: 'system.error.pageNotFound' }));
 
-onMounted(async () => {
-  if (!pageConfig.value?.initializeActions) return;
-  const engine = new ActionEngine(pageConfig.value, router);
-  for (const action of pageConfig.value.initializeActions) {
-    await engine.execute(action);
-  }
-});
+let initGeneration = 0;
+let lastInitializedKey = '';
+watch(
+  () => [packageName.value, pageId.value, pageConfig.value] as const,
+  async ([pkg, pid, cfg]) => {
+    if (!cfg?.initializeActions?.length) return;
+    const key = `${pkg}:${pid}`;
+    if (key === lastInitializedKey) return;
+    lastInitializedKey = key;
+    const generation = ++initGeneration;
+    const engine = new ActionEngine(cfg, router);
+    for (const action of cfg.initializeActions) {
+      await engine.execute(action);
+      if (generation !== initGeneration) return;
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>

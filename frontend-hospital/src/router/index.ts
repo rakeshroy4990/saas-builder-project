@@ -18,10 +18,6 @@ export const router = createRouter({
       redirect: '/page/hospital/home'
     },
     {
-      path: '/page/hospital/book-appointment',
-      redirect: '/page/hospital/home'
-    },
-    {
       path: '/page/:packageName/:pageId',
       component: DynamicPage
     },

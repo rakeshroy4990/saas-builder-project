@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useAsyncBusy } from '@saas-builder/vue-async-ui';
 import type { ComponentDefinition } from '../../core/types/ComponentDefinition';
 import type { PageConfig } from '../../core/types/PageConfig';
 import { ComponentRegistry } from '../../core/registry/ComponentRegistry';
@@ -29,6 +30,7 @@ const elementHtmlId = computed(() =>
 );
 
 const { execute } = useActionEngine(props.pageConfig);
+const asyncBusy = useAsyncBusy();
 const component = computed(() => ComponentRegistry.get(props.definition.type));
 const isVisible = computed(() =>
   props.definition.condition ? evaluateCondition(props.definition.condition) : true
@@ -87,21 +89,51 @@ const resolvedConfig = computed(() => {
   return config;
 });
 
+const displayConfig = computed(() => {
+  if (props.definition.type !== 'button') {
+    return resolvedConfig.value;
+  }
+  const rc = resolvedConfig.value as Record<string, unknown>;
+  if (!rc?.click) {
+    return rc;
+  }
+  const raw = props.definition.config as Record<string, unknown> | undefined;
+  const anim =
+    typeof raw?.busyAnimation === 'string' && raw.busyAnimation.trim().length > 0
+      ? raw.busyAnimation.trim()
+      : 'dots';
+  return {
+    ...rc,
+    actionPending: asyncBusy.pending.value,
+    busyAnimation: anim
+  };
+});
+
 const onAction = async (event: { action?: ActionConfig; payload?: Record<string, unknown> }) => {
   if (!event?.action) return;
+  const raw = props.definition.config as Record<string, unknown> | undefined;
+  if (props.definition.type === 'button' && raw?.click) {
+    await asyncBusy.runExclusive(() => execute(event.action!, event.payload));
+    return;
+  }
   await execute(event.action, event.payload);
 };
 
 const unknownTypeClass = computed(() => resolveStyle({ styleTemplate: 'system.error.unknownType' }));
+
+const containerContextBinding = computed(() =>
+  props.definition.type === 'container' ? { context: props.context } : {}
+);
 </script>
 
 <template>
   <component
     :is="component"
     v-if="component && isVisible"
-    :config="resolvedConfig"
+    :config="displayConfig"
     :page-config="pageConfig"
     :html-id="elementHtmlId"
+    v-bind="containerContextBinding"
     @action="onAction"
   />
   <div v-else-if="!component" :id="elementHtmlId" :class="unknownTypeClass">

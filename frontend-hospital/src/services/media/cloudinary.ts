@@ -19,6 +19,9 @@ function fallbackCloudinaryImage(): string {
  */
 export function resolveImageSource(src?: string): string {
   if (!src) return fallbackCloudinaryImage();
+  if (/^(blob:|data:)/i.test(src)) {
+    return src;
+  }
   if (/^https?:\/\//i.test(src)) {
     try {
       const host = new URL(src).host.toLowerCase();

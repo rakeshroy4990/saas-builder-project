@@ -18,7 +18,8 @@ export type ComponentType =
   | 'checkbox'
   | 'radio-group'
   | 'chat'
-  | 'video-call';
+  | 'video-call'
+  | 'doctor-schedule-editor';
 
 export interface LayoutConfig {
   type: 'flex' | 'grid';
@@ -39,6 +40,11 @@ export interface ComponentDefinition {
    */
   domId?: string;
   condition?: ConditionConfig;
+  /**
+   * When true (same evaluation rules as `condition`), `button` components receive `disabled: true`.
+   * Use for role-gated CTAs without hiding the control.
+   */
+  disabledCondition?: ConditionConfig;
   config?: Record<string, unknown>;
 }
 

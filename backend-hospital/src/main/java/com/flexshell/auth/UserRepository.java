@@ -42,5 +42,11 @@ public interface UserRepository extends MongoRepository<UserEntity, String> {
             List<String> departments,
             Pageable pageable
     );
+
+    @Query("{ 'Role': ?0, '$and': [ " +
+            "{ '$or': [ { 'RoleStatus': ?1 }, { 'RoleStatus': null }, { 'RoleStatus': { '$exists': false } } ] }, " +
+            "{ '$or': [ { 'Active': true }, { 'Active': null }, { 'Active': { '$exists': false } } ] } " +
+            "] }")
+    Page<UserEntity> findActiveDoctorsAllRoles(UserRole role, RoleRequestStatus roleStatus, Pageable pageable);
 }
 

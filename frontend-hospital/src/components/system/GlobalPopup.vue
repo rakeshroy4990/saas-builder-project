@@ -95,7 +95,8 @@ watch(
       return;
     }
     if (isError || !cfg?.initializeActions?.length) return;
-    const popupKey = `${packageName}:${pageId}`;
+    const initKey = normalizePopupValue(activePopupRequest.value?.initKey ?? '', '') || 'static';
+    const popupKey = `${packageName}:${pageId}:${initKey}`;
     if (popupKey === lastInitializedPopupKey) return;
     lastInitializedPopupKey = popupKey;
     const generation = ++popupInitGeneration;

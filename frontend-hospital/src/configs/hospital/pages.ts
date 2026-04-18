@@ -1,4 +1,10 @@
 import type { PageConfig } from '../../core/types/PageConfig';
+import { hospitalBookAppointmentPage, hospitalBookAppointmentPopupPage } from './bookAppointmentPage';
+import {
+  disabledWhenLoggedInAsDoctor,
+  hospitalPublicChromeTop,
+  hospitalSiteFooter
+} from './hospitalPublicChrome';
 
 const todayDateInputValue = new Date().toISOString().split('T')[0] ?? '';
 
@@ -7,177 +13,17 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'home',
     title: 'Little Sprouts Care Hospital',
-    initializeActions: [{ actionId: 'load-home-content' }, { actionId: 'load-doctors' }],
+    initializeActions: [{ actionId: 'set-home-header-active' }, { actionId: 'load-home-content' }, { actionId: 'load-doctors' }],
     container: {
       layoutTemplate: 'hosp.page.root',
       children: [
+        ...hospitalPublicChromeTop,
         {
-          id: 'hospital-home-header',
+          id: 'hospital-home-main',
           type: 'container',
           config: {
-            layoutTemplate: 'hosp.header.shell',
-            styles: { styleTemplate: 'hosp.header.card' },
+            styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col gap-6 sm:gap-8' },
             children: [
-              {
-                id: 'hospital-home-header-brand',
-                type: 'container',
-                config: {
-                  layoutTemplate: 'hosp.header.brand',
-                  children: [
-                    {
-                      id: 'hospital-home-header-logo',
-                      type: 'image',
-                      config: {
-                        src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/stetho_n1bp0a.jpg',
-                        alt: 'Little Sprouts Care logo',
-                        styles: { styleTemplate: 'hosp.header.logo' }
-                      }
-                    },
-                    {
-                      id: 'hospital-home-header-title',
-                      type: 'text',
-                      config: { text: 'Little Sprouts Care', styles: { styleTemplate: 'hosp.header.title' } }
-                    }
-                  ]
-                }
-              },
-              {
-                id: 'hospital-home-header-nav',
-                type: 'container',
-                config: {
-                  layoutTemplate: 'hosp.header.nav',
-                  children: [
-                    {
-                      id: 'hospital-home-header-nav-home',
-                      type: 'button',
-                      config: {
-                        text: 'Services',
-                        styles: { styleTemplate: 'hosp.header.menuButton' },
-                        click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-                      }
-                    },
-                    // {
-                    //   id: 'hospital-home-header-nav-doctors',
-                    //   type: 'button',
-                    //   config: {
-                    //     text: 'Doctors',
-                    //     styles: { styleTemplate: 'hosp.header.menuButton' },
-                    //     click: {
-                    //       actionType: 'navigate',
-                    //       navigate: { packageName: 'hospital', pageId: 'doctor-overview' }
-                    //     }
-                    //   }
-                    // },
-                    {
-                      id: 'hospital-home-header-nav-dashboard',
-                      type: 'button',
-                      config: {
-                        text: 'Contact',
-                        styles: { styleTemplate: 'hosp.header.menuButton' },
-                        click: {
-                          actionType: 'navigate',
-                          navigate: { packageName: 'hospital', pageId: 'patient-dashboard' }
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                id: 'hospital-home-header-actions',
-                type: 'container',
-                config: {
-                  layoutTemplate: 'hosp.header.actions',
-                  children: [
-                    {
-                      id: 'hospital-home-header-login',
-                      type: 'button',
-                      condition: {
-                        expression: "!userId || String(userId).trim().length === 0",
-                        mappings: {
-                          userId: {
-                            packageName: 'hospital',
-                            key: 'AuthSession',
-                            property: 'userId'
-                          }
-                        }
-                      },
-                      config: {
-                        text: 'Login',
-                        styles: { styleTemplate: 'hosp.header.authButton' },
-                        click: { actionId: 'open-login-popup' }
-                      }
-                    },
-                    {
-                      id: 'hospital-home-header-user-display',
-                      type: 'button',
-                      condition: {
-                        expression: "userId && String(userId).trim().length > 0",
-                        mappings: {
-                          userId: {
-                            packageName: 'hospital',
-                            key: 'AuthSession',
-                            property: 'userId'
-                          }
-                        }
-                      },
-                      config: {
-                        mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                        styles: { styleTemplate: 'hosp.header.userButton' }
-                      }
-                    },
-                    {
-                      id: 'hospital-home-header-login-state',
-                      type: 'text',
-                      condition: {
-                        expression: "userId && String(userId).trim().length > 0",
-                        mappings: {
-                          userId: {
-                            packageName: 'hospital',
-                            key: 'AuthSession',
-                            property: 'userId'
-                          }
-                        }
-                      },
-                      config: {
-                        text: 'Logged in',
-                        styles: { styleTemplate: 'hosp.header.loginStateChip' }
-                      }
-                    },
-                    {
-                      id: 'hospital-home-header-logout',
-                      type: 'button',
-                      condition: {
-                        expression: "userId && String(userId).trim().length > 0",
-                        mappings: {
-                          userId: {
-                            packageName: 'hospital',
-                            key: 'AuthSession',
-                            property: 'userId'
-                          }
-                        }
-                      },
-                      config: {
-                        text: 'Logout',
-                        styles: { styleTemplate: 'hosp.header.authButton' },
-                        click: { actionId: 'logout-user' }
-                      }
-                    },
-                    {
-                      id: 'hospital-home-header-cta',
-                      type: 'button',
-                      config: {
-                        text: 'Book Now',
-                        styles: { styleTemplate: 'hosp.header.ctaButton' },
-                        click: { actionId: 'open-appointment-popup' }
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
         {
           id: 'hospital-home-hero-section',
           type: 'container',
@@ -221,6 +67,7 @@ export const hospitalPages: PageConfig[] = [
                           {
                             id: 'hospital-home-hero-primary-cta',
                             type: 'button',
+                            disabledCondition: disabledWhenLoggedInAsDoctor,
                             config: {
                               text: 'Schedule Visit',
                               styles: { styleTemplate: 'hosp.button.primary' },
@@ -477,6 +324,7 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-book-appointment-submit',
                 type: 'button',
+                disabledCondition: disabledWhenLoggedInAsDoctor,
                 config: {
                   text: 'Book Appointment',
                   styles: { styleTemplate: 'hosp.button.primary' },
@@ -489,6 +337,7 @@ export const hospitalPages: PageConfig[] = [
         {
           id: 'hospital-home-contact-section',
           type: 'container',
+          domId: 'hospital-home-contact-section',
           config: {
             layoutTemplate: 'hosp.section.stack',
             styles: { styleTemplate: 'hosp.section.card' },
@@ -525,6 +374,1090 @@ export const hospitalPages: PageConfig[] = [
             ]
           }
         }
+            ]
+          }
+        },
+        hospitalSiteFooter(
+          'hospital-home-footer',
+          'Little Sprouts Care | Pediatric and family care you can trust.'
+        )
+      ]
+    }
+  },
+  {
+    packageName: 'hospital',
+    pageId: 'dashboard',
+    title: 'Dashboard',
+    initializeActions: [
+      { actionId: 'set-dashboard-header-active' },
+      { actionId: 'load-home-content' },
+      { actionId: 'load-doctors' },
+      { actionId: 'init-dashboard' }
+    ],
+    container: {
+      layoutTemplate: 'hosp.page.root',
+      children: [
+        {
+          id: 'hospital-dashboard-header',
+          type: 'container',
+          config: {
+            layoutTemplate: 'hosp.header.shell',
+            styles: { styleTemplate: 'hosp.header.card' },
+            children: [
+              {
+                id: 'hospital-dashboard-header-lead',
+                type: 'container',
+                config: {
+                  layoutTemplate: 'hosp.header.lead',
+                  children: [
+                    {
+                      id: 'hospital-dashboard-header-mobile-menu-slot',
+                      type: 'container',
+                      config: {
+                        styles: { utilityClasses: 'w-10 shrink-0 flex items-center justify-center' },
+                        children: [
+                          {
+                            id: 'hospital-dashboard-header-mobile-menu-toggle-left',
+                            type: 'button',
+                            config: {
+                              text: '☰',
+                              title: 'Menu',
+                              styles: {
+                                utilityClasses:
+                                  'inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 lg:invisible'
+                              },
+                              click: { actionId: 'toggle-header-menu' }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-brand',
+                      type: 'container',
+                      config: {
+                        layoutTemplate: 'hosp.header.brand',
+                        children: [
+                          {
+                            id: 'hospital-dashboard-header-logo',
+                            type: 'image',
+                            config: {
+                              src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/stetho_n1bp0a.jpg',
+                              alt: 'Little Sprouts Care logo',
+                              styles: { styleTemplate: 'hosp.header.logo' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-header-title',
+                            type: 'text',
+                            config: {
+                              text: 'Little Sprouts Care',
+                              styles: { styleTemplate: 'hosp.header.title' },
+                              click: {
+                                actionId: 'set-home-header-active',
+                                onSuccess: {
+                                  actionType: 'navigate',
+                                  navigate: { packageName: 'hospital', pageId: 'home' }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-dashboard-header-nav',
+                type: 'container',
+                config: {
+                  layoutTemplate: 'hosp.header.nav',
+                  styles: { utilityClasses: 'hidden lg:flex items-center gap-4' },
+                  children: [
+                    {
+                      id: 'hospital-dashboard-header-nav-home-active',
+                      type: 'button',
+                      condition: {
+                        expression: "activeMenu === 'HOME'",
+                        mappings: {
+                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                        }
+                      },
+                      config: {
+                        text: 'Home',
+                        styles: {
+                          styleTemplate: 'hosp.header.menuButton',
+                          utilityClasses: 'bg-emerald-100 text-emerald-700'
+                        },
+                        click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-nav-home',
+                      type: 'button',
+                      condition: {
+                        expression: "activeMenu !== 'HOME'",
+                        mappings: {
+                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                        }
+                      },
+                      config: {
+                        text: 'Home',
+                        styles: { styleTemplate: 'hosp.header.menuButton' },
+                        click: {
+                          actionId: 'set-home-header-active',
+                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                        }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-nav-dashboard-active',
+                      type: 'button',
+                      condition: {
+                        expression: "activeMenu === 'DASHBOARD'",
+                        mappings: {
+                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                        }
+                      },
+                      config: {
+                        text: 'Dashboard',
+                        styles: {
+                          styleTemplate: 'hosp.header.menuButton',
+                          utilityClasses: 'bg-emerald-100 text-emerald-700'
+                        },
+                        click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-nav-dashboard',
+                      type: 'button',
+                      condition: {
+                        expression: "activeMenu !== 'DASHBOARD'",
+                        mappings: {
+                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                        }
+                      },
+                      config: {
+                        text: 'Dashboard',
+                        styles: { styleTemplate: 'hosp.header.menuButton' },
+                        click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-nav-contact-active',
+                      type: 'button',
+                      condition: {
+                        expression: "activeMenu === 'CONTACT'",
+                        mappings: {
+                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                        }
+                      },
+                      config: {
+                        text: 'Contact',
+                        styles: {
+                          styleTemplate: 'hosp.header.menuButton',
+                          utilityClasses: 'bg-emerald-100 text-emerald-700'
+                        },
+                        click: {
+                          actionId: 'set-header-active-menu',
+                          data: { menu: 'CONTACT' },
+                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                        }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-nav-contact',
+                      type: 'button',
+                      condition: {
+                        expression: "activeMenu !== 'CONTACT'",
+                        mappings: {
+                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                        }
+                      },
+                      config: {
+                        text: 'Contact',
+                        styles: { styleTemplate: 'hosp.header.menuButton' },
+                        click: {
+                          actionId: 'set-header-active-menu',
+                          data: { menu: 'CONTACT' },
+                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-dashboard-header-actions',
+                type: 'container',
+                config: {
+                  layoutTemplate: 'hosp.header.actions',
+                  children: [
+                    {
+                      id: 'hospital-dashboard-header-login',
+                      type: 'button',
+                      condition: {
+                        expression: "!userId || String(userId).trim().length === 0",
+                        mappings: {
+                          userId: {
+                            packageName: 'hospital',
+                            key: 'AuthSession',
+                            property: 'userId'
+                          }
+                        }
+                      },
+                      config: {
+                        text: 'Login',
+                        styles: { styleTemplate: 'hosp.header.authButton' },
+                        click: { actionId: 'open-login-popup' }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-user-display',
+                      type: 'button',
+                      condition: {
+                        expression: "userId && String(userId).trim().length > 0",
+                        mappings: {
+                          userId: {
+                            packageName: 'hospital',
+                            key: 'AuthSession',
+                            property: 'userId'
+                          }
+                        }
+                      },
+                      config: {
+                        mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
+                        styles: { styleTemplate: 'hosp.header.userButton' }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-login-state',
+                      type: 'text',
+                      condition: {
+                        expression: "userId && String(userId).trim().length > 0",
+                        mappings: {
+                          userId: {
+                            packageName: 'hospital',
+                            key: 'AuthSession',
+                            property: 'userId'
+                          }
+                        }
+                      },
+                      config: {
+                        text: 'Logged in',
+                        styles: { styleTemplate: 'hosp.header.loginStateChip' }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-logout',
+                      type: 'button',
+                      condition: {
+                        expression: "userId && String(userId).trim().length > 0",
+                        mappings: {
+                          userId: {
+                            packageName: 'hospital',
+                            key: 'AuthSession',
+                            property: 'userId'
+                          }
+                        }
+                      },
+                      config: {
+                        text: 'Logout',
+                        styles: { styleTemplate: 'hosp.header.authButton' },
+                        click: { actionId: 'logout-user' }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-cta',
+                      type: 'button',
+                      disabledCondition: disabledWhenLoggedInAsDoctor,
+                      config: {
+                        text: 'Book Now',
+                        styles: { styleTemplate: 'hosp.header.ctaButton' },
+                        click: { actionId: 'open-appointment-popup' }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'hospital-dashboard-mobile-menu-panel',
+          type: 'container',
+          condition: {
+            expression: 'headerMenuOpen',
+            mappings: {
+              headerMenuOpen: { packageName: 'hospital', key: 'ResponsiveUiState', property: 'headerMenuOpen' }
+            }
+          },
+          config: {
+            styles: { utilityClasses: 'lg:hidden rounded-xl border border-slate-200 bg-white px-3 py-2' },
+            children: [
+              {
+                id: 'hospital-dashboard-mobile-menu-home',
+                type: 'button',
+                config: {
+                  text: 'Home',
+                  styles: { styleTemplate: 'hosp.header.menuButton' },
+                  click: {
+                    actionId: 'set-home-header-active',
+                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                  }
+                }
+              },
+              {
+                id: 'hospital-dashboard-mobile-menu-dashboard',
+                type: 'button',
+                config: {
+                  text: 'Dashboard',
+                  styles: { styleTemplate: 'hosp.header.menuButton' },
+                  click: { actionId: 'set-dashboard-header-active' }
+                }
+              },
+              {
+                id: 'hospital-dashboard-mobile-menu-contact',
+                type: 'button',
+                config: {
+                  text: 'Contact',
+                  styles: { styleTemplate: 'hosp.header.menuButton' },
+                  click: {
+                    actionId: 'set-header-active-menu',
+                    data: { menu: 'CONTACT' },
+                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'hospital-dashboard-content-shell',
+          type: 'container',
+          config: {
+            layout: { type: 'grid', grid: ['grid', 'grid-cols-12', 'gap-4', 'items-start'] },
+            styles: { utilityClasses: 'w-full flex-1 min-h-0' },
+            children: [
+              {
+                id: 'hospital-dashboard-left-menu',
+                type: 'container',
+                config: {
+                  styles: {
+                    utilityClasses:
+                      'col-span-12 md:col-span-2 rounded-xl border border-slate-200 bg-white p-3 space-y-2'
+                  },
+                  children: [
+                    {
+                      id: 'hospital-dashboard-menu-appointments-active',
+                      type: 'button',
+                      condition: {
+                        expression: "String(activeItem ?? '') === 'appointments'",
+                        mappings: {
+                          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+                        }
+                      },
+                      config: {
+                        text: 'Appointments',
+                        styles: {
+                          utilityClasses:
+                            'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
+                        },
+                        click: {
+                          actionId: 'set-dashboard-nav-appointments',
+                          onSuccess: {
+                            actionId: 'set-dashboard-header-active'
+                          }
+                        }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-menu-appointments-inactive',
+                      type: 'button',
+                      condition: {
+                        expression: "String(activeItem ?? '') !== 'appointments'",
+                        mappings: {
+                          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+                        }
+                      },
+                      config: {
+                        text: 'Appointments',
+                        styles: {
+                          utilityClasses:
+                            'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                        },
+                        click: {
+                          actionId: 'set-dashboard-nav-appointments',
+                          onSuccess: {
+                            actionId: 'set-dashboard-header-active'
+                          }
+                        }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-menu-working-slots-active',
+                      type: 'button',
+                      condition: {
+                        expression:
+                          "(String(role ?? '').toUpperCase() === 'ADMIN' || String(role ?? '').toUpperCase() === 'DOCTOR') && String(activeItem ?? '') === 'working-slots'",
+                        mappings: {
+                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+                          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+                        }
+                      },
+                      config: {
+                        text: 'Set working time slots',
+                        styles: {
+                          utilityClasses:
+                            'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
+                        },
+                        click: {
+                          actionId: 'set-dashboard-nav-working-slots',
+                          onSuccess: {
+                            actionId: 'set-dashboard-header-active',
+                            onSuccess: {
+                              actionId: 'init-doctor-working-slots'
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-menu-working-slots-inactive',
+                      type: 'button',
+                      condition: {
+                        expression:
+                          "(String(role ?? '').toUpperCase() === 'ADMIN' || String(role ?? '').toUpperCase() === 'DOCTOR') && String(activeItem ?? '') !== 'working-slots'",
+                        mappings: {
+                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+                          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+                        }
+                      },
+                      config: {
+                        text: 'Set working time slots',
+                        styles: {
+                          utilityClasses:
+                            'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                        },
+                        click: {
+                          actionId: 'set-dashboard-nav-working-slots',
+                          onSuccess: {
+                            actionId: 'set-dashboard-header-active',
+                            onSuccess: {
+                              actionId: 'init-doctor-working-slots'
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-dashboard-main',
+                type: 'container',
+                config: {
+                  styles: { utilityClasses: 'col-span-12 md:col-span-10 rounded-xl border border-slate-200 bg-white p-4 space-y-4' },
+                  children: [
+                    {
+                      id: 'hospital-dashboard-panel-appointments',
+                      type: 'container',
+                      condition: {
+                        expression: "String(activeItem ?? '') !== 'working-slots'",
+                        mappings: {
+                          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+                        }
+                      },
+                      config: {
+                        styles: { utilityClasses: 'space-y-4' },
+                        children: [
+                    {
+                      id: 'hospital-dashboard-main-title-row',
+                      type: 'container',
+                      config: {
+                        layout: { type: 'flex', flex: ['flex', 'items-center', 'justify-between', 'gap-3', 'flex-wrap'] },
+                        children: [
+                          {
+                            id: 'hospital-dashboard-main-title',
+                            type: 'text',
+                            config: { text: 'Appointments', styles: { styleTemplate: 'hosp.section.heading' } }
+                          },
+                          {
+                            id: 'hospital-dashboard-main-total',
+                            type: 'text',
+                            config: {
+                              mapping: { packageName: 'hospital', key: 'DashboardAppointments', property: 'totalLabel' },
+                              styles: { utilityClasses: 'text-sm font-semibold text-slate-600' }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-filter-toggle-mobile',
+                      type: 'button',
+                      config: {
+                        text: '⚙️ Filters',
+                        title: 'Toggle filters',
+                        styles: {
+                          utilityClasses:
+                            'inline-flex lg:hidden w-fit rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700'
+                        },
+                        click: { actionId: 'toggle-dashboard-filters' }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-filter-grid-mobile',
+                      type: 'container',
+                      condition: {
+                        expression: 'dashboardFiltersOpen',
+                        mappings: {
+                          dashboardFiltersOpen: {
+                            packageName: 'hospital',
+                            key: 'ResponsiveUiState',
+                            property: 'dashboardFiltersOpen'
+                          }
+                        }
+                      },
+                      config: {
+                        styles: { utilityClasses: 'grid grid-cols-1 gap-3 lg:hidden' },
+                        children: [
+                          {
+                            id: 'hospital-dashboard-filter-status-mobile',
+                            type: 'dropdown',
+                            config: {
+                              label: 'Status',
+                              mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'statusOptions' },
+                              styles: { styleTemplate: 'hosp.form.input' },
+                              change: { actionId: 'set-dashboard-filter-status' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-filter-date-mobile',
+                            type: 'input',
+                            config: {
+                              label: 'Date',
+                              inputType: 'date',
+                              styles: { styleTemplate: 'hosp.form.input' },
+                              change: { actionId: 'set-dashboard-filter-date' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-filter-doctor-mobile',
+                            type: 'dropdown',
+                            config: {
+                              label: 'Doctor',
+                              mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'doctorOptions' },
+                              styles: { styleTemplate: 'hosp.form.input' },
+                              change: { actionId: 'set-dashboard-filter-doctor' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-filter-department-mobile',
+                            type: 'dropdown',
+                            config: {
+                              label: 'Department',
+                              mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'departmentOptions' },
+                              styles: { styleTemplate: 'hosp.form.input' },
+                              change: { actionId: 'set-dashboard-filter-department' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-filter-actions-mobile',
+                            type: 'container',
+                            config: {
+                              layout: { type: 'flex', flex: ['flex', 'items-end', 'gap-2', 'flex-wrap'] },
+                              children: [
+                                {
+                                  id: 'hospital-dashboard-filter-apply-mobile',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Apply',
+                                    styles: { styleTemplate: 'hosp.button.primary' },
+                                    click: { actionId: 'apply-dashboard-filters' }
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-filter-clear-mobile',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Clear',
+                                    styles: { styleTemplate: 'hosp.button.secondary' },
+                                    click: { actionId: 'clear-dashboard-filters' }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-filter-grid',
+                      type: 'container',
+                      config: {
+                        styles: { utilityClasses: 'hidden lg:grid lg:grid-cols-5 gap-3' },
+                        children: [
+                          {
+                            id: 'hospital-dashboard-filter-status',
+                            type: 'dropdown',
+                            config: {
+                              label: 'Status',
+                              mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'statusOptions' },
+                              styles: { styleTemplate: 'hosp.form.input' },
+                              change: { actionId: 'set-dashboard-filter-status' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-filter-date',
+                            type: 'input',
+                            config: {
+                              label: 'Date',
+                              inputType: 'date',
+                              styles: { styleTemplate: 'hosp.form.input' },
+                              change: { actionId: 'set-dashboard-filter-date' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-filter-doctor',
+                            type: 'dropdown',
+                            config: {
+                              label: 'Doctor',
+                              mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'doctorOptions' },
+                              styles: { styleTemplate: 'hosp.form.input' },
+                              change: { actionId: 'set-dashboard-filter-doctor' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-filter-department',
+                            type: 'dropdown',
+                            config: {
+                              label: 'Department',
+                              mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'departmentOptions' },
+                              styles: { styleTemplate: 'hosp.form.input' },
+                              change: { actionId: 'set-dashboard-filter-department' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-filter-actions',
+                            type: 'container',
+                            config: {
+                              layout: { type: 'flex', flex: ['flex', 'items-end', 'gap-2', 'flex-wrap'] },
+                              children: [
+                                {
+                                  id: 'hospital-dashboard-filter-apply',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Apply',
+                                    styles: { styleTemplate: 'hosp.button.primary' },
+                                    click: { actionId: 'apply-dashboard-filters' }
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-filter-clear',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Clear',
+                                    styles: { styleTemplate: 'hosp.button.secondary' },
+                                    click: { actionId: 'clear-dashboard-filters' }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-appointments-loading',
+                      type: 'text',
+                      condition: {
+                        expression: 'loading',
+                        mappings: {
+                          loading: { packageName: 'hospital', key: 'DashboardAppointments', property: 'loading' }
+                        }
+                      },
+                      config: {
+                        text: 'Loading appointments...',
+                        styles: { utilityClasses: 'text-sm font-medium text-slate-600' }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-appointments-error',
+                      type: 'text',
+                      condition: {
+                        expression: 'error && String(error).trim().length > 0',
+                        mappings: {
+                          error: { packageName: 'hospital', key: 'DashboardAppointments', property: 'error' }
+                        }
+                      },
+                      config: {
+                        mapping: { packageName: 'hospital', key: 'DashboardAppointments', property: 'error' },
+                        styles: { styleTemplate: 'hosp.form.errorText' }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-appointments-empty',
+                      type: 'text',
+                      condition: {
+                        expression: '!loading && (!list || list.length === 0)',
+                        mappings: {
+                          loading: { packageName: 'hospital', key: 'DashboardAppointments', property: 'loading' },
+                          list: { packageName: 'hospital', key: 'DashboardAppointments', property: 'list' }
+                        }
+                      },
+                      config: {
+                        text: 'No appointments found for the selected filters.',
+                        styles: { utilityClasses: 'text-sm text-slate-500' }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-appointments-list',
+                      type: 'list',
+                      condition: {
+                        expression: '!loading && list && list.length > 0',
+                        mappings: {
+                          loading: { packageName: 'hospital', key: 'DashboardAppointments', property: 'loading' },
+                          list: { packageName: 'hospital', key: 'DashboardAppointments', property: 'list' }
+                        }
+                      },
+                      config: {
+                        listStyleTemplate: 'hosp.section.stack',
+                        mapping: { packageName: 'hospital', key: 'DashboardAppointments', property: 'list' },
+                        itemTemplate: {
+                          layout: {
+                            type: 'flex',
+                            flex: ['flex', 'flex-row', 'items-start', 'justify-between', 'gap-3']
+                          },
+                          styles: { utilityClasses: 'mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3' },
+                          children: [
+                            {
+                              id: 'hospital-dashboard-appointment-main',
+                              type: 'container',
+                              config: {
+                                layout: {
+                                  type: 'flex',
+                                  flex: ['flex', 'min-w-0', 'flex-1', 'flex-col', 'gap-1', 'pr-1']
+                                },
+                                children: [
+                                  {
+                                    id: 'hospital-dashboard-appointment-line-1',
+                                    type: 'text',
+                                    config: {
+                                      text: 'Patient: {{patientName}} | Doctor: {{doctorName}} | Status: {{statusLabel}}',
+                                      styles: { utilityClasses: 'text-sm font-semibold text-slate-800' }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-line-2',
+                                    type: 'text',
+                                    config: {
+                                      text: 'Date: {{preferredDate}} | Slot: {{preferredTimeSlot}} | Department: {{department}} | Phone: {{phoneNumber}} | Age: {{ageGroup}}',
+                                      styles: { utilityClasses: 'text-xs text-slate-600' }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-additional-notes',
+                                    type: 'text',
+                                    condition: {
+                                      expression: 'String(additionalNotes ?? "").trim().length > 0'
+                                    },
+                                    config: {
+                                      text: 'Additional notes: {{additionalNotes}}',
+                                      styles: { utilityClasses: 'text-xs text-slate-600' }
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              id: 'hospital-dashboard-appointment-actions',
+                              type: 'container',
+                              config: {
+                                layout: {
+                                  type: 'flex',
+                                  flex: ['flex', 'shrink-0', 'flex-row', 'items-center', 'justify-end', 'gap-2', 'flex-wrap']
+                                },
+                                children: [
+                                  {
+                                    id: 'hospital-dashboard-appointment-video',
+                                    type: 'button',
+                                    config: {
+                                      text: '📞🎥',
+                                      title: 'Video Call',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-700 hover:bg-emerald-50'
+                                      },
+                                      click: {
+                                        actionId: 'open-appointment-video-call',
+                                        data: {
+                                          appointmentId: '{{id}}',
+                                          doctorId: '{{doctorId}}',
+                                          createdBy: '{{createdBy}}',
+                                          patientName: '{{patientName}}',
+                                          doctorName: '{{doctorName}}',
+                                          department: '{{department}}'
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-edit',
+                                    type: 'button',
+                                    condition: {
+                                      expression: 'canEditAppointment === "Y"'
+                                    },
+                                    config: {
+                                      text: '✏️',
+                                      title: 'Edit appointment',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-700 hover:bg-emerald-50'
+                                      },
+                                      click: {
+                                        actionId: 'edit-dashboard-appointment',
+                                        data: { appointmentId: '{{id}}' }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-receipt',
+                                    type: 'button',
+                                    config: {
+                                      text: '{{receiptActionIcon}}',
+                                      title: 'View Receipt',
+                                      hiddenWhenEmptyText: true,
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-700 hover:bg-emerald-50'
+                                      },
+                                      click: {
+                                        actionId: 'open-appointment-receipt',
+                                        data: { appointmentId: '{{id}}', fileId: '{{firstReceiptFileId}}' }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-cancel',
+                                    type: 'button',
+                                    condition: {
+                                      expression: 'String(status ?? "").toUpperCase() !== "CANCELLED"'
+                                    },
+                                    config: {
+                                      text: '🗑️',
+                                      title: 'Cancel appointment',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-rose-400 px-2 py-1 text-xs leading-none text-rose-700 hover:bg-rose-50'
+                                      },
+                                      click: {
+                                        actionId: 'cancel-dashboard-appointment',
+                                        data: { appointmentId: '{{id}}' }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-pagination-shell',
+                      type: 'container',
+                      config: {
+                        layout: { type: 'flex', flex: ['flex', 'items-center', 'justify-between', 'gap-3', 'flex-wrap'] },
+                        children: [
+                          {
+                            id: 'hospital-dashboard-pagination-meta',
+                            type: 'text',
+                            config: {
+                              mapping: { packageName: 'hospital', key: 'DashboardAppointments', property: 'pageLabel' },
+                              styles: { utilityClasses: 'text-sm font-medium text-slate-600' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-pagination-actions',
+                            type: 'container',
+                            config: {
+                              layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-2'] },
+                              children: [
+                                {
+                                  id: 'hospital-dashboard-pagination-prev',
+                                  type: 'button',
+                                  condition: {
+                                    expression: 'page > 0',
+                                    mappings: {
+                                      page: { packageName: 'hospital', key: 'DashboardAppointments', property: 'page' }
+                                    }
+                                  },
+                                  config: {
+                                    text: 'Previous',
+                                    styles: { styleTemplate: 'hosp.button.secondary' },
+                                    click: { actionId: 'dashboard-prev-page' }
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-pagination-next',
+                                  type: 'button',
+                                  condition: {
+                                    expression: 'hasNext',
+                                    mappings: {
+                                      hasNext: { packageName: 'hospital', key: 'DashboardAppointments', property: 'hasNext' }
+                                    }
+                                  },
+                                  config: {
+                                    text: 'Next',
+                                    styles: { styleTemplate: 'hosp.button.secondary' },
+                                    click: { actionId: 'dashboard-next-page' }
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-pagination-next-disabled',
+                                  type: 'button',
+                                  condition: {
+                                    expression: '!hasNext',
+                                    mappings: {
+                                      hasNext: { packageName: 'hospital', key: 'DashboardAppointments', property: 'hasNext' }
+                                    }
+                                  },
+                                  config: {
+                                    text: 'Next',
+                                    disabled: true,
+                                    styles: { styleTemplate: 'hosp.popup.button.disabled' }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                        ]
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-panel-working-slots',
+                      type: 'container',
+                      condition: {
+                        expression:
+                          "(String(role ?? '').toUpperCase() === 'ADMIN' || String(role ?? '').toUpperCase() === 'DOCTOR') && String(activeItem ?? '') === 'working-slots'",
+                        mappings: {
+                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+                          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+                        }
+                      },
+                      config: {
+                        styles: { utilityClasses: 'space-y-4' },
+                        children: [
+                          {
+                            id: 'hospital-dashboard-schedule-toolbar',
+                            type: 'container',
+                            config: {
+                              layout: {
+                                type: 'flex',
+                                flex: ['flex', 'flex-wrap', 'items-center', 'justify-between', 'gap-3', 'mb-2']
+                              },
+                              children: [
+                                {
+                                  id: 'hospital-dashboard-schedule-title',
+                                  type: 'text',
+                                  config: {
+                                    text: 'Set working time slots',
+                                    styles: { styleTemplate: 'hosp.section.heading', utilityClasses: 'text-2xl' }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-schedule-error',
+                            type: 'text',
+                            condition: {
+                              expression: 'scheduleErr && String(scheduleErr).trim().length > 0',
+                              mappings: {
+                                scheduleErr: { packageName: 'hospital', key: 'DoctorScheduleUi', property: 'error' }
+                              }
+                            },
+                            config: {
+                              mapping: { packageName: 'hospital', key: 'DoctorScheduleUi', property: 'error' },
+                              styles: { utilityClasses: 'text-sm font-medium text-red-600' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-schedule-admin-pick',
+                            type: 'dropdown',
+                            condition: {
+                              expression: "String(role ?? '').toUpperCase() === 'ADMIN'",
+                              mappings: {
+                                role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                              }
+                            },
+                            config: {
+                              label: 'Doctor',
+                              mapping: { packageName: 'hospital', key: 'DoctorScheduleAdminDoctors', property: 'list' },
+                              valueMapping: { packageName: 'hospital', key: 'DoctorScheduleUi', property: 'selectedDoctorId' },
+                              change: { actionId: 'set-working-slots-doctor' },
+                              styles: { styleTemplate: 'hosp.form.input', utilityClasses: 'max-w-md' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-schedule-doctor-label',
+                            type: 'text',
+                            condition: {
+                              expression: "String(role ?? '').toUpperCase() === 'DOCTOR'",
+                              mappings: {
+                                role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                              }
+                            },
+                            config: {
+                              mapping: { packageName: 'hospital', key: 'DoctorScheduleUi', property: 'doctorName' },
+                              styles: { utilityClasses: 'text-sm font-semibold text-slate-800' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-schedule-loading',
+                            type: 'text',
+                            condition: {
+                              expression: 'scheduleLoading',
+                              mappings: {
+                                scheduleLoading: { packageName: 'hospital', key: 'DoctorScheduleUi', property: 'loading' }
+                              }
+                            },
+                            config: {
+                              text: 'Loading…',
+                              styles: { utilityClasses: 'text-sm text-slate-600' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-schedule-editor',
+                            type: 'doctor-schedule-editor',
+                            condition: {
+                              expression:
+                                "String(role ?? '').toUpperCase() === 'ADMIN' || String(role ?? '').toUpperCase() === 'DOCTOR'",
+                              mappings: {
+                                role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                              }
+                            },
+                            config: {}
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              
+            ]
+          }
+        },
+        hospitalSiteFooter(
+          'hospital-dashboard-footer',
+          'Little Sprouts Care Dashboard | Manage appointments efficiently.'
+        )
       ]
     }
   },
@@ -532,57 +1465,71 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'patient-dashboard',
     title: 'Patient Dashboard',
-    initializeActions: [{ actionId: 'load-home-content' }],
+    initializeActions: [{ actionId: 'set-dashboard-header-active' }, { actionId: 'load-home-content' }],
     container: {
       layoutTemplate: 'hosp.page.root',
       children: [
+        ...hospitalPublicChromeTop,
         {
-          id: 'hospital-patient-dashboard-intro',
-          type: 'text',
-          config: { text: 'Patient Dashboard', styles: { styleTemplate: 'hosp.section.heading' } }
-        },
-        {
-          id: 'hospital-patient-dashboard-next-steps',
+          id: 'hospital-patient-dashboard-main',
           type: 'container',
           config: {
-            layoutTemplate: 'hosp.section.stack',
-            styles: { styleTemplate: 'hosp.section.card' },
+            styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col gap-6' },
             children: [
               {
-                id: 'hospital-patient-dashboard-guidance',
+                id: 'hospital-patient-dashboard-intro',
                 type: 'text',
-                config: {
-                  text: 'Review upcoming care highlights and schedule follow-up appointments quickly.',
-                  styles: { styleTemplate: 'hosp.section.subheading' }
-                }
+                config: { text: 'Patient Dashboard', styles: { styleTemplate: 'hosp.section.heading' } }
               },
               {
-                id: 'hospital-patient-dashboard-highlights',
-                type: 'list',
+                id: 'hospital-patient-dashboard-next-steps',
+                type: 'container',
                 config: {
-                  listStyleTemplate: 'hosp.highlights.grid',
-                  mapping: { packageName: 'hospital', key: 'HomeContent', property: 'highlights' },
-                  itemTemplate: {
-                    layoutTemplate: 'hosp.highlight.card',
-                    styles: { styleTemplate: 'hosp.highlight.card' },
-                    children: [
-                      {
-                        id: 'hospital-patient-dashboard-highlight-title',
-                        type: 'text',
-                        config: { text: '{{title}}', styles: { styleTemplate: 'hosp.highlight.title' } }
-                      },
-                      {
-                        id: 'hospital-patient-dashboard-highlight-detail',
-                        type: 'text',
-                        config: { text: '{{detail}}', styles: { styleTemplate: 'hosp.highlight.detail' } }
+                  layoutTemplate: 'hosp.section.stack',
+                  styles: { styleTemplate: 'hosp.section.card' },
+                  children: [
+                    {
+                      id: 'hospital-patient-dashboard-guidance',
+                      type: 'text',
+                      config: {
+                        text: 'Review upcoming care highlights and schedule follow-up appointments quickly.',
+                        styles: { styleTemplate: 'hosp.section.subheading' }
                       }
-                    ]
-                  }
+                    },
+                    {
+                      id: 'hospital-patient-dashboard-highlights',
+                      type: 'list',
+                      config: {
+                        listStyleTemplate: 'hosp.highlights.grid',
+                        mapping: { packageName: 'hospital', key: 'HomeContent', property: 'highlights' },
+                        itemTemplate: {
+                          layoutTemplate: 'hosp.highlight.card',
+                          styles: { styleTemplate: 'hosp.highlight.card' },
+                          children: [
+                            {
+                              id: 'hospital-patient-dashboard-highlight-title',
+                              type: 'text',
+                              config: { text: '{{title}}', styles: { styleTemplate: 'hosp.highlight.title' } }
+                            },
+                            {
+                              id: 'hospital-patient-dashboard-highlight-detail',
+                              type: 'text',
+                              config: { text: '{{detail}}', styles: { styleTemplate: 'hosp.highlight.detail' } }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             ]
           }
-        }
+        },
+        hospitalSiteFooter(
+          'hospital-patient-dashboard-footer',
+          'Little Sprouts Care | Your patient dashboard and care updates.'
+        )
       ]
     }
   },
@@ -590,54 +1537,68 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'doctor-overview',
     title: 'Doctor Overview',
-    initializeActions: [{ actionId: 'load-home-content' }],
+    initializeActions: [{ actionId: 'set-home-header-active' }, { actionId: 'load-home-content' }],
     container: {
       layoutTemplate: 'hosp.page.root',
       children: [
+        ...hospitalPublicChromeTop,
         {
-          id: 'hospital-doctor-overview-intro',
-          type: 'text',
-          config: { text: 'Doctor Overview', styles: { styleTemplate: 'hosp.section.heading' } }
-        },
-        {
-          id: 'hospital-doctor-overview-list',
-          type: 'list',
+          id: 'hospital-doctor-overview-main',
+          type: 'container',
           config: {
-            listStyleTemplate: 'hosp.doctors.grid',
-            mapping: { packageName: 'hospital', key: 'HomeContent', property: 'doctors' },
-            itemTemplate: {
-              layoutTemplate: 'hosp.doctor.card',
-              styles: { styleTemplate: 'hosp.doctor.card' },
-              children: [
-                {
-                  id: 'hospital-doctor-overview-image',
-                  type: 'image',
-                  config: { src: '{{image}}', styles: { styleTemplate: 'hosp.doctor.image' } }
-                },
-                {
-                  id: 'hospital-doctor-overview-name',
-                  type: 'text',
-                  config: { text: '{{name}}', styles: { styleTemplate: 'hosp.doctor.name' } }
-                },
-                {
-                  id: 'hospital-doctor-overview-speciality',
-                  type: 'text',
-                  config: { text: '{{speciality}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
-                },
-                {
-                  id: 'hospital-doctor-overview-degree',
-                  type: 'text',
-                  config: { text: '{{degree}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
-                },
-                {
-                  id: 'hospital-doctor-overview-experience',
-                  type: 'text',
-                  config: { text: '{{experience}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
+            styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col gap-6' },
+            children: [
+              {
+                id: 'hospital-doctor-overview-intro',
+                type: 'text',
+                config: { text: 'Doctor Overview', styles: { styleTemplate: 'hosp.section.heading' } }
+              },
+              {
+                id: 'hospital-doctor-overview-list',
+                type: 'list',
+                config: {
+                  listStyleTemplate: 'hosp.doctors.grid',
+                  mapping: { packageName: 'hospital', key: 'HomeContent', property: 'doctors' },
+                  itemTemplate: {
+                    layoutTemplate: 'hosp.doctor.card',
+                    styles: { styleTemplate: 'hosp.doctor.card' },
+                    children: [
+                      {
+                        id: 'hospital-doctor-overview-image',
+                        type: 'image',
+                        config: { src: '{{image}}', styles: { styleTemplate: 'hosp.doctor.image' } }
+                      },
+                      {
+                        id: 'hospital-doctor-overview-name',
+                        type: 'text',
+                        config: { text: '{{name}}', styles: { styleTemplate: 'hosp.doctor.name' } }
+                      },
+                      {
+                        id: 'hospital-doctor-overview-speciality',
+                        type: 'text',
+                        config: { text: '{{speciality}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
+                      },
+                      {
+                        id: 'hospital-doctor-overview-degree',
+                        type: 'text',
+                        config: { text: '{{degree}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
+                      },
+                      {
+                        id: 'hospital-doctor-overview-experience',
+                        type: 'text',
+                        config: { text: '{{experience}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
+                      }
+                    ]
+                  }
                 }
-              ]
-            }
+              }
+            ]
           }
-        }
+        },
+        hospitalSiteFooter(
+          'hospital-doctor-overview-footer',
+          'Little Sprouts Care | Meet our care team and specialists.'
+        )
       ]
     }
   },
@@ -869,7 +1830,10 @@ export const hospitalPages: PageConfig[] = [
                               hideNil: true
                             }
                           },
-                          onSuccess: { actionType: 'closePopup' }
+                          onSuccess: {
+                            actionType: 'closePopup',
+                            onSuccess: { actionType: 'reloadWindow' }
+                          }
                         }
                       }
                     }
@@ -1451,15 +2415,17 @@ export const hospitalPages: PageConfig[] = [
               },
               {
                 id: 'hospital-popup-age',
-                type: 'dropdown',
+                type: 'input',
                 config: {
-                  label: 'Age *',
-                  options: [
-                    { id: 'AgeBelow1', label: 'Below 1 Year', value: 'LessThan1Year' },
-                    { id: 'OneToTen', label: '1 - 10 Years', value: 'OneToTen' },
-                    { id: 'dAbove10', label: 'Above 10 Years', value: 'Above10' }
-                  ],
-                  change: { actionId: 'set-appointment-age' },
+                  label: 'Age (years) *',
+                  placeholder: 'Age in numbers, max 20',
+                  inputType: 'text',
+                  inputMode: 'numeric',
+                  pattern: '[0-9]*',
+                  numericOnly: true,
+                  maxlength: 2,
+                  mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'ageGroup' },
+                  change: { actionId: 'set-appointment-age', data: { maxAge: 20 } },
                   styles: { styleTemplate: 'hosp.form.input' }
                 }
               },
@@ -1549,8 +2515,10 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-time-slot-disabled',
                 type: 'dropdown',
                 condition: {
-                  expression: "!preferredDate || String(preferredDate).trim().length === 0",
+                  expression:
+                    "!doctor || String(doctor).trim().length === 0 || !preferredDate || String(preferredDate).trim().length === 0",
                   mappings: {
+                    doctor: { packageName: 'hospital', key: 'AppointmentForm', property: 'doctor' },
                     preferredDate: {
                       packageName: 'hospital',
                       key: 'AppointmentForm',
@@ -1561,20 +2529,7 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   label: 'Preferred Time Slot *',
                   disabled: true,
-                  options: [
-                    { id: 't1000', label: '10:00 AM - 10:15 AM', value: '10:00-10:15' },
-                    { id: 't1015', label: '10:15 AM - 10:30 AM', value: '10:15-10:30' },
-                    { id: 't1030', label: '10:30 AM - 10:45 AM', value: '10:30-10:45' },
-                    { id: 't1045', label: '10:45 AM - 11:00 AM', value: '10:45-11:00' },
-                    { id: 't1100', label: '11:00 AM - 11:15 AM', value: '11:00-11:15' },
-                    { id: 't1115', label: '11:15 AM - 11:30 AM', value: '11:15-11:30' },
-                    { id: 't1130', label: '11:30 AM - 11:45 AM', value: '11:30-11:45' },
-                    { id: 't1145', label: '11:45 AM - 12:00 PM', value: '11:45-12:00' },
-                    { id: 't1200', label: '12:00 PM - 12:15 PM', value: '12:00-12:15' },
-                    { id: 't1215', label: '12:15 PM - 12:30 PM', value: '12:15-12:30' },
-                    { id: 't1230', label: '12:30 PM - 12:45 PM', value: '12:30-12:45' },
-                    { id: 't1245', label: '12:45 PM - 01:00 PM', value: '12:45-13:00' }
-                  ],
+                  mapping: { packageName: 'hospital', key: 'AppointmentTimeSlots', property: 'list' },
                   styles: { styleTemplate: 'hosp.form.input' }
                 }
               },
@@ -1582,8 +2537,10 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-time-slot',
                 type: 'dropdown',
                 condition: {
-                  expression: "preferredDate && String(preferredDate).trim().length > 0",
+                  expression:
+                    "doctor && String(doctor).trim().length > 0 && preferredDate && String(preferredDate).trim().length > 0",
                   mappings: {
+                    doctor: { packageName: 'hospital', key: 'AppointmentForm', property: 'doctor' },
                     preferredDate: {
                       packageName: 'hospital',
                       key: 'AppointmentForm',
@@ -1593,22 +2550,30 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   label: 'Preferred Time Slot *',
-                  options: [
-                    { id: 't1000', label: '10:00 AM - 10:15 AM', value: '10:00-10:15' },
-                    { id: 't1015', label: '10:15 AM - 10:30 AM', value: '10:15-10:30' },
-                    { id: 't1030', label: '10:30 AM - 10:45 AM', value: '10:30-10:45' },
-                    { id: 't1045', label: '10:45 AM - 11:00 AM', value: '10:45-11:00' },
-                    { id: 't1100', label: '11:00 AM - 11:15 AM', value: '11:00-11:15' },
-                    { id: 't1115', label: '11:15 AM - 11:30 AM', value: '11:15-11:30' },
-                    { id: 't1130', label: '11:30 AM - 11:45 AM', value: '11:30-11:45' },
-                    { id: 't1145', label: '11:45 AM - 12:00 PM', value: '11:45-12:00' },
-                    { id: 't1200', label: '12:00 PM - 12:15 PM', value: '12:00-12:15' },
-                    { id: 't1215', label: '12:15 PM - 12:30 PM', value: '12:15-12:30' },
-                    { id: 't1230', label: '12:30 PM - 12:45 PM', value: '12:30-12:45' },
-                    { id: 't1245', label: '12:45 PM - 01:00 PM', value: '12:45-13:00' }
-                  ],
+                  mapping: { packageName: 'hospital', key: 'AppointmentTimeSlots', property: 'list' },
+                  valueMapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'preferredTimeSlot' },
                   change: { actionId: 'set-appointment-time-slot' },
                   styles: { styleTemplate: 'hosp.form.input' }
+                }
+              },
+              {
+                id: 'hospital-popup-time-slot-empty-hint',
+                type: 'text',
+                condition: {
+                  expression: 'slotAvailabilityMessage && String(slotAvailabilityMessage).trim().length > 0',
+                  mappings: {
+                    slotAvailabilityMessage: {
+                      packageName: 'hospital',
+                      key: 'AppointmentForm',
+                      property: 'slotAvailabilityMessage'
+                    }
+                  }
+                },
+                config: {
+                  mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'slotAvailabilityMessage' },
+                  styles: {
+                    utilityClasses: 'mt-1 block w-full text-left text-sm text-red-600 md:col-start-2'
+                  }
                 }
               },
               {
@@ -1748,63 +2713,159 @@ export const hospitalPages: PageConfig[] = [
         }
       ]
     }
-  }
-  ,
+  },
+  hospitalBookAppointmentPage,
+  hospitalBookAppointmentPopupPage,
   {
     packageName: 'hospital',
-    pageId: 'chat',
-    title: 'Chat',
-    initializeActions: [{ actionId: 'chat-connect' }],
+    pageId: 'appointment-receipts-popup',
+    title: 'Appointment Receipts',
     container: {
-      layoutTemplate: 'hosp.page.root',
+      layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-4'] },
       children: [
         {
-          id: 'hospital-chat-header',
+          id: 'hospital-receipts-popup-header',
           type: 'container',
           config: {
-            layoutTemplate: 'hosp.header.shell',
-            styles: { styleTemplate: 'hosp.header.card' },
+            layoutTemplate: 'hosp.popup.header',
             children: [
               {
-                id: 'hospital-chat-header-brand',
-                type: 'container',
-                config: {
-                  layoutTemplate: 'hosp.header.brand',
-                  children: [
-                    {
-                      id: 'hospital-chat-header-title',
-                      type: 'text',
-                      config: { text: 'Chat', styles: { styleTemplate: 'hosp.header.title' } }
-                    }
-                  ]
-                }
+                id: 'hospital-receipts-popup-title',
+                type: 'text',
+                config: { text: 'Receipts', styles: { styleTemplate: 'hosp.popup.header.title' } }
               },
               {
-                id: 'hospital-chat-header-actions',
-                type: 'container',
+                id: 'hospital-receipts-popup-close',
+                type: 'button',
                 config: {
-                  layoutTemplate: 'hosp.header.actions',
-                  children: [
-                    {
-                      id: 'hospital-chat-header-home',
-                      type: 'button',
-                      config: {
-                        text: 'Home',
-                        styles: { styleTemplate: 'hosp.header.menuButton' },
-                        click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-                      }
-                    }
-                  ]
+                  text: 'X',
+                  styles: { styleTemplate: 'hosp.popup.header.closeButton' },
+                  click: { actionId: 'close-appointment-receipt-viewer' }
                 }
               }
             ]
           }
         },
         {
-          id: 'hospital-chat-body',
+          id: 'hospital-receipts-popup-scroll-shell',
           type: 'container',
           config: {
-            styles: { utilityClasses: 'px-4 sm:px-6 md:px-8 py-6' },
+            styles: { utilityClasses: 'max-h-[60vh] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3' },
+            children: [
+              {
+                id: 'hospital-receipts-popup-empty',
+                type: 'text',
+                condition: {
+                  expression: '!items || items.length === 0',
+                  mappings: {
+                    items: { packageName: 'hospital', key: 'DashboardReceiptViewer', property: 'items' }
+                  }
+                },
+                config: {
+                  text: 'No receipts found for this appointment.',
+                  styles: { utilityClasses: 'text-sm text-slate-600' }
+                }
+              },
+              {
+                id: 'hospital-receipts-popup-list',
+                type: 'list',
+                condition: {
+                  expression: 'items && items.length > 0',
+                  mappings: {
+                    items: { packageName: 'hospital', key: 'DashboardReceiptViewer', property: 'items' }
+                  }
+                },
+                config: {
+                  listStyleTemplate: 'hosp.section.stack',
+                  mapping: { packageName: 'hospital', key: 'DashboardReceiptViewer', property: 'items' },
+                  itemTemplate: {
+                    layoutTemplate: 'hosp.section.stack',
+                    styles: { utilityClasses: 'rounded-lg border border-slate-200 bg-white p-3 mb-3' },
+                    children: [
+                      {
+                        id: 'hospital-receipts-popup-item-file-name',
+                        type: 'text',
+                        config: {
+                          text: '{{fileName}}',
+                          styles: { utilityClasses: 'text-xs font-semibold text-slate-700 mb-2' }
+                        }
+                      },
+                      {
+                        id: 'hospital-receipts-popup-item-image',
+                        type: 'image',
+                        config: {
+                          src: '{{src}}',
+                          alt: '{{fileName}}',
+                          styles: { utilityClasses: 'w-full rounded-md border border-slate-100 bg-white object-contain max-h-[42vh]' }
+                        }
+                      },
+                      {
+                        id: 'hospital-receipts-popup-item-actions',
+                        type: 'container',
+                        config: {
+                          layout: { type: 'flex', flex: ['flex', 'items-center', 'justify-end', 'gap-2', 'mt-2'] },
+                          children: [
+                            {
+                              id: 'hospital-receipts-popup-item-download',
+                              type: 'button',
+                              config: {
+                                text: '{{downloadActionIcon}}',
+                                title: 'Download',
+                                styles: {
+                                  utilityClasses:
+                                    'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-700 hover:bg-emerald-50'
+                                },
+                                click: {
+                                  actionId: 'download-appointment-receipt',
+                                  data: { src: '{{src}}', fileName: '{{fileName}}' }
+                                }
+                              }
+                            },
+                            {
+                              id: 'hospital-receipts-popup-item-delete',
+                              type: 'button',
+                              config: {
+                                text: '{{deleteActionIcon}}',
+                                hiddenWhenEmptyText: true,
+                                title: 'Delete',
+                                styles: {
+                                  utilityClasses:
+                                    'rounded-md border border-rose-400 px-2 py-1 text-xs leading-none text-rose-700 hover:bg-rose-50'
+                                },
+                                click: {
+                                  actionId: 'delete-appointment-receipt-item',
+                                  data: { receiptId: '{{id}}' }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+  ,
+  {
+    packageName: 'hospital',
+    pageId: 'chat',
+    title: 'Chat',
+    initializeActions: [{ actionId: 'set-home-header-active' }, { actionId: 'chat-connect' }],
+    container: {
+      layoutTemplate: 'hosp.page.root',
+      children: [
+        ...hospitalPublicChromeTop,
+        {
+          id: 'hospital-chat-main',
+          type: 'container',
+          config: {
+            styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col px-4 sm:px-6 md:px-8 py-6' },
             children: [
               {
                 id: 'hospital-chat-root',
@@ -1820,7 +2881,11 @@ export const hospitalPages: PageConfig[] = [
               }
             ]
           }
-        }
+        },
+        hospitalSiteFooter(
+          'hospital-chat-footer',
+          'Little Sprouts Care | Questions? Our team is here to help.'
+        )
       ]
     }
   },
@@ -1887,9 +2952,33 @@ export const hospitalPages: PageConfig[] = [
   },
   {
     packageName: 'hospital',
+    pageId: 'doctor-working-slots',
+    title: 'Set working time slots',
+    initializeActions: [
+      { actionId: 'set-dashboard-nav-working-slots' },
+      { actionId: 'set-dashboard-header-active' },
+      { actionId: 'init-doctor-working-slots' },
+      { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+    ],
+    container: {
+      layoutTemplate: 'hosp.page.root',
+      children: [
+        {
+          id: 'hospital-doctor-working-slots-redirect',
+          type: 'container',
+          config: {
+            styles: { utilityClasses: 'sr-only' },
+            children: []
+          }
+        }
+      ]
+    }
+  },
+  {
+    packageName: 'hospital',
     pageId: 'video-call-popup',
     title: 'Video Call',
-    initializeActions: [{ actionId: 'call-connect' }],
+    initializeActions: [{ actionId: 'call-connect' }, { actionId: 'call-send-appointment-invite' }],
     container: {
       layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-4'] },
       children: [

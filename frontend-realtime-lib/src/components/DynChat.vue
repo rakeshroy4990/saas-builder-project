@@ -70,12 +70,28 @@ const myDisplayName = computed(() => {
 const looksLikeMongoId = (value: string): boolean => /^[a-f0-9]{24}$/i.test(value);
 
 const resolveSenderLabel = (m: any): string => {
+  const senderDisplayName = String(
+    m?.senderDisplayName ??
+      m?.senderName ??
+      m?.displayName ??
+      m?.fromUserDisplayName ??
+      m?.fromUserName ??
+      m?.userName ??
+      m?.username ??
+      m?.name ??
+      m?.fullName ??
+      m?.senderFullName ??
+      m?.SenderDisplayName ??
+      m?.SenderName ??
+      ''
+  ).trim();
+  if (senderDisplayName) return senderDisplayName;
   const senderId = String(m?.senderId ?? '').trim();
   if (!senderId) return '';
   if (senderId === 'me') return myDisplayName.value;
   if (myUserId.value && senderId === myUserId.value) return myDisplayName.value;
   if (senderId === (props.config?.supportUserId ?? 'support')) return 'Support';
-  if (looksLikeMongoId(senderId)) return senderId.slice(0, 6);
+  if (looksLikeMongoId(senderId)) return isAdmin.value ? 'Patient' : 'Support';
   return senderId.length > 32 ? `${senderId.slice(0, 12)}…` : senderId;
 };
 
@@ -103,6 +119,8 @@ const activeMessages = computed(() => {
 });
 
 const draft = ref('');
+const activeInlineEditKey = ref('');
+const inlineEditText = ref('');
 const rootClass = computed(() =>
   resolveStyle({ utilityClasses: props.config?.styles?.utilityClasses ?? 'w-full' })
 );
@@ -155,19 +173,64 @@ const send = async () => {
     payload: { roomId: rid, body, clientMessageId: crypto.randomUUID() }
   });
 };
+
+const canSendNow = computed(
+  () =>
+    Boolean(activeRoomId.value) ||
+    isWaitingForAdmin.value ||
+    chatStatus.value === 'starting' ||
+    chatStatus.value === 'connecting'
+);
+
+const messageKey = (m: any): string =>
+  String(m?.messageId ?? m?.clientMessageId ?? `${m?.senderId ?? ''}-${m?.createdTimestamp ?? ''}`);
+
+const editMessage = (m: any) => {
+  const body = String(m?.body ?? '').trim();
+  if (!body) return;
+  activeInlineEditKey.value = messageKey(m);
+  inlineEditText.value = body;
+};
+
+const resendMessage = (m: any) => {
+  if (!canSendNow.value) return;
+  const body = String(m?.body ?? '').trim();
+  if (!body) return;
+  emit('action', {
+    action: props.config?.sendMessageAction,
+    payload: { roomId: activeRoomId.value, body, clientMessageId: crypto.randomUUID() }
+  });
+};
+
+const cancelInlineEdit = () => {
+  activeInlineEditKey.value = '';
+  inlineEditText.value = '';
+};
+
+const sendInlineEdit = (m: any) => {
+  if (!canSendNow.value) return;
+  const body = inlineEditText.value.trim();
+  if (!body) return;
+  emit('action', {
+    action: props.config?.sendMessageAction,
+    payload: { roomId: activeRoomId.value, body, clientMessageId: crypto.randomUUID() }
+  });
+  // Keep original message immutable; edited text is sent as a new message.
+  cancelInlineEdit();
+};
 </script>
 
 <template>
   <div :id="htmlId" :class="rootClass">
     <div :class="shellClass">
       <div class="flex min-h-[360px] flex-1 flex-col gap-3 overflow-y-auto bg-slate-50/50 p-4">
-        <div v-if="supportRequests.length > 0" class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+        <div v-if="isAdmin && supportRequests.length > 0" class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
           <div class="text-sm font-semibold text-amber-900">Incoming chat request</div>
           <div class="mt-1 text-xs text-amber-800">An admin can accept to start a 1:1 chat.</div>
           <div class="mt-3 flex flex-col gap-2">
             <div
               v-for="r in supportRequests"
-              :key="String(r?.requestId ?? r?.id ?? Math.random())"
+              :key="String(r?.requestId ?? r?.id ?? r?.requesterUserId ?? '')"
               class="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2"
             >
               <div class="min-w-0">
@@ -246,7 +309,7 @@ const send = async () => {
 
           <div
             v-for="m in activeMessages"
-            :key="String(m?.messageId ?? m?.clientMessageId ?? Math.random())"
+            :key="messageKey(m)"
             class="flex min-w-0"
           >
             <div
@@ -270,6 +333,50 @@ const send = async () => {
                     <div v-if="formatTime(m)" class="text-[11px] opacity-70">{{ formatTime(m) }}</div>
                   </div>
                   <div class="whitespace-pre-wrap break-words leading-relaxed">{{ m?.body }}</div>
+                  <div
+                    v-if="isMine(m) && activeInlineEditKey === messageKey(m)"
+                    class="mt-2 rounded-xl border border-emerald-200 bg-white p-3 text-slate-900 shadow-sm"
+                  >
+                    <div class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                      Edit message
+                    </div>
+                    <input
+                      v-model="inlineEditText"
+                      type="text"
+                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                      placeholder="Edit message"
+                      @keydown.enter.prevent="sendInlineEdit(m)"
+                    />
+                    <div class="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        class="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                        :disabled="!canSendNow || !inlineEditText.trim()"
+                        @click="sendInlineEdit(m)"
+                      >
+                        Send now
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-full border border-slate-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        @click="cancelInlineEdit"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    v-if="isMine(m) && m?.status !== 'pending' && activeInlineEditKey !== messageKey(m)"
+                    class="mt-1 flex items-center gap-2"
+                  >
+                    <button
+                      type="button"
+                      class="rounded-full border border-emerald-300 bg-white/15 px-3 py-1 text-xs font-semibold text-white hover:bg-white/25"
+                      @click="editMessage(m)"
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -283,14 +390,14 @@ const send = async () => {
             v-model="draft"
             class="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
             type="text"
-            :disabled="!activeRoomId && !isWaitingForAdmin && chatStatus !== 'starting' && chatStatus !== 'connecting'"
+            :disabled="!canSendNow"
             placeholder="Type a message…"
             @keydown.enter.prevent="send"
           />
           <button
             class="rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
             type="button"
-            :disabled="!activeRoomId && !isWaitingForAdmin && chatStatus !== 'starting' && chatStatus !== 'connecting'"
+            :disabled="!canSendNow"
             @click="send"
           >
             Send

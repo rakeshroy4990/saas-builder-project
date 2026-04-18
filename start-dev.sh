@@ -48,6 +48,8 @@ BACKEND_DEBUG_PORT="${BACKEND_DEBUG_PORT:-5005}"
 BACKEND_DEBUG_SUSPEND="${BACKEND_DEBUG_SUSPEND:-n}"
 # Set RUN_TESTS=1 to run Gradle tests during the server build (slower).
 RUN_TESTS="${RUN_TESTS:-0}"
+# Coturn (TURN) for WebRTC: START_COTURN unset = on for UI_APP=hospital only; 1 = always; 0 = skip.
+START_COTURN="${START_COTURN:-}"
 
 setup_gradle_java() {
   # Gradle/Kotlin DSL in this project can fail on very new JDKs (e.g. 26).
@@ -118,6 +120,42 @@ kill_port() {
     kill -9 $pids
   else
     echo "Port $port is free."
+  fi
+}
+
+should_start_coturn() {
+  if [[ "$START_COTURN" == "0" ]]; then
+    return 1
+  fi
+  if [[ "$START_COTURN" == "1" ]]; then
+    return 0
+  fi
+  [[ "$UI_APP" == "hospital" ]]
+}
+
+restart_coturn() {
+  local compose_dir="$ROOT_DIR/infra/coturn"
+  if [[ ! -f "$compose_dir/docker-compose.yml" ]]; then
+    echo "No $compose_dir/docker-compose.yml; skipping coturn."
+    return
+  fi
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "docker not in PATH; skipping coturn (see infra/coturn/README.md)."
+    return
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "Docker daemon not reachable (e.g. Docker Desktop not running or no /var/run/docker.sock)."
+    echo "Skipping coturn; start Docker and re-run, or use START_COTURN=0 $0 to skip this step."
+    return
+  fi
+  echo "Restarting coturn (stop existing stack if any, then up)..."
+  if ! (
+    cd "$compose_dir"
+    docker compose down 2>/dev/null || true
+    docker compose up -d
+    docker compose ps
+  ); then
+    echo "Warning: coturn docker compose failed; continue without TURN." >&2
   fi
 }
 
@@ -262,6 +300,12 @@ describe_port_owner "$BACKEND_PORT" "backend"
 kill_port "$UI_PORT"
 kill_port "$BACKEND_PORT"
 
+if should_start_coturn; then
+  restart_coturn
+else
+  echo "Coturn skipped (START_COTURN=$START_COTURN, UI_APP=$UI_APP). Tip: START_COTURN=1 $0 to force."
+fi
+
 start_frontend
 start_backend
 
@@ -280,6 +324,7 @@ if [[ "$RUN_TESTS" != "1" ]]; then
 fi
 echo "Tip      : BACKEND_DEBUG=1 BACKEND_DEBUG_PORT=5005 $0"
 echo "Tip      : UI_APP=hospital $0  (or UI_APP=social $0)"
+echo "Tip      : Hospital dev starts coturn via Docker; START_COTURN=0 $0 to skip."
 echo "Tip      : BACKEND_APP=social UI_APP=ecommerce $0"
 echo "Press Ctrl+C to stop both."
 echo ""

@@ -31,6 +31,11 @@ export class ActionEngine {
         this.showPopup(action.popup);
       } else if (action.actionType === 'closePopup') {
         usePopupStore(pinia).close();
+        if (action.onSuccess) {
+          await this.execute(action.onSuccess);
+        }
+      } else if (action.actionType === 'reloadWindow') {
+        window.location.reload();
       }
     } catch (err) {
       if (action.onFailure) await this.execute(action.onFailure);

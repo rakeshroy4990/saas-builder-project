@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "FlexShell Backend (env file)",
+      "request": "launch",
+      "mainClass": "com.flexshell.FlexShellApplication",
+      "projectName": "backend",
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/backend/.env"
+    }
+  ]
+}

@@ -8,3 +8,33 @@ body {
   background: #f8fafc;
   color: #0f172a;
 }
+
+@keyframes hospSidebarCloseRightToLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-14px);
+    opacity: 0.92;
+  }
+}
+
+@keyframes hospSidebarOpenLeftToRight {
+  from {
+    transform: translateX(-14px);
+    opacity: 0.92;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.hosp-sidebar-collapse {
+  animation: hospSidebarCloseRightToLeft 220ms ease-in-out;
+}
+
+.hosp-sidebar-expand {
+  animation: hospSidebarOpenLeftToRight 220ms ease-in-out;
+}

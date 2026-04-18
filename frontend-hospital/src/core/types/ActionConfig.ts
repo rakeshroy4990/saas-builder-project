@@ -1,6 +1,6 @@
 import type { MappingConfig } from './MappingConfig';
 
-export type ActionType = 'service' | 'navigate' | 'showPopup' | 'closePopup';
+export type ActionType = 'service' | 'navigate' | 'showPopup' | 'closePopup' | 'reloadWindow';
 
 export interface NavigationConfig {
   packageName: string;
@@ -12,6 +12,8 @@ export interface PopupRequest {
   pageId: string;
   packageName: string;
   title?: string;
+  /** When set, GlobalPopup treats each open as a new instance (re-runs `initializeActions`). */
+  initKey?: string;
 }
 
 export interface ActionConfig {
