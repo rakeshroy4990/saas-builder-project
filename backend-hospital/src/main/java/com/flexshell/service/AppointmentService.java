@@ -8,7 +8,12 @@ import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.AppointmentFileResponse;
 import com.flexshell.controller.dto.AppointmentRequest;
 import com.flexshell.controller.dto.AppointmentResponse;
+import com.flexshell.controller.dto.AvailableSlotDto;
+import com.flexshell.controller.dto.AvailableSlotsResponse;
+import com.flexshell.doctorschedule.DoctorScheduleEntity;
+import com.flexshell.doctorschedule.DoctorScheduleRepository;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -16,28 +21,50 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class AppointmentService {
     private static final String DEFAULT_STATUS_OPEN = "Open";
+    private static final String STATUS_CANCELLED = "CANCELLED";
     private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
     private final ObjectProvider<UserRepository> userRepositoryProvider;
+    private final ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider;
+    private final ZoneId hospitalZoneId;
 
     public AppointmentService(
             ObjectProvider<AppointmentRepository> appointmentRepositoryProvider,
-            ObjectProvider<UserRepository> userRepositoryProvider
+            ObjectProvider<UserRepository> userRepositoryProvider,
+            ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider,
+            @Qualifier("hospitalZoneId") ZoneId hospitalZoneId
     ) {
         this.appointmentRepositoryProvider = appointmentRepositoryProvider;
         this.userRepositoryProvider = userRepositoryProvider;
+        this.doctorScheduleRepositoryProvider = doctorScheduleRepositoryProvider;
+        this.hospitalZoneId = hospitalZoneId;
     }
 
     public AppointmentResponse create(AppointmentRequest request, List<MultipartFile> prescriptionFiles, String actorUserId) {
         AppointmentRepository repository = requireAppointmentRepository();
         AppointmentEntity entity = new AppointmentEntity();
         applyRequest(entity, request, prescriptionFiles);
+        assertPreferredSlotAllowed(
+                normalize(entity.getDoctorId()),
+                normalize(entity.getPreferredDate()),
+                normalize(entity.getPreferredTimeSlot()));
+        assertNoActiveSlotConflict(
+                normalize(entity.getDoctorId()),
+                normalize(entity.getPreferredDate()),
+                normalize(entity.getPreferredTimeSlot()),
+                null);
         Instant now = Instant.now();
         entity.setCreatedTimestamp(now);
         entity.setUpdatedTimestamp(now);
@@ -54,6 +81,15 @@ public class AppointmentService {
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
         ensureCanAccessAppointment(entity, actorUserId);
         applyRequest(entity, request, prescriptionFiles);
+        assertPreferredSlotAllowed(
+                normalize(entity.getDoctorId()),
+                normalize(entity.getPreferredDate()),
+                normalize(entity.getPreferredTimeSlot()));
+        assertNoActiveSlotConflict(
+                normalize(entity.getDoctorId()),
+                normalize(entity.getPreferredDate()),
+                normalize(entity.getPreferredTimeSlot()),
+                id);
         entity.setDoctorName(resolveDoctorName(entity.getDoctorId()));
         entity.setUpdatedTimestamp(Instant.now());
         entity.setUpdatedBy(actorUserId);
@@ -69,6 +105,21 @@ public class AppointmentService {
         return true;
     }
 
+    /** Soft cancel: sets status to CANCELLED instead of removing the document. */
+    public AppointmentResponse cancel(String id, String actorUserId) {
+        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentEntity entity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
+        ensureCanAccessAppointment(entity, actorUserId);
+        if (STATUS_CANCELLED.equalsIgnoreCase(normalize(entity.getStatus()))) {
+            return toResponse(entity);
+        }
+        entity.setStatus(STATUS_CANCELLED);
+        entity.setUpdatedTimestamp(Instant.now());
+        entity.setUpdatedBy(actorUserId);
+        return toResponse(repository.save(entity));
+    }
+
     public AppointmentResponse getById(String id, String actorUserId) {
         AppointmentRepository repository = requireAppointmentRepository();
         AppointmentEntity entity = repository.findById(id)
@@ -82,10 +133,131 @@ public class AppointmentService {
         int safePage = Math.max(0, page);
         int safeSize = size <= 0 ? 20 : Math.min(size, 100);
         PageRequest pageRequest = PageRequest.of(safePage, safeSize);
-        Page<AppointmentEntity> result = isAdmin(actorUserId)
-                ? repository.findAll(pageRequest)
-                : repository.findByCreatedBy(actorUserId, pageRequest);
+        UserRole actorRole = resolveUserRole(actorUserId);
+        Page<AppointmentEntity> result;
+        if (actorRole == UserRole.ADMIN) {
+            result = repository.findAll(pageRequest);
+        } else if (actorRole == UserRole.DOCTOR) {
+            result = repository.findByDoctorId(actorUserId, pageRequest);
+        } else {
+            result = repository.findByCreatedBy(actorUserId, pageRequest);
+        }
         return result.stream().map(this::toResponse).toList();
+    }
+
+    public List<String> listOccupiedTimeSlots(String doctorId, String preferredDate, String excludeAppointmentId, String actorUserId) {
+        String docId = normalize(doctorId);
+        String date = normalize(preferredDate);
+        if (docId.isBlank() || date.isBlank()) {
+            return List.of();
+        }
+        ensureActorCanQueryDoctorOccupiedSlots(actorUserId, docId);
+        if (isGridDateBeforeToday(date)) {
+            return List.of();
+        }
+        String exclude = normalize(excludeAppointmentId);
+        AppointmentRepository repository = requireAppointmentRepository();
+        List<AppointmentEntity> rows = repository.findByDoctorIdAndPreferredDate(docId, date);
+        Set<String> slots = new LinkedHashSet<>();
+        for (AppointmentEntity row : rows) {
+            if (!exclude.isBlank() && exclude.equals(row.getId())) {
+                continue;
+            }
+            if (!isOpenAppointmentBlockingSlot(row)) {
+                continue;
+            }
+            String slot = normalize(row.getPreferredTimeSlot());
+            if (!slot.isBlank()) {
+                slots.add(slot);
+            }
+        }
+        return new ArrayList<>(slots);
+    }
+
+    /**
+     * Booking UI: schedule-based slots minus slots held by open appointments on that day.
+     * Same rules as {@link #listAvailableTimeSlots}; exposed on a dedicated path for the book flow.
+     */
+    public AvailableSlotsResponse listBookingAvailableTimeSlots(
+            String doctorId,
+            String preferredDate,
+            String excludeAppointmentId,
+            String actorUserId
+    ) {
+        return listAvailableTimeSlots(doctorId, preferredDate, excludeAppointmentId, actorUserId);
+    }
+
+    public AvailableSlotsResponse listAvailableTimeSlots(
+            String doctorId,
+            String preferredDate,
+            String excludeAppointmentId,
+            String actorUserId
+    ) {
+        String docId = normalize(doctorId);
+        String date = normalize(preferredDate);
+        if (docId.isBlank() || date.isBlank()) {
+            return new AvailableSlotsResponse(false, List.of());
+        }
+        ensureActorCanQueryDoctorOccupiedSlots(actorUserId, docId);
+        if (isGridDateBeforeToday(date)) {
+            return new AvailableSlotsResponse(false, List.of());
+        }
+        LocalDate d = parseIsoLocalDate(date);
+        if (d == null) {
+            return new AvailableSlotsResponse(false, List.of());
+        }
+        List<String> base;
+        boolean usesSchedule = false;
+        DoctorScheduleRepository scheduleRepository = doctorScheduleRepositoryProvider.getIfAvailable();
+        if (scheduleRepository != null) {
+            Optional<DoctorScheduleEntity> schOpt = scheduleRepository.findByDoctorId(docId);
+            if (schOpt.isPresent() && DoctorSlotGenerator.scheduleHasEnabledWorkingDay(schOpt.get())) {
+                usesSchedule = true;
+                base = DoctorSlotGenerator.generateSlotValues(d, hospitalZoneId, schOpt.get());
+            } else {
+                base = new ArrayList<>(LegacySlotCatalog.slotValues());
+            }
+        } else {
+            base = new ArrayList<>(LegacySlotCatalog.slotValues());
+        }
+        Set<String> occupied = new LinkedHashSet<>(
+                listOccupiedTimeSlots(docId, date, excludeAppointmentId, actorUserId));
+        List<AvailableSlotDto> slots = new ArrayList<>();
+        for (String value : base) {
+            if (!occupied.contains(value)) {
+                slots.add(new AvailableSlotDto(value, DoctorSlotGenerator.formatLabel(value)));
+            }
+        }
+        return new AvailableSlotsResponse(usesSchedule, slots);
+    }
+
+    private void assertPreferredSlotAllowed(String doctorId, String preferredDate, String preferredTimeSlot) {
+        if (doctorId.isBlank() || preferredDate.isBlank() || preferredTimeSlot.isBlank()) {
+            return;
+        }
+        LocalDate d = parseIsoLocalDate(preferredDate);
+        if (d == null) {
+            throw new IllegalArgumentException("PreferredDate is invalid");
+        }
+        List<String> allowed;
+        boolean usesSchedule = false;
+        DoctorScheduleRepository scheduleRepository = doctorScheduleRepositoryProvider.getIfAvailable();
+        if (scheduleRepository != null) {
+            Optional<DoctorScheduleEntity> schOpt = scheduleRepository.findByDoctorId(doctorId);
+            if (schOpt.isPresent() && DoctorSlotGenerator.scheduleHasEnabledWorkingDay(schOpt.get())) {
+                usesSchedule = true;
+                allowed = DoctorSlotGenerator.generateSlotValues(d, hospitalZoneId, schOpt.get());
+            } else {
+                allowed = LegacySlotCatalog.slotValues();
+            }
+        } else {
+            allowed = LegacySlotCatalog.slotValues();
+        }
+        if (!allowed.contains(preferredTimeSlot)) {
+            throw new IllegalArgumentException(usesSchedule
+                    ? "Selected time slot is not offered for this doctor on this date."
+                    : "Selected time slot is not valid.");
+        }
     }
 
     public AppointmentEntity.AppointmentFile getFile(String appointmentId, String fileId, String actorUserId) {
@@ -184,11 +356,85 @@ public class AppointmentService {
         return mapped;
     }
 
+    private void assertNoActiveSlotConflict(String doctorId, String preferredDate, String preferredTimeSlot, String excludeAppointmentId) {
+        if (doctorId.isBlank() || preferredDate.isBlank() || preferredTimeSlot.isBlank()) {
+            return;
+        }
+        AppointmentRepository repository = requireAppointmentRepository();
+        List<AppointmentEntity> rows = repository.findByDoctorIdAndPreferredDate(doctorId, preferredDate);
+        String exclude = normalize(excludeAppointmentId);
+        for (AppointmentEntity row : rows) {
+            if (!exclude.isBlank() && exclude.equals(row.getId())) {
+                continue;
+            }
+            if (!isOpenAppointmentBlockingSlot(row)) {
+                continue;
+            }
+            if (normalize(row.getPreferredTimeSlot()).equals(preferredTimeSlot)) {
+                throw new IllegalArgumentException("This time slot is already booked for the selected doctor and date.");
+            }
+        }
+    }
+
+    private void ensureActorCanQueryDoctorOccupiedSlots(String actorUserId, String doctorId) {
+        UserRole actorRole = resolveUserRole(actorUserId);
+        if (actorRole == UserRole.ADMIN) {
+            return;
+        }
+        if (actorRole == UserRole.DOCTOR && !doctorId.equals(normalize(actorUserId))) {
+            throw new SecurityException("You can only view availability for your own schedule.");
+        }
+    }
+
+    private boolean isCancelled(AppointmentEntity entity) {
+        return STATUS_CANCELLED.equalsIgnoreCase(normalize(entity.getStatus()));
+    }
+
+    /**
+     * Only active (open) appointments block a slot in booking availability and conflict checks.
+     * Cancelled and non-open statuses (e.g. completed) do not consume the slot for new bookings.
+     */
+    private boolean isOpenAppointmentBlockingSlot(AppointmentEntity row) {
+        if (isCancelled(row)) {
+            return false;
+        }
+        String s = normalize(row.getStatus());
+        return s.isEmpty() || DEFAULT_STATUS_OPEN.equalsIgnoreCase(s);
+    }
+
+    private boolean isGridDateBeforeToday(String preferredDate) {
+        LocalDate parsed = parseIsoLocalDate(preferredDate);
+        if (parsed == null) {
+            return false;
+        }
+        return parsed.isBefore(LocalDate.now());
+    }
+
+    private LocalDate parseIsoLocalDate(String raw) {
+        String d = normalize(raw);
+        if (d.length() >= 10) {
+            d = d.substring(0, 10);
+        }
+        if (d.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(d);
+        } catch (DateTimeParseException ex) {
+            return null;
+        }
+    }
+
     private void ensureCanAccessAppointment(AppointmentEntity entity, String actorUserId) {
         if (entity == null) {
             throw new IllegalArgumentException("Appointment not found");
         }
-        if (isAdmin(actorUserId)) {
+        UserRole actorRole = resolveUserRole(actorUserId);
+        if (actorRole == UserRole.ADMIN) {
+            return;
+        }
+        String doctorId = normalize(entity.getDoctorId());
+        if (actorRole == UserRole.DOCTOR && doctorId.equals(actorUserId)) {
             return;
         }
         String createdBy = normalize(entity.getCreatedBy());
@@ -197,11 +443,11 @@ public class AppointmentService {
         }
     }
 
-    private boolean isAdmin(String actorUserId) {
+    private UserRole resolveUserRole(String actorUserId) {
         UserRepository userRepository = requireUserRepository();
         UserEntity user = userRepository.findById(actorUserId)
                 .orElseThrow(() -> new SecurityException("User not found"));
-        return user.getRole() == UserRole.ADMIN;
+        return user.getRole();
     }
 
     private AppointmentResponse toResponse(AppointmentEntity entity) {

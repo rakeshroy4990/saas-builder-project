@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { registerDefaultBusyIndicators } from '@saas-builder/vue-async-ui'
 import App from './App.vue'
 import './styles.css'
 import { bootstrap } from './core/bootstrap/AppBootstrap'
@@ -7,12 +8,16 @@ import { router } from './router'
 import { bindHttpRouter } from './services/http/apiClient'
 import { logClient, startLogSyncScheduler } from './services/logging/clientLogger'
 import { pinia } from './store/pinia'
-import { hydrateAuthSessionProfile } from './services/auth/authSessionStore'
+import { hydrateAuthSessionProfile, syncHospitalUserIdFromAccessToken } from './services/auth/authSessionStore'
+import { hydrateAuthTokensFromSessionStorage } from './services/auth/authToken'
 
 async function start() {
   startLogSyncScheduler()
+  registerDefaultBusyIndicators()
   bootstrap()
+  hydrateAuthTokensFromSessionStorage()
   hydrateAuthSessionProfile()
+  syncHospitalUserIdFromAccessToken()
   bindHttpRouter(router)
   await hydrateUiMetadataFromServer().catch(() => {})
   await logClient('INFO', 'FlexShell UI startup complete')

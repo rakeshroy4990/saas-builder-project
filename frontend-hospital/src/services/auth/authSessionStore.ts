@@ -1,5 +1,6 @@
 import { useAppStore } from '../../store/useAppStore';
 import { pinia } from '../../store/pinia';
+import { getAuthToken, parseJwtSubject } from './authToken';
 
 type PersistedAuthSession = {
   userId: string;
@@ -46,6 +47,19 @@ export function clearPersistedAuthSessionProfile(): void {
   } catch {
     // no-op
   }
+}
+
+/**
+ * Overwrites `AuthSession.userId` with the access token `sub` when present so it matches
+ * STOMP user destinations (server uses JWT subject as principal name).
+ */
+export function syncHospitalUserIdFromAccessToken(): void {
+  const token = getAuthToken();
+  if (!token) return;
+  const sub = parseJwtSubject(token);
+  if (!sub) return;
+  useAppStore(pinia).setProperty('hospital', 'AuthSession', 'userId', sub);
+  persistAuthSessionProfile({ userId: sub });
 }
 
 export function hydrateAuthSessionProfile(): void {

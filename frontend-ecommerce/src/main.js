@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { registerDefaultBusyIndicators } from '@saas-builder/vue-async-ui'
 import App from './App.vue'
 import './styles.css'
 import { bootstrap } from './core/bootstrap/AppBootstrap'
@@ -10,6 +11,7 @@ import { logClient, startLogSyncScheduler } from './services/logging/clientLogge
 
 async function start() {
   startLogSyncScheduler()
+  registerDefaultBusyIndicators()
   bootstrap()
   bindHttpRouter(router)
   await hydrateUiMetadataFromServer().catch(() => {})

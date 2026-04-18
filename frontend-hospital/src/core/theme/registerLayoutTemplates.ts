@@ -163,9 +163,25 @@ export function registerLayoutTemplates(): void {
     flex: ['flex', 'flex-col', 'min-h-0', 'min-w-0', 'flex-1', 'gap-6', 'sm:gap-8', 'md:gap-10']
   });
 
+  /** Fills the shell (`flex-1 min-h-0`); horizontal + top padding only so a last-row footer can sit flush with the viewport bottom. */
   LayoutTemplateRegistry.register('hosp.page.root', {
     type: 'flex',
-    flex: ['flex', 'flex-col', 'gap-6', 'sm:gap-8', 'p-4', 'sm:p-6', 'md:p-8', 'bg-slate-50']
+    flex: [
+      'flex',
+      'flex-col',
+      'flex-1',
+      'min-h-0',
+      'gap-6',
+      'sm:gap-8',
+      'bg-slate-50',
+      'px-4',
+      'pt-4',
+      'pb-0',
+      'sm:px-6',
+      'sm:pt-6',
+      'md:px-8',
+      'md:pt-8'
+    ]
   });
   LayoutTemplateRegistry.register('hosp.header.shell', {
     type: 'flex',
@@ -180,6 +196,11 @@ export function registerLayoutTemplates(): void {
       'top-0',
       'z-20'
     ]
+  });
+  /** Hamburger + logo/title on one row (shell may stay `flex-col` on small screens). */
+  LayoutTemplateRegistry.register('hosp.header.lead', {
+    type: 'flex',
+    flex: ['flex', 'flex-row', 'items-center', 'gap-3', 'min-w-0', 'w-full', 'md:w-auto']
   });
   LayoutTemplateRegistry.register('hosp.header.brand', {
     type: 'flex',

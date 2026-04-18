@@ -2,6 +2,7 @@ package com.flexshell.controller;
 
 import com.flexshell.controller.dto.AppointmentRequest;
 import com.flexshell.controller.dto.AppointmentResponse;
+import com.flexshell.controller.dto.AvailableSlotsResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.appointment.AppointmentEntity;
 import com.flexshell.service.AppointmentService;
@@ -82,6 +83,23 @@ public class AppointmentController {
         }
     }
 
+    @PostMapping(value = "/cancel/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AppointmentResponse>> cancel(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        try {
+            AppointmentResponse data = appointmentService.cancel(id, authentication.getName());
+            return ResponseEntity.ok(StandardApiResponse.success("Appointment cancelled", data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_CANCEL_INVALID"));
+        }
+    }
+
     @GetMapping(value = "/get/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<AppointmentResponse>> getById(
             @PathVariable String id,
@@ -111,6 +129,78 @@ public class AppointmentController {
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+        }
+    }
+
+    @GetMapping(value = "/available-slots", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AvailableSlotsResponse>> listAvailableTimeSlots(
+            @RequestParam("doctorId") String doctorId,
+            @RequestParam("date") String date,
+            @RequestParam(name = "excludeAppointmentId", required = false) String excludeAppointmentId,
+            Authentication authentication
+    ) {
+        try {
+            AvailableSlotsResponse data = appointmentService.listAvailableTimeSlots(
+                    doctorId,
+                    date,
+                    excludeAppointmentId,
+                    authentication.getName());
+            return ResponseEntity.ok(StandardApiResponse.success("Available time slots", data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_AVAILABLE_SLOTS_INVALID"));
+        }
+    }
+
+    /**
+     * Book-an-appointment flow: doctor schedule for the date minus slots held by open appointments.
+     */
+    @GetMapping(value = "/booking/available-slots", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AvailableSlotsResponse>> listBookingAvailableTimeSlots(
+            @RequestParam("doctorId") String doctorId,
+            @RequestParam("date") String date,
+            @RequestParam(name = "excludeAppointmentId", required = false) String excludeAppointmentId,
+            Authentication authentication
+    ) {
+        try {
+            AvailableSlotsResponse data = appointmentService.listBookingAvailableTimeSlots(
+                    doctorId,
+                    date,
+                    excludeAppointmentId,
+                    authentication.getName());
+            return ResponseEntity.ok(StandardApiResponse.success("Booking available time slots", data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_BOOKING_SLOTS_INVALID"));
+        }
+    }
+
+    @GetMapping(value = "/occupied-slots", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<List<String>>> listOccupiedTimeSlots(
+            @RequestParam("doctorId") String doctorId,
+            @RequestParam("date") String date,
+            @RequestParam(name = "excludeAppointmentId", required = false) String excludeAppointmentId,
+            Authentication authentication
+    ) {
+        try {
+            List<String> data = appointmentService.listOccupiedTimeSlots(
+                    doctorId,
+                    date,
+                    excludeAppointmentId,
+                    authentication.getName());
+            return ResponseEntity.ok(StandardApiResponse.success("Occupied time slots", data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_OCCUPIED_SLOTS_INVALID"));
         }
     }
 

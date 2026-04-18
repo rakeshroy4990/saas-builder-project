@@ -1,11 +1,20 @@
 package com.flexshell.realtime.webrtc.ws;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import java.util.Map;
 
 public class WebRtcSignalRequest {
+    @JsonAlias({"Type"})
     private String type;
+
+    @JsonAlias({"CallId"})
     private String callId;
+
+    @JsonAlias({"ToUserId"})
     private String toUserId;
+
+    @JsonAlias({"Payload", "payload"})
     private Map<String, Object> payload;
 
     public String getType() {

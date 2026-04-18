@@ -1,0 +1,58 @@
+import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition';
+import { useAppStore } from '../../../../store/useAppStore';
+import { usePopupStore } from '../../../../store/usePopupStore';
+import { pinia } from '../../../../store/pinia';
+import { apiClient } from '../../../http/apiClient';
+import { URLRegistry } from '../../../http/URLRegistry';
+import { clearAuthToken } from '../../../auth/authToken';
+import { clearPersistedAuthSessionProfile } from '../../../auth/authSessionStore';
+import { ok } from '../shared/response';
+import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
+
+export const logoutUserHospitalServices: ServiceDefinition[] = [
+  {
+    packageName: 'hospital',
+    serviceId: 'logout-user',
+    execute: async () => {
+      try {
+        await apiClient.post(URLRegistry.paths.logout, { DeviceId: 'browser' });
+      } catch {
+        // Local logout should still proceed even when server call fails.
+      }
+      clearWebrtcSubscription();
+      clearCallHeartbeatTimer();
+      clearAuthToken();
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'userId', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'userDisplayName', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'email', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'mobileNumber', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'address', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'gender', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'department', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'fullName', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'role', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
+      clearPersistedAuthSessionProfile();
+      useAppStore(pinia).setProperty('hospital', 'AuthForm', 'identity', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthForm', 'password', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthForm', 'emailError', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthForm', 'loginInfoMessage', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'emailId', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'password', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'address', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'gender', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'mobileNumber', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'firstName', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'lastName', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'role', 'PATIENT');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'department', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', '');
+      usePopupStore(pinia).close();
+      if (window.location.pathname !== '/page/hospital/home') {
+        window.location.assign('/page/hospital/home');
+      }
+      return ok();
+    }
+  }
+];

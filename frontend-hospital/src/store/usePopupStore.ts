@@ -51,7 +51,7 @@ export const usePopupStore = defineStore('popup', {
         inlineErrorMessage: undefined,
         packageName,
         pageId,
-        activeRequest: { packageName, pageId, title: req?.title },
+        activeRequest: { packageName, pageId, title: req?.title, initKey: req?.initKey },
         activePackageName: packageName,
         activePageId: pageId,
         title: req?.title

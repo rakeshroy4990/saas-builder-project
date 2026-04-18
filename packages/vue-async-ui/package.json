@@ -1,0 +1,22 @@
+{
+  "name": "@saas-builder/vue-async-ui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Composable busy state + pluggable button busy indicators for Vue 3",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2",
+    "vite": "^8.0.8",
+    "vitest": "^4.1.4",
+    "vue": "^3.5.32"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

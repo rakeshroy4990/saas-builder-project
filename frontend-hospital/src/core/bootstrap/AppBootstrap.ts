@@ -12,6 +12,7 @@ import DynCheckbox from '../../components/primitives/DynCheckbox.vue';
 import DynRadioGroup from '../../components/primitives/DynRadioGroup.vue';
 import DynChat from '@realtime/components/DynChat.vue';
 import DynVideoCall from '@realtime/components/DynVideoCall.vue';
+import DynDoctorScheduleEditor from '../../components/primitives/DynDoctorScheduleEditor.vue';
 
 export function bootstrap(): void {
   registerTheme();
@@ -27,6 +28,7 @@ export function bootstrap(): void {
   ComponentRegistry.register('radio-group', DynRadioGroup);
   ComponentRegistry.register('chat', DynChat);
   ComponentRegistry.register('video-call', DynVideoCall);
+  ComponentRegistry.register('doctor-schedule-editor', DynDoctorScheduleEditor);
 
   registerHospitalModule();
 }

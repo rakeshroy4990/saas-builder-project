@@ -47,6 +47,36 @@ public class DoctorDirectoryService {
                 .getContent();
     }
 
+    /**
+     * Active doctors across all departments (admin scheduling UI).
+     */
+    public List<DoctorOptionResponse> listActiveDoctorsForAdmin(String actorUserId, int page, int size) {
+        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
+        if (userRepository == null) {
+            throw new IllegalStateException("Doctor directory service is unavailable");
+        }
+        requireAdmin(actorUserId, userRepository);
+        int safePage = Math.max(page, 0);
+        int safeSize = size <= 0 ? 100 : Math.min(size, 500);
+        return userRepository.findActiveDoctorsAllRoles(
+                        UserRole.DOCTOR,
+                        RoleRequestStatus.ACTIVE,
+                        PageRequest.of(safePage, safeSize))
+                .map(this::toDoctorOption)
+                .getContent();
+    }
+
+    private void requireAdmin(String actorUserId, UserRepository userRepository) {
+        String id = actorUserId == null ? "" : actorUserId.trim();
+        if (id.isBlank()) {
+            throw new SecurityException("Authentication required");
+        }
+        UserEntity actor = userRepository.findById(id).orElseThrow(() -> new SecurityException("User not found"));
+        if (actor.getRole() != UserRole.ADMIN) {
+            throw new SecurityException("Admin access required");
+        }
+    }
+
     private List<String> resolveCandidateDepartments(String requestedDepartment) {
         List<String> candidates = new ArrayList<>();
         addIfMissing(candidates, requestedDepartment);

@@ -11,6 +11,12 @@ interface InputConfig {
   value?: string;
   min?: string;
   max?: string;
+  /** HTML attribute; use with `numericOnly` for digit-only age-style fields. */
+  maxlength?: number;
+  inputMode?: string;
+  pattern?: string;
+  /** Strip non-digits on each input (value is digits only). */
+  numericOnly?: boolean;
   accept?: string;
   multiple?: boolean;
   rows?: number;
@@ -35,8 +41,18 @@ const labelTextId = computed(() => (props.htmlId ? `${props.htmlId}-label` : und
 const inputId = computed(() => (props.htmlId ? `${props.htmlId}-input` : undefined));
 const inputElementRef = ref<HTMLInputElement | null>(null);
 
-const onChange = async () => {
+const emitChange = async () => {
   emit('action', { action: props.config?.change, payload: { value: model.value } });
+};
+
+const onTextOrDateInput = async () => {
+  if (props.config?.numericOnly) {
+    const digits = model.value.replace(/\D/g, '');
+    if (digits !== model.value) {
+      model.value = digits;
+    }
+  }
+  await emitChange();
 };
 
 const onFileChange = async (event: Event) => {
@@ -99,7 +115,10 @@ watch(
       :placeholder="config?.placeholder"
       :min="config?.min"
       :max="config?.max"
-      @input="onChange"
+      :maxlength="config?.maxlength"
+      :inputmode="config?.inputMode"
+      :pattern="config?.pattern"
+      @input="onTextOrDateInput"
     />
     <textarea
       v-else
@@ -108,7 +127,7 @@ watch(
       :class="classes"
       :rows="config?.rows ?? 4"
       :placeholder="config?.placeholder"
-      @input="onChange"
+      @input="emitChange"
     />
   </label>
 </template>
