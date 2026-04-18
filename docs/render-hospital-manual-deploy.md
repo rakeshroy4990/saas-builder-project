@@ -2,7 +2,15 @@
 
 Step-by-step setup **without** a Blueprint: one **Web Service** (Docker API) and one **Static Site** (Vite). Paths match this repo (`render/Dockerfile.backend-hospital`, `render.yaml`).
 
-**References:** [Render Dashboard](https://dashboard.render.com/) · [Docker on Render](https://render.com/docs/docker) · [Static sites](https://render.com/docs/static-sites) · [Deploy for Free](https://render.com/docs/free)
+**References:** [Render Dashboard](https://dashboard.render.com/) · [Docker on Render](https://render.com/docs/docker) · [Static sites](https://render.com/docs/static-sites) · [Deploy for Free](https://render.com/docs/free) · [Static redirects/rewrites (SPAs)](https://render.com/docs/redirects-rewrites)
+
+### If the browser shows `{"message":"Missing bearer token","code":"AUTH_UNAUTHORIZED"}`
+
+That JSON is returned only by the **Spring API** (not the Vite static files). It means the URL in the address bar is hitting the **Web Service (Docker)**, or you have only one public service and it is the API.
+
+- On Render you should have **two** resources: a **Static Site** (Vue app) and a **Web Service** (backend). They get **two different** `https://<name>.onrender.com` URLs.
+- **Open the app in the browser using the Static Site’s URL** (Render → your static site → the public URL at the top). The API URL is only for `VITE_SPRING_API_BASE_URL` and should not be the tab you use to browse `/page/...`.
+- In the static site, add a **rewrite** so client-side routes work on refresh: **Source** `/*` → **Destination** `/index.html` (Rewrite, not redirect). The repo’s `render.yaml` includes this under `hospital-frontend` `routes`.
 
 ---
 
@@ -33,7 +41,7 @@ Step-by-step setup **without** a Blueprint: one **Web Service** (Docker API) and
 |-----|--------|
 | `SPRING_DATA_MONGODB_URI` | MongoDB connection string (e.g. Atlas). |
 | `APP_AUTH_JWT_SECRET` | Long random secret (at least 32 bytes). |
-| `APP_CORS_ALLOWED_ORIGIN_PATTERNS` | After you have the static URL (step 2), set to that origin, e.g. `https://your-frontend.onrender.com`. You can add `http://localhost:5173` for local dev, comma-separated if your config allows multiple patterns. |
+| `APP_CORS_ALLOWED_ORIGIN_PATTERNS` | **Required** for the browser: comma‑separated **origin** patterns, **no path**, **no trailing slash** — e.g. `https://oshu-ai-clinic-ui.onrender.com,https://*.onrender.com,http://localhost:5173`. The backend’s `WebCorsConfig` splits on commas. If you omit your UI or mis-type the origin, preflight fails with “No `Access-Control-Allow-Origin` header”. **Redeploy the API** after changing this. |
 | `APP_AUTH_COOKIE_SECURE` | `true` |
 
 Optional:
