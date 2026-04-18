@@ -27,8 +27,8 @@ services:
     name: hospital-frontend
     runtime: static
     # Static sites have no instance `plan` in Blueprints (always free at the edge; see Render docs).
-    # `npm ci` requires lockfile to match Render's npm resolution exactly; use `npm install` for fewer cross-environment lock mismatches.
-    buildCommand: cd frontend-hospital && npm install --no-audit --no-fund && npm run build
+    # Use `npm run build:render` (not `npm ci`) — see frontend-hospital/package.json `build:render` script.
+    buildCommand: cd frontend-hospital && npm run build:render
     staticPublishPath: ./frontend-hospital/dist
     envVars:
       - key: VITE_SPRING_API_BASE_URL
