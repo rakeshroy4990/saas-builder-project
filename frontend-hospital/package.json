@@ -13,6 +13,10 @@
   "author": "",
   "license": "ISC",
   "type": "module",
+  "overrides": {
+    "@emnapi/core": "1.10.0",
+    "@emnapi/runtime": "1.10.0"
+  },
   "dependencies": {
     "@saas-builder/vue-async-ui": "file:../packages/vue-async-ui",
     "@stomp/stompjs": "^7.2.1",
