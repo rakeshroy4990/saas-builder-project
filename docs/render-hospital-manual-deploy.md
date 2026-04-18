@@ -11,6 +11,7 @@ That JSON is returned only by the **Spring API** (not the Vite static files). It
 - On Render you should have **two** resources: a **Static Site** (Vue app) and a **Web Service** (backend). They get **two different** `https://<name>.onrender.com` URLs.
 - **Open the app in the browser using the Static Site’s URL** (Render → your static site → the public URL at the top). The API URL is only for `VITE_SPRING_API_BASE_URL` and should not be the tab you use to browse `/page/...`.
 - In the static site, add a **rewrite** so client-side routes work on refresh: **Source** `/*` → **Destination** `/index.html` (Rewrite, not redirect). The repo’s `render.yaml` includes this under `hospital-frontend` `routes`.
+- If the static URL and API URL are different subdomains (e.g. `oshu-ai-clinic-ui.onrender.com` → `oshu-ai-clinic.onrender.com`), `APP_CORS_ALLOWED_ORIGIN_PATTERNS` must list the **browser origin** of the app (the UI hostname), not the API’s. CORS is implemented on the **API** via a `CorsConfigurationSource` bean (see `WebCorsConfig`) so preflight `OPTIONS` to `/api/**` gets the right headers.
 
 ---
 
