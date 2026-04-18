@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -79,15 +78,22 @@ public class FlexShellApplication {
             String envVarName = matcher.group(1);
             String envValue = System.getenv(envVarName);
             if (envValue == null || envValue.isBlank()) {
-                continue;
+                throw new IllegalStateException(
+                        "MONGODB_URL contains {{" + envVarName + "}} but environment variable '"
+                                + envVarName
+                                + "' is missing or empty. Set it on the host (e.g. Render), or use SPRING_DATA_MONGODB_URI with a full connection string.");
             }
-            boolean sensitive = envVarName.toUpperCase(Locale.ROOT).contains("PASS")
-                    || envVarName.toUpperCase(Locale.ROOT).contains("SECRET");
-            String replacement = sensitive ? encodeUriSegment(envValue) : envValue;
+            // Userinfo in mongodb+srv URIs must be percent-encoded (user, password, and special chars).
+            String replacement = encodeUriSegment(envValue);
             matcher.appendReplacement(resolved, Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(resolved);
-        return resolved.toString();
+        String out = resolved.toString();
+        if (out.contains("{{")) {
+            throw new IllegalStateException(
+                    "MONGODB_URL still contains '{{' after template resolution; check placeholders and env vars.");
+        }
+        return out;
     }
 
     private static String encodeUriSegment(String value) {
