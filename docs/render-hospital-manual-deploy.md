@@ -13,6 +13,18 @@ That JSON is returned only by the **Spring API** (not the Vite static files). It
 - In the static site, add a **rewrite** so client-side routes work on refresh: **Source** `/*` → **Destination** `/index.html` (Rewrite, not redirect). The repo’s `render.yaml` includes this under `hospital-frontend` `routes`.
 - If the static URL and API URL are different subdomains (e.g. `oshu-ai-clinic-ui.onrender.com` → `oshu-ai-clinic.onrender.com`), `APP_CORS_ALLOWED_ORIGIN_PATTERNS` must list the **browser origin** of the app (the UI hostname), not the API’s. CORS is implemented on the **API** via a `CorsConfigurationSource` bean (see `WebCorsConfig`) so preflight `OPTIONS` to `/api/**` gets the right headers.
 
+### If `/page/...` returns **404** (after login, refresh, or pasting a deep link)
+
+Vue uses **client-side** routes. The deployed files are only `index.html` and `assets/...` — there is no real file at `/page/hospital/home`, so the CDN must **rewrite** that URL to your SPA entry.
+
+1. [Render](https://dashboard.render.com/) → your **static site** (e.g. `oshu-ai-clinic-ui`) → **Settings** (or the section that lists **Redirect/Rewrite** rules) → add a **Rewrite** (not a redirect):
+   - **Source:** `/*`
+   - **Destination:** `/index.html`
+2. **Save** and run **Clear build cache & deploy** (or a manual deploy) for the static site.
+3. If the site was **created in the UI** and you never used the repo’s [Blueprint / `render.yaml`](https://render.com/docs/infrastructure-as-code), the `routes` block in the yaml is **not** applied. You **must** add the rule in the dashboard for that static site, or [connect the Blueprint](https://render.com/docs/infrastructure-as-code#setup) so the service picks up the same `routes` as in this repo.
+4. After pulling latest `main`, a new Vite build also places **`404.html`** (a copy of `index.html` in `dist/`) to help on hosts that use a 404 fallback file; the official Render fix is still the rewrite. Details: [Static redirects/rewrites](https://render.com/docs/redirects-rewrites).
+5. **`static.json` in the build output does not drive routing on Render.** [Render’s docs](https://render.com/docs/redirects-rewrites) use **Dashboard** rewrites or **`render.yaml` `routes`**, not a `static.json` in `dist/`. This repo still includes `frontend-hospital/public/static.json` and `render.yaml` routes for consistency with other tools; for Render you must set the **Rewrite `/*` → `/index.html`** in the static site (or use the Blueprint that includes `hospital-frontend` `routes`). Vite automatically copies `public/static.json` → `dist/static.json` on `npm run build` (no `cp` step needed).
+
 ---
 
 ## 0. Prerequisite
