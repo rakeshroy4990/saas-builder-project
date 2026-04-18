@@ -6,6 +6,7 @@
     "dev": "vite",
     "dev:live": "vite --host 127.0.0.1 --port 5174",
     "build": "vite build",
+    "build:render": "npm install --no-audit --no-fund && npm run build",
     "preview": "vite preview",
     "test": "vitest run"
   },
@@ -26,6 +27,8 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@emnapi/core": "1.10.0",
+    "@emnapi/runtime": "1.10.0",
     "@tailwindcss/vite": "^4.2.2",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vue/test-utils": "^2.4.6",

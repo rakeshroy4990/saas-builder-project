@@ -56,7 +56,8 @@ See `backend-hospital/src/main/resources/application.properties` for more `APP_*
 2. Same repository and branch as the backend.
 3. **Name:** e.g. `hospital-frontend`.
 4. **Root directory:** leave **empty**.
-5. **Build command:** `cd frontend-hospital && npm install --no-audit --no-fund && npm run build` (prefer this on Render; `npm ci` fails if the lockfile was produced with a different npm/Node than Render uses.)
+5. **Build command:** `cd frontend-hospital && npm run build:render`  
+   This script runs `npm install` (not `npm ci`) then `vite build` — do **not** use `npm ci` on Render; it often fails on optional/native transitive deps. Local check: from `frontend-hospital` run `npm run build:render`.
 6. **Publish directory:** `frontend-hospital/dist`
 7. **Environment variables:**
 
@@ -89,7 +90,7 @@ See `backend-hospital/src/main/resources/application.properties` for more `APP_*
 |------|---------|----------|
 | Render product | **Web Service** | **Static Site** |
 | Root directory | *(empty)* | *(empty)* |
-| Build | Docker (image from Dockerfile) | `cd frontend-hospital && npm install --no-audit --no-fund && npm run build` |
+| Build | Docker (image from Dockerfile) | `cd frontend-hospital && npm run build:render` |
 | Output / run | From Dockerfile (`java -jar` …) | Publish: `frontend-hospital/dist` |
 
 ---
