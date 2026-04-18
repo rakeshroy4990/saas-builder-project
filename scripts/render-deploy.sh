@@ -32,7 +32,7 @@ case "$cmd" in
     docker build -f render/Dockerfile.backend-hospital -t hospital-backend:local .
     ;;
   npm-build-frontend)
-    cd frontend-hospital && npm ci && npm run build
+    cd frontend-hospital && npm install --no-audit --no-fund && npm run build
     ;;
   print-env)
     cat <<'EOF'
