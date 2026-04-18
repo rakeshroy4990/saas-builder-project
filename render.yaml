@@ -21,10 +21,10 @@ services:
       - key: APP_AUTH_COOKIE_SECURE
         value: "true"
 
+  # Static sites are served globally; `region` is not allowed (unlike web services).
   - type: web
     name: hospital-frontend
     runtime: static
-    region: oregon
     plan: starter
     buildCommand: cd frontend-hospital && npm ci && npm run build
     staticPublishPath: ./frontend-hospital/dist
