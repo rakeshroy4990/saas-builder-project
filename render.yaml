@@ -7,7 +7,8 @@ services:
     name: hospital-backend
     runtime: docker
     region: oregon
-    plan: starter
+    # Use `free` to avoid paid instance prompts; upgrade to starter/pro in the dashboard when needed.
+    plan: free
     dockerfilePath: ./render/Dockerfile.backend-hospital
     dockerContext: .
     healthCheckPath: /api/medical-department/get
@@ -25,7 +26,7 @@ services:
   - type: web
     name: hospital-frontend
     runtime: static
-    plan: starter
+    plan: free
     buildCommand: cd frontend-hospital && npm ci && npm run build
     staticPublishPath: ./frontend-hospital/dist
     envVars:
