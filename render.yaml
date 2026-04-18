@@ -18,6 +18,7 @@ services:
       - key: APP_AUTH_JWT_SECRET
         generateValue: true
       - key: APP_CORS_ALLOWED_ORIGIN_PATTERNS
+        # Example: https://your-frontend.onrender.com,https://*.onrender.com,http://localhost:5173
         sync: false
       - key: APP_AUTH_COOKIE_SECURE
         value: "true"
@@ -30,6 +31,11 @@ services:
     # Use `npm run build:render` (not `npm ci`) — see frontend-hospital/package.json `build:render` script.
     buildCommand: cd frontend-hospital && npm run build:render
     staticPublishPath: ./frontend-hospital/dist
+    # Client-side routes (/page/...) need index.html; existing files under /assets/ are still served.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_SPRING_API_BASE_URL
         sync: false
