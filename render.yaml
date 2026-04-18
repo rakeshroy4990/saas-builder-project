@@ -1,0 +1,38 @@
+# Render Blueprint (Infrastructure as Code): https://render.com/docs/infrastructure-as-code
+# After connecting the repo: Dashboard → Blueprints → New Blueprint Instance → select this file.
+# Monorepo note: the frontend build runs from repo root so npm can resolve file:../packages and Vite can resolve ../frontend-realtime-lib.
+
+services:
+  - type: web
+    name: hospital-backend
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./render/Dockerfile.backend-hospital
+    dockerContext: .
+    healthCheckPath: /api/medical-department/get
+    envVars:
+      - key: SPRING_DATA_MONGODB_URI
+        sync: false
+      - key: APP_AUTH_JWT_SECRET
+        generateValue: true
+      - key: APP_CORS_ALLOWED_ORIGIN_PATTERNS
+        sync: false
+      - key: APP_AUTH_COOKIE_SECURE
+        value: "true"
+
+  - type: web
+    name: hospital-frontend
+    runtime: static
+    region: oregon
+    plan: starter
+    buildCommand: cd frontend-hospital && npm ci && npm run build
+    staticPublishPath: ./frontend-hospital/dist
+    envVars:
+      - key: VITE_SPRING_API_BASE_URL
+        sync: false
+    buildFilter:
+      paths:
+        - frontend-hospital/**
+        - packages/vue-async-ui/**
+        - frontend-realtime-lib/**

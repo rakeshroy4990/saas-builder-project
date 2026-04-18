@@ -1,0 +1,20 @@
+# Hospital Spring Boot API — build context must be the monorepo root (see render.yaml dockerContext).
+FROM eclipse-temurin:17-jdk-jammy AS builder
+WORKDIR /build
+
+COPY backend-hospital ./backend-hospital
+COPY backend-uimetadata-lib ./backend-uimetadata-lib
+COPY backend-auth-lib ./backend-auth-lib
+COPY backend-realtime-lib ./backend-realtime-lib
+
+WORKDIR /build/backend-hospital
+RUN chmod +x gradlew \
+  && ./gradlew --no-daemon bootJar -x test
+
+FROM eclipse-temurin:17-jre-jammy
+WORKDIR /app
+COPY --from=builder /build/backend-hospital/build/libs/*.jar app.jar
+EXPOSE 8080
+ENV PORT=8080
+USER nobody
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
