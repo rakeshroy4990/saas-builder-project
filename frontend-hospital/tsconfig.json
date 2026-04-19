@@ -9,7 +9,7 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
@@ -18,5 +18,15 @@
     "allowJs": true,
     "checkJs": false
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.js", "src/**/*.jsx", "src/env.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/env.d.ts",
+    "e2e/**/*.ts",
+    "playwright.config.ts",
+    "vitest.config.ts"
+  ]
 }
