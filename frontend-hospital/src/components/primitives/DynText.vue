@@ -17,7 +17,9 @@ const emit = defineEmits<{
 const classes = computed(() => resolveStyle(props.config?.styles));
 const value = computed(() => props.config?.text ?? '');
 const interactiveClasses = computed(() =>
-  props.config?.click ? ' cursor-pointer select-none underline-offset-4 hover:opacity-90' : ''
+  props.config?.click
+    ? ' cursor-pointer select-none rounded-md px-1 -mx-1 py-0.5 decoration-emerald-600/50 underline-offset-4 hover:underline hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2'
+    : ''
 );
 
 const onClick = async () => {

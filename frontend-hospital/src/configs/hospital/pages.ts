@@ -444,7 +444,14 @@ export const hospitalPages: PageConfig[] = [
                             config: {
                               src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/stetho_n1bp0a.jpg',
                               alt: 'Little Sprouts Care logo',
-                              styles: { styleTemplate: 'hosp.header.logo' }
+                              styles: { styleTemplate: 'hosp.header.logo' },
+                              click: {
+                                actionId: 'set-home-header-active',
+                                onSuccess: {
+                                  actionType: 'navigate',
+                                  navigate: { packageName: 'hospital', pageId: 'home' }
+                                }
+                              }
                             }
                           },
                           {
@@ -2895,14 +2902,17 @@ export const hospitalPages: PageConfig[] = [
     title: 'Chat',
     initializeActions: [{ actionId: 'chat-connect' }],
     container: {
-      layout: { type: 'flex', flex: ['flex', 'flex-col', 'h-full', 'min-h-0'] },
+      layout: {
+        type: 'flex',
+        flex: ['flex', 'flex-col', 'h-full', 'min-h-0', 'min-w-0', 'max-w-full', 'max-h-full', 'overflow-hidden']
+      },
       children: [
         {
           id: 'hospital-chat-popup-header',
           type: 'container',
           config: {
             layout: { type: 'flex', flex: ['flex', 'items-center', 'justify-between'] },
-            styles: { utilityClasses: 'px-4 py-3 border-b border-slate-200 bg-white' },
+            styles: { utilityClasses: 'shrink-0 px-4 py-3 border-b border-slate-200 bg-white' },
             children: [
               {
                 id: 'hospital-chat-popup-title',
@@ -2928,7 +2938,7 @@ export const hospitalPages: PageConfig[] = [
           id: 'hospital-chat-popup-body-shell',
           type: 'container',
           config: {
-            styles: { utilityClasses: 'flex-1 min-h-0' },
+            styles: { utilityClasses: 'flex min-h-0 flex-1 flex-col overflow-hidden' },
             children: [
               {
                 id: 'hospital-chat-popup-body',
@@ -2941,7 +2951,7 @@ export const hospitalPages: PageConfig[] = [
                   supportUserId: 'support',
                   autoStart: false,
                   embedded: true,
-                  styles: { utilityClasses: 'w-full h-full min-h-0' }
+                  styles: { utilityClasses: 'w-full max-w-full min-w-0 h-full min-h-0' }
                 }
               }
             ]
@@ -2978,7 +2988,11 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'video-call-popup',
     title: 'Video Call',
-    initializeActions: [{ actionId: 'call-connect' }, { actionId: 'call-send-appointment-invite' }],
+    initializeActions: [
+      { actionId: 'call-connect' },
+      { actionId: 'hospital-prepare-video-session' },
+      { actionId: 'call-send-appointment-invite' }
+    ],
     container: {
       layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-4'] },
       children: [

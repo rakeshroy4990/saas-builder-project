@@ -128,6 +128,25 @@ Optional local check: `docker build -f render/Dockerfile.backend-hospital -t hos
 
 ---
 
+## Hospital video: built-in WebRTC vs Agora
+
+The hospital app supports **built-in** video (STOMP signaling + `RTCPeerConnection`, unchanged from the legacy stack) or **Agora** (server-minted RTC token; STOMP is still used for invite/accept/end). The server property and the static-site build-time variable must describe the same mode.
+
+| Mode | Backend (Render / local) | Frontend (static / `frontend-hospital/.env`) | Notes |
+|------|---------------------------|-----------------------------------------------|--------|
+| **Built-in** (default) | `APP_VIDEO_PROVIDER=builtin` or omit | `VITE_VIDEO_PROVIDER=builtin` or omit | Uses `/user/queue/webrtc` for offer/answer/ICE. Configure `VITE_ICE_SERVERS_JSON` / TURN as before. |
+| **Agora** | `APP_VIDEO_PROVIDER=agora`, plus `APP_VIDEO_AGORA_APP_ID`, `APP_VIDEO_AGORA_APP_CERTIFICATE`, optional `APP_VIDEO_AGORA_TOKEN_TTL_SECONDS` | `VITE_VIDEO_PROVIDER=agora` | After login, the popup runs `POST /api/hospital/video/session` (cookie auth) before the STOMP invite. STOMP offer/answer/ICE are not written into the Pinia store. |
+
+**Manual smoke matrix**
+
+1. **Built-in doctor–patient:** both sides `builtin` — place call from dashboard, accept, confirm local and remote video, end call.
+2. **Agora:** both sides `agora`, valid Agora app + certificate on the API — same flow; confirm both join the same channel (see Agora console).
+3. **Mismatch guard:** UI `agora` with API `builtin` still runs STOMP media if you force it — keep **server and `VITE_VIDEO_PROVIDER` aligned** for production.
+
+Git reference for the pre-abstraction stack: tag `legacy/hospital-webrtc-stomp-2026-04-18` (message lists the main file paths).
+
+---
+
 ## Blueprint alternative
 
 This repo also includes `render.yaml` for [Render Blueprints](https://render.com/docs/infrastructure-as-code). Static sites in Blueprints must not set `region` or `plan`; Docker services may need the instance type adjusted in the dashboard after creation.

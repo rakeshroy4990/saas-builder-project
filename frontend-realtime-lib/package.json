@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "dependencies": {
-    "@stomp/stompjs": "^7.2.1"
+    "@stomp/stompjs": "^7.2.1",
+    "agora-rtc-sdk-ng": "^4.24.3"
   },
   "devDependencies": {
     "typescript": "~5.9.0",
