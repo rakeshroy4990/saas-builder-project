@@ -112,6 +112,11 @@ const resolvedConfig = computed(() => {
     return { ...config, value: mapped == null ? '' : String(mapped) };
   }
 
+  if (props.definition.type === 'checkbox' && config.mapping) {
+    const mapped = resolveMapping(config.mapping as MappingConfig);
+    return { ...config, checked: Boolean(mapped) };
+  }
+
   return config;
 });
 

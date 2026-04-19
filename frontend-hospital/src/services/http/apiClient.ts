@@ -31,6 +31,15 @@ let refreshInFlight: Promise<boolean> | null = null;
 let tokenExpiryTimer: ReturnType<typeof setTimeout> | null = null;
 const AUTH_UNAUTHORIZED_CODE = 'AUTH_UNAUTHORIZED';
 const DEFAULT_AUTH_UNAUTHORIZED_MESSAGE = 'Invalid or expired token, Please login again.';
+const PLEASE_LOGIN_MESSAGE = 'You are not logged in. Please login.';
+
+/** Map legacy or technical API messages to a single friendly prompt. */
+function normalizeAuthUserMessage(raw: string): string {
+  const t = raw.trim();
+  if (!t) return raw;
+  if (/missing\s*bearer\s*token/i.test(t)) return PLEASE_LOGIN_MESSAGE;
+  return t;
+}
 
 function clearAuthSessionUi(): void {
   const appStore = useAppStore(pinia);
@@ -72,7 +81,7 @@ function performLocalLogoutAndRedirect(message = DEFAULT_AUTH_UNAUTHORIZED_MESSA
 function readUnauthorizedPayload(payload: unknown): { isUnauthorized: boolean; message: string } {
   const row = (payload ?? {}) as Record<string, unknown>;
   const code = String(row.code ?? row.Code ?? '').trim().toUpperCase();
-  const rawMessage = String(row.message ?? row.Message ?? '').trim();
+  const rawMessage = normalizeAuthUserMessage(String(row.message ?? row.Message ?? '').trim());
   const message = rawMessage || DEFAULT_AUTH_UNAUTHORIZED_MESSAGE;
   const normalized = rawMessage.toLowerCase();
   const isTokenExpiryMessage =
@@ -192,8 +201,9 @@ apiClient.interceptors.response.use(
       }
       if (error.response?.status === 401) {
         const message =
-          String(error.response?.data?.message ?? error.response?.data?.Message ?? '').trim() ||
-          DEFAULT_AUTH_UNAUTHORIZED_MESSAGE;
+          normalizeAuthUserMessage(
+            String(error.response?.data?.message ?? error.response?.data?.Message ?? '').trim()
+          ) || DEFAULT_AUTH_UNAUTHORIZED_MESSAGE;
         popupStore.openError(new Error(message));
         performLocalLogoutAndRedirect(message);
       } else {

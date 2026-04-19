@@ -8,6 +8,8 @@ interface TextConfig {
   text?: string;
   styles?: StyleConfig;
   click?: ActionConfig;
+  /** With `click`, skip hover underline; use a light background hover instead (e.g. header brand title). */
+  plainClick?: boolean;
 }
 
 const props = defineProps<{ config?: TextConfig; htmlId?: string }>();
@@ -16,11 +18,13 @@ const emit = defineEmits<{
 }>();
 const classes = computed(() => resolveStyle(props.config?.styles));
 const value = computed(() => props.config?.text ?? '');
-const interactiveClasses = computed(() =>
-  props.config?.click
-    ? ' cursor-pointer select-none rounded-md px-1 -mx-1 py-0.5 decoration-emerald-600/50 underline-offset-4 hover:underline hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2'
-    : ''
-);
+const interactiveClasses = computed(() => {
+  if (!props.config?.click) return '';
+  if (props.config.plainClick) {
+    return ' cursor-pointer select-none rounded-md px-1 -mx-1 py-0.5 hover:bg-slate-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2';
+  }
+  return ' cursor-pointer select-none rounded-md px-1 -mx-1 py-0.5 decoration-emerald-600/50 underline-offset-4 hover:underline hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2';
+});
 
 const onClick = async () => {
   if (props.config?.click) {

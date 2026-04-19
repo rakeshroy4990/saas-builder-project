@@ -2,7 +2,9 @@ import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition
 import { useAppStore } from '../../../../store/useAppStore';
 import { usePopupStore } from '../../../../store/usePopupStore';
 import { pinia } from '../../../../store/pinia';
+import { router } from '../../../../router/index';
 import { ok } from '../shared/response';
+import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
 
 export const navigationHospitalServices: ServiceDefinition[] = [
   {
@@ -43,6 +45,19 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     serviceId: 'set-home-header-active',
     execute: async () => {
       useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'HOME' });
+      const responsive = (useAppStore(pinia).getData('hospital', 'ResponsiveUiState') ?? {}) as Record<
+        string,
+        unknown
+      >;
+      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', { ...responsive, headerMenuOpen: false });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'set-profile-header-active',
+    execute: async () => {
+      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'PROFILE' });
       const responsive = (useAppStore(pinia).getData('hospital', 'ResponsiveUiState') ?? {}) as Record<
         string,
         unknown
@@ -102,6 +117,29 @@ export const navigationHospitalServices: ServiceDefinition[] = [
   },
   {
     packageName: 'hospital',
+    serviceId: 'open-reset-password-popup',
+    execute: async () => {
+      usePopupStore(pinia).open({
+        packageName: 'hospital',
+        pageId: 'reset-password-popup',
+        title: 'reset-password',
+        initKey: String(Date.now())
+      });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'open-hospital-terms-new-tab',
+    execute: async () => {
+      const href = router.resolve({ path: '/page/hospital/terms' }).href;
+      const url = new URL(href, window.location.origin).href;
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
     serviceId: 'open-register-popup',
     execute: async () => {
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'firstName', '');
@@ -113,6 +151,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'mobileNumber', '');
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'role', 'PATIENT');
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'department', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'acceptTerms', false);
       useAppStore(pinia).setProperty(
         'hospital',
         'RegisterForm',
@@ -120,6 +159,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
         'Registration successful. You can now log in.'
       );
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', '');
+      await ensureMedicalDepartmentOptionsLoaded({ force: true });
       usePopupStore(pinia).open({ packageName: 'hospital', pageId: 'register-popup', title: 'register' });
       return ok();
     }

@@ -48,7 +48,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                 return message;
             }
             if (token == null || token.isBlank()) {
-                throw new IllegalStateException("Missing bearer token");
+                throw new IllegalStateException("You are not logged in. Please login.");
             }
 
             Authentication authentication = authenticator.authenticate(token.trim());

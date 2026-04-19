@@ -21,6 +21,7 @@ export const SERVER_PATHS = {
   refresh: '/api/auth/refresh',
   logout: '/api/auth/logout',
   register: '/api/auth/register',
+  changePassword: '/api/auth/change-password',
   medicalDepartmentGet: '/api/medical-department/get',
   doctorGet: '/api/doctor/get',
   doctorListActive: '/api/doctor/list-active',
@@ -42,6 +43,10 @@ export const SERVER_PATHS = {
   chatSupportOpen: '/api/chat/support/open',
   /** Mint RTC / vendor session after hospital call permission checks. */
   hospitalVideoSession: '/api/hospital/video/session',
+  /** GET/PUT user by id: pass `userId` query param; PUT profile update uses registration-shaped JSON; PUT `inactive=true` deactivates. */
+  user: '/api/user',
+  /** PUT save profile: same body as `PUT /api/user`; optional `userId` query (else JWT principal). */
+  userProfile: '/api/user/profile',
   test: '/api/test'
 } as const;
 

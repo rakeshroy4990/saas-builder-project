@@ -11,12 +11,14 @@ import { authFormHospitalServices } from './auth/authFormServices';
 import { registerFieldHospitalServices } from './register/registerFieldServices';
 import { appointmentFormHospitalServices } from './appointment/appointmentFormServices';
 import { authLoginHospitalServices } from './auth/authLoginService';
+import { passwordResetHospitalServices } from './auth/passwordResetServices';
 import { registerUserHospitalServices } from './register/registerUserService';
 import { bookAppointmentHospitalServices } from './appointment/bookAppointmentService';
 import { dashboardHospitalServices } from './dashboard/dashboardServices';
 import { chatHospitalServices } from './chat/chatServices';
 import { callHospitalServices } from './call/callServices';
 import { doctorScheduleHospitalServices } from './doctor/doctorScheduleHospitalServices';
+import { profileUserHospitalServices } from './profile/profileUserServices';
 
 /**
  * Same service ids and behavior as legacy `services.ts`, in the same registration order
@@ -35,10 +37,12 @@ export const hospitalServices: ServiceDefinition[] = [
   ...registerFieldHospitalServices,
   ...appointmentFormHospitalServices,
   ...authLoginHospitalServices,
+  ...passwordResetHospitalServices,
   ...registerUserHospitalServices,
   ...bookAppointmentHospitalServices,
   ...dashboardHospitalServices,
   ...chatHospitalServices,
   ...callHospitalServices,
-  ...doctorScheduleHospitalServices
+  ...doctorScheduleHospitalServices,
+  ...profileUserHospitalServices
 ];

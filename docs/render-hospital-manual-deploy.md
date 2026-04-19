@@ -4,7 +4,7 @@ Step-by-step setup **without** a Blueprint: one **Web Service** (Docker API) and
 
 **References:** [Render Dashboard](https://dashboard.render.com/) · [Docker on Render](https://render.com/docs/docker) · [Static sites](https://render.com/docs/static-sites) · [Deploy for Free](https://render.com/docs/free) · [Static redirects/rewrites (SPAs)](https://render.com/docs/redirects-rewrites)
 
-### If the browser shows `{"message":"Missing bearer token","code":"AUTH_UNAUTHORIZED"}`
+### If the browser shows `{"message":"You are not logged in. Please login.","code":"AUTH_UNAUTHORIZED"}`
 
 That JSON is returned only by the **Spring API** (not the Vite static files). It means the URL in the address bar is hitting the **Web Service (Docker)**, or you have only one public service and it is the API.
 

@@ -100,7 +100,7 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
         if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
           const errorPayload = (error.response?.data ?? {}) as Record<string, unknown>;
           const message =
-            pickString(errorPayload, ['message', 'Message']) || 'Invalid email or password';
+            pickString(errorPayload, ['Message', 'message']) || 'Invalid email or password';
           useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', message);
           return { responseCode: 'AUTH_FAILED', message };
         }

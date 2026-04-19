@@ -1,5 +1,6 @@
 package com.flexshell.auth.controller;
 
+import com.flexshell.auth.api.AuthApiException;
 import com.flexshell.auth.api.AuthFacade;
 import com.flexshell.auth.api.ApiResponse;
 import com.flexshell.auth.api.LoginRequest;
@@ -7,6 +8,7 @@ import com.flexshell.auth.api.LoginResponse;
 import com.flexshell.auth.api.LogoutRequest;
 import com.flexshell.auth.api.RefreshTokenRequest;
 import com.flexshell.auth.api.RefreshTokenResponse;
+import com.flexshell.auth.api.ChangePasswordRequest;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
 import jakarta.servlet.http.Cookie;
@@ -52,30 +54,66 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse servletResponse
     ) {
-        Optional<LoginResponse> response = authFacade.login(request.getEmailId(), request.getPassword());
-        return response
-                .map(login -> {
-                    setAuthCookies(servletResponse, login.getAccessToken(), login.getRefreshToken());
-                    return ResponseEntity.ok(ApiResponse.success("Login successful", login));
-                })
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(ApiResponse.error("Invalid email or password", "AUTH_INVALID_CREDENTIALS")));
+        try {
+            Optional<LoginResponse> response = authFacade.login(request.getEmailId(), request.getPassword());
+            return response
+                    .map(login -> {
+                        setAuthCookies(servletResponse, login.getAccessToken(), login.getRefreshToken());
+                        return ResponseEntity.ok(ApiResponse.success("Login successful", login));
+                    })
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(ApiResponse.error("Invalid email or password", "AUTH_INVALID_CREDENTIALS")));
+        } catch (AuthApiException e) {
+            return ResponseEntity.status(httpStatusForAuthApiException(e))
+                    .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
+        }
     }
 
     @PostMapping(value = "/register", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest request) {
-        Optional<RegisterResponse> response = authFacade.register(request);
-        return response
-                .map(register -> {
-                    String message = "User registered successfully";
-                    if ("PENDING_APPROVAL".equalsIgnoreCase(register.getRoleStatus())) {
-                        message = "Role request submitted for approval";
-                    }
-                    return ResponseEntity.status(HttpStatus.CREATED)
-                            .body(ApiResponse.success(message, register));
-                })
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body(ApiResponse.error("User already exists", "AUTH_USER_EXISTS")));
+        try {
+            Optional<RegisterResponse> response = authFacade.register(request);
+            return response
+                    .map(register -> {
+                        String message = "User registered successfully";
+                        if ("PENDING_APPROVAL".equalsIgnoreCase(register.getRoleStatus())) {
+                            message = "Role request submitted for approval";
+                        }
+                        return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success(message, register));
+                    })
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(ApiResponse.error("Registration could not be completed.", "AUTH_REGISTRATION_FAILED")));
+        } catch (AuthApiException e) {
+            return ResponseEntity.status(httpStatusForAuthApiException(e))
+                    .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
+        }
+    }
+
+    @PostMapping(value = "/change-password", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        try {
+            authFacade.changePassword(request);
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Your password has been updated successfully. Please log in with your new password.",
+                    null));
+        } catch (AuthApiException e) {
+            return ResponseEntity.status(httpStatusForAuthApiException(e))
+                    .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
+        }
+    }
+
+    private static HttpStatus httpStatusForAuthApiException(AuthApiException e) {
+        String code = e.getErrorCode() == null ? "" : e.getErrorCode();
+        return switch (code) {
+            case "AUTH_ACCOUNT_DEACTIVATED", "AUTH_ROLE_PENDING_APPROVAL", "AUTH_ROLE_BLOCKED" -> HttpStatus.FORBIDDEN;
+            case "AUTH_ACCOUNT_EXISTS", "AUTH_ACCOUNT_INACTIVE" -> HttpStatus.CONFLICT;
+            case "AUTH_USER_NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            case "AUTH_INVALID_OLD_PASSWORD" -> HttpStatus.UNAUTHORIZED;
+            case "AUTH_PASSWORD_UNCHANGED", "AUTH_VALIDATION_FAILED", "AUTH_CHANGE_PASSWORD_FAILED" ->
+                    HttpStatus.BAD_REQUEST;
+            default -> HttpStatus.UNAUTHORIZED;
+        };
     }
 
     @PostMapping(value = "/refresh", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

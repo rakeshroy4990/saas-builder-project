@@ -396,6 +396,10 @@ export function registerStyleTemplates(): void {
   StyleTemplateRegistry.register('hosp.form.inlineRow', {
     utilityClasses: 'flex items-center gap-3'
   });
+  /**
+   * Inline row label (register/login popups, etc.). For required fields, append a space and asterisk
+   * in the label text, e.g. `Email *` or `Patient Name *` — never `* Email`.
+   */
   StyleTemplateRegistry.register('hosp.form.inlineLabel', {
     utilityClasses: 'w-28 shrink-0 text-base font-semibold text-slate-900'
   });

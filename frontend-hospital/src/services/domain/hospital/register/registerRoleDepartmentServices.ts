@@ -19,7 +19,7 @@ export const registerRoleDepartmentHospitalServices: ServiceDefinition[] = [
       if (role !== 'DOCTOR') {
         useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'department', '');
       } else {
-        await ensureMedicalDepartmentOptionsLoaded();
+        await ensureMedicalDepartmentOptionsLoaded({ force: true });
       }
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', '');
       return ok();
