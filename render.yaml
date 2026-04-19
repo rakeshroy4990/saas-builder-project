@@ -39,6 +39,9 @@ services:
     envVars:
       - key: VITE_SPRING_API_BASE_URL
         sync: false
+      # Same origin as this static site (no trailing slash). Injects og:url / canonical and points og:image at /og-share.jpg for WhatsApp link previews.
+      - key: VITE_PUBLIC_SITE_URL
+        sync: false
     buildFilter:
       paths:
         - frontend-hospital/**
