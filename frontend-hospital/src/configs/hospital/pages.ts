@@ -83,7 +83,7 @@ export const hospitalPages: PageConfig[] = [
                               text: 'Emergency Care',
                               styles: { styleTemplate: 'hosp.button.secondary' }
                             }
-                          }
+                          },
                         ]
                       }
                     },
@@ -358,18 +358,18 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
-                id: 'hospital-home-contact-location',
+                id: 'hospital-home-contact-phone',
                 type: 'text',
                 config: {
-                  mapping: { packageName: 'hospital', key: 'HomeContent', path: 'contact', property: 'location' },
+                  mapping: { packageName: 'hospital', key: 'HomeContent', path: 'contact', property: 'whatsapp' },
                   styles: { styleTemplate: 'hosp.contact.block' }
                 }
               },
               {
-                id: 'hospital-home-contact-hours',
+                id: 'hospital-home-contact-phone',
                 type: 'text',
                 config: {
-                  mapping: { packageName: 'hospital', key: 'HomeContent', path: 'contact', property: 'hours' },
+                  mapping: { packageName: 'hospital', key: 'HomeContent', path: 'contact', property: 'email' },
                   styles: { styleTemplate: 'hosp.contact.block' }
                 }
               }

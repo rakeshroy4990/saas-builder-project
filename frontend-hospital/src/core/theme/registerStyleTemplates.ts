@@ -296,8 +296,13 @@ export function registerStyleTemplates(): void {
   StyleTemplateRegistry.register('hosp.hero.subtitle', {
     utilityClasses: 'block text-slate-600 text-base sm:text-lg'
   });
+  /**
+   * Hospital content photos: `w-full` + `h-auto` + viewport-capped `max-h-*` + `object-contain`
+   * so images stay responsive and are not cropped (letterboxing uses bg when needed).
+   */
   StyleTemplateRegistry.register('hosp.hero.image', {
-    utilityClasses: 'w-full h-64 sm:h-80 lg:h-full rounded-2xl object-cover'
+    utilityClasses:
+      'min-h-0 w-full h-auto max-h-[min(70dvh,22rem)] sm:max-h-[26rem] md:max-h-[30rem] lg:max-h-[min(85dvh,40rem)] xl:max-h-[44rem] rounded-2xl bg-slate-100 object-contain'
   });
   StyleTemplateRegistry.register('hosp.button.primary', {
     utilityClasses: 'rounded-xl bg-emerald-600 text-white font-semibold px-5 py-3 hover:bg-emerald-700'
@@ -349,7 +354,8 @@ export function registerStyleTemplates(): void {
     utilityClasses: 'block text-2xl'
   });
   StyleTemplateRegistry.register('hosp.service.image', {
-    utilityClasses: 'w-full h-32 rounded-lg object-cover'
+    utilityClasses:
+      'min-h-0 w-full h-auto max-h-[min(42dvh,12rem)] sm:max-h-[14rem] md:max-h-[16rem] rounded-lg bg-slate-100 object-contain'
   });
   StyleTemplateRegistry.register('hosp.service.title', {
     utilityClasses: 'block text-lg font-semibold text-slate-900'
@@ -364,7 +370,8 @@ export function registerStyleTemplates(): void {
     utilityClasses: 'rounded-xl bg-white border border-slate-200 p-4 shadow-sm h-full flex flex-col'
   });
   StyleTemplateRegistry.register('hosp.doctor.image', {
-    utilityClasses: 'w-full h-56 rounded-lg object-contain'
+    utilityClasses:
+      'min-h-0 w-full h-auto max-h-[min(50dvh,15rem)] sm:max-h-[17rem] md:max-h-[19rem] rounded-lg bg-slate-100 object-contain'
   });
   StyleTemplateRegistry.register('hosp.doctor.name', {
     utilityClasses: 'block text-lg font-semibold text-slate-900'
