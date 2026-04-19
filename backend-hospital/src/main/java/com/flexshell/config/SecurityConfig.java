@@ -32,6 +32,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Raw WebSocket upgrade cannot send Authorization; auth runs on STOMP CONNECT (see StompAuthChannelInterceptor).
+                        .requestMatchers("/ws", "/ws/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/setup/**").permitAll()
                         .requestMatchers("/api/logs/**").permitAll()
@@ -49,6 +51,7 @@ public class SecurityConfig {
             JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(
                     bearerTokenAuthenticator,
                     List.of(
+                            "/ws",
                             "/api/auth",
                             "/api/setup",
                             "/api/logs",

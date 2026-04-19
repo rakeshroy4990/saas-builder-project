@@ -39,6 +39,9 @@ public class WebCorsConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
+        // STOMP WebSocket upgrade (cross-origin UI → API) may hit the CorsFilter on the handshake path.
+        source.registerCorsConfiguration("/ws", config);
+        source.registerCorsConfiguration("/ws/**", config);
         return source;
     }
 }
