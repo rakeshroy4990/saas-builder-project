@@ -126,65 +126,6 @@ export const hospitalPages: PageConfig[] = [
           }
         },
         {
-          id: 'hospital-home-services-section',
-          type: 'container',
-          config: {
-            layoutTemplate: 'hosp.section.stack',
-            children: [
-              {
-                id: 'hospital-home-services-heading',
-                type: 'text',
-                config: { text: 'Our Medical Services', styles: { styleTemplate: 'hosp.section.heading' } }
-              },
-              {
-                id: 'hospital-home-services-subheading',
-                type: 'text',
-                config: {
-                  text: 'Comprehensive healthcare services delivered with excellence and compassion',
-                  styles: { styleTemplate: 'hosp.section.subheading' }
-                }
-              },
-              {
-                id: 'hospital-home-services-list',
-                type: 'list',
-                config: {
-                  listStyleTemplate: 'hosp.services.grid',
-                  mapping: { packageName: 'hospital', key: 'HomeContent', property: 'services' },
-                  itemTemplate: {
-                    layoutTemplate: 'hosp.service.card',
-                    styles: { styleTemplate: 'hosp.service.card' },
-                    children: [
-                        {
-                          id: 'hospital-home-service-image',
-                          type: 'image',
-                          config: { src: '{{image}}', styles: { styleTemplate: 'hosp.service.image' } }
-                        },
-                      {
-                        id: 'hospital-home-service-icon',
-                        type: 'text',
-                        config: { text: '{{icon}}', styles: { styleTemplate: 'hosp.service.icon' } }
-                      },
-                      {
-                        id: 'hospital-home-service-name',
-                        type: 'text',
-                        config: { text: '{{name}}', styles: { styleTemplate: 'hosp.service.title' } }
-                      },
-                      {
-                        id: 'hospital-home-service-description',
-                        type: 'text',
-                        config: {
-                          text: '{{description}}',
-                          styles: { styleTemplate: 'hosp.service.description' }
-                        }
-                      }
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
           id: 'hospital-home-doctors-section',
           type: 'container',
           config: {
@@ -237,6 +178,65 @@ export const hospitalPages: PageConfig[] = [
                         id: 'hospital-home-doctor-experience',
                         type: 'text',
                         config: { text: '{{experience}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'hospital-home-services-section',
+          type: 'container',
+          config: {
+            layoutTemplate: 'hosp.section.stack',
+            children: [
+              {
+                id: 'hospital-home-services-heading',
+                type: 'text',
+                config: { text: 'Our Medical Services', styles: { styleTemplate: 'hosp.section.heading' } }
+              },
+              {
+                id: 'hospital-home-services-subheading',
+                type: 'text',
+                config: {
+                  text: 'Comprehensive healthcare services delivered with excellence and compassion',
+                  styles: { styleTemplate: 'hosp.section.subheading' }
+                }
+              },
+              {
+                id: 'hospital-home-services-list',
+                type: 'list',
+                config: {
+                  listStyleTemplate: 'hosp.services.grid',
+                  mapping: { packageName: 'hospital', key: 'HomeContent', property: 'services' },
+                  itemTemplate: {
+                    layoutTemplate: 'hosp.service.card',
+                    styles: { styleTemplate: 'hosp.service.card' },
+                    children: [
+                        {
+                          id: 'hospital-home-service-image',
+                          type: 'image',
+                          config: { src: '{{image}}', styles: { styleTemplate: 'hosp.service.image' } }
+                        },
+                      {
+                        id: 'hospital-home-service-icon',
+                        type: 'text',
+                        config: { text: '{{icon}}', styles: { styleTemplate: 'hosp.service.icon' } }
+                      },
+                      {
+                        id: 'hospital-home-service-name',
+                        type: 'text',
+                        config: { text: '{{name}}', styles: { styleTemplate: 'hosp.service.title' } }
+                      },
+                      {
+                        id: 'hospital-home-service-description',
+                        type: 'text',
+                        config: {
+                          text: '{{description}}',
+                          styles: { styleTemplate: 'hosp.service.description' }
+                        }
                       }
                     ]
                   }

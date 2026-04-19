@@ -1,3 +1,4 @@
+import { defineAsyncComponent } from 'vue';
 import { ComponentRegistry } from '../registry/ComponentRegistry';
 import { registerTheme } from '../theme/registerTheme';
 import { registerHospitalModule } from '../../modules/HospitalModule';
@@ -10,9 +11,12 @@ import DynList from '../../components/primitives/DynList.vue';
 import DynImage from '../../components/primitives/DynImage.vue';
 import DynCheckbox from '../../components/primitives/DynCheckbox.vue';
 import DynRadioGroup from '../../components/primitives/DynRadioGroup.vue';
-import DynChat from '@realtime/components/DynChat.vue';
-import DynVideoCall from '@realtime/components/DynVideoCall.vue';
 import DynDoctorScheduleEditor from '../../components/primitives/DynDoctorScheduleEditor.vue';
+
+/** STOMP + chat UI — not needed for first paint. */
+const DynChat = defineAsyncComponent(() => import('@realtime/components/DynChat.vue'));
+/** Pulls `agora-rtc-sdk-ng` (~1.5MB) only when video call UI is first used. */
+const DynVideoCall = defineAsyncComponent(() => import('@realtime/components/DynVideoCall.vue'));
 
 export function bootstrap(): void {
   registerTheme();
