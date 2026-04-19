@@ -22,6 +22,16 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
       const mobileNumber = String(request.data.mobileNumber ?? '').trim();
       const department = String(request.data.department ?? '').trim();
       const role = String(request.data.role ?? 'PATIENT').trim().toUpperCase() || 'PATIENT';
+      const acceptTerms = Boolean(request.data.acceptTerms);
+      if (!acceptTerms) {
+        useAppStore(pinia).setProperty(
+          'hospital',
+          'RegisterForm',
+          'registerError',
+          'You must accept the Terms & Conditions to register.'
+        );
+        return { responseCode: 'REGISTER_FAILED', message: 'Terms not accepted' };
+      }
       if (!firstName || !lastName || !emailId || !password || !address || !gender || !mobileNumber) {
         useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', 'All fields are required.');
         return { responseCode: 'REGISTER_FAILED', message: 'Missing registration details' };
@@ -67,7 +77,7 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
         return ok();
       } catch (error) {
         const message = isAxiosError(error)
-          ? String(error.response?.data?.message ?? '').trim()
+          ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message', 'error']).trim()
           : '';
         useAppStore(pinia).setProperty(
           'hospital',

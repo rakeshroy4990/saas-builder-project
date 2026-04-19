@@ -66,5 +66,14 @@ export const registerFieldHospitalServices: ServiceDefinition[] = [
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', '');
       return ok();
     }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'set-register-accept-terms',
+    execute: async (request) => {
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'acceptTerms', Boolean(request.data.checked));
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', '');
+      return ok();
+    }
   }
 ];

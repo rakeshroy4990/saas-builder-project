@@ -1,5 +1,7 @@
 import type { PageConfig } from '../../core/types/PageConfig';
 import { hospitalBookAppointmentPage, hospitalBookAppointmentPopupPage } from './bookAppointmentPage';
+import { hospitalProfilePage } from './profilePage';
+import { hospitalTermsPage } from './termsPage';
 import {
   disabledWhenLoggedInAsDoctor,
   hospitalPublicChromeTop,
@@ -460,6 +462,7 @@ export const hospitalPages: PageConfig[] = [
                             config: {
                               text: 'Little Sprouts Care',
                               styles: { styleTemplate: 'hosp.header.title' },
+                              plainClick: true,
                               click: {
                                 actionId: 'set-home-header-active',
                                 onSuccess: {
@@ -552,6 +555,49 @@ export const hospitalPages: PageConfig[] = [
                       }
                     },
                     {
+                      id: 'hospital-dashboard-header-nav-profile-active',
+                      type: 'button',
+                      condition: {
+                        expression:
+                          "userId && String(userId).trim().length > 0 && activeMenu === 'PROFILE'",
+                        mappings: {
+                          userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                        }
+                      },
+                      config: {
+                        text: 'Profile',
+                        styles: {
+                          styleTemplate: 'hosp.header.menuButton',
+                          utilityClasses: 'bg-emerald-100 text-emerald-700'
+                        },
+                        click: {
+                          actionId: 'set-profile-header-active',
+                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                        }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-header-nav-profile',
+                      type: 'button',
+                      condition: {
+                        expression:
+                          "userId && String(userId).trim().length > 0 && activeMenu !== 'PROFILE'",
+                        mappings: {
+                          userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                        }
+                      },
+                      config: {
+                        text: 'Profile',
+                        styles: { styleTemplate: 'hosp.header.menuButton' },
+                        click: {
+                          actionId: 'set-profile-header-active',
+                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                        }
+                      }
+                    },
+                    {
                       id: 'hospital-dashboard-header-nav-contact-active',
                       type: 'button',
                       condition: {
@@ -615,7 +661,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Login',
+                        text: 'Login/Register',
                         styles: { styleTemplate: 'hosp.header.authButton' },
                         click: { actionId: 'open-login-popup' }
                       }
@@ -635,7 +681,12 @@ export const hospitalPages: PageConfig[] = [
                       },
                       config: {
                         mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                        styles: { styleTemplate: 'hosp.header.userButton' }
+                        styles: { styleTemplate: 'hosp.header.userButton' },
+                        title: 'Profile',
+                        click: {
+                          actionId: 'set-profile-header-active',
+                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                        }
                       }
                     },
                     {
@@ -722,6 +773,24 @@ export const hospitalPages: PageConfig[] = [
                   text: 'Dashboard',
                   styles: { styleTemplate: 'hosp.header.menuButton' },
                   click: { actionId: 'set-dashboard-header-active' }
+                }
+              },
+              {
+                id: 'hospital-dashboard-mobile-menu-profile',
+                type: 'button',
+                condition: {
+                  expression: "userId && String(userId).trim().length > 0",
+                  mappings: {
+                    userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
+                  }
+                },
+                config: {
+                  text: 'Profile',
+                  styles: { styleTemplate: 'hosp.header.menuButton' },
+                  click: {
+                    actionId: 'set-profile-header-active',
+                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                  }
                 }
               },
               {
@@ -1673,7 +1742,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-login-popup-identity-label',
                       type: 'text',
-                      config: { text: 'Email', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { text: 'Email *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-login-popup-identity',
@@ -1715,7 +1784,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-login-popup-password-label',
                       type: 'text',
-                      config: { text: 'Password', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { text: 'Password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-login-popup-password',
@@ -1851,8 +1920,19 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-login-popup-register-link-row',
                 type: 'container',
                 config: {
-                  layout: { type: 'flex', flex: ['flex', 'justify-center', 'items-center'] },
+                  layout: { type: 'flex', flex: ['flex', 'justify-center', 'items-center', 'gap-4', 'flex-wrap'] },
                   children: [
+                    {
+                      id: 'hospital-login-popup-reset-password-link',
+                      type: 'button',
+                      config: {
+                        text: 'Reset / Forgot Password',
+                        styles: { styleTemplate: 'hosp.popup.linkButton' },
+                        click: {
+                          actionId: 'open-reset-password-popup'
+                        }
+                      }
+                    },
                     {
                       id: 'hospital-login-popup-register-link',
                       type: 'button',
@@ -1922,7 +2002,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-first-name-label',
                       type: 'text',
-                      config: { text: 'FirstName', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { text: 'FirstName *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-first-name',
@@ -1970,7 +2050,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-email-label',
                       type: 'text',
-                      config: { text: 'EmailId', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { text: 'EmailId *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-email',
@@ -1994,7 +2074,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-password-label',
                       type: 'text',
-                      config: { text: 'Password', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { text: 'Password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-password',
@@ -2043,7 +2123,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-gender-label',
                       type: 'text',
-                      config: { text: 'Gender', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { text: 'Gender *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-gender-field',
@@ -2102,7 +2182,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-role-label',
                       type: 'text',
-                      config: { text: 'Role', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { text: 'Role *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-role-field',
@@ -2151,7 +2231,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-department-label',
                       type: 'text',
-                      config: { text: 'Department', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { text: 'Department *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-department-field',
@@ -2171,6 +2251,50 @@ export const hospitalPages: PageConfig[] = [
                             }
                           }
                         ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-register-popup-terms-row',
+                type: 'container',
+                config: {
+                  layout: { type: 'flex', flex: ['flex', 'flex-wrap', 'items-center', 'gap-2'] },
+                  styles: { utilityClasses: 'md:col-span-2' },
+                  children: [
+                    {
+                      id: 'hospital-register-popup-accept-terms',
+                      type: 'checkbox',
+                      config: {
+                        mapping: { packageName: 'hospital', key: 'RegisterForm', property: 'acceptTerms' },
+                        label: '',
+                        change: { actionId: 'set-register-accept-terms' }
+                      }
+                    },
+                    {
+                      id: 'hospital-register-popup-terms-lead',
+                      type: 'text',
+                      config: {
+                        text: 'I have read and agree to the',
+                        styles: { utilityClasses: 'text-sm text-slate-700' }
+                      }
+                    },
+                    {
+                      id: 'hospital-register-popup-terms-link',
+                      type: 'button',
+                      config: {
+                        text: 'Terms & Conditions',
+                        styles: { styleTemplate: 'hosp.popup.linkButton' },
+                        click: { actionId: 'open-hospital-terms-new-tab' }
+                      }
+                    },
+                    {
+                      id: 'hospital-register-popup-terms-trail',
+                      type: 'text',
+                      config: {
+                        text: '.',
+                        styles: { utilityClasses: 'text-sm text-slate-700' }
                       }
                     }
                   ]
@@ -2215,6 +2339,62 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-register-popup-submit',
                 type: 'button',
+                disabledCondition: {
+                  expression:
+                    "String(firstName ?? '').trim().length === 0 || String(lastName ?? '').trim().length === 0 || String(emailId ?? '').trim().length === 0 || String(password ?? '').trim().length === 0 || String(address ?? '').trim().length === 0 || String(gender ?? '').trim().length === 0 || String(mobileNumber ?? '').trim().length === 0 || (String(role ?? '').toUpperCase() === 'DOCTOR' && String(department ?? '').trim().length === 0) || acceptTerms !== true",
+                  mappings: {
+                    firstName: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'firstName'
+                    },
+                    lastName: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'lastName'
+                    },
+                    emailId: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'emailId'
+                    },
+                    password: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'password'
+                    },
+                    address: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'address'
+                    },
+                    gender: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'gender'
+                    },
+                    mobileNumber: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'mobileNumber'
+                    },
+                    role: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'role'
+                    },
+                    department: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'department'
+                    },
+                    acceptTerms: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'acceptTerms'
+                    }
+                  }
+                },
                 config: {
                   text: 'Register',
                   styles: { styleTemplate: 'hosp.popup.button.primary' },
@@ -2274,6 +2454,11 @@ export const hospitalPages: PageConfig[] = [
                         key: 'RegisterForm',
                         property: 'department',
                         hideNil: true
+                      },
+                      acceptTerms: {
+                        packageName: 'hospital',
+                        key: 'RegisterForm',
+                        property: 'acceptTerms'
                       }
                     },
                     onSuccess: {
@@ -2285,6 +2470,260 @@ export const hospitalPages: PageConfig[] = [
                           property: 'emailId',
                           hideNil: true
                         }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    packageName: 'hospital',
+    pageId: 'reset-password-popup',
+    title: 'Reset password',
+    initializeActions: [{ actionId: 'init-password-reset-popup' }],
+    container: {
+      layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-4'] },
+      children: [
+        {
+          id: 'hospital-reset-password-popup-header',
+          type: 'container',
+          config: {
+            layoutTemplate: 'hosp.popup.header',
+            children: [
+              {
+                id: 'hospital-reset-password-popup-title',
+                type: 'text',
+                config: {
+                  text: 'Reset password',
+                  styles: { styleTemplate: 'hosp.popup.header.title' }
+                }
+              },
+              {
+                id: 'hospital-reset-password-popup-close',
+                type: 'button',
+                config: {
+                  text: 'X',
+                  styles: { styleTemplate: 'hosp.popup.header.closeButton' },
+                  click: { actionType: 'closePopup' }
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'hospital-reset-password-popup-form',
+          type: 'container',
+          config: {
+            layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-4'] },
+            styles: { utilityClasses: 'w-full max-w-md mx-auto' },
+            children: [
+              {
+                id: 'hospital-reset-password-popup-email-row',
+                type: 'container',
+                config: {
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  children: [
+                    {
+                      id: 'hospital-reset-password-popup-email-label',
+                      type: 'text',
+                      config: { text: 'Email *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                    },
+                    {
+                      id: 'hospital-reset-password-popup-email',
+                      type: 'input',
+                      config: {
+                        mapping: { packageName: 'hospital', key: 'PasswordResetForm', property: 'emailId' },
+                        placeholder: 'youremail@example.com',
+                        styles: { styleTemplate: 'hosp.form.input' },
+                        labelStyles: { styleTemplate: 'hosp.form.inlineField' },
+                        change: { actionId: 'set-password-reset-email-id' }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-reset-password-popup-old-row',
+                type: 'container',
+                config: {
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  children: [
+                    {
+                      id: 'hospital-reset-password-popup-old-label',
+                      type: 'text',
+                      config: { text: 'Current password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                    },
+                    {
+                      id: 'hospital-reset-password-popup-old',
+                      type: 'input',
+                      config: {
+                        mapping: { packageName: 'hospital', key: 'PasswordResetForm', property: 'oldPassword' },
+                        inputType: 'password',
+                        placeholder: 'Current password',
+                        styles: { styleTemplate: 'hosp.form.input' },
+                        labelStyles: { styleTemplate: 'hosp.form.inlineField' },
+                        change: { actionId: 'set-password-reset-old-password' }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-reset-password-popup-new-row',
+                type: 'container',
+                config: {
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  children: [
+                    {
+                      id: 'hospital-reset-password-popup-new-label',
+                      type: 'text',
+                      config: { text: 'New password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                    },
+                    {
+                      id: 'hospital-reset-password-popup-new',
+                      type: 'input',
+                      config: {
+                        mapping: { packageName: 'hospital', key: 'PasswordResetForm', property: 'newPassword' },
+                        inputType: 'password',
+                        placeholder: 'At least 8 characters',
+                        styles: { styleTemplate: 'hosp.form.input' },
+                        labelStyles: { styleTemplate: 'hosp.form.inlineField' },
+                        change: { actionId: 'set-password-reset-new-password' }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-reset-password-popup-confirm-row',
+                type: 'container',
+                config: {
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  children: [
+                    {
+                      id: 'hospital-reset-password-popup-confirm-label',
+                      type: 'text',
+                      config: { text: 'Confirm new password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                    },
+                    {
+                      id: 'hospital-reset-password-popup-confirm',
+                      type: 'input',
+                      config: {
+                        mapping: { packageName: 'hospital', key: 'PasswordResetForm', property: 'confirmPassword' },
+                        inputType: 'password',
+                        placeholder: 'Re-enter new password',
+                        styles: { styleTemplate: 'hosp.form.input' },
+                        labelStyles: { styleTemplate: 'hosp.form.inlineField' },
+                        change: { actionId: 'set-password-reset-confirm-password' }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-reset-password-popup-error',
+                type: 'text',
+                condition: {
+                  expression: 'errorMessage && errorMessage.length > 0',
+                  mappings: {
+                    errorMessage: {
+                      packageName: 'hospital',
+                      key: 'PasswordResetForm',
+                      property: 'errorMessage'
+                    }
+                  }
+                },
+                config: {
+                  mapping: { packageName: 'hospital', key: 'PasswordResetForm', property: 'errorMessage' },
+                  styles: { styleTemplate: 'hosp.form.errorText' }
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'hospital-reset-password-popup-actions',
+          type: 'container',
+          config: {
+            layout: { type: 'flex', flex: ['flex', 'justify-center', 'items-center', 'gap-3'] },
+            children: [
+              {
+                id: 'hospital-reset-password-popup-cancel',
+                type: 'button',
+                config: {
+                  text: 'Cancel',
+                  styles: { styleTemplate: 'hosp.popup.button.secondary' },
+                  click: { actionType: 'closePopup' }
+                }
+              },
+              {
+                id: 'hospital-reset-password-popup-submit',
+                type: 'button',
+                disabledCondition: {
+                  expression:
+                    "Boolean(saving) || String(emailId ?? '').trim().length === 0 || String(oldPassword ?? '').trim().length === 0 || String(newPassword ?? '').trim().length < 8 || String(newPassword ?? '') !== String(confirmPassword ?? '')",
+                  mappings: {
+                    saving: {
+                      packageName: 'hospital',
+                      key: 'PasswordResetForm',
+                      property: 'saving'
+                    },
+                    emailId: {
+                      packageName: 'hospital',
+                      key: 'PasswordResetForm',
+                      property: 'emailId'
+                    },
+                    oldPassword: {
+                      packageName: 'hospital',
+                      key: 'PasswordResetForm',
+                      property: 'oldPassword'
+                    },
+                    newPassword: {
+                      packageName: 'hospital',
+                      key: 'PasswordResetForm',
+                      property: 'newPassword'
+                    },
+                    confirmPassword: {
+                      packageName: 'hospital',
+                      key: 'PasswordResetForm',
+                      property: 'confirmPassword'
+                    }
+                  }
+                },
+                config: {
+                  text: 'Update password',
+                  styles: { styleTemplate: 'hosp.popup.button.primary' },
+                  click: {
+                    actionId: 'submit-password-reset',
+                    mappings: {
+                      emailId: {
+                        packageName: 'hospital',
+                        key: 'PasswordResetForm',
+                        property: 'emailId',
+                        hideNil: true
+                      },
+                      oldPassword: {
+                        packageName: 'hospital',
+                        key: 'PasswordResetForm',
+                        property: 'oldPassword',
+                        hideNil: true
+                      },
+                      newPassword: {
+                        packageName: 'hospital',
+                        key: 'PasswordResetForm',
+                        property: 'newPassword',
+                        hideNil: true
+                      },
+                      confirmPassword: {
+                        packageName: 'hospital',
+                        key: 'PasswordResetForm',
+                        property: 'confirmPassword',
+                        hideNil: true
                       }
                     }
                   }
@@ -2460,7 +2899,7 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  label: 'Doctor (Select Department First)*',
+                  label: 'Doctor (select department first) *',
                   disabled: true,
                   options: [],
                   styles: { styleTemplate: 'hosp.form.input' }
@@ -2723,6 +3162,8 @@ export const hospitalPages: PageConfig[] = [
   },
   hospitalBookAppointmentPage,
   hospitalBookAppointmentPopupPage,
+  hospitalProfilePage,
+  hospitalTermsPage,
   {
     packageName: 'hospital',
     pageId: 'appointment-receipts-popup',
