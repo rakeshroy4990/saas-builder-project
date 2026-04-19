@@ -12,6 +12,34 @@ const isLoggedIn = computed(() => {
   return userId.length > 0;
 });
 
+const isAdmin = computed(() => {
+  const role = String(appStore.getData('hospital', 'AuthSession')?.role ?? '').trim().toUpperCase();
+  return role === 'ADMIN';
+});
+
+/** Same source as `DynChat` incoming requests — admins only. */
+const incomingSupportRequestCount = computed(() => {
+  if (!isLoggedIn.value || !isAdmin.value) return 0;
+  const chat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
+  const arr = chat.supportRequests;
+  return Array.isArray(arr) ? arr.length : 0;
+});
+
+const badgeText = computed(() => {
+  const n = incomingSupportRequestCount.value;
+  if (n > 99) return '99+';
+  return String(n);
+});
+
+const isChatOpen = computed(() => popupStore.isOpen && popupStore.pageId === 'chat-popup');
+
+const fabAriaLabel = computed(() => {
+  const n = incomingSupportRequestCount.value;
+  const pending = n > 0 ? `, ${n} pending support ${n === 1 ? 'request' : 'requests'}` : '';
+  if (isChatOpen.value) return `Close chat${pending}`;
+  return n > 0 ? `Open chat${pending}` : 'Open chat';
+});
+
 const openChat = () => {
   if (!isLoggedIn.value) {
     popupStore.open({ packageName: 'hospital', pageId: 'login-popup', title: 'Login' });
@@ -19,8 +47,6 @@ const openChat = () => {
   }
   popupStore.open({ packageName: 'hospital', pageId: 'chat-popup', title: 'Chat' });
 };
-
-const isChatOpen = computed(() => popupStore.isOpen && popupStore.pageId === 'chat-popup');
 
 const onFabClick = () => {
   if (isChatOpen.value) {
@@ -35,10 +61,17 @@ const onFabClick = () => {
   <button
     id="hospital-chat-fab"
     type="button"
-    class="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-emerald-700 text-white shadow-xl transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200"
-    :aria-label="isChatOpen ? 'Close chat' : 'Open chat'"
+    class="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-white shadow-xl transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200"
+    :aria-label="fabAriaLabel"
     @click="onFabClick"
   >
+    <span
+      v-if="incomingSupportRequestCount > 0"
+      class="pointer-events-none absolute right-0 top-0 z-10 flex min-h-5 min-w-5 translate-x-1 -translate-y-1 items-center justify-center rounded-full border-2 border-white bg-amber-600 px-1 text-[11px] font-bold leading-none text-white shadow-md tabular-nums"
+      aria-hidden="true"
+    >
+      {{ badgeText }}
+    </span>
     <!-- Closed: message bubble icon -->
     <svg
       v-if="!isChatOpen"

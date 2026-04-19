@@ -10,6 +10,7 @@ import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { buildFriendlyDisplayName } from '../shared/displayName';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
+import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
 
 export const authLoginHospitalServices: ServiceDefinition[] = [
   {
@@ -86,6 +87,13 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
           await ensureHospitalWebRtcInboundConnected();
         } catch {
           // Non-fatal: inbound video signals still work after opening dashboard / video popup.
+        }
+        if (resolvedRole === 'ADMIN') {
+          try {
+            await ensureHospitalAdminSupportInboxReady();
+          } catch {
+            // Non-fatal: badge/chat still work after opening the chat popup.
+          }
         }
         return ok();
       } catch (error) {

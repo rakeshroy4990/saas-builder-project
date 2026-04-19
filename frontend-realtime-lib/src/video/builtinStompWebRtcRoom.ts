@@ -541,12 +541,16 @@ export function createBuiltinStompWebRtcRoom(ctx: BuiltinStompWebRtcContext): Bu
           peerAlive &&
           peerSnapshot.remoteDescription?.type === 'offer' &&
           peerSnapshot.localDescription?.type === 'answer';
+        /** Inbound offer may arrive before the callee taps Accept; do not attach remote media until then. */
+        const calleeAccepted =
+          Boolean(c.webrtcCalleeAccepted) || sigNorm === 'accept';
         const incomingOffer =
           remoteTypNorm === 'offer' &&
           Boolean(remoteDesc?.sdp) &&
           Boolean(myUserId) &&
           !outgoing &&
-          !alreadyCalleeNegotiated;
+          !alreadyCalleeNegotiated &&
+          calleeAccepted;
     
         if (
           ctx.isDev() &&
@@ -566,6 +570,7 @@ export function createBuiltinStompWebRtcRoom(ctx: BuiltinStompWebRtcContext): Bu
               id,
               outgoing,
               lastSignal: sigNorm,
+              calleeAccepted,
               incomingOffer,
               remoteTypNorm,
               alreadyCalleeNegotiated,
