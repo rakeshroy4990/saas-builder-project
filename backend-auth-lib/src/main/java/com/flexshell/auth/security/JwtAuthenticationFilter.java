@@ -53,7 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = readCookie(request, accessTokenCookieName);
         }
         if (token == null || token.isEmpty()) {
-            unauthorized(response, "Missing bearer token");
+            unauthorized(response, "You are not logged in. Please login.");
             return;
         }
 

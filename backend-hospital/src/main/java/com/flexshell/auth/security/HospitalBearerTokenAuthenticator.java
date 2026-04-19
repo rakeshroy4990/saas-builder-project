@@ -54,6 +54,9 @@ public class HospitalBearerTokenAuthenticator implements BearerTokenAuthenticato
 
         UserEntity user = resolveUser(userRepository, subject)
                 .orElseThrow(() -> new AuthTokenException("User not found"));
+        if (!user.isActive()) {
+            throw new AuthTokenException("Account is inactive");
+        }
 
         Number tokenVersionClaim = claims.get("tokenVersion", Number.class);
         long tokenVersion = tokenVersionClaim == null ? 0L : tokenVersionClaim.longValue();

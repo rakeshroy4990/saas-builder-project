@@ -72,6 +72,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                     config: {
                       text: 'Little Sprouts Care',
                       styles: { styleTemplate: 'hosp.header.title' },
+                      plainClick: true,
                       click: {
                         actionId: 'set-home-header-active',
                         onSuccess: {
@@ -109,7 +110,10 @@ const hospitalPublicHeader: ComponentDefinition = {
                   styleTemplate: 'hosp.header.menuButton',
                   utilityClasses: 'bg-emerald-100 text-emerald-700'
                 },
-                click: { actionId: 'set-home-header-active' }
+                click: {
+                  actionId: 'set-home-header-active',
+                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                }
               }
             },
             {
@@ -124,7 +128,10 @@ const hospitalPublicHeader: ComponentDefinition = {
               config: {
                 text: 'Home',
                 styles: { styleTemplate: 'hosp.header.menuButton' },
-                click: { actionId: 'set-home-header-active' }
+                click: {
+                  actionId: 'set-home-header-active',
+                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                }
               }
             },
             {
@@ -160,6 +167,49 @@ const hospitalPublicHeader: ComponentDefinition = {
                 click: {
                   actionId: 'set-dashboard-header-active',
                   onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+                }
+              }
+            },
+            {
+              id: 'hospital-public-header-nav-profile-active',
+              type: 'button',
+              condition: {
+                expression:
+                  "userId && String(userId).trim().length > 0 && activeMenu === 'PROFILE'",
+                mappings: {
+                  userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                }
+              },
+              config: {
+                text: 'Profile',
+                styles: {
+                  styleTemplate: 'hosp.header.menuButton',
+                  utilityClasses: 'bg-emerald-100 text-emerald-700'
+                },
+                click: {
+                  actionId: 'set-profile-header-active',
+                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                }
+              }
+            },
+            {
+              id: 'hospital-public-header-nav-profile',
+              type: 'button',
+              condition: {
+                expression:
+                  "userId && String(userId).trim().length > 0 && activeMenu !== 'PROFILE'",
+                mappings: {
+                  userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                }
+              },
+              config: {
+                text: 'Profile',
+                styles: { styleTemplate: 'hosp.header.menuButton' },
+                click: {
+                  actionId: 'set-profile-header-active',
+                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
                 }
               }
             },
@@ -239,7 +289,11 @@ const hospitalPublicHeader: ComponentDefinition = {
               },
               config: {
                 mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                styles: { styleTemplate: 'hosp.header.userButton' }
+                styles: { styleTemplate: 'hosp.header.userButton' },
+                click: {
+                  actionId: 'set-profile-header-active',
+                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                }
               }
             },
             {
@@ -314,7 +368,10 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
         config: {
           text: 'Home',
           styles: { styleTemplate: 'hosp.header.menuButton' },
-          click: { actionId: 'set-home-header-active' }
+          click: {
+            actionId: 'set-home-header-active',
+            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+          }
         }
       },
       {
@@ -326,6 +383,24 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           click: {
             actionId: 'set-dashboard-header-active',
             onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+          }
+        }
+      },
+      {
+        id: 'hospital-public-mobile-menu-profile',
+        type: 'button',
+        condition: {
+          expression: "userId && String(userId).trim().length > 0",
+          mappings: {
+            userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
+          }
+        },
+        config: {
+          text: 'Profile',
+          styles: { styleTemplate: 'hosp.header.menuButton' },
+          click: {
+            actionId: 'set-profile-header-active',
+            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
           }
         }
       },
@@ -345,7 +420,57 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
 /** Use after `layoutTemplate: 'hosp.page.root'` — pair with a `flex-1` main column and `hospitalSiteFooter` for a pinned footer. */
 export const hospitalPublicChromeTop: ComponentDefinition[] = [hospitalPublicHeader, hospitalPublicMobileMenu];
 
-export function hospitalSiteFooter(footerRootId: string, tagline: string): ComponentDefinition {
+export type HospitalSiteFooterOptions = {
+  /**
+   * Target page for the footer legal link. Pass empty string to hide the Terms row
+   * (e.g. on the Terms page itself).
+   */
+  termsPageId?: string;
+};
+
+export function hospitalSiteFooter(
+  footerRootId: string,
+  tagline: string,
+  options?: HospitalSiteFooterOptions
+): ComponentDefinition {
+  const termsPageId = options?.termsPageId !== undefined ? options.termsPageId.trim() : 'terms';
+  const showTermsLink = termsPageId.length > 0;
+
+  const children: ComponentDefinition[] = [
+    {
+      id: `${footerRootId}-text`,
+      type: 'text',
+      config: {
+        text: tagline,
+        styles: { utilityClasses: 'text-xs text-slate-500 text-center' }
+      }
+    }
+  ];
+
+  if (showTermsLink) {
+    children.push({
+      id: `${footerRootId}-legal-row`,
+      type: 'container',
+      config: {
+        layout: { type: 'flex', flex: ['flex', 'justify-center', 'items-center', 'pt-2'] },
+        children: [
+          {
+            id: `${footerRootId}-terms-link`,
+            type: 'button',
+            config: {
+              text: 'Terms & Conditions',
+              styles: { styleTemplate: 'hosp.popup.linkButton' },
+              click: {
+                actionType: 'navigate',
+                navigate: { packageName: 'hospital', pageId: termsPageId }
+              }
+            }
+          }
+        ]
+      }
+    });
+  }
+
   return {
     id: footerRootId,
     type: 'container',
@@ -353,16 +478,7 @@ export function hospitalSiteFooter(footerRootId: string, tagline: string): Compo
       styles: {
         utilityClasses: 'mt-auto w-full shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-3'
       },
-      children: [
-        {
-          id: `${footerRootId}-text`,
-          type: 'text',
-          config: {
-            text: tagline,
-            styles: { utilityClasses: 'text-xs text-slate-500 text-center' }
-          }
-        }
-      ]
+      children
     }
   };
 }

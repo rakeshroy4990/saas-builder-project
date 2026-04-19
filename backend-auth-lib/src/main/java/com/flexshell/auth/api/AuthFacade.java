@@ -11,6 +11,12 @@ public interface AuthFacade {
 
     Optional<RegisterResponse> register(RegisterRequest request);
 
+    /**
+     * Verifies the current password and sets a new password hash. Implementations may throw
+     * {@link AuthApiException} with stable {@code errorCode} values for API responses.
+     */
+    void changePassword(ChangePasswordRequest request);
+
     default Optional<RefreshTokenResponse> refresh(RefreshTokenRequest request) {
         return Optional.empty();
     }

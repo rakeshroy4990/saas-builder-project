@@ -22,7 +22,12 @@ const emit = defineEmits<{
   action: [event: { action?: ActionConfig; payload?: Record<string, unknown> }];
 }>();
 const selected = ref('');
-const classes = computed(() => [resolveStyle(props.config?.styles), DISABLED_NATIVE_CONTROL_CLASSES]);
+const classes = computed(() => [
+  resolveStyle(props.config?.styles),
+  DISABLED_NATIVE_CONTROL_CLASSES,
+  // Keep <select> within flex parents; option text still drives min-width, so labels should stay concise.
+  'max-w-full min-w-0'
+]);
 const labelClass = computed(() => [
   resolveStyle(props.config?.labelStyles ?? { styleTemplate: 'form.label.stack' }),
   Boolean(props.config?.disabled) ? 'opacity-60' : ''

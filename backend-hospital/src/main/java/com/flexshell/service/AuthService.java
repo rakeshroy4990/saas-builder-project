@@ -9,6 +9,7 @@ import com.flexshell.auth.UserRole;
 import com.flexshell.auth.UserRepository;
 import com.flexshell.auth.api.AuthFacade;
 import com.flexshell.auth.api.AuthApiException;
+import com.flexshell.auth.api.ChangePasswordRequest;
 import com.flexshell.auth.api.LoginResponse;
 import com.flexshell.auth.api.LogoutRequest;
 import com.flexshell.auth.api.RefreshTokenRequest;
@@ -62,13 +63,28 @@ public class AuthService implements AuthFacade {
         Optional<UserEntity> user = identity.contains("@")
                 ? userRepository.findByEmail(identity)
                 : userRepository.findByUsername(identity);
-        if (user.isEmpty() || !user.get().isActive()) return Optional.empty();
-        RoleRequestStatus roleStatus = user.get().getRoleStatus();
+        if (user.isEmpty()) {
+            return Optional.empty();
+        }
+        UserEntity account = user.get();
+        RoleRequestStatus roleStatus = account.getRoleStatus() == null ? RoleRequestStatus.ACTIVE : account.getRoleStatus();
+
+        if (!account.isActive() || RoleRequestStatus.INACTIVE.equals(roleStatus)) {
+            log.info(
+                    "Login blocked deactivated userId={} email={} active={} roleStatus={}",
+                    account.getId(),
+                    account.getEmail(),
+                    account.isActive(),
+                    roleStatus);
+            throw new AuthApiException(
+                    "Your account has been deactivated. You cannot sign in until an administrator reactivates your account.",
+                    "AUTH_ACCOUNT_DEACTIVATED");
+        }
         if (RoleRequestStatus.PENDING_APPROVAL.equals(roleStatus)) {
             log.info(
                     "Login blocked due to pending role status userId={} email={} roleStatus={}",
-                    user.get().getId(),
-                    user.get().getEmail(),
+                    account.getId(),
+                    account.getEmail(),
                     roleStatus);
             throw new AuthApiException(
                     "Your request is pending for approval. Please wait for an admin to approve your request.",
@@ -77,52 +93,52 @@ public class AuthService implements AuthFacade {
         if (!RoleRequestStatus.ACTIVE.equals(roleStatus)) {
             log.info(
                     "Login blocked due to non-active role status userId={} email={} roleStatus={}",
-                    user.get().getId(),
-                    user.get().getEmail(),
+                    account.getId(),
+                    account.getEmail(),
                     roleStatus);
             return Optional.empty();
         }
 
-        String hash = user.get().getPasswordHash();
+        String hash = account.getPasswordHash();
         if (hash == null || hash.isBlank()) return Optional.empty();
         if (!passwordEncoder.matches(rawPassword, hash)) return Optional.empty();
 
-        String subject = user.get().getId();
+        String subject = account.getId();
         String audience = "web";
         String deviceId = "browser";
         String accessToken = jwtService.generateAccessToken(
                 subject,
                 audience,
-                user.get().getTokenVersion(),
-                user.get().getRole() == null ? UserRole.PATIENT.name() : user.get().getRole().name());
-        String refreshToken = jwtService.generateRefreshToken(subject, audience, deviceId, user.get().getTokenVersion());
+                account.getTokenVersion(),
+                account.getRole() == null ? UserRole.PATIENT.name() : account.getRole().name());
+        String refreshToken = jwtService.generateRefreshToken(subject, audience, deviceId, account.getTokenVersion());
 
         RefreshTokenRepository refreshTokenRepository = refreshTokenRepositoryProvider.getIfAvailable();
         if (refreshTokenRepository == null) return Optional.empty();
-        persistRefreshToken(refreshTokenRepository, user.get().getId(), refreshToken, deviceId);
+        persistRefreshToken(refreshTokenRepository, account.getId(), refreshToken, deviceId);
 
         LoginResponse response = new LoginResponse(accessToken, jwtService.getAccessExpirationSeconds());
         response.setAccessToken(accessToken);
         response.setRefreshToken(refreshToken);
         response.setRefreshExpiresInSeconds(jwtService.getRefreshExpirationSeconds());
-        response.setUserId(user.get().getId());
-        response.setUsername(resolveDisplayName(user.get()));
-        response.setEmail(user.get().getEmail());
-        response.setFirstName(user.get().getFirstName());
-        response.setLastName(user.get().getLastName());
-        response.setAddress(user.get().getAddress());
-        response.setGender(user.get().getGender());
-        response.setMobileNumber(user.get().getMobileNumber());
-        response.setDepartment(user.get().getDepartment());
+        response.setUserId(account.getId());
+        response.setUsername(resolveDisplayName(account));
+        response.setEmail(account.getEmail());
+        response.setFirstName(account.getFirstName());
+        response.setLastName(account.getLastName());
+        response.setAddress(account.getAddress());
+        response.setGender(account.getGender());
+        response.setMobileNumber(account.getMobileNumber());
+        response.setDepartment(account.getDepartment());
         response.setCreatedTimestamp(
-                user.get().getCreatedTimestamp() == null ? null : user.get().getCreatedTimestamp().toString());
+                account.getCreatedTimestamp() == null ? null : account.getCreatedTimestamp().toString());
         response.setUpdatedTimestamp(
-                user.get().getUpdatedTimestamp() == null ? null : user.get().getUpdatedTimestamp().toString());
-        response.setActive(user.get().isActive());
-        response.setRole(user.get().getRole() == null ? UserRole.PATIENT.name() : user.get().getRole().name());
-        response.setRoleStatus(user.get().getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : user.get().getRoleStatus().name());
-        response.setRequestedRole(user.get().getRequestedRole() == null ? null : user.get().getRequestedRole().name());
-        response.setRoleRejectedReason(user.get().getRoleRejectedReason());
+                account.getUpdatedTimestamp() == null ? null : account.getUpdatedTimestamp().toString());
+        response.setActive(account.isActive());
+        response.setRole(account.getRole() == null ? UserRole.PATIENT.name() : account.getRole().name());
+        response.setRoleStatus(account.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : account.getRoleStatus().name());
+        response.setRequestedRole(account.getRequestedRole() == null ? null : account.getRequestedRole().name());
+        response.setRoleRejectedReason(account.getRoleRejectedReason());
         return Optional.of(response);
     }
 
@@ -144,7 +160,18 @@ public class AuthService implements AuthFacade {
             return Optional.empty();
         }
 
-        if (userRepository.findByEmail(email).isPresent()) return Optional.empty();
+        Optional<UserEntity> existingOpt = userRepository.findByEmail(email);
+        if (existingOpt.isPresent()) {
+            UserEntity existing = existingOpt.get();
+            if (!existing.isActive() || RoleRequestStatus.INACTIVE.equals(existing.getRoleStatus())) {
+                throw new AuthApiException(
+                        "Your account is already inactive. You cannot register again with this email address until an administrator reactivates your account.",
+                        "AUTH_ACCOUNT_INACTIVE");
+            }
+            throw new AuthApiException(
+                    "An account already exists for this email address.",
+                    "AUTH_ACCOUNT_EXISTS");
+        }
 
         UserEntity user = new UserEntity();
         user.setEmail(email);
@@ -192,6 +219,62 @@ public class AuthService implements AuthFacade {
                 saved.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : saved.getRoleStatus().name(),
                 saved.getRequestedRole() == null ? null : saved.getRequestedRole().name(),
                 saved.getRoleRejectedReason()));
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
+        if (userRepository == null || request == null) {
+            throw new AuthApiException("Unable to change password right now.", "AUTH_CHANGE_PASSWORD_FAILED");
+        }
+        String emailRaw = request.getEmailId() == null ? "" : request.getEmailId().trim();
+        String oldPassword = request.getOldPassword() == null ? "" : request.getOldPassword();
+        String newPassword = request.getNewPassword() == null ? "" : request.getNewPassword().trim();
+        if (emailRaw.isEmpty() || oldPassword.isBlank() || newPassword.isEmpty()) {
+            throw new AuthApiException("Email, current password, and new password are required.", "AUTH_VALIDATION_FAILED");
+        }
+        if (oldPassword.equals(newPassword)) {
+            throw new AuthApiException(
+                    "New password must be different from your current password.",
+                    "AUTH_PASSWORD_UNCHANGED");
+        }
+
+        Optional<UserEntity> userOpt =
+                emailRaw.contains("@")
+                        ? userRepository.findByEmail(emailRaw.toLowerCase())
+                        : userRepository.findByUsername(emailRaw);
+        if (userOpt.isEmpty()) {
+            throw new AuthApiException("No account found for this email address.", "AUTH_USER_NOT_FOUND");
+        }
+        UserEntity account = userOpt.get();
+        RoleRequestStatus roleStatus = account.getRoleStatus() == null ? RoleRequestStatus.ACTIVE : account.getRoleStatus();
+
+        if (!account.isActive() || RoleRequestStatus.INACTIVE.equals(roleStatus)) {
+            throw new AuthApiException(
+                    "Your account has been deactivated. You cannot sign in until an administrator reactivates your account.",
+                    "AUTH_ACCOUNT_DEACTIVATED");
+        }
+        if (RoleRequestStatus.PENDING_APPROVAL.equals(roleStatus)) {
+            throw new AuthApiException(
+                    "Your request is pending for approval. Please wait for an admin to approve your request.",
+                    "AUTH_ROLE_PENDING_APPROVAL");
+        }
+        if (!RoleRequestStatus.ACTIVE.equals(roleStatus)) {
+            throw new AuthApiException(
+                    "Your account cannot change password in its current state. Please contact support.",
+                    "AUTH_ROLE_BLOCKED");
+        }
+
+        String hash = account.getPasswordHash();
+        if (hash == null || hash.isBlank() || !passwordEncoder.matches(oldPassword, hash)) {
+            throw new AuthApiException("Current password is incorrect.", "AUTH_INVALID_OLD_PASSWORD");
+        }
+
+        account.setPasswordHash(passwordEncoder.encode(newPassword));
+        account.setUpdatedTimestamp(Instant.now());
+        account.setTokenVersion(account.getTokenVersion() + 1L);
+        userRepository.save(account);
+        log.info("Password changed userId={}", account.getId());
     }
 
     @Override
