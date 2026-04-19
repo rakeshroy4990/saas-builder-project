@@ -121,7 +121,8 @@ export const callHospitalServices: ServiceDefinition[] = [
         webrtcRemoteDescription: undefined,
         webrtcIceInbound: [],
         videoSession: undefined,
-        videoSessionPeerUserId: ''
+        videoSessionPeerUserId: '',
+        webrtcCalleeAccepted: false
       });
       return ok();
     }
@@ -208,10 +209,16 @@ export const callHospitalServices: ServiceDefinition[] = [
         console.error('[STOMP] call-accept: missing callId', { data });
         return { responseCode: 'CALL_ACCEPT_FAILED', message: 'Missing callId' };
       }
+      const appStore = useAppStore(pinia);
       try {
+        const snap = (appStore.getData('hospital', 'VideoCall') ?? {}) as Record<string, unknown>;
+        /** Lets builtin WebRTC wait for Accept before `setRemoteDescription(offer)` (avoids remote preview early). */
+        appStore.setData('hospital', 'VideoCall', { ...snap, webrtcCalleeAccepted: true });
         await publishWebRtcSignal({ type: 'accept', callId, payload: {} });
         return ok();
       } catch (err: unknown) {
+        const afterFail = (appStore.getData('hospital', 'VideoCall') ?? {}) as Record<string, unknown>;
+        appStore.setData('hospital', 'VideoCall', { ...afterFail, webrtcCalleeAccepted: false });
         console.error('[STOMP] call-accept failed', { callId, err });
         toastStore.show('Could not accept the call. Check your connection and try again.', 'error');
         return { responseCode: 'CALL_ACCEPT_FAILED', message: 'Publish failed' };

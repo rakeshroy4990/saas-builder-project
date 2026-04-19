@@ -12,6 +12,7 @@ import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartmen
 import { loadDashboardAppointmentsPage } from '../shared/dashboardAppointments';
 import { receiptObjectUrls, clearReceiptObjectUrls } from '../shared/receiptObjectUrls';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
+import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
 import { ensureDoctorOptionsLoadedByDepartment } from '../shared/doctorCatalog';
 import { clearAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
 import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppointmentTimeSlots';
@@ -108,6 +109,13 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
           await ensureHospitalWebRtcInboundConnected();
         } catch {
           // Non-fatal: user can still use the app; video popup runs call-connect on open.
+        }
+        if (String(authSession.role ?? '').trim().toUpperCase() === 'ADMIN') {
+          try {
+            await ensureHospitalAdminSupportInboxReady();
+          } catch {
+            // Non-fatal: FAB badge still updates after opening chat.
+          }
         }
       }
       return ok();
@@ -362,6 +370,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         webrtcIceInbound: [],
         videoSession: undefined,
         videoSessionPeerUserId: '',
+        webrtcCalleeAccepted: false,
         /** When true, video popup `initializeActions` may send the STOMP invite (outgoing call only). */
         videoCallOutgoingInvite: true
       });

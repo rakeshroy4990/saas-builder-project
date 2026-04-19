@@ -106,6 +106,7 @@ export function subscribeHospitalWebRtcInboundIfNeeded(): void {
           if (imCallee && fromUserId && !samePrincipalUserId(fromUserId, myUserId)) {
             next.remotePartyName = displayHint || 'Patient';
             next.videoCallOutgoingInvite = false;
+            next.webrtcCalleeAccepted = false;
             /**
              * Dashboard `open-appointment-video-call` sets `inviteToUserId` for an *outbound* call.
              * If the patient rings in first, that stale id makes DynVideoCall treat us as the caller

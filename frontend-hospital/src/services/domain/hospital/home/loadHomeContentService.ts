@@ -4,6 +4,7 @@ import { pinia } from '../../../../store/pinia';
 import { ok } from '../shared/response';
 import { hospitalHomeContent } from '../shared/constants';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
+import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
 
 export const loadHomeContentHospitalServices: ServiceDefinition[] = [
   {
@@ -35,6 +36,13 @@ export const loadHomeContentHospitalServices: ServiceDefinition[] = [
           await ensureHospitalWebRtcInboundConnected();
         } catch {
           // Non-fatal
+        }
+        if (String(sessionForWs?.role ?? '').trim().toUpperCase() === 'ADMIN') {
+          try {
+            await ensureHospitalAdminSupportInboxReady();
+          } catch {
+            // Non-fatal
+          }
         }
       }
       return ok();

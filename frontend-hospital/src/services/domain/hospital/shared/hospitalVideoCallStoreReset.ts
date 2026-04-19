@@ -25,7 +25,8 @@ export function resetHospitalVideoCallPiniaState(): void {
     webrtcIceInbound: [],
     videoSession: undefined,
     videoSessionPeerUserId: '',
-    remotePartyName: ''
+    remotePartyName: '',
+    webrtcCalleeAccepted: false
   });
 }
 
