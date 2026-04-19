@@ -62,6 +62,22 @@ function injectLinkPreviewMeta() {
 
 export default defineConfig({
   plugins: [tailwindcss(), vue(), injectLinkPreviewMeta(), forceReloadOnUiChanges(), copyIndexTo404()],
+  build: {
+    /** `agora-rtc-sdk-ng` is ~1.5MB minified; lazy-loaded with video-call UI but still one vendor chunk. */
+    chunkSizeWarningLimit: 1600,
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('agora-rtc-sdk-ng') || id.includes('@agora-js')) return 'agora-rtc';
+          if (id.includes('/vue/') || id.includes('vue-router') || id.includes('/pinia/')) return 'vue-vendor';
+          if (id.includes('axios')) return 'axios';
+          if (id.includes('@stomp')) return 'stomp';
+          if (id.includes('vue-async-ui')) return 'async-ui';
+        }
+      }
+    }
+  },
   server: {
     host: '127.0.0.1',
     port: 5173,
