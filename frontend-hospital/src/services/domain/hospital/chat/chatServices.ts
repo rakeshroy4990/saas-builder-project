@@ -19,6 +19,182 @@ import {
 import { createChatQueueMessageHandler } from '../shared/chatQueueHandler';
 import { flushQueuedSupportMessages } from '../shared/flushQueuedSupportMessages';
 
+type HospitalAppStore = ReturnType<typeof useAppStore>;
+
+function roleIsAdmin(appStore: HospitalAppStore): boolean {
+  const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+  return String(authSession.role ?? '').trim().toUpperCase() === 'ADMIN';
+}
+
+function subscribeHospitalChatQueueIfNeeded(appStore: HospitalAppStore): void {
+  if (getChatSubscription()) return;
+  setChatSubscription(stompClient.subscribe('/user/queue/chat', createChatQueueMessageHandler(appStore)));
+}
+
+function createSupportQueueStompHandler(appStore: HospitalAppStore) {
+  return async (msg: { body?: string }) => {
+    try {
+      const event = JSON.parse(String(msg.body ?? '{}')) as Record<string, unknown>;
+      const type = String(event.type ?? '').trim();
+      if (!type) return;
+
+      const chat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
+
+      if (type === 'support_request_created') {
+        if (!roleIsAdmin(appStore)) return;
+        const requestId = String(event.requestId ?? '').trim();
+        const requesterUserId = String(event.requesterUserId ?? '').trim();
+        const requesterDisplayName = String(event.requesterDisplayName ?? '').trim();
+        if (!requestId || !requesterUserId) return;
+        if (dismissedSupportRequestIds.has(requestId)) return;
+        const existing = Array.isArray(chat.supportRequests) ? (chat.supportRequests as unknown[]) : [];
+        const already = existing.some((raw) => {
+          const r = raw as { requestId?: string; id?: string };
+          return String(r?.requestId ?? r?.id ?? '') === requestId;
+        });
+        if (already) return;
+        appStore.setData('hospital', 'Chat', {
+          ...chat,
+          supportRequests: [{ requestId, requesterUserId, requesterDisplayName }, ...existing].slice(0, 20)
+        });
+        return;
+      }
+
+      if (type === 'support_request_assigned') {
+        const roomId = String(event.roomId ?? '').trim();
+        const requestId = String(event.requestId ?? '').trim();
+        const assignedAgentUserId = String(event.assignedAgentUserId ?? '').trim();
+        if (!roomId) return;
+        if (requestId) dismissedSupportRequestIds.delete(requestId);
+
+        const existing = Array.isArray(chat.supportRequests)
+          ? (chat.supportRequests as { requestId?: string; id?: string }[])
+          : [];
+        const remaining = requestId
+          ? existing.filter((r) => String(r?.requestId ?? r?.id ?? '') !== requestId)
+          : existing;
+        const authSessionInner = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+        const myUserId = String(authSessionInner.userId ?? '').trim();
+        const isAssignedAgent = assignedAgentUserId && myUserId && assignedAgentUserId === myUserId;
+        const isRequester = requestId && String(chat.supportRequestId ?? '').trim() === requestId;
+
+        if (!isAssignedAgent && !isRequester) {
+          appStore.setData('hospital', 'Chat', { ...chat, supportRequests: remaining });
+          return;
+        }
+
+        const messagesResponse = await apiClient.get(`${URLRegistry.paths.chatRooms}/${roomId}/messages`);
+        const messagesNode = (messagesResponse.data?.Data ?? messagesResponse.data?.data ?? []) as unknown;
+        const messages = Array.isArray(messagesNode) ? messagesNode : [];
+        const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
+
+        appStore.setData('hospital', 'Chat', {
+          ...chat,
+          status: 'connected',
+          activeRoomId: roomId,
+          supportRequests: remaining,
+          messagesByRoomId: { ...messagesByRoomId, [roomId]: messages }
+        });
+
+        await flushQueuedSupportMessages(roomId, appStore);
+        return;
+      }
+
+      if (type === 'support_request_closed') {
+        const requestId = String(event.requestId ?? '').trim();
+        if (!requestId) return;
+        dismissedSupportRequestIds.delete(requestId);
+        const existingClosed = Array.isArray(chat.supportRequests)
+          ? (chat.supportRequests as { requestId?: string; id?: string }[])
+          : [];
+        const remainingClosed = existingClosed.filter((r) => String(r?.requestId ?? r?.id ?? '') !== requestId);
+        appStore.setData('hospital', 'Chat', { ...chat, supportRequests: remainingClosed });
+      }
+    } catch {
+      // no-op
+    }
+  };
+}
+
+function subscribeHospitalSupportQueueIfNeeded(appStore: HospitalAppStore): void {
+  if (getSupportSubscription()) return;
+  setSupportSubscription(stompClient.subscribe('/user/queue/support', createSupportQueueStompHandler(appStore)));
+}
+
+async function mergeOpenSupportRequestsFromApi(appStore: HospitalAppStore): Promise<void> {
+  if (!roleIsAdmin(appStore)) return;
+  try {
+    const openResponse = await apiClient.get(URLRegistry.paths.chatSupportOpen);
+    const openNode = (openResponse.data?.Data ?? openResponse.data?.data ?? []) as unknown;
+    const openRequests = Array.isArray(openNode) ? openNode : [];
+    const normalized = openRequests
+      .map((entry) => {
+        const row = (entry ?? {}) as Record<string, unknown>;
+        const requestId = String(
+          row.id ?? row.Id ?? row._id ?? row.requestId ?? row['request_id'] ?? ''
+        ).trim();
+        const requesterUserId = String(
+          row.requesterUserId ?? row.RequesterUserId ?? row['requester_user_id'] ?? ''
+        ).trim();
+        const requesterDisplayName = String(
+          row.requesterDisplayName ?? row.RequesterDisplayName ?? row['requester_display_name'] ?? ''
+        ).trim();
+        if (!requestId || !requesterUserId) return null;
+        if (dismissedSupportRequestIds.has(requestId)) return null;
+        return { requestId, requesterUserId, requesterDisplayName };
+      })
+      .filter(
+        (value): value is { requestId: string; requesterUserId: string; requesterDisplayName: string } =>
+          value !== null
+      );
+
+    if (normalized.length > 0) {
+      const latestChat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
+      const existing = Array.isArray(latestChat.supportRequests) ? (latestChat.supportRequests as unknown[]) : [];
+      const seen = new Set<string>();
+      const merged = [...normalized, ...existing]
+        .map((item) => {
+          const row = (item ?? {}) as Record<string, unknown>;
+          const requestId = String(row.requestId ?? row.id ?? '').trim();
+          const requesterUserId = String(row.requesterUserId ?? '').trim();
+          const requesterDisplayName = String(row.requesterDisplayName ?? '').trim();
+          if (!requestId || !requesterUserId) return null;
+          if (seen.has(requestId)) return null;
+          seen.add(requestId);
+          return { requestId, requesterUserId, requesterDisplayName };
+        })
+        .filter(
+          (value): value is { requestId: string; requesterUserId: string; requesterDisplayName: string } =>
+            value !== null
+        )
+        .slice(0, 20);
+
+      appStore.setData('hospital', 'Chat', { ...latestChat, supportRequests: merged });
+    }
+  } catch {
+    // no-op: live websocket events still update support requests
+  }
+}
+
+/**
+ * Subscribes admins to `/user/queue/support` and hydrates open requests without opening the chat popup,
+ * so the floating chat FAB can show a badge (see `ChatFab.vue`).
+ */
+export async function ensureHospitalAdminSupportInboxReady(): Promise<void> {
+  const appStore = useAppStore(pinia);
+  if (!roleIsAdmin(appStore)) return;
+  const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+  if (!String(session.userId ?? '').trim()) return;
+  try {
+    await stompClient.connect();
+  } catch {
+    return;
+  }
+  subscribeHospitalChatQueueIfNeeded(appStore);
+  subscribeHospitalSupportQueueIfNeeded(appStore);
+  await mergeOpenSupportRequestsFromApi(appStore);
+}
+
 export const chatHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
@@ -38,158 +214,13 @@ export const chatHospitalServices: ServiceDefinition[] = [
         wsConnected = false;
       }
       try {
-        if (!getChatSubscription()) {
-          if (wsConnected) {
-            setChatSubscription(stompClient.subscribe('/user/queue/chat', createChatQueueMessageHandler(appStore)));
-          }
-        }
-
-        if (!getSupportSubscription()) {
-          if (wsConnected) {
-            setSupportSubscription(
-              stompClient.subscribe('/user/queue/support', async (msg) => {
-                try {
-                  const event = JSON.parse(String(msg.body ?? '{}')) as Record<string, unknown>;
-                  const type = String(event.type ?? '').trim();
-                  if (!type) return;
-
-                  const chat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
-
-                  if (type === 'support_request_created') {
-                    if (!isAdmin) return;
-                    const requestId = String(event.requestId ?? '').trim();
-                    const requesterUserId = String(event.requesterUserId ?? '').trim();
-                    const requesterDisplayName = String(event.requesterDisplayName ?? '').trim();
-                    if (!requestId || !requesterUserId) return;
-                    if (dismissedSupportRequestIds.has(requestId)) return;
-                    const existing = Array.isArray(chat.supportRequests) ? (chat.supportRequests as unknown[]) : [];
-                    const already = existing.some((raw) => {
-                      const r = raw as { requestId?: string; id?: string };
-                      return String(r?.requestId ?? r?.id ?? '') === requestId;
-                    });
-                    if (already) return;
-                    appStore.setData('hospital', 'Chat', {
-                      ...chat,
-                      supportRequests: [{ requestId, requesterUserId, requesterDisplayName }, ...existing].slice(0, 20)
-                    });
-                    return;
-                  }
-
-                  if (type === 'support_request_assigned') {
-                    const roomId = String(event.roomId ?? '').trim();
-                    const requestId = String(event.requestId ?? '').trim();
-                    const assignedAgentUserId = String(event.assignedAgentUserId ?? '').trim();
-                    if (!roomId) return;
-                    if (requestId) dismissedSupportRequestIds.delete(requestId);
-
-                    const existing = Array.isArray(chat.supportRequests)
-                      ? (chat.supportRequests as { requestId?: string; id?: string }[])
-                      : [];
-                    const remaining = requestId
-                      ? existing.filter((r) => String(r?.requestId ?? r?.id ?? '') !== requestId)
-                      : existing;
-                    const authSessionInner = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<
-                      string,
-                      unknown
-                    >;
-                    const myUserId = String(authSessionInner.userId ?? '').trim();
-                    const isAssignedAgent = assignedAgentUserId && myUserId && assignedAgentUserId === myUserId;
-                    const isRequester = requestId && String(chat.supportRequestId ?? '').trim() === requestId;
-
-                    if (!isAssignedAgent && !isRequester) {
-                      appStore.setData('hospital', 'Chat', { ...chat, supportRequests: remaining });
-                      return;
-                    }
-
-                    const messagesResponse = await apiClient.get(`${URLRegistry.paths.chatRooms}/${roomId}/messages`);
-                    const messagesNode = (messagesResponse.data?.Data ?? messagesResponse.data?.data ?? []) as unknown;
-                    const messages = Array.isArray(messagesNode) ? messagesNode : [];
-                    const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
-
-                    appStore.setData('hospital', 'Chat', {
-                      ...chat,
-                      status: 'connected',
-                      activeRoomId: roomId,
-                      supportRequests: remaining,
-                      messagesByRoomId: { ...messagesByRoomId, [roomId]: messages }
-                    });
-
-                    await flushQueuedSupportMessages(roomId, appStore);
-                    return;
-                  }
-
-                  if (type === 'support_request_closed') {
-                    const requestId = String(event.requestId ?? '').trim();
-                    if (!requestId) return;
-                    dismissedSupportRequestIds.delete(requestId);
-                    const existingClosed = Array.isArray(chat.supportRequests)
-                      ? (chat.supportRequests as { requestId?: string; id?: string }[])
-                      : [];
-                    const remainingClosed = existingClosed.filter(
-                      (r) => String(r?.requestId ?? r?.id ?? '') !== requestId
-                    );
-                    appStore.setData('hospital', 'Chat', { ...chat, supportRequests: remainingClosed });
-                  }
-                } catch {
-                  // no-op
-                }
-              })
-            );
-          }
+        if (wsConnected) {
+          subscribeHospitalChatQueueIfNeeded(appStore);
+          subscribeHospitalSupportQueueIfNeeded(appStore);
         }
 
         if (isAdmin) {
-          try {
-            const openResponse = await apiClient.get(URLRegistry.paths.chatSupportOpen);
-            const openNode = (openResponse.data?.Data ?? openResponse.data?.data ?? []) as unknown;
-            const openRequests = Array.isArray(openNode) ? openNode : [];
-            const normalized = openRequests
-              .map((entry) => {
-                const row = (entry ?? {}) as Record<string, unknown>;
-                const requestId = String(
-                  row.id ?? row.Id ?? row._id ?? row.requestId ?? row['request_id'] ?? ''
-                ).trim();
-                const requesterUserId = String(
-                  row.requesterUserId ?? row.RequesterUserId ?? row['requester_user_id'] ?? ''
-                ).trim();
-                const requesterDisplayName = String(
-                  row.requesterDisplayName ?? row.RequesterDisplayName ?? row['requester_display_name'] ?? ''
-                ).trim();
-                if (!requestId || !requesterUserId) return null;
-                if (dismissedSupportRequestIds.has(requestId)) return null;
-                return { requestId, requesterUserId, requesterDisplayName };
-              })
-              .filter(
-                (value): value is { requestId: string; requesterUserId: string; requesterDisplayName: string } =>
-                  value !== null
-              );
-
-            if (normalized.length > 0) {
-              const latestChat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
-              const existing = Array.isArray(latestChat.supportRequests) ? (latestChat.supportRequests as unknown[]) : [];
-              const seen = new Set<string>();
-              const merged = [...normalized, ...existing]
-                .map((item) => {
-                  const row = (item ?? {}) as Record<string, unknown>;
-                  const requestId = String(row.requestId ?? row.id ?? '').trim();
-                  const requesterUserId = String(row.requesterUserId ?? '').trim();
-                  const requesterDisplayName = String(row.requesterDisplayName ?? '').trim();
-                  if (!requestId || !requesterUserId) return null;
-                  if (seen.has(requestId)) return null;
-                  seen.add(requestId);
-                  return { requestId, requesterUserId, requesterDisplayName };
-                })
-                .filter(
-                  (value): value is { requestId: string; requesterUserId: string; requesterDisplayName: string } =>
-                    value !== null
-                )
-                .slice(0, 20);
-
-              appStore.setData('hospital', 'Chat', { ...latestChat, supportRequests: merged });
-            }
-          } catch {
-            // no-op: live websocket events still update support requests
-          }
+          await mergeOpenSupportRequestsFromApi(appStore);
         } else {
           const latestChat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
           appStore.setData('hospital', 'Chat', { ...latestChat, supportRequests: [] });
