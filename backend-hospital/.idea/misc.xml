@@ -4,6 +4,7 @@
   <component name="FrameworkDetectionExcludesConfiguration">
     <file type="web" url="file://$PROJECT_DIR$/../backend-auth-lib" />
     <file type="web" url="file://$PROJECT_DIR$" />
+    <file type="web" url="file://$PROJECT_DIR$/../backend-realtime-lib" />
     <file type="web" url="file://$PROJECT_DIR$/../backend-uimetadata-lib" />
   </component>
   <component name="KubernetesApiProvider"><![CDATA[{}]]></component>

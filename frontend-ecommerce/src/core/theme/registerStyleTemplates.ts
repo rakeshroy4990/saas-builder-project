@@ -40,7 +40,9 @@ export function registerStyleTemplates(): void {
   });
   StyleTemplateRegistry.register('system.popup.panel.chatWidget', {
     utilityClasses:
-      'fixed bottom-20 right-6 z-50 flex h-[640px] min-h-[520px] w-[min(92vw,520px)] max-h-[85vh] flex-col overflow-hidden rounded-[20px] bg-white shadow-2xl focus:outline-none'
+      'fixed z-50 flex min-h-0 min-w-0 max-w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl focus:outline-none ' +
+      'inset-x-4 bottom-24 h-[min(72dvh,calc(100dvh-7rem))] max-h-[min(72dvh,calc(100dvh-7rem))] ' +
+      'sm:inset-x-auto sm:bottom-20 sm:right-6 sm:left-auto sm:h-[min(640px,85dvh)] sm:w-[min(92vw,520px)] sm:max-h-[85dvh] sm:rounded-[20px]'
   });
   StyleTemplateRegistry.register('system.popup.errorTitle', {
     utilityClasses: 'mb-2 text-lg font-semibold text-red-600'

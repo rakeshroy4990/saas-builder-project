@@ -5,6 +5,8 @@ import { pinia } from '../../../../store/pinia';
 import { stompClient } from '../../../realtime/stompClient';
 import { logClient } from '../../../logging/clientLogger';
 import { getWebrtcSubscription, setWebrtcSubscription } from './callState';
+import { closeVideoCallPopupIfOpen, resetHospitalVideoCallPiniaState } from './hospitalVideoCallStoreReset';
+import { isBuiltinHospitalVideo } from './videoProviderConfig';
 
 const inviteToastCallIds = new Set<string>();
 
@@ -58,6 +60,20 @@ export function subscribeHospitalWebRtcInboundIfNeeded(): void {
           pl.displayName ?? pl.DisplayName ?? pl.callerName ?? pl.CallerName ?? ''
         ).trim();
         const call = (appStore.getData('hospital', 'VideoCall') ?? {}) as Record<string, unknown>;
+
+        if (signalTypeNorm === 'end' || signalTypeNorm === 'reject') {
+          if (!callId) {
+            return;
+          }
+          const active = String(call.callId ?? '').trim();
+          if (active && active !== callId) {
+            return;
+          }
+          resetHospitalVideoCallPiniaState();
+          closeVideoCallPopupIfOpen();
+          return;
+        }
+
         /** Label chosen in `open-appointment-video-call` — must survive invite STOMP echoes to the caller. */
         const priorRemotePartyName = String(call.remotePartyName ?? '').trim();
         const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
@@ -83,6 +99,8 @@ export function subscribeHospitalWebRtcInboundIfNeeded(): void {
         };
         if (callId) next.callId = callId;
 
+        const storeBuiltinWebRtcMedia = isBuiltinHospitalVideo();
+
         if (signalTypeNorm === 'invite') {
           const imCallee = Boolean(myUserId && toUserId && samePrincipalUserId(toUserId, myUserId));
           if (imCallee && fromUserId && !samePrincipalUserId(fromUserId, myUserId)) {
@@ -94,6 +112,12 @@ export function subscribeHospitalWebRtcInboundIfNeeded(): void {
              * (`outgoing`), so `startAsCallee` never runs → black remote after Accept.
              */
             next.inviteToUserId = '';
+            /** Lets `hospital-prepare-video-session` mint a vendor token using the caller id when Agora/HMS is enabled. */
+            next.videoSessionPeerUserId = fromUserId;
+            const apptFromInvite = String(pl.appointmentId ?? pl.AppointmentId ?? '').trim();
+            if (apptFromInvite) {
+              next.inviteAppointmentId = apptFromInvite;
+            }
             if (callId && !inviteToastCallIds.has(callId)) {
               inviteToastCallIds.add(callId);
               if (inviteToastCallIds.size > 40) inviteToastCallIds.clear();
@@ -114,7 +138,7 @@ export function subscribeHospitalWebRtcInboundIfNeeded(): void {
           next.remotePartyName = displayHint;
         }
 
-        if (signalTypeNorm === 'offer' || signalTypeNorm === 'answer') {
+        if (storeBuiltinWebRtcMedia && (signalTypeNorm === 'offer' || signalTypeNorm === 'answer')) {
           const imSignalingCallee = Boolean(
             myUserId && toUserId && samePrincipalUserId(toUserId, myUserId) && fromUserId && !samePrincipalUserId(fromUserId, myUserId)
           );
@@ -138,10 +162,21 @@ export function subscribeHospitalWebRtcInboundIfNeeded(): void {
               }
             });
           }
-        } else if (signalTypeNorm === 'ice') {
-          const q = Array.isArray(call.webrtcIceInbound) ? ([...call.webrtcIceInbound] as unknown[]) : [];
-          q.push(pl);
-          next.webrtcIceInbound = q;
+        } else if (storeBuiltinWebRtcMedia && signalTypeNorm === 'ice') {
+          const storeCallId = String(call.callId ?? '').trim();
+          if (storeCallId && callId && storeCallId !== callId) {
+            if (import.meta.env.DEV) {
+              void logClient('DEBUG', 'WebRTC ICE ignored (stale callId)', { storeCallId, envelopeCallId: callId });
+            }
+          } else {
+            const q = Array.isArray(call.webrtcIceInbound) ? ([...call.webrtcIceInbound] as unknown[]) : [];
+            const tagged =
+              pl && typeof pl === 'object' && !Array.isArray(pl)
+                ? { ...(pl as Record<string, unknown>), webrtcEnvelopeCallId: callId }
+                : { webrtcEnvelopeCallId: callId, candidatePayload: pl };
+            q.push(tagged);
+            next.webrtcIceInbound = q;
+          }
         }
 
         // Invite echoed back to the initiator: payload.displayName is the caller (self), not the peer.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import type { ActionConfig } from '@/core/types/ActionConfig';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveStyle } from '@/core/engine/StyleResolver';
@@ -119,6 +119,20 @@ const activeMessages = computed(() => {
 });
 
 const draft = ref('');
+const messagesScrollEl = ref<HTMLElement | null>(null);
+
+function scrollMessagesToBottom() {
+  void nextTick(() => {
+    const el = messagesScrollEl.value;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  });
+}
+
+watch(activeRoomId, () => scrollMessagesToBottom());
+watch(activeMessages, () => scrollMessagesToBottom(), { deep: true });
+watch(pendingMessages, () => scrollMessagesToBottom(), { deep: true });
+
 const activeInlineEditKey = ref('');
 const inlineEditText = ref('');
 const rootClass = computed(() =>
@@ -127,7 +141,7 @@ const rootClass = computed(() =>
 const embedded = computed(() => Boolean(props.config?.embedded));
 const shellClass = computed(() =>
   embedded.value
-    ? 'flex h-full min-h-0 flex-col overflow-hidden bg-white'
+    ? 'flex h-full min-h-0 min-w-0 w-full max-w-full flex-col overflow-hidden bg-white'
     : 'flex h-full flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm'
 );
 
@@ -223,7 +237,10 @@ const sendInlineEdit = (m: any) => {
 <template>
   <div :id="htmlId" :class="rootClass">
     <div :class="shellClass">
-      <div class="flex min-h-[360px] flex-1 flex-col gap-3 overflow-y-auto bg-slate-50/50 p-4">
+      <div
+        ref="messagesScrollEl"
+        class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain bg-slate-50/50 p-3 sm:p-4 [-webkit-overflow-scrolling:touch]"
+      >
         <div v-if="isAdmin && supportRequests.length > 0" class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
           <div class="text-sm font-semibold text-amber-900">Incoming chat request</div>
           <div class="mt-1 text-xs text-amber-800">An admin can accept to start a 1:1 chat.</div>
@@ -384,7 +401,7 @@ const sendInlineEdit = (m: any) => {
         </div>
       </div>
 
-      <div class="border-t border-slate-200 bg-white p-3">
+      <div class="shrink-0 border-t border-slate-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:pb-3">
         <div class="flex items-center gap-2">
           <input
             v-model="draft"

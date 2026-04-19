@@ -56,7 +56,14 @@ const hospitalPublicHeader: ComponentDefinition = {
                     config: {
                       src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/stetho_n1bp0a.jpg',
                       alt: 'Little Sprouts Care logo',
-                      styles: { styleTemplate: 'hosp.header.logo' }
+                      styles: { styleTemplate: 'hosp.header.logo' },
+                      click: {
+                        actionId: 'set-home-header-active',
+                        onSuccess: {
+                          actionType: 'navigate',
+                          navigate: { packageName: 'hospital', pageId: 'home' }
+                        }
+                      }
                     }
                   },
                   {

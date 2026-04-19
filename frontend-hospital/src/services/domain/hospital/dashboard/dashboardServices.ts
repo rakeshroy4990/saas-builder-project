@@ -360,6 +360,8 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         payload: {},
         webrtcRemoteDescription: undefined,
         webrtcIceInbound: [],
+        videoSession: undefined,
+        videoSessionPeerUserId: '',
         /** When true, video popup `initializeActions` may send the STOMP invite (outgoing call only). */
         videoCallOutgoingInvite: true
       });

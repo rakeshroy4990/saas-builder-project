@@ -40,6 +40,8 @@ export const SERVER_PATHS = {
   chatSupportAccept: '/api/chat/support/accept',
   chatSupportReject: '/api/chat/support/reject',
   chatSupportOpen: '/api/chat/support/open',
+  /** Mint RTC / vendor session after hospital call permission checks. */
+  hospitalVideoSession: '/api/hospital/video/session',
   test: '/api/test'
 } as const;
 
