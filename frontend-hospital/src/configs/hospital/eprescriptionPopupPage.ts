@@ -152,10 +152,14 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-meds',
         type: 'input',
         config: {
-          label: 'Medicines (JSON array) *',
-          mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'medicinesJson' },
-          change: { actionId: 'set-prescription-editor-field', data: { field: 'medicinesJson' } },
-          styles: { styleTemplate: 'hosp.form.input', utilityClasses: 'md:col-span-2 font-mono text-xs' }
+          label: 'Medicines *',
+          inputType: 'textarea',
+          rows: 6,
+          placeholder:
+            'One medicine per line:\nName | Strength | Dose | Frequency | Route | Duration days | Schedule(optional)\nParacetamol | 650 mg | 1 tablet | TID after food | Oral | 5 | H',
+          mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'medicinesText' },
+          change: { actionId: 'set-prescription-editor-field', data: { field: 'medicinesText' } },
+          styles: { styleTemplate: 'hosp.form.textarea', utilityClasses: 'md:col-span-2 font-mono text-xs' }
         }
       },
       {
@@ -163,9 +167,12 @@ const eprescriptionFormGrid: ComponentDefinition = {
         type: 'input',
         config: {
           label: 'General advice',
+          inputType: 'textarea',
+          rows: 4,
+          placeholder: 'Diet, hydration, rest, warning signs, and when to seek urgent care.',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'generalAdvice' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'generalAdvice' } },
-          styles: { styleTemplate: 'hosp.form.input', utilityClasses: 'md:col-span-2' }
+          styles: { styleTemplate: 'hosp.form.textarea', utilityClasses: 'md:col-span-2' }
         }
       },
       {
@@ -173,9 +180,12 @@ const eprescriptionFormGrid: ComponentDefinition = {
         type: 'input',
         config: {
           label: 'Follow-up advice',
+          inputType: 'textarea',
+          rows: 4,
+          placeholder: 'Follow-up date/time, investigations, and escalation instructions.',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'followUpAdvice' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'followUpAdvice' } },
-          styles: { styleTemplate: 'hosp.form.input', utilityClasses: 'md:col-span-2' }
+          styles: { styleTemplate: 'hosp.form.textarea', utilityClasses: 'md:col-span-2' }
         }
       },
       {
@@ -253,7 +263,7 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
               },
               config: {
                 text: 'Save draft',
-                styles: { styleTemplate: 'hosp.popup.button.secondary' },
+                styles: { styleTemplate: 'hosp.popup.button.secondary', utilityClasses: 'min-w-[180px] justify-center' },
                 click: { actionId: 'save-eprescription-draft' }
               }
             },
@@ -268,7 +278,7 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
               },
               config: {
                 text: 'Validate',
-                styles: { styleTemplate: 'hosp.popup.button.secondary' },
+                styles: { styleTemplate: 'hosp.popup.button.secondary', utilityClasses: 'min-w-[180px] justify-center' },
                 click: { actionId: 'validate-eprescription' }
               }
             },
@@ -283,7 +293,7 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
               },
               config: {
                 text: 'Finalize & sign (placeholder)',
-                styles: { styleTemplate: 'hosp.popup.button.primary' },
+                styles: { styleTemplate: 'hosp.popup.button.primary', utilityClasses: 'min-w-[180px] justify-center' },
                 click: { actionId: 'finalize-eprescription' }
               }
             }
