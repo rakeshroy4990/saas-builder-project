@@ -197,7 +197,8 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         id: 'hospital-book-appt-prescriptions',
         type: 'input',
         config: {
-          label: 'Add / replace prescriptions (optional, up to 2 images)',
+          label:
+            'Prior documents / scans (optional, up to 2 images) — not the doctor-issued structured e-prescription',
           inputType: 'file',
           accept: 'image/*',
           multiple: true,

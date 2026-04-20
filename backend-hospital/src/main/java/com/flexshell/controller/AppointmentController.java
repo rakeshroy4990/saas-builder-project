@@ -100,6 +100,23 @@ public class AppointmentController {
         }
     }
 
+    @PostMapping(value = "/complete/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AppointmentResponse>> completeVisit(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        try {
+            AppointmentResponse data = appointmentService.completeVisit(id, authentication.getName());
+            return ResponseEntity.ok(StandardApiResponse.success("Visit marked complete", data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_COMPLETE_INVALID"));
+        }
+    }
+
     @GetMapping(value = "/get/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<AppointmentResponse>> getById(
             @PathVariable String id,

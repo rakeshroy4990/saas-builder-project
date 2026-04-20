@@ -6,6 +6,8 @@ describe('URLRegistry', () => {
     expect(URLRegistry.paths.login).toBe('/api/auth/login');
     expect(URLRegistry.paths.register).toBe('/api/auth/register');
     expect(URLRegistry.paths.appointmentGet).toBe('/api/appointment/get');
+    expect(URLRegistry.paths.appointmentComplete).toBe('/api/appointment/complete');
+    expect(URLRegistry.paths.prescriptionAppointmentBase).toBe('/api/prescription/appointment');
     expect(URLRegistry.paths.medicalDepartmentGet).toBe('/api/medical-department/get');
   });
 });

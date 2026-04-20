@@ -35,6 +35,7 @@ import java.util.UUID;
 public class AppointmentService {
     private static final String DEFAULT_STATUS_OPEN = "Open";
     private static final String STATUS_CANCELLED = "CANCELLED";
+    private static final String STATUS_COMPLETED = "COMPLETED";
     private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
     private final ObjectProvider<UserRepository> userRepositoryProvider;
     private final ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider;
@@ -118,6 +119,42 @@ public class AppointmentService {
         entity.setUpdatedTimestamp(Instant.now());
         entity.setUpdatedBy(actorUserId);
         return toResponse(repository.save(entity));
+    }
+
+    /**
+     * Marks a consultation as completed so the assigned doctor can issue a structured e-prescription.
+     * Only the assigned doctor may complete (patients and admins use other flows).
+     */
+    public AppointmentResponse completeVisit(String id, String actorUserId) {
+        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentEntity entity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
+        UserRole role = resolveUserRole(actorUserId);
+        if (role != UserRole.DOCTOR) {
+            throw new SecurityException("Only the treating doctor can mark this visit complete");
+        }
+        String doctorId = normalize(entity.getDoctorId());
+        if (!doctorId.equalsIgnoreCase(normalize(actorUserId))) {
+            throw new SecurityException("Only the assigned doctor can mark this visit complete");
+        }
+        if (STATUS_CANCELLED.equalsIgnoreCase(normalize(entity.getStatus()))) {
+            throw new IllegalArgumentException("Cancelled appointments cannot be completed");
+        }
+        if (STATUS_COMPLETED.equalsIgnoreCase(normalize(entity.getStatus()))) {
+            return toResponse(entity);
+        }
+        entity.setStatus(STATUS_COMPLETED);
+        entity.setUpdatedTimestamp(Instant.now());
+        entity.setUpdatedBy(actorUserId);
+        return toResponse(repository.save(entity));
+    }
+
+    public AppointmentEntity requireAppointmentEntity(String id, String actorUserId) {
+        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentEntity entity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
+        ensureCanAccessAppointment(entity, actorUserId);
+        return entity;
     }
 
     public AppointmentResponse getById(String id, String actorUserId) {
