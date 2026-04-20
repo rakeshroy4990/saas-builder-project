@@ -19,6 +19,7 @@ import { chatHospitalServices } from './chat/chatServices';
 import { callHospitalServices } from './call/callServices';
 import { doctorScheduleHospitalServices } from './doctor/doctorScheduleHospitalServices';
 import { profileUserHospitalServices } from './profile/profileUserServices';
+import { prescriptionHospitalServices } from './prescription/prescriptionServices';
 
 /**
  * Same service ids and behavior as legacy `services.ts`, in the same registration order
@@ -44,5 +45,6 @@ export const hospitalServices: ServiceDefinition[] = [
   ...chatHospitalServices,
   ...callHospitalServices,
   ...doctorScheduleHospitalServices,
-  ...profileUserHospitalServices
+  ...profileUserHospitalServices,
+  ...prescriptionHospitalServices
 ];

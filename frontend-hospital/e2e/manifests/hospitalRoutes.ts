@@ -25,6 +25,7 @@ export const hospitalRouteManifest: HospitalRouteManifestEntry[] = [
   { packageName: 'hospital', pageId: 'appointment-success-popup' },
   { packageName: 'hospital', pageId: 'book-appointment', skipRouteSmoke: true },
   { packageName: 'hospital', pageId: 'book-appointment-popup' },
+  { packageName: 'hospital', pageId: 'eprescription-popup' },
   { packageName: 'hospital', pageId: 'profile', skipRouteSmoke: true },
   { packageName: 'hospital', pageId: 'appointment-receipts-popup' },
   { packageName: 'hospital', pageId: 'chat', skipHeavyIntegration: true },

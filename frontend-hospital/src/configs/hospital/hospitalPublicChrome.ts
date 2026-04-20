@@ -269,7 +269,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Login',
+                text: 'Login/Register',
                 styles: { styleTemplate: 'hosp.header.authButton' },
                 click: { actionId: 'open-login-popup' }
               }

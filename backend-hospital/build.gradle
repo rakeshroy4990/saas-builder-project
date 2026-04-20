@@ -31,6 +31,7 @@ dependencies {
     implementation 'com.flexshell:backend-auth-lib:0.0.1-SNAPSHOT'
     implementation 'com.flexshell:backend-realtime-lib:0.0.1-SNAPSHOT'
     implementation 'io.agora:authentication:2.1.3'
+    implementation 'com.github.librepdf:openpdf:2.0.3'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

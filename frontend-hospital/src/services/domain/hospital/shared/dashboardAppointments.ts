@@ -15,7 +15,7 @@ function resolveAppointmentRowPayload(entry: unknown): Record<string, unknown> {
 }
 
 /** Prefer computing here instead of a long `condition` on list rows (avoids fragile `new Function` param lists). */
-function computeCanEditAppointment(row: Record<string, unknown>): 'Y' | '' {
+export function computeCanEditAppointment(row: Record<string, unknown>): 'Y' | '' {
   const createdByRaw = pickString(row, ['CreatedBy', 'createdBy']).trim();
   const statusRaw = pickString(row, ['Status', 'status']).trim().toUpperCase();
   if (statusRaw === 'CANCELLED') {
@@ -43,6 +43,17 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
   const preferredDate = pickString(row, ['PreferredDate', 'preferredDate']);
   const createdTimestamp = pickString(row, ['CreatedTimestamp', 'createdTimestamp']);
   const canEditAppointment = computeCanEditAppointment(row);
+  const authSession = (useAppStore(pinia).getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+  const role = String(authSession.role ?? '').trim().toUpperCase();
+  const myUserId = String(authSession.userId ?? '').trim();
+  const doctorRowId = pickString(row, ['DoctorId', 'doctorId']).trim();
+  const isAssignedDoctor =
+    role === 'DOCTOR' && Boolean(myUserId && doctorRowId && doctorRowId.toLowerCase() === myUserId.toLowerCase());
+  const statusU = pickString(row, ['Status', 'status']).trim().toUpperCase();
+  const canMarkVisitComplete = isAssignedDoctor && statusU !== 'CANCELLED' && statusU !== 'COMPLETED';
+  const canIssueEprescription = isAssignedDoctor && statusU === 'COMPLETED';
+  const canDownloadEprescription =
+    statusU === 'COMPLETED' && (canEditAppointment === 'Y' || isAssignedDoctor || role === 'ADMIN');
   return {
     id,
     patientName: pickString(row, ['PatientName', 'patientName']) || 'Patient',
@@ -81,7 +92,11 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
       const first = (list[0] ?? {}) as Record<string, unknown>;
       return pickString(first, ['FileId', 'fileId', 'Id', 'id']);
     })(),
-    canEditAppointment
+    canEditAppointment,
+    isAssignedDoctor: isAssignedDoctor ? 'Y' : '',
+    canMarkVisitComplete: canMarkVisitComplete ? 'Y' : '',
+    canIssueEprescription: canIssueEprescription ? 'Y' : '',
+    canDownloadEprescription: canDownloadEprescription ? 'Y' : ''
   };
 }
 
