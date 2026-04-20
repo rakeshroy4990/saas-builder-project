@@ -20,12 +20,67 @@ function readPayloadNode(data: Record<string, unknown>): Record<string, unknown>
   return p && typeof p === 'object' && !Array.isArray(p) ? (p as Record<string, unknown>) : {};
 }
 
+function toLineMedicineText(medicines: unknown[]): string {
+  return medicines
+    .map((entry) => {
+      const med = (entry ?? {}) as Record<string, unknown>;
+      return [
+        pickString(med, ['name', 'Name']),
+        pickString(med, ['strength', 'Strength']),
+        pickString(med, ['dose', 'Dose']),
+        pickString(med, ['frequency', 'Frequency']),
+        pickString(med, ['route', 'Route']),
+        pickString(med, ['durationDays', 'DurationDays']),
+        pickString(med, ['scheduleCategory', 'ScheduleCategory'])
+      ]
+        .map((value) => String(value ?? '').trim())
+        .join(' | ');
+    })
+    .filter((line) => line.replace(/\|/g, '').trim().length > 0)
+    .join('\n');
+}
+
+function parseMedicinesTextToList(raw: string): unknown[] {
+  const lines = raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return lines.map((line) => {
+    const [name, strength, dose, frequency, route, durationDays, scheduleCategory] = line
+      .split('|')
+      .map((part) => part.trim());
+    return {
+      name: name ?? '',
+      strength: strength ?? '',
+      dose: dose ?? '',
+      frequency: frequency ?? '',
+      route: route ?? '',
+      durationDays: durationDays ?? '',
+      scheduleCategory: scheduleCategory ?? ''
+    };
+  });
+}
+
+function nonBlank(value: unknown): string {
+  return String(value ?? '').trim();
+}
+
+function mergeMissing(base: Record<string, unknown>, fallback: Record<string, unknown>): Record<string, unknown> {
+  const merged = { ...base };
+  for (const [key, value] of Object.entries(fallback)) {
+    if (!nonBlank(merged[key]) && nonBlank(value)) merged[key] = value;
+  }
+  return merged;
+}
+
 function applyPayloadToEditor(appStore: ReturnType<typeof useAppStore>, payload: Record<string, unknown>) {
   const clinic = (payload.clinic ?? payload.Clinic) as Record<string, unknown> | undefined;
   const prescriber = (payload.prescriber ?? payload.Prescriber) as Record<string, unknown> | undefined;
   const patient = (payload.patient ?? payload.Patient) as Record<string, unknown> | undefined;
   const meds = payload.medicines ?? payload.Medicines;
-  const medicinesJson = JSON.stringify(Array.isArray(meds) ? meds : [], null, 2);
+  const medicineList = Array.isArray(meds) ? meds : [];
+  const medicinesJson = JSON.stringify(medicineList, null, 2);
+  const medicinesText = toLineMedicineText(medicineList);
   const base = (appStore.getData('hospital', 'PrescriptionEditor') ?? {}) as Record<string, unknown>;
   appStore.setData('hospital', 'PrescriptionEditor', {
     ...base,
@@ -43,6 +98,7 @@ function applyPayloadToEditor(appStore: ReturnType<typeof useAppStore>, payload:
     patientSex: childStr(patient, ['sex', 'Sex']),
     patientAddress: childStr(patient, ['address', 'Address']),
     patientPhone: childStr(patient, ['phone', 'Phone']),
+    medicinesText,
     medicinesJson,
     generalAdvice: pickString(payload, ['generalAdvice', 'GeneralAdvice']),
     followUpAdvice: pickString(payload, ['followUpAdvice', 'FollowUpAdvice']),
@@ -51,12 +107,50 @@ function applyPayloadToEditor(appStore: ReturnType<typeof useAppStore>, payload:
   });
 }
 
+async function fetchUserById(userId: string): Promise<Record<string, unknown>> {
+  if (!userId) return {};
+  const response = await apiClient.get(URLRegistry.paths.user, { params: { userId } });
+  const root = (response.data ?? {}) as Record<string, unknown>;
+  return (root.Data ?? root.data ?? {}) as Record<string, unknown>;
+}
+
+function mapDoctorUserToPrescriptionDefaults(row: Record<string, unknown>): Record<string, unknown> {
+  const firstName = pickString(row, ['FirstName', 'firstName']);
+  const lastName = pickString(row, ['LastName', 'lastName']);
+  const displayName =
+    [firstName, lastName].filter(Boolean).join(' ').trim() ||
+    pickString(row, ['DisplayName', 'displayName', 'EmailId', 'emailId']);
+  return {
+    prescriberDisplayName: displayName,
+    prescriberQualifications: pickString(row, ['Qualifications', 'Qualification', 'qualifications', 'qualification']),
+    smcName: pickString(row, ['SmcName', 'smcName', 'StateMedicalCouncil', 'stateMedicalCouncil']),
+    smcReg: pickString(row, ['SmcRegistrationNumber', 'smcRegistrationNumber', 'RegistrationNumber', 'registrationNumber']),
+    clinicAddress: pickString(row, ['Address', 'address']),
+    clinicPhone: pickString(row, ['MobileNumber', 'mobileNumber', 'PhoneNumber', 'phoneNumber'])
+  };
+}
+
+function mapPatientUserToPrescriptionDefaults(row: Record<string, unknown>): Record<string, unknown> {
+  const firstName = pickString(row, ['FirstName', 'firstName']);
+  const lastName = pickString(row, ['LastName', 'lastName']);
+  const displayName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  return {
+    patientName: displayName || pickString(row, ['DisplayName', 'displayName', 'EmailId', 'emailId']),
+    patientSex: pickString(row, ['Gender', 'gender']),
+    patientAddress: pickString(row, ['Address', 'address']),
+    patientPhone: pickString(row, ['MobileNumber', 'mobileNumber', 'PhoneNumber', 'phoneNumber'])
+  };
+}
+
 function buildPayloadFromEditor(ui: Record<string, unknown>): Record<string, unknown> {
-  let medicines: unknown[] = [];
-  try {
-    medicines = JSON.parse(String(ui.medicinesJson ?? '[]')) as unknown[];
-  } catch {
-    medicines = [];
+  const medicinesText = String(ui.medicinesText ?? '').trim();
+  let medicines: unknown[] = medicinesText ? parseMedicinesTextToList(medicinesText) : [];
+  if (!medicines.length) {
+    try {
+      medicines = JSON.parse(String(ui.medicinesJson ?? '[]')) as unknown[];
+    } catch {
+      medicines = [];
+    }
   }
   return {
     templateVersion: '1',
@@ -121,6 +215,7 @@ export const prescriptionHospitalServices: ServiceDefinition[] = [
         patientSex: '',
         patientAddress: '',
         patientPhone: '',
+        medicinesText: '',
         medicinesJson: '[]',
         generalAdvice: '',
         followUpAdvice: '',
@@ -159,6 +254,37 @@ export const prescriptionHospitalServices: ServiceDefinition[] = [
         const de = data.DraftEditable ?? data.draftEditable;
         const editable = de !== false && String(de).toLowerCase() !== 'false';
         appStore.setProperty('hospital', 'PrescriptionEditor', 'draftEditable', editable ? 'Y' : 'N');
+        try {
+          const appointmentResp = await apiClient.get(
+            `${URLRegistry.paths.appointmentGet}/${encodeURIComponent(appointmentId)}`
+          );
+          const appointmentRoot = (appointmentResp.data?.Data ?? appointmentResp.data?.data ?? {}) as Record<
+            string,
+            unknown
+          >;
+          const doctorId = pickString(appointmentRoot, ['DoctorId', 'doctorId']);
+          const patientUserId = pickString(appointmentRoot, ['CreatedBy', 'createdBy']);
+          const appointmentDefaults: Record<string, unknown> = {
+            consultationDateTime: pickString(appointmentRoot, ['PreferredDate', 'preferredDate']),
+            clinicName: pickString(appointmentRoot, ['HospitalName', 'hospitalName']),
+            patientName: pickString(appointmentRoot, ['PatientName', 'patientName']),
+            patientAgeOrDob: pickString(appointmentRoot, ['AgeGroup', 'ageGroup']),
+            patientPhone: pickString(appointmentRoot, ['PhoneNumber', 'phoneNumber'])
+          };
+          const [doctorUser, patientUser] = await Promise.all([
+            fetchUserById(doctorId).catch(() => ({})),
+            fetchUserById(patientUserId).catch(() => ({}))
+          ]);
+          const editor = (appStore.getData('hospital', 'PrescriptionEditor') ?? {}) as Record<string, unknown>;
+          const merged = mergeMissing(editor, {
+            ...appointmentDefaults,
+            ...mapDoctorUserToPrescriptionDefaults(doctorUser),
+            ...mapPatientUserToPrescriptionDefaults(patientUser)
+          });
+          appStore.setData('hospital', 'PrescriptionEditor', merged);
+        } catch {
+          // Non-fatal: draft payload is still loaded and editable.
+        }
         return ok();
       } catch (error) {
         const message = isAxiosError(error)
@@ -191,6 +317,7 @@ export const prescriptionHospitalServices: ServiceDefinition[] = [
         'patientSex',
         'patientAddress',
         'patientPhone',
+        'medicinesText',
         'medicinesJson',
         'generalAdvice',
         'followUpAdvice'
