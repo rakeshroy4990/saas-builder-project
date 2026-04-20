@@ -1,5 +1,6 @@
 import type { PageConfig } from '../../core/types/PageConfig';
 import { hospitalBookAppointmentPage, hospitalBookAppointmentPopupPage } from './bookAppointmentPage';
+import { hospitalEprescriptionPopupPage } from './eprescriptionPopupPage';
 import { hospitalProfilePage } from './profilePage';
 import { hospitalTermsPage } from './termsPage';
 import {
@@ -1257,6 +1258,63 @@ export const hospitalPages: PageConfig[] = [
                                 },
                                 children: [
                                   {
+                                    id: 'hospital-dashboard-appointment-complete',
+                                    type: 'button',
+                                    condition: {
+                                      expression: 'canMarkVisitComplete === "Y"'
+                                    },
+                                    config: {
+                                      text: '✓',
+                                      title: 'Mark visit complete',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-sky-500 px-2 py-1 text-xs leading-none text-sky-800 hover:bg-sky-50'
+                                      },
+                                      click: {
+                                        actionId: 'complete-dashboard-visit',
+                                        data: { appointmentId: '{{id}}' }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-eprx',
+                                    type: 'button',
+                                    condition: {
+                                      expression: 'canIssueEprescription === "Y"'
+                                    },
+                                    config: {
+                                      text: 'Rx',
+                                      title: 'Issue structured e-prescription',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-indigo-500 px-2 py-1 text-xs leading-none text-indigo-800 hover:bg-indigo-50'
+                                      },
+                                      click: {
+                                        actionId: 'open-eprescription-popup',
+                                        data: { appointmentId: '{{id}}' }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-eprx-pdf',
+                                    type: 'button',
+                                    condition: {
+                                      expression: 'canDownloadEprescription === "Y"'
+                                    },
+                                    config: {
+                                      text: '⬇Rx',
+                                      title: 'Download signed e-prescription PDF (if finalized)',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-indigo-400 px-2 py-1 text-xs leading-none text-indigo-800 hover:bg-indigo-50'
+                                      },
+                                      click: {
+                                        actionId: 'download-eprescription-pdf',
+                                        data: { appointmentId: '{{id}}' }
+                                      }
+                                    }
+                                  },
+                                  {
                                     id: 'hospital-dashboard-appointment-video',
                                     type: 'button',
                                     config: {
@@ -1303,7 +1361,7 @@ export const hospitalPages: PageConfig[] = [
                                     type: 'button',
                                     config: {
                                       text: '{{receiptActionIcon}}',
-                                      title: 'View Receipt',
+                                      title: 'View uploaded document images (not the structured e-prescription)',
                                       hiddenWhenEmptyText: true,
                                       styles: {
                                         utilityClasses:
@@ -3038,7 +3096,8 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-prescription-upload',
                 type: 'input',
                 config: {
-                  label: 'Prescription (Upload Latest two Images)',
+                  label:
+                    'Prior documents / scans (optional, up to 2 images) — separate from the doctor-issued structured e-prescription',
                   inputType: 'file',
                   accept: 'image/*',
                   multiple: true,
@@ -3162,6 +3221,7 @@ export const hospitalPages: PageConfig[] = [
   },
   hospitalBookAppointmentPage,
   hospitalBookAppointmentPopupPage,
+  hospitalEprescriptionPopupPage,
   hospitalProfilePage,
   hospitalTermsPage,
   {
@@ -3316,6 +3376,53 @@ export const hospitalPages: PageConfig[] = [
             styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col px-4 sm:px-6 md:px-8 py-6' },
             children: [
               {
+                id: 'hospital-chat-page-patient-quicklinks',
+                type: 'container',
+                condition: {
+                  expression:
+                    "userId && String(userId).trim().length > 0 && String(role ?? '').toUpperCase() !== 'ADMIN' && String(role ?? '').toUpperCase() !== 'DOCTOR'",
+                  mappings: {
+                    userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                  }
+                },
+                config: {
+                  layout: {
+                    type: 'flex',
+                    flex: ['flex', 'flex-col', 'gap-2', 'sm:flex-row', 'sm:flex-wrap', 'w-full', 'max-w-2xl', 'mb-4']
+                  },
+                  children: [
+                    {
+                      id: 'hospital-chat-page-quick-appointment',
+                      type: 'button',
+                      config: {
+                        text: 'Set An Appointment',
+                        styles: {
+                          utilityClasses:
+                            'w-full sm:flex-1 min-w-0 rounded-lg border border-emerald-600 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50'
+                        },
+                        click: { actionId: 'open-appointment-popup' }
+                      }
+                    },
+                    {
+                      id: 'hospital-chat-page-quick-profile',
+                      type: 'button',
+                      config: {
+                        text: 'Profile',
+                        styles: {
+                          utilityClasses:
+                            'w-full sm:flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                        },
+                        click: {
+                          actionId: 'set-profile-header-active',
+                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
                 id: 'hospital-chat-root',
                 type: 'chat',
                 config: {
@@ -3370,6 +3477,56 @@ export const hospitalPages: PageConfig[] = [
                   text: 'X',
                   styles: { utilityClasses: 'rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100' },
                   click: { actionType: 'closePopup' }
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'hospital-chat-popup-patient-quicklinks',
+          type: 'container',
+          condition: {
+            expression:
+              "userId && String(userId).trim().length > 0 && String(role ?? '').toUpperCase() !== 'ADMIN' && String(role ?? '').toUpperCase() !== 'DOCTOR'",
+            mappings: {
+              userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+              role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+            }
+          },
+          config: {
+            layout: {
+              type: 'flex',
+              flex: ['flex', 'flex-col', 'gap-2', 'sm:flex-row', 'sm:flex-wrap', 'shrink-0', 'px-4', 'py-2.5', 'border-b', 'border-slate-100', 'bg-slate-50']
+            },
+            children: [
+              {
+                id: 'hospital-chat-popup-quick-appointment',
+                type: 'button',
+                config: {
+                  text: 'Set An Appointment',
+                  styles: {
+                    utilityClasses:
+                      'w-full sm:flex-1 min-w-0 rounded-lg border border-emerald-600 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50'
+                  },
+                  click: { actionId: 'open-appointment-popup' }
+                }
+              },
+              {
+                id: 'hospital-chat-popup-quick-profile',
+                type: 'button',
+                config: {
+                  text: 'Profile',
+                  styles: {
+                    utilityClasses:
+                      'w-full sm:flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                  },
+                  click: {
+                    actionType: 'closePopup',
+                    onSuccess: {
+                      actionId: 'set-profile-header-active',
+                      onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                    }
+                  }
                 }
               }
             ]

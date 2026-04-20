@@ -34,6 +34,9 @@ export const SERVER_PATHS = {
   appointmentUpdate: '/api/appointment/update',
   appointmentDelete: '/api/appointment/delete',
   appointmentCancel: '/api/appointment/cancel',
+  appointmentComplete: '/api/appointment/complete',
+  /** Structured e-prescription: append `/{appointmentId}/…` (ensure-draft, draft, validate, finalize, pdf). */
+  prescriptionAppointmentBase: '/api/prescription/appointment',
   appointmentOccupiedSlots: '/api/appointment/occupied-slots',
   chatRooms: '/api/chat/rooms',
   chatDirectRoom: '/api/chat/rooms/direct',

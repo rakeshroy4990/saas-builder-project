@@ -90,7 +90,8 @@ export class ActionEngine {
       // Do not force appointment here; preserve empties so store-level logic can
       // retain current popup intent (e.g. login) instead of being overwritten.
       pageId: normalizePopupValue(req?.pageId, ''),
-      title: req?.title
+      title: req?.title,
+      initKey: req?.initKey
     };
     usePopupStore(pinia).open(normalizedReq);
   }
