@@ -10,6 +10,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -68,21 +70,33 @@ public class UserService {
         user.setDepartment(department);
 
         if (UserRole.DOCTOR.equals(user.getRole())) {
-            if (request.getQualifications() != null) {
+            // Only apply non-blank values so clients that echo "" for unchanged fields do not wipe Mongo.
+            if (request.getQualifications() != null && !request.getQualifications().trim().isEmpty()) {
                 user.setQualifications(request.getQualifications().trim());
             }
-            if (request.getSmcName() != null) {
+            if (request.getSmcName() != null && !request.getSmcName().trim().isEmpty()) {
                 user.setSmcName(request.getSmcName().trim());
             }
-            if (request.getSmcRegistrationNumber() != null) {
+            if (request.getSmcRegistrationNumber() != null && !request.getSmcRegistrationNumber().trim().isEmpty()) {
                 user.setSmcRegistrationNumber(request.getSmcRegistrationNumber().trim());
             }
             String q = user.getQualifications() == null ? "" : user.getQualifications().trim();
             String smc = user.getSmcName() == null ? "" : user.getSmcName().trim();
             String reg = user.getSmcRegistrationNumber() == null ? "" : user.getSmcRegistrationNumber().trim();
-            if (q.isEmpty() || smc.isEmpty() || reg.isEmpty()) {
+            List<String> missingDoctorFields = new ArrayList<>();
+            if (q.isEmpty()) {
+                missingDoctorFields.add("Qualifications");
+            }
+            if (smc.isEmpty()) {
+                missingDoctorFields.add("State Medical Council (SmcName)");
+            }
+            if (reg.isEmpty()) {
+                missingDoctorFields.add("SMC registration number (SmcRegistrationNumber)");
+            }
+            if (!missingDoctorFields.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "Qualifications, State Medical Council, and SMC registration number are required for doctor accounts.");
+                        "For doctor accounts, the following must be non-empty: " + String.join(", ", missingDoctorFields)
+                                + ".");
             }
         }
 
