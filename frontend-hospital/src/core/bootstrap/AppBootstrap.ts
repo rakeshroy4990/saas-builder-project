@@ -12,6 +12,7 @@ import DynImage from '../../components/primitives/DynImage.vue';
 import DynCheckbox from '../../components/primitives/DynCheckbox.vue';
 import DynRadioGroup from '../../components/primitives/DynRadioGroup.vue';
 import DynDoctorScheduleEditor from '../../components/primitives/DynDoctorScheduleEditor.vue';
+import DynMedicineListEditor from '../../components/primitives/DynMedicineListEditor.vue';
 
 /** STOMP + chat UI — not needed for first paint. */
 const DynChat = defineAsyncComponent(() => import('@realtime/components/DynChat.vue'));
@@ -33,6 +34,7 @@ export function bootstrap(): void {
   ComponentRegistry.register('chat', DynChat);
   ComponentRegistry.register('video-call', DynVideoCall);
   ComponentRegistry.register('doctor-schedule-editor', DynDoctorScheduleEditor);
+  ComponentRegistry.register('medicine-list-editor', DynMedicineListEditor);
 
   registerHospitalModule();
 }

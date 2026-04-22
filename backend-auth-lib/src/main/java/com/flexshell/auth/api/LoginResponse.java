@@ -40,6 +40,15 @@ public class LoginResponse {
     @JsonProperty("Department")
     private String department;
 
+    @JsonProperty("Qualifications")
+    private String qualifications;
+
+    @JsonProperty("SmcName")
+    private String smcName;
+
+    @JsonProperty("SmcRegistrationNumber")
+    private String smcRegistrationNumber;
+
     @JsonProperty("CreatedTimestamp")
     private String createdTimestamp;
 
@@ -198,6 +207,30 @@ public class LoginResponse {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public String getQualifications() {
+        return qualifications;
+    }
+
+    public void setQualifications(String qualifications) {
+        this.qualifications = qualifications;
+    }
+
+    public String getSmcName() {
+        return smcName;
+    }
+
+    public void setSmcName(String smcName) {
+        this.smcName = smcName;
+    }
+
+    public String getSmcRegistrationNumber() {
+        return smcRegistrationNumber;
+    }
+
+    public void setSmcRegistrationNumber(String smcRegistrationNumber) {
+        this.smcRegistrationNumber = smcRegistrationNumber;
     }
 
     public String getCreatedTimestamp() {

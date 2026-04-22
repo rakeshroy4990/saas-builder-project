@@ -13,8 +13,8 @@ export function getApiBaseUrl(): string {
 
 export const SERVER_PATHS = {
   products: '/api/products',
-  /** Persist / load UI metadata (MongoDB {@code uiMetdata} collection on server). */
-  uiMetadata: '/api/uiMetdata',
+  /** Persist / load UI metadata from server overrides. */
+  uiMetadata: '/api/uiMetadata',
   logsBatch: '/api/logs/batch',
   logsLevel: '/api/logs/level',
   login: '/api/auth/login',
@@ -38,6 +38,7 @@ export const SERVER_PATHS = {
   /** Structured e-prescription: append `/{appointmentId}/…` (ensure-draft, draft, validate, finalize, pdf). */
   prescriptionAppointmentBase: '/api/prescription/appointment',
   appointmentOccupiedSlots: '/api/appointment/occupied-slots',
+  medicinesSearch: '/api/medicines/search',
   chatRooms: '/api/chat/rooms',
   chatDirectRoom: '/api/chat/rooms/direct',
   chatSupportRequest: '/api/chat/support/request',
@@ -71,6 +72,6 @@ export const URLRegistry = {
     if (!headers.has('X-Trace-Id')) {
       headers.set('X-Trace-Id', getOrCreateTraceId());
     }
-    return fetch(URLRegistry.resolve(pathKey), { ...init, headers, credentials: 'include' });
+    return fetch(URLRegistry.resolve(pathKey), { ...init, headers, credentials: init?.credentials ?? 'include' });
   }
 } as const;

@@ -130,6 +130,10 @@ public class AuthService implements AuthFacade {
         response.setGender(account.getGender());
         response.setMobileNumber(account.getMobileNumber());
         response.setDepartment(account.getDepartment());
+        response.setQualifications(account.getQualifications() == null ? "" : account.getQualifications());
+        response.setSmcName(account.getSmcName() == null ? "" : account.getSmcName());
+        response.setSmcRegistrationNumber(
+                account.getSmcRegistrationNumber() == null ? "" : account.getSmcRegistrationNumber());
         response.setCreatedTimestamp(
                 account.getCreatedTimestamp() == null ? null : account.getCreatedTimestamp().toString());
         response.setUpdatedTimestamp(
@@ -183,6 +187,10 @@ public class AuthService implements AuthFacade {
         user.setGender(gender);
         user.setMobileNumber(mobileNumber);
         user.setDepartment(department);
+        user.setQualifications(request.getQualifications() == null ? "" : request.getQualifications().trim());
+        user.setSmcName(request.getSmcName() == null ? "" : request.getSmcName().trim());
+        user.setSmcRegistrationNumber(
+                request.getSmcRegistrationNumber() == null ? "" : request.getSmcRegistrationNumber().trim());
         Instant now = Instant.now();
         user.setCreatedTimestamp(now);
         user.setUpdatedTimestamp(now);
@@ -213,6 +221,9 @@ public class AuthService implements AuthFacade {
                 saved.getGender(),
                 saved.getMobileNumber(),
                 saved.getDepartment(),
+                saved.getQualifications(),
+                saved.getSmcName(),
+                saved.getSmcRegistrationNumber(),
                 saved.getCreatedTimestamp() == null ? null : saved.getCreatedTimestamp().toString(),
                 saved.getUpdatedTimestamp() == null ? null : saved.getUpdatedTimestamp().toString(),
                 saved.getRole() == null ? UserRole.PATIENT.name() : saved.getRole().name(),

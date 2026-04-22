@@ -151,6 +151,9 @@ export const navigationHospitalServices: ServiceDefinition[] = [
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'mobileNumber', '');
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'role', 'PATIENT');
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'department', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'qualifications', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'smcName', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'smcRegistrationNumber', '');
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'acceptTerms', false);
       useAppStore(pinia).setProperty(
         'hospital',

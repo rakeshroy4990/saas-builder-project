@@ -29,6 +29,9 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'address', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'gender', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'department', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'qualifications', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'smcName', '');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'fullName', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'role', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
@@ -47,6 +50,9 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'lastName', '');
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'role', 'PATIENT');
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'department', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'qualifications', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'smcName', '');
+      useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'smcRegistrationNumber', '');
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'acceptTerms', false);
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', '');
       usePopupStore(pinia).close();

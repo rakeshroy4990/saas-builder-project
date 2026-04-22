@@ -50,6 +50,9 @@ function clearAuthSessionUi(): void {
   appStore.setProperty('hospital', 'AuthSession', 'address', '');
   appStore.setProperty('hospital', 'AuthSession', 'gender', '');
   appStore.setProperty('hospital', 'AuthSession', 'department', '');
+  appStore.setProperty('hospital', 'AuthSession', 'qualifications', '');
+  appStore.setProperty('hospital', 'AuthSession', 'smcName', '');
+  appStore.setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', '');
   appStore.setProperty('hospital', 'AuthSession', 'fullName', '');
   appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
   clearPersistedAuthSessionProfile();

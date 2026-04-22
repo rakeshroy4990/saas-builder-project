@@ -23,6 +23,14 @@ function mapMeToProfileForm(row: Record<string, unknown>): void {
     address: pickString(row, ['Address', 'address']),
     gender: pickString(row, ['Gender', 'gender']),
     department: pickString(row, ['Department', 'department']),
+    qualifications: pickString(row, ['Qualifications', 'qualifications', 'Qualification', 'qualification']),
+    smcName: pickString(row, ['SmcName', 'smcName', 'StateMedicalCouncil', 'stateMedicalCouncil']),
+    smcRegistrationNumber: pickString(row, [
+      'SmcRegistrationNumber',
+      'smcRegistrationNumber',
+      'RegistrationNumber',
+      'registrationNumber'
+    ]),
     role: pickString(row, ['Role', 'role']),
     saveError: '',
     saving: false
@@ -39,12 +47,23 @@ function syncAuthSessionFromProfile(row: Record<string, unknown>): void {
   const address = pickString(row, ['Address', 'address']);
   const gender = pickString(row, ['Gender', 'gender']);
   const department = pickString(row, ['Department', 'department']);
+  const qualifications = pickString(row, ['Qualifications', 'qualifications', 'Qualification', 'qualification']);
+  const smcName = pickString(row, ['SmcName', 'smcName', 'StateMedicalCouncil', 'stateMedicalCouncil']);
+  const smcRegistrationNumber = pickString(row, [
+    'SmcRegistrationNumber',
+    'smcRegistrationNumber',
+    'RegistrationNumber',
+    'registrationNumber'
+  ]);
   const userId = pickString(row, ['UserId', 'userId']);
   store.setProperty('hospital', 'AuthSession', 'email', email);
   store.setProperty('hospital', 'AuthSession', 'mobileNumber', mobile);
   store.setProperty('hospital', 'AuthSession', 'address', address);
   store.setProperty('hospital', 'AuthSession', 'gender', gender);
   store.setProperty('hospital', 'AuthSession', 'department', department);
+  store.setProperty('hospital', 'AuthSession', 'qualifications', qualifications);
+  store.setProperty('hospital', 'AuthSession', 'smcName', smcName);
+  store.setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', smcRegistrationNumber);
   if (full) {
     store.setProperty('hospital', 'AuthSession', 'fullName', full);
     store.setProperty('hospital', 'AuthSession', 'userDisplayName', full);
@@ -60,6 +79,9 @@ function syncAuthSessionFromProfile(row: Record<string, unknown>): void {
     address: address || String(sess.address ?? ''),
     gender: gender || String(sess.gender ?? ''),
     department: department || String(sess.department ?? ''),
+    qualifications: qualifications || String(sess.qualifications ?? ''),
+    smcName: smcName || String(sess.smcName ?? ''),
+    smcRegistrationNumber: smcRegistrationNumber || String(sess.smcRegistrationNumber ?? ''),
     role: String(sess.role ?? '')
   });
 }
@@ -87,7 +109,10 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         'mobileNumber',
         'address',
         'gender',
-        'department'
+        'department',
+        'qualifications',
+        'smcName',
+        'smcRegistrationNumber'
       ]);
       if (!allowed.has(field)) return ok();
       useAppStore(pinia).setProperty('hospital', 'ProfileForm', field, String(request.data.value ?? ''));
@@ -144,7 +169,7 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       const form = (appStore.getData('hospital', 'ProfileForm') ?? {}) as Record<string, unknown>;
       appStore.setProperty('hospital', 'ProfileForm', 'saveError', '');
       appStore.setProperty('hospital', 'ProfileForm', 'saving', true);
-      const body = {
+      const body: Record<string, string> = {
         EmailId: pickString(form, ['email', 'EmailId', 'Email']),
         FirstName: pickString(form, ['firstName', 'FirstName']),
         LastName: pickString(form, ['lastName', 'LastName']),
@@ -153,6 +178,11 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         MobileNumber: pickString(form, ['mobileNumber', 'MobileNumber']),
         Department: pickString(form, ['department', 'Department'])
       };
+      if (String(session.role ?? '').toUpperCase() === 'DOCTOR') {
+        body.Qualifications = pickString(form, ['qualifications', 'Qualifications']);
+        body.SmcName = pickString(form, ['smcName', 'SmcName']);
+        body.SmcRegistrationNumber = pickString(form, ['smcRegistrationNumber', 'SmcRegistrationNumber']);
+      }
       try {
         const response = await apiClient.put(URLRegistry.paths.userProfile, body, { params: { userId: uid } });
         const root = (response.data ?? {}) as Record<string, unknown>;
@@ -218,6 +248,9 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       appStore.setProperty('hospital', 'AuthSession', 'address', '');
       appStore.setProperty('hospital', 'AuthSession', 'gender', '');
       appStore.setProperty('hospital', 'AuthSession', 'department', '');
+      appStore.setProperty('hospital', 'AuthSession', 'qualifications', '');
+      appStore.setProperty('hospital', 'AuthSession', 'smcName', '');
+      appStore.setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', '');
       appStore.setProperty('hospital', 'AuthSession', 'fullName', '');
       appStore.setProperty('hospital', 'AuthSession', 'role', '');
       appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');

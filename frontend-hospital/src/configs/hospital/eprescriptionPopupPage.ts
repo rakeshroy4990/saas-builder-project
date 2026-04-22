@@ -22,7 +22,8 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-consult-dt',
         type: 'input',
         config: {
-          label: 'Consultation date & time (ISO) *',
+          label: 'Consultation date & time *',
+          inputType: 'datetime-local',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'consultationDateTime' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'consultationDateTime' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -53,9 +54,11 @@ const eprescriptionFormGrid: ComponentDefinition = {
         type: 'input',
         config: {
           label: 'Clinic address *',
+          inputType: 'textarea',
+          rows: 3,
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'clinicAddress' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'clinicAddress' } },
-          styles: { styleTemplate: 'hosp.form.input', utilityClasses: 'md:col-span-2' }
+          styles: { styleTemplate: 'hosp.form.textarea', utilityClasses: 'md:col-span-2' }
         }
       },
       {
@@ -120,10 +123,11 @@ const eprescriptionFormGrid: ComponentDefinition = {
       },
       {
         id: 'hospital-eprx-pt-sex',
-        type: 'input',
+        type: 'dropdown',
         config: {
-          label: 'Patient sex *',
-          mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'patientSex' },
+          label: 'Patient Gender *',
+          mapping: { packageName: 'hospital', key: 'PrescriptionPatientSexOptions', property: 'list' },
+          valueMapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'patientSex' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'patientSex' } },
           styles: { styleTemplate: 'hosp.form.input' }
         }
@@ -142,24 +146,22 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-pt-address',
         type: 'input',
         config: {
-          label: 'Patient address *',
+          label: 'Patient address',
+          inputType: 'textarea',
+          rows: 3,
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'patientAddress' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'patientAddress' } },
-          styles: { styleTemplate: 'hosp.form.input', utilityClasses: 'md:col-span-2' }
+          styles: { styleTemplate: 'hosp.form.textarea', utilityClasses: 'md:col-span-2' }
         }
       },
       {
         id: 'hospital-eprx-meds',
-        type: 'input',
+        type: 'medicine-list-editor',
         config: {
           label: 'Medicines *',
-          inputType: 'textarea',
-          rows: 6,
-          placeholder:
-            'One medicine per line:\nName | Strength | Dose | Frequency | Route | Duration days | Schedule(optional)\nParacetamol | 650 mg | 1 tablet | TID after food | Oral | 5 | H',
-          mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'medicinesText' },
-          change: { actionId: 'set-prescription-editor-field', data: { field: 'medicinesText' } },
-          styles: { styleTemplate: 'hosp.form.textarea', utilityClasses: 'md:col-span-2 font-mono text-xs' }
+          mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'medicinesJson' },
+          change: { actionId: 'set-prescription-editor-field', data: { field: 'medicinesJson' } },
+          styles: { utilityClasses: 'md:col-span-2' }
         }
       },
       {
@@ -199,7 +201,10 @@ const eprescriptionFormGrid: ComponentDefinition = {
         },
         config: {
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'validationSummary' },
-          styles: { utilityClasses: 'md:col-span-2 whitespace-pre-wrap text-xs text-slate-700' }
+          styles: {
+            utilityClasses:
+              'md:col-span-2 whitespace-pre-wrap rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950'
+          }
         }
       }
     ]
@@ -209,7 +214,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
 export const hospitalEprescriptionPopupPage: PageConfig = {
   packageName: 'hospital',
   pageId: 'eprescription-popup',
-  title: 'Structured e-prescription',
+  title: 'E-Prescription',
   initializeActions: [{ actionId: 'hydrate-eprescription-popup' }],
   container: {
     layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-4', 'max-h-[85vh]', 'overflow-y-auto'] },
@@ -223,7 +228,7 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
             {
               id: 'hospital-eprx-popup-title',
               type: 'text',
-              config: { text: 'Structured e-prescription', styles: { styleTemplate: 'hosp.popup.header.title' } }
+              config: { text: 'E-Prescription', styles: { styleTemplate: 'hosp.popup.header.title' } }
             },
             {
               id: 'hospital-eprx-popup-close',
@@ -255,12 +260,6 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
             {
               id: 'hospital-eprx-save',
               type: 'button',
-              condition: {
-                expression: 'String(draftEditable ?? "").toUpperCase() === "Y"',
-                mappings: {
-                  draftEditable: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'draftEditable' }
-                }
-              },
               config: {
                 text: 'Save draft',
                 styles: { styleTemplate: 'hosp.popup.button.secondary', utilityClasses: 'min-w-[180px] justify-center' },
@@ -270,12 +269,6 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
             {
               id: 'hospital-eprx-validate',
               type: 'button',
-              condition: {
-                expression: 'String(draftEditable ?? "").toUpperCase() === "Y"',
-                mappings: {
-                  draftEditable: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'draftEditable' }
-                }
-              },
               config: {
                 text: 'Validate',
                 styles: { styleTemplate: 'hosp.popup.button.secondary', utilityClasses: 'min-w-[180px] justify-center' },
@@ -285,14 +278,8 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
             {
               id: 'hospital-eprx-finalize',
               type: 'button',
-              condition: {
-                expression: 'String(draftEditable ?? "").toUpperCase() === "Y"',
-                mappings: {
-                  draftEditable: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'draftEditable' }
-                }
-              },
               config: {
-                text: 'Finalize & sign (placeholder)',
+                text: 'Finalize (eSign pending)',
                 styles: { styleTemplate: 'hosp.popup.button.primary', utilityClasses: 'min-w-[180px] justify-center' },
                 click: { actionId: 'finalize-eprescription' }
               }
