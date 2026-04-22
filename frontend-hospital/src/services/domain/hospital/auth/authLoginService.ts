@@ -58,6 +58,19 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
         const resolvedAddress = pickString(userData, ['Address', 'address']);
         const resolvedGender = pickString(userData, ['Gender', 'gender']);
         const resolvedDepartment = pickString(userData, ['Department', 'department']);
+        const resolvedQualifications = pickString(userData, [
+          'Qualifications',
+          'Qualification',
+          'qualifications',
+          'qualification'
+        ]);
+        const resolvedSmcName = pickString(userData, ['SmcName', 'smcName', 'StateMedicalCouncil', 'stateMedicalCouncil']);
+        const resolvedSmcRegistrationNumber = pickString(userData, [
+          'SmcRegistrationNumber',
+          'smcRegistrationNumber',
+          'RegistrationNumber',
+          'registrationNumber'
+        ]);
         const resolvedRole = pickString(userData, ['Role', 'role']).toUpperCase() || 'PATIENT';
         useAppStore(pinia).setProperty('hospital', 'AuthSession', 'userId', canonicalUserId);
         useAppStore(pinia).setProperty('hospital', 'AuthSession', 'userDisplayName', displayName);
@@ -66,6 +79,9 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
         useAppStore(pinia).setProperty('hospital', 'AuthSession', 'address', resolvedAddress);
         useAppStore(pinia).setProperty('hospital', 'AuthSession', 'gender', resolvedGender);
         useAppStore(pinia).setProperty('hospital', 'AuthSession', 'department', resolvedDepartment);
+        useAppStore(pinia).setProperty('hospital', 'AuthSession', 'qualifications', resolvedQualifications);
+        useAppStore(pinia).setProperty('hospital', 'AuthSession', 'smcName', resolvedSmcName);
+        useAppStore(pinia).setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', resolvedSmcRegistrationNumber);
         useAppStore(pinia).setProperty('hospital', 'AuthSession', 'fullName', fullName);
         useAppStore(pinia).setProperty('hospital', 'AuthSession', 'role', resolvedRole);
         persistAuthSessionProfile({
@@ -78,6 +94,9 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
           address: resolvedAddress,
           gender: resolvedGender,
           department: resolvedDepartment,
+          qualifications: resolvedQualifications,
+          smcName: resolvedSmcName,
+          smcRegistrationNumber: resolvedSmcRegistrationNumber,
           role: resolvedRole
         });
         useAppStore(pinia).setProperty('hospital', 'AuthForm', 'emailError', '');

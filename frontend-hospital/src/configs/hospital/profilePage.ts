@@ -238,6 +238,50 @@ export const hospitalProfilePage: PageConfig = {
                                             }
                                           },
                                           {
+                                            id: 'hospital-profile-qualifications',
+                                            type: 'input',
+                                            condition: profileDoctorRoleOnly,
+                                            config: {
+                                              label: 'Qualifications *',
+                                              mapping: {
+                                                packageName: 'hospital',
+                                                key: 'ProfileForm',
+                                                property: 'qualifications'
+                                              },
+                                              change: { actionId: 'set-profile-form-field', data: { field: 'qualifications' } },
+                                              styles: { styleTemplate: 'hosp.form.input', utilityClasses: 'md:col-span-2' }
+                                            }
+                                          },
+                                          {
+                                            id: 'hospital-profile-smc-name',
+                                            type: 'input',
+                                            condition: profileDoctorRoleOnly,
+                                            config: {
+                                              label: 'State Medical Council *',
+                                              mapping: { packageName: 'hospital', key: 'ProfileForm', property: 'smcName' },
+                                              change: { actionId: 'set-profile-form-field', data: { field: 'smcName' } },
+                                              styles: { styleTemplate: 'hosp.form.input' }
+                                            }
+                                          },
+                                          {
+                                            id: 'hospital-profile-smc-reg',
+                                            type: 'input',
+                                            condition: profileDoctorRoleOnly,
+                                            config: {
+                                              label: 'SMC registration number *',
+                                              mapping: {
+                                                packageName: 'hospital',
+                                                key: 'ProfileForm',
+                                                property: 'smcRegistrationNumber'
+                                              },
+                                              change: {
+                                                actionId: 'set-profile-form-field',
+                                                data: { field: 'smcRegistrationNumber' }
+                                              },
+                                              styles: { styleTemplate: 'hosp.form.input' }
+                                            }
+                                          },
+                                          {
                                             id: 'hospital-profile-address',
                                             type: 'input',
                                             config: {

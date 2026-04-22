@@ -19,7 +19,8 @@ export type ComponentType =
   | 'radio-group'
   | 'chat'
   | 'video-call'
-  | 'doctor-schedule-editor';
+  | 'doctor-schedule-editor'
+  | 'medicine-list-editor';
 
 export interface LayoutConfig {
   type: 'flex' | 'grid';

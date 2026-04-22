@@ -28,6 +28,12 @@ public class UserEntity {
     private String mobileNumber;
     @Field("Department")
     private String department;
+    @Field("Qualifications")
+    private String qualifications;
+    @Field("SmcName")
+    private String smcName;
+    @Field("SmcRegistrationNumber")
+    private String smcRegistrationNumber;
     @Field("CreatedTimestamp")
     private Instant createdTimestamp;
     @Field("UpdatedTimestamp")
@@ -129,6 +135,30 @@ public class UserEntity {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public String getQualifications() {
+        return qualifications;
+    }
+
+    public void setQualifications(String qualifications) {
+        this.qualifications = qualifications;
+    }
+
+    public String getSmcName() {
+        return smcName;
+    }
+
+    public void setSmcName(String smcName) {
+        this.smcName = smcName;
+    }
+
+    public String getSmcRegistrationNumber() {
+        return smcRegistrationNumber;
+    }
+
+    public void setSmcRegistrationNumber(String smcRegistrationNumber) {
+        this.smcRegistrationNumber = smcRegistrationNumber;
     }
 
     public Instant getCreatedTimestamp() {

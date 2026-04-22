@@ -107,7 +107,7 @@ const resolvedConfig = computed(() => {
     return { ...config, src: typeof mapped === 'string' ? mapped : '' };
   }
 
-  if (props.definition.type === 'input' && config.mapping) {
+  if ((props.definition.type === 'input' || props.definition.type === 'medicine-list-editor') && config.mapping) {
     const mapped = resolveMapping(config.mapping as MappingConfig);
     return { ...config, value: mapped == null ? '' : String(mapped) };
   }

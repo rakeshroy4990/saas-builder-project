@@ -30,6 +30,15 @@ public class RegisterResponse {
     @JsonProperty("Department")
     private String department;
 
+    @JsonProperty("Qualifications")
+    private String qualifications;
+
+    @JsonProperty("SmcName")
+    private String smcName;
+
+    @JsonProperty("SmcRegistrationNumber")
+    private String smcRegistrationNumber;
+
     @JsonProperty("CreatedTimestamp")
     private String createdTimestamp;
 
@@ -61,6 +70,9 @@ public class RegisterResponse {
             String gender,
             String mobileNumber,
             String department,
+            String qualifications,
+            String smcName,
+            String smcRegistrationNumber,
             String createdTimestamp,
             String updatedTimestamp,
             String role,
@@ -76,6 +88,9 @@ public class RegisterResponse {
         this.gender = gender;
         this.mobileNumber = mobileNumber;
         this.department = department;
+        this.qualifications = qualifications;
+        this.smcName = smcName;
+        this.smcRegistrationNumber = smcRegistrationNumber;
         this.createdTimestamp = createdTimestamp;
         this.updatedTimestamp = updatedTimestamp;
         this.role = role;
@@ -154,6 +169,30 @@ public class RegisterResponse {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public String getQualifications() {
+        return qualifications;
+    }
+
+    public void setQualifications(String qualifications) {
+        this.qualifications = qualifications;
+    }
+
+    public String getSmcName() {
+        return smcName;
+    }
+
+    public void setSmcName(String smcName) {
+        this.smcName = smcName;
+    }
+
+    public String getSmcRegistrationNumber() {
+        return smcRegistrationNumber;
+    }
+
+    public void setSmcRegistrationNumber(String smcRegistrationNumber) {
+        this.smcRegistrationNumber = smcRegistrationNumber;
     }
 
     public String getCreatedTimestamp() {

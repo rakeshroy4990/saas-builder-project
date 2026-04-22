@@ -35,6 +35,15 @@ public class RegisterRequest {
     @JsonAlias({"Department"})
     private String department;
 
+    @JsonAlias({"Qualifications"})
+    private String qualifications;
+
+    @JsonAlias({"SmcName", "StateMedicalCouncil"})
+    private String smcName;
+
+    @JsonAlias({"SmcRegistrationNumber", "RegistrationNumber"})
+    private String smcRegistrationNumber;
+
     @JsonAlias({"Role", "RequestedRole"})
     private String role;
 
@@ -108,5 +117,29 @@ public class RegisterRequest {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public String getQualifications() {
+        return qualifications;
+    }
+
+    public void setQualifications(String qualifications) {
+        this.qualifications = qualifications;
+    }
+
+    public String getSmcName() {
+        return smcName;
+    }
+
+    public void setSmcName(String smcName) {
+        this.smcName = smcName;
+    }
+
+    public String getSmcRegistrationNumber() {
+        return smcRegistrationNumber;
+    }
+
+    public void setSmcRegistrationNumber(String smcRegistrationNumber) {
+        this.smcRegistrationNumber = smcRegistrationNumber;
     }
 }

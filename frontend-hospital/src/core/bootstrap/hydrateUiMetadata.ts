@@ -4,16 +4,27 @@ import {
 } from './mergeServerUiMetadata';
 import { URLRegistry } from '../../services/http/URLRegistry';
 import { logClient } from '../../services/logging/clientLogger';
+import { getAuthToken } from '../../services/auth/authToken';
 
 /**
  * Fetches optional UI overrides from the backend. 204 / empty packages / network errors are ignored
  * so bundled page configs continue to work unchanged.
  */
 export async function hydrateUiMetadataFromServer(): Promise<void> {
+  const allowAnonymous = String(import.meta.env.VITE_ALLOW_ANON_UI_METADATA ?? '')
+    .trim()
+    .toLowerCase() === 'true';
+  const accessToken = getAuthToken();
+  if (!allowAnonymous && !accessToken) {
+    // Backend currently protects this endpoint; skip pre-login call by default.
+    return;
+  }
+
   try {
     await logClient('INFO', 'Fetching UI metadata from server');
     const res = await URLRegistry.request('uiMetadata', {
       method: 'GET',
+      credentials: accessToken ? 'include' : 'omit',
       headers: { Accept: 'application/json' }
     });
 

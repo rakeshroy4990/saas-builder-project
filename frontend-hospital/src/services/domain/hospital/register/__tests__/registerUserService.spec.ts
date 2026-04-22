@@ -53,4 +53,28 @@ describe('register-user service', () => {
     expect(res.responseCode).toBe('SUCCESS');
     expect(apiClient.post).toHaveBeenCalled();
   });
+
+  it('fails for doctor role when medical credentials are missing', async () => {
+    const svc = registerUserHospitalServices.find((s) => s.serviceId === 'register-user')!;
+    const res = await svc.execute({
+      data: {
+        firstName: 'Doc',
+        lastName: 'Tor',
+        emailId: 'doc@example.com',
+        password: 'pw',
+        address: 'addr',
+        gender: 'M',
+        mobileNumber: '1',
+        role: 'DOCTOR',
+        department: 'Cardiology',
+        qualifications: '',
+        smcName: '',
+        smcRegistrationNumber: '',
+        acceptTerms: true
+      }
+    });
+
+    expect(res.responseCode).toBe('REGISTER_FAILED');
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
 });

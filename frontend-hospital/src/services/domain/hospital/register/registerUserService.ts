@@ -22,6 +22,9 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
       const mobileNumber = String(request.data.mobileNumber ?? '').trim();
       const department = String(request.data.department ?? '').trim();
       const role = String(request.data.role ?? 'PATIENT').trim().toUpperCase() || 'PATIENT';
+      const qualifications = String(request.data.qualifications ?? '').trim();
+      const smcName = String(request.data.smcName ?? '').trim();
+      const smcRegistrationNumber = String(request.data.smcRegistrationNumber ?? '').trim();
       const acceptTerms = Boolean(request.data.acceptTerms);
       if (!acceptTerms) {
         useAppStore(pinia).setProperty(
@@ -36,6 +39,15 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
         useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', 'All fields are required.');
         return { responseCode: 'REGISTER_FAILED', message: 'Missing registration details' };
       }
+      if (role === 'DOCTOR' && (!qualifications || !smcName || !smcRegistrationNumber)) {
+        useAppStore(pinia).setProperty(
+          'hospital',
+          'RegisterForm',
+          'registerError',
+          'Qualifications, State Medical Council, and SMC registration number are required for Doctor role.'
+        );
+        return { responseCode: 'REGISTER_FAILED', message: 'Missing doctor registration details' };
+      }
 
       try {
         const response = await apiClient.post(URLRegistry.paths.register, {
@@ -47,6 +59,9 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
           Gender: gender,
           MobileNumber: mobileNumber,
           Department: department,
+          Qualifications: qualifications,
+          SmcName: smcName,
+          SmcRegistrationNumber: smcRegistrationNumber,
           Role: role
         });
         if (response.status !== 201 && response.status !== 200) {

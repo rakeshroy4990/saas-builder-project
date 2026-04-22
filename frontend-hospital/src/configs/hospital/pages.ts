@@ -285,58 +285,58 @@ export const hospitalPages: PageConfig[] = [
             ]
           }
         },
-        {
-          id: 'hospital-home-booking-form-section',
-          type: 'container',
-          config: {
-            layoutTemplate: 'hosp.section.stack',
-            styles: { styleTemplate: 'hosp.section.card' },
-            children: [
-              {
-                id: 'hospital-book-appointment-page-heading',
-                type: 'text',
-                config: { text: 'Schedule a Consultation', styles: { styleTemplate: 'hosp.section.heading' } }
-              },
-              {
-                id: 'hospital-home-booking-form-grid',
-                type: 'container',
-                config: {
-                  layoutTemplate: 'hosp.form.grid',
-                  children: [
-                    {
-                      id: 'hospital-book-appointment-doctor-select',
-                      type: 'dropdown',
-                      config: {
-                        label: 'Select Doctor',
-                        mapping: { packageName: 'hospital', key: 'Doctors', property: 'list' },
-                        styles: { styleTemplate: 'hosp.form.input' }
-                      }
-                    },
-                    {
-                      id: 'hospital-book-appointment-preferred-date',
-                      type: 'input',
-                      config: {
-                        label: 'Preferred Date',
-                        inputType: 'date',
-                        styles: { styleTemplate: 'hosp.form.input' }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                id: 'hospital-book-appointment-submit',
-                type: 'button',
-                disabledCondition: disabledWhenLoggedInAsDoctor,
-                config: {
-                  text: 'Book Appointment',
-                  styles: { styleTemplate: 'hosp.button.primary' },
-                  click: { actionId: 'open-appointment-popup' }
-                }
-              }
-            ]
-          }
-        },
+        // {
+        //   id: 'hospital-home-booking-form-section',
+        //   type: 'container',
+        //   config: {
+        //     layoutTemplate: 'hosp.section.stack',
+        //     styles: { styleTemplate: 'hosp.section.card' },
+        //     children: [
+        //       {
+        //         id: 'hospital-book-appointment-page-heading',
+        //         type: 'text',
+        //         config: { text: 'Schedule a Consultation', styles: { styleTemplate: 'hosp.section.heading' } }
+        //       },
+        //       {
+        //         id: 'hospital-home-booking-form-grid',
+        //         type: 'container',
+        //         config: {
+        //           layoutTemplate: 'hosp.form.grid',
+        //           children: [
+        //             {
+        //               id: 'hospital-book-appointment-doctor-select',
+        //               type: 'dropdown',
+        //               config: {
+        //                 label: 'Select Doctor',
+        //                 mapping: { packageName: 'hospital', key: 'Doctors', property: 'list' },
+        //                 styles: { styleTemplate: 'hosp.form.input' }
+        //               }
+        //             },
+        //             {
+        //               id: 'hospital-book-appointment-preferred-date',
+        //               type: 'input',
+        //               config: {
+        //                 label: 'Preferred Date',
+        //                 inputType: 'date',
+        //                 styles: { styleTemplate: 'hosp.form.input' }
+        //               }
+        //             }
+        //           ]
+        //         }
+        //       },
+        //       {
+        //         id: 'hospital-book-appointment-submit',
+        //         type: 'button',
+        //         disabledCondition: disabledWhenLoggedInAsDoctor,
+        //         config: {
+        //           text: 'Book Appointment',
+        //           styles: { styleTemplate: 'hosp.button.primary' },
+        //           click: { actionId: 'open-appointment-popup' }
+        //         }
+        //       }
+        //     ]
+        //   }
+        // },
         {
           id: 'hospital-home-contact-section',
           type: 'container',
@@ -823,7 +823,7 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   styles: {
                     utilityClasses:
-                      'col-span-12 md:col-span-2 rounded-xl border border-slate-200 bg-white p-3 space-y-2'
+                      'col-span-12 lg:col-span-2 rounded-xl border border-slate-200 bg-white p-3 space-y-2'
                   },
                   children: [
                     {
@@ -935,7 +935,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-dashboard-main',
                 type: 'container',
                 config: {
-                  styles: { utilityClasses: 'col-span-12 md:col-span-10 rounded-xl border border-slate-200 bg-white p-4 space-y-4' },
+                  styles: { utilityClasses: 'col-span-12 lg:col-span-10 rounded-xl border border-slate-200 bg-white p-4 space-y-4' },
                   children: [
                     {
                       id: 'hospital-dashboard-panel-appointments',
@@ -2315,6 +2315,109 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
+                id: 'hospital-register-popup-qualifications-row',
+                type: 'container',
+                condition: {
+                  expression: "role && String(role).toUpperCase() === 'DOCTOR'",
+                  mappings: {
+                    role: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'role'
+                    }
+                  }
+                },
+                config: {
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  children: [
+                    {
+                      id: 'hospital-register-popup-qualifications-label',
+                      type: 'text',
+                      config: { text: 'Qualifications *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                    },
+                    {
+                      id: 'hospital-register-popup-qualifications',
+                      type: 'input',
+                      config: {
+                        placeholder: 'MBBS, MD, etc.',
+                        styles: { styleTemplate: 'hosp.form.input' },
+                        labelStyles: { styleTemplate: 'hosp.form.inlineField' },
+                        change: { actionId: 'set-register-qualifications' }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-register-popup-smc-name-row',
+                type: 'container',
+                condition: {
+                  expression: "role && String(role).toUpperCase() === 'DOCTOR'",
+                  mappings: {
+                    role: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'role'
+                    }
+                  }
+                },
+                config: {
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  children: [
+                    {
+                      id: 'hospital-register-popup-smc-name-label',
+                      type: 'text',
+                      config: { text: 'State Medical Council *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                    },
+                    {
+                      id: 'hospital-register-popup-smc-name',
+                      type: 'input',
+                      config: {
+                        placeholder: 'Enter state medical council',
+                        styles: { styleTemplate: 'hosp.form.input' },
+                        labelStyles: { styleTemplate: 'hosp.form.inlineField' },
+                        change: { actionId: 'set-register-smc-name' }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-register-popup-smc-registration-number-row',
+                type: 'container',
+                condition: {
+                  expression: "role && String(role).toUpperCase() === 'DOCTOR'",
+                  mappings: {
+                    role: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'role'
+                    }
+                  }
+                },
+                config: {
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  styles: { utilityClasses: 'md:col-span-2' },
+                  children: [
+                    {
+                      id: 'hospital-register-popup-smc-registration-number-label',
+                      type: 'text',
+                      config: { text: 'SMC registration number *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                    },
+                    {
+                      id: 'hospital-register-popup-smc-registration-number',
+                      type: 'input',
+                      config: {
+                        placeholder: 'Enter SMC registration number',
+                        styles: { styleTemplate: 'hosp.form.input' },
+                        labelStyles: { styleTemplate: 'hosp.form.inlineField' },
+                        change: { actionId: 'set-register-smc-registration-number' }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
                 id: 'hospital-register-popup-terms-row',
                 type: 'container',
                 config: {
@@ -2399,7 +2502,7 @@ export const hospitalPages: PageConfig[] = [
                 type: 'button',
                 disabledCondition: {
                   expression:
-                    "String(firstName ?? '').trim().length === 0 || String(lastName ?? '').trim().length === 0 || String(emailId ?? '').trim().length === 0 || String(password ?? '').trim().length === 0 || String(address ?? '').trim().length === 0 || String(gender ?? '').trim().length === 0 || String(mobileNumber ?? '').trim().length === 0 || (String(role ?? '').toUpperCase() === 'DOCTOR' && String(department ?? '').trim().length === 0) || acceptTerms !== true",
+                    "String(firstName ?? '').trim().length === 0 || String(lastName ?? '').trim().length === 0 || String(emailId ?? '').trim().length === 0 || String(password ?? '').trim().length === 0 || String(address ?? '').trim().length === 0 || String(gender ?? '').trim().length === 0 || String(mobileNumber ?? '').trim().length === 0 || (String(role ?? '').toUpperCase() === 'DOCTOR' && (String(department ?? '').trim().length === 0 || String(qualifications ?? '').trim().length === 0 || String(smcName ?? '').trim().length === 0 || String(smcRegistrationNumber ?? '').trim().length === 0)) || acceptTerms !== true",
                   mappings: {
                     firstName: {
                       packageName: 'hospital',
@@ -2445,6 +2548,21 @@ export const hospitalPages: PageConfig[] = [
                       packageName: 'hospital',
                       key: 'RegisterForm',
                       property: 'department'
+                    },
+                    qualifications: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'qualifications'
+                    },
+                    smcName: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'smcName'
+                    },
+                    smcRegistrationNumber: {
+                      packageName: 'hospital',
+                      key: 'RegisterForm',
+                      property: 'smcRegistrationNumber'
                     },
                     acceptTerms: {
                       packageName: 'hospital',
@@ -2511,6 +2629,24 @@ export const hospitalPages: PageConfig[] = [
                         packageName: 'hospital',
                         key: 'RegisterForm',
                         property: 'department',
+                        hideNil: true
+                      },
+                      qualifications: {
+                        packageName: 'hospital',
+                        key: 'RegisterForm',
+                        property: 'qualifications',
+                        hideNil: true
+                      },
+                      smcName: {
+                        packageName: 'hospital',
+                        key: 'RegisterForm',
+                        property: 'smcName',
+                        hideNil: true
+                      },
+                      smcRegistrationNumber: {
+                        packageName: 'hospital',
+                        key: 'RegisterForm',
+                        property: 'smcRegistrationNumber',
                         hideNil: true
                       },
                       acceptTerms: {

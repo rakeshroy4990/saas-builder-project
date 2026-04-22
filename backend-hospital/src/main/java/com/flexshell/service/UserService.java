@@ -67,6 +67,25 @@ public class UserService {
         user.setMobileNumber(mobile);
         user.setDepartment(department);
 
+        if (UserRole.DOCTOR.equals(user.getRole())) {
+            if (request.getQualifications() != null) {
+                user.setQualifications(request.getQualifications().trim());
+            }
+            if (request.getSmcName() != null) {
+                user.setSmcName(request.getSmcName().trim());
+            }
+            if (request.getSmcRegistrationNumber() != null) {
+                user.setSmcRegistrationNumber(request.getSmcRegistrationNumber().trim());
+            }
+            String q = user.getQualifications() == null ? "" : user.getQualifications().trim();
+            String smc = user.getSmcName() == null ? "" : user.getSmcName().trim();
+            String reg = user.getSmcRegistrationNumber() == null ? "" : user.getSmcRegistrationNumber().trim();
+            if (q.isEmpty() || smc.isEmpty() || reg.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Qualifications, State Medical Council, and SMC registration number are required for doctor accounts.");
+            }
+        }
+
         user.setUsername(buildDisplayName(user.getFirstName(), user.getLastName()));
         user.setUpdatedTimestamp(Instant.now());
         UserEntity saved = repo.save(user);
@@ -101,6 +120,9 @@ public class UserService {
                 saved.getGender(),
                 saved.getMobileNumber(),
                 saved.getDepartment(),
+                saved.getQualifications(),
+                saved.getSmcName(),
+                saved.getSmcRegistrationNumber(),
                 saved.getCreatedTimestamp() == null ? null : saved.getCreatedTimestamp().toString(),
                 saved.getUpdatedTimestamp() == null ? null : saved.getUpdatedTimestamp().toString(),
                 saved.getRole() == null ? UserRole.PATIENT.name() : saved.getRole().name(),
