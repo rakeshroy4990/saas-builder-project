@@ -34,7 +34,7 @@ const emit = defineEmits<{
 const rootClass = computed(() =>
   resolveStyle(
     props.config?.styles ?? {
-      utilityClasses: 'md:col-span-2 rounded-lg border border-slate-200 bg-white p-2 sm:p-3 space-y-2'
+      utilityClasses: 'md:col-span-2 rounded-lg border border-slate-200 bg-white p-2 sm:p-3 space-y-3'
     }
   )
 );
@@ -296,7 +296,7 @@ function setQuickDuration(row: MedicineRow, value: string): void {
     <div
       v-for="(row, index) in rows"
       :key="row.id"
-      class="rounded-md border border-slate-200 bg-slate-50/40 p-2 space-y-2"
+      class="mb-3 rounded-md border border-slate-200 bg-slate-50/40 p-2 space-y-2 last:mb-0"
     >
       <div class="flex items-center justify-between">
         <p class="text-xs font-semibold text-slate-700">Rx {{ index + 1 }}</p>
@@ -347,6 +347,15 @@ function setQuickDuration(row: MedicineRow, value: string): void {
             </button>
             <p v-if="visibleResults.length === 0" class="px-2 py-1 text-[11px] text-slate-500">No medicines found.</p>
           </div>
+        </div>
+        <div class="pt-1">
+          <button
+            type="button"
+            class="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            @click="appendNextRowFrom(index)"
+          >
+            + Add Medicine
+          </button>
         </div>
 
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
