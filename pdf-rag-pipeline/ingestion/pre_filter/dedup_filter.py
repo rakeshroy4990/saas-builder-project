@@ -12,7 +12,8 @@ def _simhash(text: str) -> int:
 
 
 def _hamming(h1: int, h2: int) -> int:
-    return (h1 ^ h2).bit_count()
+    xor = h1 ^ h2
+    return xor.bit_count() if hasattr(xor, "bit_count") else bin(xor).count("1")
 
 
 def deduplicate_pages(pages: list[str], threshold: int = 10) -> list[str]:

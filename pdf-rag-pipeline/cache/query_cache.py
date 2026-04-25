@@ -8,22 +8,33 @@ from config.settings import CACHE_TTL_HOURS
 from db.mongo_client import get_db
 
 
-def _cache_key(query: str) -> str:
+def _cache_key(query: str, audience: str = "") -> str:
     normalized = query.lower().strip()
-    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    scope = str(audience or "").strip().lower()
+    payload = f"{scope}::{normalized}" if scope else normalized
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def get_cached(query: str) -> Optional[str]:
-    doc = get_db().query_cache.find_one({"_id": _cache_key(query)})
+def get_cached(query: str, audience: str = "") -> Optional[str]:
+    doc = get_db().query_cache.find_one({"_id": _cache_key(query, audience)})
     return doc.get("answer") if doc else None
 
 
-def set_cache(query: str, answer: str) -> None:
+def set_cache(query: str, answer: str, audience: str = "") -> None:
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=CACHE_TTL_HOURS)
+    scope = str(audience or "").strip().lower()
     get_db().query_cache.update_one(
-        {"_id": _cache_key(query)},
-        {"$set": {"query": query, "answer": answer, "cached_at": now, "expires_at": expires_at}},
+        {"_id": _cache_key(query, audience)},
+        {
+            "$set": {
+                "query": query,
+                "audience": scope,
+                "answer": answer,
+                "cached_at": now,
+                "expires_at": expires_at,
+            }
+        },
         upsert=True,
     )
 

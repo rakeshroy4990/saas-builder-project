@@ -4,16 +4,17 @@ Router is the presentation entry point for dynamic pages.
 
 ## Route Contract
 
-- `/page/:packageName/:pageId`
+- `/:pageId` (canonical, package-less URL)
+- Legacy redirects:
+  - `/:packageName/:pageId` -> `/:pageId`
+  - `/page/:packageName/:pageId` -> `/:pageId`
 
-This route does not hardcode domain pages. It always mounts `DynamicPage.vue`, which resolves page config from registry.
+The canonical route always mounts `DynamicPage.vue`, which resolves page config from registry.
 
 ## Defaults
 
-Root route redirects to env-based defaults:
+Root route redirects to env-based default page:
 
-- `VITE_DEFAULT_PACKAGE_NAME` (preferred)
-- fallback: `VITE_DEFAULT_NAMESPACE`
 - `VITE_DEFAULT_PAGE_ID`
 
 ## Guideline

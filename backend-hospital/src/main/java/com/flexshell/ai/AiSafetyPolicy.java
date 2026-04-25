@@ -67,6 +67,24 @@ public class AiSafetyPolicy {
 
     public String enforceSafeResponse(String raw) {
         String body = normalizeWhitespace(raw);
+        if (isRagFallbackMessage(body)) {
+            if (!body.toLowerCase(Locale.ROOT).contains("not a doctor")) {
+                body = body + "\n\n" + NON_DOCTOR_LINE;
+            }
+            if (!body.contains(DISCLAIMER_LINE)) {
+                body = body + "\n\n" + DISCLAIMER_LINE;
+            }
+            return body.trim();
+        }
+        if (hasEndOptionsBlock(body)) {
+            if (!body.toLowerCase(Locale.ROOT).contains("not a doctor")) {
+                body = body + "\n\n" + NON_DOCTOR_LINE;
+            }
+            if (!body.contains(DISCLAIMER_LINE)) {
+                body = body + "\n\n" + DISCLAIMER_LINE;
+            }
+            return body.trim();
+        }
         if (body.isBlank()) {
             body = fallbackStructuredResponse("");
         } else if (!hasStructuredSections(body)) {
@@ -79,6 +97,15 @@ public class AiSafetyPolicy {
             body = body + "\n\n" + DISCLAIMER_LINE;
         }
         return body.trim();
+    }
+
+    private static boolean isRagFallbackMessage(String body) {
+        String normalized = normalize(body);
+        return normalized.equals("not available")
+                || normalized.equals("i don't have enough information to answer this.")
+                || normalized.equals("i dont have enough information to answer this.")
+                || normalized.equals("not enough information in knowledge base.")
+                || normalized.startsWith("not enough information in knowledge base");
     }
 
     private static String normalize(String value) {
@@ -96,6 +123,10 @@ public class AiSafetyPolicy {
                 && normalized.contains("3. when to see a doctor");
     }
 
+    private static boolean hasEndOptionsBlock(String body) {
+        return body.toLowerCase(Locale.ROOT).contains("next options:");
+    }
+
     private static String fallbackStructuredResponse(String rawModelText) {
         String hint = normalizeWhitespace(rawModelText);
         if (hint.isBlank()) {
@@ -110,6 +141,10 @@ public class AiSafetyPolicy {
                 + "- Additional guidance: " + hint + "\n\n"
                 + "3. When to see a doctor\n"
                 + "- See a doctor promptly if symptoms persist beyond 2-3 days, worsen, or new symptoms appear.\n"
-                + "- Seek urgent care immediately for breathing difficulty, chest pain, confusion, persistent high fever, or dehydration signs.";
+                + "- Seek urgent care immediately for breathing difficulty, chest pain, confusion, persistent high fever, or dehydration signs.\n\n"
+                + "Next options:\n"
+                + "- Tell me your other symptoms so I can refine guidance.\n"
+                + "- Do you want likely tests to discuss with your doctor?\n"
+                + "- Show warning signs that need urgent care now.";
     }
 }

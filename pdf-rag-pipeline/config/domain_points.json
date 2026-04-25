@@ -1,0 +1,64 @@
+{
+  "term_aliases": {
+    "tuberculosis": ["tb", "tuberculosis", "pulmonary tuberculosis", "chronic cough", "night sweats"],
+    "diabetes": ["diabetes", "dm", "diabetes mellitus", "high blood sugar"],
+    "hypertension": ["hypertension", "htn", "high blood pressure", "bp high"],
+    "fever": ["fever", "high temperature", "pyrexia"],
+    "cough": ["cough", "persistent cough", "dry cough", "wet cough"],
+    "shortness of breath": ["shortness of breath", "breathlessness", "difficulty breathing", "dyspnea"],
+    "chest pain": ["chest pain", "chest tightness", "pressure in chest"],
+    "sore throat": ["sore throat", "throat pain", "throat irritation"],
+    "headache": ["headache", "migraine", "head pain"],
+    "vomiting": ["vomiting", "throwing up", "nausea and vomiting"],
+    "diarrhea": ["diarrhea", "loose stools", "frequent stools"],
+    "abdominal pain": ["abdominal pain", "stomach pain", "belly pain"],
+    "asthma": ["asthma", "wheezing", "airway inflammation"],
+    "pneumonia": ["pneumonia", "lung infection", "chest infection"],
+    "dengue": ["dengue", "dengue fever", "platelet drop", "mosquito borne fever"],
+    "malaria": ["malaria", "malarial fever", "mosquito borne infection"],
+    "thyroid": ["thyroid", "hypothyroidism", "hyperthyroidism", "tsh abnormal"]
+  },
+  "query_aliases": {
+    "tb": ["tuberculosis", "t.b.", "pulmonary tuberculosis"],
+    "htn": ["hypertension", "high blood pressure"],
+    "dm": ["diabetes", "diabetes mellitus"],
+    "chickenpox": ["varicella", "varicella zoster", "vzv", "chicken pox", "varicella zoster virus"],
+    "varicella": ["chickenpox", "chicken pox", "vzv"]
+  },
+  "short_line_signals": [
+    "tuberculosis",
+    "yersinia",
+    "shigella",
+    "vibrio",
+    "cholera",
+    "staphylococcus",
+    "salmonella",
+    "campylobacter",
+    "dysentery"
+  ],
+  "page_topic_keywords": {
+    "respiratory": ["respiratory", "lung", "asthma", "pneumonia", "copd", "breath", "airway"],
+    "infectious_disease": ["infectious", "infection", "tuberculosis", "tb", "dengue", "malaria", "sepsis", "viral", "bacterial"],
+    "digestive_system": ["digestive", "gastro", "intestinal", "diarrhea", "vomiting", "abdomen", "abdominal", "liver"]
+  },
+  "intent_keywords": {
+    "respiratory": ["cough", "breath", "breathlessness", "shortness of breath", "asthma", "pneumonia", "wheezing", "tb", "tuberculosis"],
+    "infectious_disease": ["infection", "infectious", "viral", "bacterial", "dengue", "malaria", "fever", "tb", "tuberculosis"],
+    "digestive_system": ["vomiting", "diarrhea", "loose motion", "stomach pain", "abdominal pain", "constipation", "gastric", "indigestion"]
+  },
+  "role_audience_map": {
+    "ROLE_ADMIN": "expert",
+    "ROLE_DOCTOR": "expert",
+    "ROLE_CLINICIAN": "expert",
+    "ROLE_PATIENT": "layman",
+    "ROLE_USER": "layman"
+  },
+  "source_audience_rules": [
+    {"pattern": "Textbook", "audience": "expert"},
+    {"pattern": "Clinical", "audience": "expert"},
+    {"pattern": "Guide", "audience": "layman"},
+    {"pattern": "FAQ", "audience": "layman"}
+  ],
+  "default_audience": "layman"
+  
+}

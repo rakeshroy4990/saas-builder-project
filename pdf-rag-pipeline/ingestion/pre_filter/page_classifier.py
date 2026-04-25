@@ -13,6 +13,8 @@ KEEP_SIGNALS = [
     r"\b(treatment|diagnosis|symptom|dosage|therapy|patient|clinical)\b",
     r"\b(procedure|protocol|guideline|indication|contraindication)\b",
     r"\b(drug|medication|prescription|adverse|interaction)\b",
+    r"\b(tuberculosis|tb|pneumonia|asthma|dengue|malaria|infection|infectious)\b",
+    r"\b(cough|fever|breathlessness|shortness of breath|chest pain|vomiting|diarrhea)\b",
 ]
 
 

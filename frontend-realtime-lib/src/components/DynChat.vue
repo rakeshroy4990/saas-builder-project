@@ -125,6 +125,40 @@ const formatTime = (m: any): string => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+type ParsedAiBody = { text: string; options: string[] };
+
+const OPTION_SPLIT_REGEX = /(?:\r?\n)+/g;
+
+function parseAiMessageBody(rawValue: unknown): ParsedAiBody {
+  const raw = String(rawValue ?? '').trim();
+  if (!raw) return { text: '', options: [] };
+  const markerRegex = /\bnext options\s*:/i;
+  const markerMatch = markerRegex.exec(raw);
+  if (!markerMatch) return { text: raw, options: [] };
+
+  const markerStart = markerMatch.index;
+  const markerEnd = markerStart + markerMatch[0].length;
+  const before = raw.slice(0, markerStart).trim();
+  const after = raw.slice(markerEnd).trim();
+  if (!after) return { text: before || raw, options: [] };
+
+  const seen = new Set<string>();
+  const options = after
+    .split(OPTION_SPLIT_REGEX)
+    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').trim())
+    .filter((line) => {
+      if (!line) return false;
+      const lowered = line.toLowerCase();
+      if (seen.has(lowered)) return false;
+      seen.add(lowered);
+      return true;
+    })
+    .slice(0, 6);
+
+  if (options.length === 0) return { text: raw, options: [] };
+  return { text: before, options };
+}
+
 const activeMessages = computed(() => {
   const rid = activeRoomId.value;
   if (!rid) return [];
@@ -242,8 +276,11 @@ onBeforeUnmount(() => {
 });
 
 const send = async () => {
+  await sendBody(draft.value.trim());
+};
+
+const sendBody = async (body: string) => {
   const rid = activeRoomId.value;
-  const body = draft.value.trim();
   if (!body) return;
   if (smartAiMode.value && aiDisclaimerVisible.value) return;
   if (!smartAiMode.value && !rid && !isWaitingForAdmin.value && chatStatus.value !== 'starting' && chatStatus.value !== 'connecting') return;
@@ -259,6 +296,11 @@ const send = async () => {
     action: props.config?.sendMessageAction,
     payload: { roomId: rid, body, clientMessageId: crypto.randomUUID() }
   });
+};
+
+const sendQuickOption = async (option: string) => {
+  if (!smartAiMode.value || aiProcessing.value) return;
+  await sendBody(String(option ?? '').trim());
 };
 
 const canSendNow = computed(() => {
@@ -474,7 +516,24 @@ const sendInlineEdit = (m: any) => {
                     </div>
                     <div v-if="formatTime(m)" class="text-[11px] opacity-70">{{ formatTime(m) }}</div>
                   </div>
-                  <div class="whitespace-pre-wrap break-words leading-relaxed">{{ m?.body }}</div>
+                  <div class="whitespace-pre-wrap break-words leading-relaxed">
+                    {{ parseAiMessageBody(m?.body).text || m?.body }}
+                  </div>
+                  <div
+                    v-if="smartAiMode && !isMine(m) && parseAiMessageBody(m?.body).options.length > 0"
+                    class="mt-2 flex flex-wrap gap-2"
+                  >
+                    <button
+                      v-for="option in parseAiMessageBody(m?.body).options"
+                      :key="`${messageKey(m)}-${option}`"
+                      type="button"
+                      class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      :disabled="!canSendNow || aiProcessing"
+                      @click="sendQuickOption(option)"
+                    >
+                      {{ option }}
+                    </button>
+                  </div>
                   <div
                     v-if="!smartAiMode && isMine(m) && activeInlineEditKey === messageKey(m)"
                     class="mt-2 rounded-lg border border-white/40 bg-white/10 p-2 text-white"

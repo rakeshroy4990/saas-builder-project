@@ -28,7 +28,7 @@ export const scrollHomeContactHospitalServices: ServiceDefinition[] = [
       const onHome =
         String(route.params.packageName ?? '') === 'hospital' && String(route.params.pageId ?? '') === 'home';
       if (!onHome) {
-        await router.push('/hospital/home');
+        await router.push('/home');
         await nextTick();
         await new Promise<void>((resolve) => {
           window.requestAnimationFrame(() => resolve());

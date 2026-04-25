@@ -56,8 +56,8 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'acceptTerms', false);
       useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', '');
       usePopupStore(pinia).close();
-      if (window.location.pathname !== '/hospital/home') {
-        window.location.assign('/hospital/home');
+      if (window.location.pathname !== '/home') {
+        window.location.assign('/home');
       }
       return ok();
     }

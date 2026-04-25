@@ -75,6 +75,10 @@ export class ActionEngine {
   }
 
   private navigate(nav: NavigationConfig): void {
+    if (String(nav.packageName ?? '').trim().toLowerCase() === 'hospital') {
+      this.router.push(`/${nav.pageId}`);
+      return;
+    }
     this.router.push(`/${nav.packageName}/${nav.pageId}`);
   }
 
