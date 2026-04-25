@@ -30,6 +30,6 @@ describe('ActionEngine', () => {
       onSuccess: { actionType: 'navigate', navigate: { packageName: 'ecommerce', pageId: 'order-confirmation' } }
     });
 
-    expect(push).toHaveBeenCalledWith('/page/ecommerce/order-confirmation');
+    expect(push).toHaveBeenCalledWith('/ecommerce/order-confirmation');
   });
 });

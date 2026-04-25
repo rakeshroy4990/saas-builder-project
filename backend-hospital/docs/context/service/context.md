@@ -16,6 +16,7 @@ Application **use-case** layer: business rules orchestrating repositories, auth 
 | `InitialAdminService` | One-time setup admin when bootstrapping |
 | `UiMetadataService` | Implements `UiMetadataFacade`; bridges to `UiMetadataPersistenceService` |
 | `LogService` | Client log ingestion / level |
+| `AiChatService` | Smart AI chat orchestration + emergency escalation + disclaimer enforcement through provider-routed LLM adapter |
 
 ## When you change this
 
@@ -23,4 +24,4 @@ Update `controller` docs if public HTTP contracts change; update `frontend-hospi
 
 ---
 
-*Last updated: 2026-04-18*
+*Last updated: 2026-04-22*

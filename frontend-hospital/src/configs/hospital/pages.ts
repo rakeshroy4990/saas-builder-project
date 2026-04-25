@@ -3544,7 +3544,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-chat-page-quick-profile',
                       type: 'button',
                       config: {
-                        text: 'Profile',
+                        text: 'User Profile',
                         styles: {
                           utilityClasses:
                             'w-full sm:flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -3562,12 +3562,19 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-chat-root',
                 type: 'chat',
                 config: {
+                  enableSmartAi: true,
+                  setModeAction: { actionId: 'chat-set-mode' },
+                  aiShowDisclaimerAction: { actionId: 'chat-ai-show-disclaimer-once' },
+                  aiDismissDisclaimerAction: { actionId: 'chat-ai-dismiss-disclaimer' },
+                  aiStartChatAction: { actionId: 'chat-ai-start' },
+                  aiSendMessageAction: { actionId: 'chat-ai-send-message' },
                   startChatAction: { actionId: 'chat-start' },
                   acceptSupportRequestAction: { actionId: 'chat-support-accept' },
                   rejectSupportRequestAction: { actionId: 'chat-support-reject' },
                   sendMessageAction: { actionId: 'chat-send-message' },
                   supportUserId: 'support',
-                  autoStart: false
+                  autoStart: false,
+                  termsUrl: '/hospital/terms'
                 }
               }
             ]
@@ -3602,7 +3609,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-chat-popup-title',
                 type: 'text',
                 config: {
-                  text: 'Ask a question',
+                  text: 'AI Symptom Triage Assistant',
                   styles: { utilityClasses: 'text-base font-semibold text-slate-900' }
                 }
               },
@@ -3651,7 +3658,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-chat-popup-quick-profile',
                 type: 'button',
                 config: {
-                  text: 'Profile',
+                  text: 'User Profile',
                   styles: {
                     utilityClasses:
                       'w-full sm:flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -3678,6 +3685,12 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-chat-popup-body',
                 type: 'chat',
                 config: {
+                  enableSmartAi: true,
+                  setModeAction: { actionId: 'chat-set-mode' },
+                  aiShowDisclaimerAction: { actionId: 'chat-ai-show-disclaimer-once' },
+                  aiDismissDisclaimerAction: { actionId: 'chat-ai-dismiss-disclaimer' },
+                  aiStartChatAction: { actionId: 'chat-ai-start' },
+                  aiSendMessageAction: { actionId: 'chat-ai-send-message' },
                   startChatAction: { actionId: 'chat-start' },
                   acceptSupportRequestAction: { actionId: 'chat-support-accept' },
                   rejectSupportRequestAction: { actionId: 'chat-support-reject' },
@@ -3685,6 +3698,7 @@ export const hospitalPages: PageConfig[] = [
                   supportUserId: 'support',
                   autoStart: false,
                   embedded: true,
+                  termsUrl: '/hospital/terms',
                   styles: { utilityClasses: 'w-full max-w-full min-w-0 h-full min-h-0' }
                 }
               }

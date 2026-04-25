@@ -5,6 +5,8 @@ import com.flexshell.appointment.AppointmentRepository;
 import com.flexshell.auth.UserEntity;
 import com.flexshell.auth.UserRepository;
 import com.flexshell.auth.UserRole;
+import com.flexshell.email.AppointmentCreatedEmailNotifier;
+import com.flexshell.email.AppointmentEmailNotifyOutcome;
 import com.flexshell.controller.dto.AppointmentFileResponse;
 import com.flexshell.controller.dto.AppointmentRequest;
 import com.flexshell.controller.dto.AppointmentResponse;
@@ -12,6 +14,8 @@ import com.flexshell.controller.dto.AvailableSlotDto;
 import com.flexshell.controller.dto.AvailableSlotsResponse;
 import com.flexshell.doctorschedule.DoctorScheduleEntity;
 import com.flexshell.doctorschedule.DoctorScheduleRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -33,24 +37,29 @@ import java.util.UUID;
 
 @Service
 public class AppointmentService {
+    private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
     private static final String DEFAULT_STATUS_OPEN = "Open";
+    private static final String EMAIL_NOTIFY_STATUS_PENDING = "PENDING";
     private static final String STATUS_CANCELLED = "CANCELLED";
     private static final String STATUS_COMPLETED = "COMPLETED";
     private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
     private final ObjectProvider<UserRepository> userRepositoryProvider;
     private final ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider;
     private final ZoneId hospitalZoneId;
+    private final AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier;
 
     public AppointmentService(
             ObjectProvider<AppointmentRepository> appointmentRepositoryProvider,
             ObjectProvider<UserRepository> userRepositoryProvider,
             ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider,
-            @Qualifier("hospitalZoneId") ZoneId hospitalZoneId
+            @Qualifier("hospitalZoneId") ZoneId hospitalZoneId,
+            AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier
     ) {
         this.appointmentRepositoryProvider = appointmentRepositoryProvider;
         this.userRepositoryProvider = userRepositoryProvider;
         this.doctorScheduleRepositoryProvider = doctorScheduleRepositoryProvider;
         this.hospitalZoneId = hospitalZoneId;
+        this.appointmentCreatedEmailNotifier = appointmentCreatedEmailNotifier;
     }
 
     public AppointmentResponse create(AppointmentRequest request, List<MultipartFile> prescriptionFiles, String actorUserId) {
@@ -73,7 +82,25 @@ public class AppointmentService {
         entity.setUpdatedBy(actorUserId);
         entity.setStatus(DEFAULT_STATUS_OPEN);
         entity.setDoctorName(resolveDoctorName(entity.getDoctorId()));
-        return toResponse(repository.save(entity));
+        // Persist initial email-notify tracking on first write so fields are present even
+        // if post-notify status update cannot be saved.
+        entity.setAppointmentEmailNotifyStatus(EMAIL_NOTIFY_STATUS_PENDING);
+        entity.setAppointmentEmailNotifyFailed(Boolean.FALSE);
+        entity.setAppointmentEmailNotifyDetail(null);
+        entity.setAppointmentEmailNotifyAt(null);
+        AppointmentEntity saved = repository.save(entity);
+        AppointmentResponse draftResponse = toResponse(saved);
+        AppointmentEmailNotifyOutcome emailOutcome = appointmentCreatedEmailNotifier.notifyAppointmentCreated(
+                draftResponse,
+                resolveDoctorEmail(saved.getDoctorId()));
+        applyEmailNotifyOutcome(saved, emailOutcome);
+        try {
+            repository.save(saved);
+        } catch (Exception ex) {
+            // Appointment is already persisted; do not fail the create API if only email-status write fails.
+            log.warn("Could not persist appointment email notification status: {}", ex.getMessage());
+        }
+        return toResponse(saved);
     }
 
     public AppointmentResponse update(String id, AppointmentRequest request, List<MultipartFile> prescriptionFiles, String actorUserId) {
@@ -358,6 +385,17 @@ public class AppointmentService {
                 .orElse("");
     }
 
+    private String resolveDoctorEmail(String doctorId) {
+        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
+        if (userRepository == null || doctorId == null || doctorId.isBlank()) {
+            return "";
+        }
+        return userRepository.findById(doctorId)
+                .map(UserEntity::getEmail)
+                .map(this::normalize)
+                .orElse("");
+    }
+
     private String displayName(UserEntity userEntity) {
         String firstName = normalize(userEntity.getFirstName());
         String lastName = normalize(userEntity.getLastName());
@@ -506,8 +544,37 @@ public class AppointmentService {
                 entity.getCreatedTimestamp() == null ? null : entity.getCreatedTimestamp().toString(),
                 entity.getUpdatedTimestamp() == null ? null : entity.getUpdatedTimestamp().toString(),
                 entity.getCreatedBy(),
-                entity.getUpdatedBy()
+                entity.getUpdatedBy(),
+                emptyToNull(normalize(entity.getAppointmentEmailNotifyStatus())),
+                entity.getAppointmentEmailNotifyFailed(),
+                entity.getAppointmentEmailNotifyDetail(),
+                entity.getAppointmentEmailNotifyAt() == null ? null : entity.getAppointmentEmailNotifyAt().toString()
         );
+    }
+
+    private static String emptyToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    private static final int EMAIL_NOTIFY_DETAIL_MAX = 500;
+
+    private void applyEmailNotifyOutcome(AppointmentEntity entity, AppointmentEmailNotifyOutcome outcome) {
+        entity.setAppointmentEmailNotifyStatus(outcome.status());
+        entity.setAppointmentEmailNotifyFailed(outcome.failed());
+        entity.setAppointmentEmailNotifyDetail(truncateEmailNotifyDetail(outcome.detail()));
+        entity.setUpdatedTimestamp(Instant.now());
+        entity.setAppointmentEmailNotifyAt(Instant.now());
+    }
+
+    private static String truncateEmailNotifyDetail(String detail) {
+        if (detail == null || detail.isBlank()) {
+            return null;
+        }
+        String t = detail.trim();
+        if (t.length() <= EMAIL_NOTIFY_DETAIL_MAX) {
+            return t;
+        }
+        return t.substring(0, EMAIL_NOTIFY_DETAIL_MAX - 3) + "...";
     }
 
     private String resolveStatus(AppointmentEntity entity) {

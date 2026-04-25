@@ -12,7 +12,11 @@ Spring **configuration** beans: security filter chain, CORS, seeding, and other 
 ## Related properties
 
 See `src/main/resources/application.properties`: JWT, cookies, CORS, bootstrap admin, seed users.
+Also includes Smart AI properties:
+- Provider selector: `app.ai.provider`
+- Shared LLM runtime settings: `app.ai.system-prompt`, `app.ai.timeout-ms`, `app.ai.max-tokens`, `app.ai.temperature`
+- Provider-specific connection keys for OpenAI/Gemini/Claude via `app.ai.<provider>.*`.
 
 ---
 
-*Last updated: 2026-04-18*
+*Last updated: 2026-04-22*

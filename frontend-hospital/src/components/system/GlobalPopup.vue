@@ -77,6 +77,24 @@ const isChatPopup = computed(() => {
   return pageId === 'chat-popup';
 });
 
+const normalizedPopupErrorMessage = computed(() => {
+  const raw = String(popupStore.errorMessage ?? '').trim();
+  if (!raw) {
+    return 'Something went wrong while processing your request. Please try again.';
+  }
+  const lower = raw.toLowerCase();
+  if (lower.includes('network') || lower.includes('failed to fetch') || lower.includes('timeout')) {
+    return 'Unable to reach the server right now. Please check your connection and try again.';
+  }
+  if (lower.includes('unauthorized') || lower.includes('forbidden')) {
+    return 'Your session may have expired. Please log in again and retry.';
+  }
+  if (lower.includes('service unavailable') || lower.includes('temporarily unavailable')) {
+    return 'The service is temporarily unavailable. Please try again in a moment.';
+  }
+  return raw;
+});
+
 /** Popups skip `DynamicPage`; run `initializeActions` here (e.g. `chat-connect` for chat-popup). */
 let popupInitGeneration = 0;
 let lastInitializedPopupKey = '';
@@ -158,21 +176,30 @@ const resolveSecondaryButton = (): HTMLButtonElement | null => {
 
 const onGlobalKeydown = (event: KeyboardEvent): void => {
   if (!popupStore.isOpen) return;
+  const target = event.target as HTMLElement | null;
+  const isTypingField = Boolean(
+    target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable)
+  );
+  if (isTypingField) return;
 
   if (event.key === 'Enter') {
-    const target = resolvePrimaryButton();
-    if (target) {
+    const primaryButton = resolvePrimaryButton();
+    if (primaryButton) {
       event.preventDefault();
-      target.click();
+      primaryButton.click();
     }
     return;
   }
 
   if (event.key === 'Escape') {
     event.preventDefault();
-    const target = resolveSecondaryButton();
-    if (target) {
-      target.click();
+    const secondaryButton = resolveSecondaryButton();
+    if (secondaryButton) {
+      secondaryButton.click();
       return;
     }
     popupStore.close();
@@ -207,8 +234,8 @@ onBeforeUnmount(() => {
     >
       <div id="system-popup-panel" :class="panelClass" tabindex="-1">
         <template v-if="popupStore.isError">
-          <h2 id="system-popup-error-title" :class="errorTitleClass">Error</h2>
-          <p id="system-popup-error-body" :class="errorBodyClass">{{ popupStore.errorMessage }}</p>
+          <h2 id="system-popup-error-title" :class="errorTitleClass">Something went wrong</h2>
+          <p id="system-popup-error-body" :class="errorBodyClass">{{ normalizedPopupErrorMessage }}</p>
           <button
             id="system-popup-close"
             type="button"
@@ -252,8 +279,8 @@ onBeforeUnmount(() => {
         tabindex="-1"
       >
         <template v-if="popupStore.isError">
-          <h2 id="system-popup-error-title" :class="errorTitleClass">Error</h2>
-          <p id="system-popup-error-body" :class="errorBodyClass">{{ popupStore.errorMessage }}</p>
+          <h2 id="system-popup-error-title" :class="errorTitleClass">Something went wrong</h2>
+          <p id="system-popup-error-body" :class="errorBodyClass">{{ normalizedPopupErrorMessage }}</p>
           <button
             id="system-popup-close"
             type="button"

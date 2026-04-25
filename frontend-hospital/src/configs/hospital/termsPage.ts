@@ -116,6 +116,11 @@ export const hospitalTermsPage: PageConfig = {
                     'If your baby has trouble breathing, turns blue or gray, is unresponsive, has a seizure, severe bleeding, or any life-threatening symptom, call your local emergency number immediately. Do not use this site or online consultation to request emergency care.'
                   ),
                   termsSection(
+                    'hospital-terms-s2b',
+                    '2A. Smart AI assistant limitations',
+                    'Our Smart AI chat provides general health guidance only and is not a doctor, diagnosis tool, or substitute for professional medical advice. Smart AI responses may be incomplete or unsuitable for your specific situation. You must seek a qualified clinician for diagnosis and treatment decisions, and you must use emergency services for urgent or life-threatening symptoms.'
+                  ),
+                  termsSection(
                     'hospital-terms-s3',
                     '3. Parent or guardian',
                     'You must be a parent or legal guardian (or their authorized representative) to register a minor and to consent to care. You agree that information you provide about the child is accurate to the best of your knowledge.'

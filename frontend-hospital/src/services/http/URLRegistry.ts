@@ -47,6 +47,7 @@ export const SERVER_PATHS = {
   chatSupportOpen: '/api/chat/support/open',
   /** Mint RTC / vendor session after hospital call permission checks. */
   hospitalVideoSession: '/api/hospital/video/session',
+  hospitalAiChat: '/api/hospital/ai/chat',
   /** GET/PUT user by id: pass `userId` query param; PUT profile update uses registration-shaped JSON; PUT `inactive=true` deactivates. */
   user: '/api/user',
   /** PUT save profile: same body as `PUT /api/user`; optional `userId` query (else JWT principal). */

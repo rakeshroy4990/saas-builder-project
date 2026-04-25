@@ -57,7 +57,7 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
       const editingId = pickString(form, ['editingAppointmentId']).trim();
       if (!editingId) {
         useToastStore(pinia).show('Open an appointment from the dashboard to edit it.', 'info');
-        await router.replace('/page/hospital/dashboard');
+        await router.replace('/hospital/dashboard');
         return ok();
       }
       await ensureMedicalDepartmentOptionsLoaded();
@@ -100,19 +100,25 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
         AdditionalNotes: pickString(form, ['additionalNotes', 'AdditionalNotes'])
       };
 
-      const missingRequired = [
-        payload.PatientName,
-        payload.Email,
-        payload.PhoneNumber,
-        payload.AgeGroup,
-        payload.Department,
-        payload.DoctorId,
-        payload.PreferredDate,
-        payload.PreferredTimeSlot
-      ].some((value) => !String(value ?? '').trim());
+      const requiredFields: Array<{ label: string; value: unknown }> = [
+        { label: 'Patient name', value: payload.PatientName },
+        { label: 'Email', value: payload.Email },
+        { label: 'Phone number', value: payload.PhoneNumber },
+        { label: 'Age group', value: payload.AgeGroup },
+        { label: 'Department', value: payload.Department },
+        { label: 'Doctor', value: payload.DoctorId },
+        { label: 'Preferred date', value: payload.PreferredDate },
+        { label: 'Preferred time slot', value: payload.PreferredTimeSlot }
+      ];
+      const missingRequiredFields = requiredFields
+        .filter((field) => !String(field.value ?? '').trim())
+        .map((field) => field.label);
 
-      if (missingRequired) {
-        return { responseCode: 'BOOK_APPOINTMENT_FAILED', message: 'Please complete all required appointment fields.' };
+      if (missingRequiredFields.length > 0) {
+        return {
+          responseCode: 'BOOK_APPOINTMENT_FAILED',
+          message: `Missing required fields: ${missingRequiredFields.join(', ')}.`
+        };
       }
 
       if (!editingId) {

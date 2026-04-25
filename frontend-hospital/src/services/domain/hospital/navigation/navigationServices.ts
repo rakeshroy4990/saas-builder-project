@@ -132,7 +132,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'open-hospital-terms-new-tab',
     execute: async () => {
-      const href = router.resolve({ path: '/page/hospital/terms' }).href;
+      const href = router.resolve({ path: '/hospital/terms' }).href;
       const url = new URL(href, window.location.origin).href;
       window.open(url, '_blank', 'noopener,noreferrer');
       return ok();

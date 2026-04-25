@@ -11,14 +11,23 @@ export const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: `/page/${defaultPackageName}/${defaultPageId}`
+      redirect: `/${defaultPackageName}/${defaultPageId}`
     },
     {
+      path: '/hospital',
+      redirect: '/hospital/home'
+    },
+    // Legacy redirects for old bookmarked /page URLs.
+    {
       path: '/page/hospital',
-      redirect: '/page/hospital/home'
+      redirect: '/hospital/home'
     },
     {
       path: '/page/:packageName/:pageId',
+      redirect: (to) => `/${String(to.params.packageName ?? '')}/${String(to.params.pageId ?? '')}`
+    },
+    {
+      path: '/:packageName/:pageId',
       component: DynamicPage
     },
     {

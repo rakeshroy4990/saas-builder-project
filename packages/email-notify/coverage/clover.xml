@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1777051069061" clover="3.2.0">
+  <project timestamp="1777051069061" name="All files">
+    <metrics statements="63" coveredstatements="62" conditionals="25" coveredconditionals="17" methods="13" coveredmethods="13" elements="101" coveredelements="92" complexity="0" loc="63" ncloc="63" packages="4" files="6" classes="6"/>
+    <package name="src">
+      <metrics statements="22" coveredstatements="21" conditionals="8" coveredconditionals="6" methods="5" coveredmethods="5"/>
+      <file name="EmailNotifyService.ts" path="/Users/rakeshroy/Documents/Projects/saas-builder-project/packages/email-notify/src/EmailNotifyService.ts">
+        <metrics statements="22" coveredstatements="21" conditionals="8" coveredconditionals="6" methods="5" coveredmethods="5"/>
+        <line num="2" count="1" type="stmt"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="11" count="1" type="stmt"/>
+        <line num="12" count="1" type="stmt"/>
+        <line num="13" count="1" type="stmt"/>
+        <line num="15" count="1" type="stmt"/>
+        <line num="25" count="7" type="stmt"/>
+        <line num="27" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="28" count="6" type="stmt"/>
+        <line num="29" count="1" type="cond" truecount="2" falsecount="2"/>
+        <line num="30" count="0" type="stmt"/>
+        <line num="32" count="1" type="stmt"/>
+        <line num="35" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="43" count="3" type="stmt"/>
+        <line num="44" count="3" type="stmt"/>
+        <line num="45" count="3" type="stmt"/>
+        <line num="51" count="3" type="stmt"/>
+        <line num="55" count="2" type="stmt"/>
+        <line num="59" count="2" type="stmt"/>
+        <line num="60" count="2" type="stmt"/>
+        <line num="68" count="1" type="stmt"/>
+        <line num="69" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.providers">
+      <metrics statements="10" coveredstatements="10" conditionals="6" coveredconditionals="4" methods="2" coveredmethods="2"/>
+      <file name="ResendProvider.ts" path="/Users/rakeshroy/Documents/Projects/saas-builder-project/packages/email-notify/src/providers/ResendProvider.ts">
+        <metrics statements="10" coveredstatements="10" conditionals="6" coveredconditionals="4" methods="2" coveredmethods="2"/>
+        <line num="1" count="2" type="stmt"/>
+        <line num="5" count="2" type="stmt"/>
+        <line num="9" count="4" type="stmt"/>
+        <line num="13" count="4" type="stmt"/>
+        <line num="14" count="4" type="stmt"/>
+        <line num="22" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="23" count="1" type="stmt"/>
+        <line num="29" count="2" type="stmt"/>
+        <line num="32" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="33" count="1" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.templates">
+      <metrics statements="13" coveredstatements="13" conditionals="6" coveredconditionals="3" methods="3" coveredmethods="3"/>
+      <file name="appointment-cancel.ts" path="/Users/rakeshroy/Documents/Projects/saas-builder-project/packages/email-notify/src/templates/appointment-cancel.ts">
+        <metrics statements="4" coveredstatements="4" conditionals="2" coveredconditionals="1" methods="1" coveredmethods="1"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="4" count="1" type="stmt"/>
+        <line num="9" count="1" type="stmt"/>
+        <line num="26" count="1" type="stmt"/>
+      </file>
+      <file name="appointment-save.ts" path="/Users/rakeshroy/Documents/Projects/saas-builder-project/packages/email-notify/src/templates/appointment-save.ts">
+        <metrics statements="4" coveredstatements="4" conditionals="4" coveredconditionals="2" methods="1" coveredmethods="1"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="4" count="2" type="stmt"/>
+        <line num="9" count="2" type="stmt"/>
+        <line num="30" count="2" type="stmt"/>
+      </file>
+      <file name="reset-password.ts" path="/Users/rakeshroy/Documents/Projects/saas-builder-project/packages/email-notify/src/templates/reset-password.ts">
+        <metrics statements="5" coveredstatements="5" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="1"/>
+        <line num="3" count="1" type="stmt"/>
+        <line num="7" count="3" type="stmt"/>
+        <line num="8" count="3" type="stmt"/>
+        <line num="19" count="3" type="stmt"/>
+        <line num="21" count="3" type="stmt"/>
+      </file>
+    </package>
+    <package name="src.token">
+      <metrics statements="18" coveredstatements="18" conditionals="5" coveredconditionals="4" methods="3" coveredmethods="3"/>
+      <file name="TokenService.ts" path="/Users/rakeshroy/Documents/Projects/saas-builder-project/packages/email-notify/src/token/TokenService.ts">
+        <metrics statements="18" coveredstatements="18" conditionals="5" coveredconditionals="4" methods="3" coveredmethods="3"/>
+        <line num="1" count="2" type="stmt"/>
+        <line num="4" count="2" type="stmt"/>
+        <line num="6" count="11" type="stmt"/>
+        <line num="7" count="11" type="cond" truecount="0" falsecount="1"/>
+        <line num="11" count="7" type="stmt"/>
+        <line num="12" count="7" type="stmt"/>
+        <line num="13" count="7" type="stmt"/>
+        <line num="15" count="7" type="stmt"/>
+        <line num="16" count="7" type="stmt"/>
+        <line num="20" count="7" type="stmt"/>
+        <line num="21" count="7" type="stmt"/>
+        <line num="23" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="24" count="2" type="stmt"/>
+        <line num="27" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="28" count="2" type="stmt"/>
+        <line num="29" count="2" type="stmt"/>
+        <line num="32" count="3" type="stmt"/>
+        <line num="33" count="3" type="stmt"/>
+      </file>
+    </package>
+  </project>
+</coverage>

@@ -34,10 +34,16 @@ All **HTTP**, **auth**, **domain orchestration**, **realtime**, **media uploads*
 - Inbound **STOMP** webrtc events use **camelCase or PascalCase** field names; **`callId`** is only written when the server sent a non-empty value (avoids blank overwrites). **`remotePartyName`** is updated from `payload.displayName` when the event is from the **other** user (`fromUserId !==` you).
 - **DynVideoCall** (`frontend-realtime-lib`) shows **Call with:** the person’s name; **Session ref** is a short technical id (not shown as a “user id” in the main line).
 
+## Smart AI chat
+
+- `chatServices.ts` now supports `chat-ai-start`, `chat-ai-send-message`, mode switching (`chat-set-mode`), and first-load disclaimer controls.
+- Emergency keywords are checked client-side before API call (`chat/aiSafety.ts`), with immediate doctor-escalation messaging.
+- Smart AI endpoint is `URLRegistry.paths.hospitalAiChat` (`/api/hospital/ai/chat`), and AI response text is normalized to include legal disclaimer lines.
+
 ## When you change this
 
 Update **path keys** in `URLRegistry.ts` when backend routes change; keep `domain/hospital/services.ts` in sync with `configs/hospital/pages.ts` action names.
 
 ---
 
-*Last updated: 2026-04-18 — post-login full reload, JWT sessionStorage, `reloadWindow` action.*
+*Last updated: 2026-04-22 — Smart AI chat mode + safety utilities.*

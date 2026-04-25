@@ -62,6 +62,21 @@ public class AppointmentEntity {
     @Field("UpdatedBy")
     private String updatedBy;
 
+    /** SKIPPED | SUCCESS | PARTIAL | FAILED — outcome of post-create appointment emails. */
+    @Field("AppointmentEmailNotifyStatus")
+    private String appointmentEmailNotifyStatus = "PENDING";
+
+    /** True when any attempted recipient send failed or the notify HTTP call failed. */
+    @Field("AppointmentEmailNotifyFailed")
+    private Boolean appointmentEmailNotifyFailed = Boolean.FALSE;
+
+    /** Short diagnostic (e.g. provider error); truncated when persisting. */
+    @Field("AppointmentEmailNotifyDetail")
+    private String appointmentEmailNotifyDetail;
+
+    @Field("AppointmentEmailNotifyAt")
+    private Instant appointmentEmailNotifyAt;
+
     public String getId() {
         return id;
     }
@@ -196,6 +211,38 @@ public class AppointmentEntity {
 
     public void setUpdatedBy(String updatedBy) {
         this.updatedBy = updatedBy;
+    }
+
+    public String getAppointmentEmailNotifyStatus() {
+        return appointmentEmailNotifyStatus;
+    }
+
+    public void setAppointmentEmailNotifyStatus(String appointmentEmailNotifyStatus) {
+        this.appointmentEmailNotifyStatus = appointmentEmailNotifyStatus;
+    }
+
+    public Boolean getAppointmentEmailNotifyFailed() {
+        return appointmentEmailNotifyFailed;
+    }
+
+    public void setAppointmentEmailNotifyFailed(Boolean appointmentEmailNotifyFailed) {
+        this.appointmentEmailNotifyFailed = appointmentEmailNotifyFailed;
+    }
+
+    public String getAppointmentEmailNotifyDetail() {
+        return appointmentEmailNotifyDetail;
+    }
+
+    public void setAppointmentEmailNotifyDetail(String appointmentEmailNotifyDetail) {
+        this.appointmentEmailNotifyDetail = appointmentEmailNotifyDetail;
+    }
+
+    public Instant getAppointmentEmailNotifyAt() {
+        return appointmentEmailNotifyAt;
+    }
+
+    public void setAppointmentEmailNotifyAt(Instant appointmentEmailNotifyAt) {
+        this.appointmentEmailNotifyAt = appointmentEmailNotifyAt;
     }
 
     public static class AppointmentFile {

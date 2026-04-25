@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { ActionConfig } from '@/core/types/ActionConfig';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveStyle } from '@/core/engine/StyleResolver';
@@ -30,6 +30,13 @@ type DynChatConfig = {
    * (so the user can immediately start typing).
    */
   autoStart?: boolean;
+  enableSmartAi?: boolean;
+  setModeAction?: ActionConfig;
+  aiStartChatAction?: ActionConfig;
+  aiSendMessageAction?: ActionConfig;
+  aiShowDisclaimerAction?: ActionConfig;
+  aiDismissDisclaimerAction?: ActionConfig;
+  termsUrl?: string;
   styles?: { utilityClasses?: string };
 };
 
@@ -41,6 +48,9 @@ const storeKey = computed(() => props.config?.storeKey ?? 'Chat');
 const appStore = useAppStore();
 
 const chat = computed(() => (appStore.getData(packageName.value, storeKey.value) ?? {}) as Record<string, unknown>);
+const chatMode = computed(() => String(chat.value.mode ?? (props.config?.enableSmartAi ? 'smart_ai' : 'human')).trim().toLowerCase());
+const smartAiEnabled = computed(() => Boolean(props.config?.enableSmartAi));
+const smartAiMode = computed(() => smartAiEnabled.value && chatMode.value === 'smart_ai');
 const chatStatus = computed(() => String(chat.value.status ?? '').trim());
 const isWaitingForAdmin = computed(() => chatStatus.value === 'waiting_for_admin');
 const activeRoomId = computed(() => String(chat.value.activeRoomId ?? '').trim());
@@ -66,6 +76,9 @@ const myDisplayName = computed(() => {
   if (email) return email;
   return 'Me';
 });
+const aiDisclaimerVisible = computed(() => Boolean(chat.value.aiDisclaimerVisible));
+const aiProcessing = computed(() => Boolean(chat.value.aiProcessing));
+const termsUrl = computed(() => String(props.config?.termsUrl ?? '/page/hospital/terms').trim());
 
 const looksLikeMongoId = (value: string): boolean => /^[a-f0-9]{24}$/i.test(value);
 
@@ -88,6 +101,7 @@ const resolveSenderLabel = (m: any): string => {
   if (senderDisplayName) return senderDisplayName;
   const senderId = String(m?.senderId ?? '').trim();
   if (!senderId) return '';
+  if (senderId.toLowerCase() === 'ai') return 'AI Symptom Triage Assistant';
   if (senderId === 'me') return myDisplayName.value;
   if (myUserId.value && senderId === myUserId.value) return myDisplayName.value;
   if (senderId === (props.config?.supportUserId ?? 'support')) return 'Support';
@@ -120,6 +134,8 @@ const activeMessages = computed(() => {
 
 const draft = ref('');
 const messagesScrollEl = ref<HTMLElement | null>(null);
+const processingDots = ref('.');
+let processingDotsTimer: ReturnType<typeof setInterval> | null = null;
 
 function scrollMessagesToBottom() {
   void nextTick(() => {
@@ -132,6 +148,28 @@ function scrollMessagesToBottom() {
 watch(activeRoomId, () => scrollMessagesToBottom());
 watch(activeMessages, () => scrollMessagesToBottom(), { deep: true });
 watch(pendingMessages, () => scrollMessagesToBottom(), { deep: true });
+
+watch(
+  aiProcessing,
+  (isProcessing) => {
+    if (processingDotsTimer) {
+      clearInterval(processingDotsTimer);
+      processingDotsTimer = null;
+    }
+    if (!isProcessing) {
+      processingDots.value = '.';
+      return;
+    }
+    const sequence = ['.', '..', '...'];
+    let idx = 0;
+    processingDots.value = sequence[idx];
+    processingDotsTimer = setInterval(() => {
+      idx = (idx + 1) % sequence.length;
+      processingDots.value = sequence[idx];
+    }, 350);
+  },
+  { immediate: true }
+);
 
 const activeInlineEditKey = ref('');
 const inlineEditText = ref('');
@@ -149,10 +187,24 @@ let didAutoStart = false;
 const autoStartEnabled = computed(() => props.config?.autoStart ?? true);
 
 const startChat = async () => {
+  if (smartAiMode.value && props.config?.aiStartChatAction) {
+    emit('action', { action: props.config.aiStartChatAction, payload: {} });
+    return;
+  }
   emit('action', {
     action: props.config?.startChatAction,
     payload: { otherUserId: props.config?.supportUserId ?? 'support' }
   });
+};
+
+const setChatMode = (mode: 'human' | 'smart_ai') => {
+  emit('action', { action: props.config?.setModeAction, payload: { mode } });
+  if (mode === 'smart_ai') {
+    emit('action', { action: props.config?.aiShowDisclaimerAction, payload: {} });
+    if (!activeRoomId.value && props.config?.aiStartChatAction) {
+      emit('action', { action: props.config.aiStartChatAction, payload: {} });
+    }
+  }
 };
 
 const acceptSupport = async (requestId: string) => {
@@ -168,6 +220,12 @@ const rejectSupport = async (requestId: string) => {
 };
 
 onMounted(() => {
+  if (smartAiMode.value && props.config?.aiShowDisclaimerAction) {
+    emit('action', { action: props.config.aiShowDisclaimerAction, payload: {} });
+  }
+  if (smartAiMode.value && !activeRoomId.value && props.config?.aiStartChatAction) {
+    emit('action', { action: props.config.aiStartChatAction, payload: {} });
+  }
   if (!autoStartEnabled.value) return;
   if (!props.config?.startChatAction) return;
   if (activeRoomId.value) return;
@@ -176,25 +234,44 @@ onMounted(() => {
   startChat();
 });
 
+onBeforeUnmount(() => {
+  if (processingDotsTimer) {
+    clearInterval(processingDotsTimer);
+    processingDotsTimer = null;
+  }
+});
+
 const send = async () => {
   const rid = activeRoomId.value;
   const body = draft.value.trim();
   if (!body) return;
-  if (!rid && !isWaitingForAdmin.value && chatStatus.value !== 'starting' && chatStatus.value !== 'connecting') return;
+  if (smartAiMode.value && aiDisclaimerVisible.value) return;
+  if (!smartAiMode.value && !rid && !isWaitingForAdmin.value && chatStatus.value !== 'starting' && chatStatus.value !== 'connecting') return;
   draft.value = '';
+  if (smartAiMode.value && props.config?.aiSendMessageAction) {
+    emit('action', {
+      action: props.config.aiSendMessageAction,
+      payload: { roomId: rid || 'smart-ai', body, clientMessageId: crypto.randomUUID() }
+    });
+    return;
+  }
   emit('action', {
     action: props.config?.sendMessageAction,
     payload: { roomId: rid, body, clientMessageId: crypto.randomUUID() }
   });
 };
 
-const canSendNow = computed(
-  () =>
+const canSendNow = computed(() => {
+  if (smartAiMode.value) {
+    return !aiDisclaimerVisible.value && !aiProcessing.value;
+  }
+  return (
     Boolean(activeRoomId.value) ||
     isWaitingForAdmin.value ||
     chatStatus.value === 'starting' ||
     chatStatus.value === 'connecting'
-);
+  );
+});
 
 const messageKey = (m: any): string =>
   String(m?.messageId ?? m?.clientMessageId ?? `${m?.senderId ?? ''}-${m?.createdTimestamp ?? ''}`);
@@ -241,6 +318,54 @@ const sendInlineEdit = (m: any) => {
         ref="messagesScrollEl"
         class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain bg-slate-50/50 p-3 sm:p-4 [-webkit-overflow-scrolling:touch]"
       >
+        <div v-if="smartAiEnabled" class="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-cyan-50 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">AI Symptom Triage Assistant</div>
+              <div class="text-[11px] text-slate-700">General health guidance only (no diagnosis)</div>
+            </div>
+            <div class="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                class="rounded-full px-3 py-1 text-xs font-semibold"
+                :class="smartAiMode ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:bg-slate-100'"
+                @click="setChatMode('smart_ai')"
+              >
+                Smart AI
+              </button>
+              <button
+                type="button"
+                class="rounded-full px-3 py-1 text-xs font-semibold"
+                :class="!smartAiMode ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'"
+                @click="setChatMode('human')"
+              >
+                Human Support
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="smartAiMode && aiDisclaimerVisible" class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+          <div class="text-xs font-semibold text-amber-900">Safety notice</div>
+          <p class="mt-1 text-xs leading-relaxed text-amber-800">
+            I am not a doctor and this is not medical advice. For emergencies, contact your nearest emergency service
+            immediately.
+          </p>
+          <button
+            type="button"
+            class="mt-2 rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+            @click="emit('action', { action: config?.aiDismissDisclaimerAction, payload: {} })"
+          >
+            I understand
+          </button>
+        </div>
+        <div
+          v-if="smartAiMode && aiProcessing"
+          class="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-800"
+        >
+          AI Symptom Triage Assistant is processing your request...
+        </div>
+
         <div v-if="isAdmin && supportRequests.length > 0" class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
           <div class="text-sm font-semibold text-amber-900">Incoming chat request</div>
           <div class="mt-1 text-xs text-amber-800">An admin can accept to start a 1:1 chat.</div>
@@ -281,7 +406,7 @@ const sendInlineEdit = (m: any) => {
 
         <div v-if="!activeRoomId" class="flex flex-col gap-2">
           <button
-            v-if="!isAdmin"
+            v-if="!isAdmin && !smartAiMode"
             class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
             type="button"
             :disabled="chatStatus === 'connecting' || chatStatus === 'starting' || isWaitingForAdmin"
@@ -351,31 +476,28 @@ const sendInlineEdit = (m: any) => {
                   </div>
                   <div class="whitespace-pre-wrap break-words leading-relaxed">{{ m?.body }}</div>
                   <div
-                    v-if="isMine(m) && activeInlineEditKey === messageKey(m)"
-                    class="mt-2 rounded-xl border border-emerald-200 bg-white p-3 text-slate-900 shadow-sm"
+                    v-if="!smartAiMode && isMine(m) && activeInlineEditKey === messageKey(m)"
+                    class="mt-2 rounded-lg border border-white/40 bg-white/10 p-2 text-white"
                   >
-                    <div class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
-                      Edit message
-                    </div>
                     <input
                       v-model="inlineEditText"
                       type="text"
-                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
-                      placeholder="Edit message"
+                      class="w-full rounded-md border border-white/70 bg-white px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-emerald-300"
+                      placeholder="Message"
                       @keydown.enter.prevent="sendInlineEdit(m)"
                     />
                     <div class="mt-2 flex items-center gap-2">
                       <button
                         type="button"
-                        class="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                        class="rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-white disabled:opacity-50"
                         :disabled="!canSendNow || !inlineEditText.trim()"
                         @click="sendInlineEdit(m)"
                       >
-                        Send now
+                        Save
                       </button>
                       <button
                         type="button"
-                        class="rounded-full border border-slate-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        class="rounded-full border border-white/80 bg-transparent px-3 py-1 text-xs font-semibold text-white hover:bg-white/10"
                         @click="cancelInlineEdit"
                       >
                         Cancel
@@ -383,7 +505,7 @@ const sendInlineEdit = (m: any) => {
                     </div>
                   </div>
                   <div
-                    v-if="isMine(m) && m?.status !== 'pending' && activeInlineEditKey !== messageKey(m)"
+                    v-if="!smartAiMode && isMine(m) && m?.status !== 'pending' && activeInlineEditKey !== messageKey(m)"
                     class="mt-1 flex items-center gap-2"
                   >
                     <button
@@ -398,17 +520,53 @@ const sendInlineEdit = (m: any) => {
               </div>
             </div>
           </div>
+
+          <div
+            v-if="smartAiMode && aiProcessing"
+            class="flex min-w-0 justify-start"
+            aria-live="polite"
+            aria-label="AI Symptom Triage Assistant is typing"
+          >
+            <div class="max-w-[85%] rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-sm">
+              <div class="mb-1 text-[11px] font-semibold text-slate-500">AI Symptom Triage Assistant</div>
+              <div class="text-sm font-semibold tracking-[0.15em] text-black">{{ processingDots }}</div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="shrink-0 border-t border-slate-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:pb-3">
+        <div
+          v-if="smartAiMode && aiProcessing"
+          class="mb-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+          aria-live="polite"
+          aria-label="AI Symptom Triage Assistant is processing"
+        >
+          <span class="text-xs font-medium text-slate-800">AI Symptom Triage Assistant is thinking</span>
+          <span class="ml-1 min-w-[1.75rem] text-sm font-semibold tracking-[0.15em] text-black">{{ processingDots }}</span>
+        </div>
+        <div v-if="smartAiMode" class="mb-2 rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2">
+          <div class="text-[11px] font-semibold text-indigo-800">AI Symptom Triage Assistant disclaimer</div>
+          <div class="mt-0.5 text-[11px] leading-relaxed text-indigo-700">
+            I am not a doctor and this is not medical advice.
+            <a :href="termsUrl" target="_blank" rel="noopener noreferrer" class="ml-1 font-semibold underline">Terms of Use</a>
+          </div>
+        </div>
         <div class="flex items-center gap-2">
           <input
             v-model="draft"
             class="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
             type="text"
             :disabled="!canSendNow"
-            placeholder="Type a message…"
+            :placeholder="
+              smartAiMode
+                ? aiDisclaimerVisible
+                  ? 'Please click I understand to continue...'
+                  : aiProcessing
+                    ? 'Processing your request...'
+                  : 'Ask AI Symptom Triage Assistant about your symptoms…'
+                : 'Type a message…'
+            "
             @keydown.enter.prevent="send"
           />
           <button

@@ -1,0 +1,89 @@
+version: 1
+source_domain: hospital
+target_domain_placeholder: "<domain>"
+
+frontend:
+  shared_keep:
+    - path: frontend-hospital/src/core
+      reason: "Declarative runtime engine and registries"
+    - path: frontend-hospital/src/components/renderer
+      reason: "Dynamic rendering pipeline"
+    - path: frontend-hospital/src/store
+      reason: "Shared app/popup/loading/toast state primitives"
+  replace:
+    - path: frontend-hospital/src/configs/hospital/pages.ts
+      kind: pages
+      replace_with: "frontend-<domain>/src/configs/<domain>/pages.ts"
+    - path: frontend-hospital/src/services/domain/hospital/index.ts
+      kind: workflows
+      replace_with: "frontend-<domain>/src/services/domain/<domain>/index.ts"
+    - path: frontend-hospital/src/modules/HospitalModule.ts
+      kind: module_registration
+      replace_with: "frontend-<domain>/src/modules/<Domain>Module.ts"
+    - path: frontend-hospital/src/core/bootstrap/AppBootstrap.ts
+      kind: bootstrap_binding
+      replace_note: "Swap module registration import only; keep component registry."
+
+backend:
+  shared_keep:
+    - path: backend-hospital/src/main/java/com/flexshell/controller/dto/StandardApiResponse.java
+      reason: "Cross-domain API response envelope"
+    - path: backend-hospital/src/main/java/com/flexshell/config/SecurityConfig.java
+      reason: "Auth/security baseline and route protection model"
+    - path: backend-hospital/src/main/java/com/flexshell/auth
+      reason: "JWT/user contracts reused across domains"
+    - path: backend-hospital/src/main/java/com/flexshell/logging
+      reason: "Operational logging contract"
+    - path: backend-hospital/src/main/java/com/flexshell/uimetadata
+      reason: "Metadata persistence and retrieval"
+  replace:
+    - path: backend-hospital/src/main/java/com/flexshell/controller/AppointmentController.java
+      kind: workflow_controller
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/controller/<Domain>Controller.java"
+    - path: backend-hospital/src/main/java/com/flexshell/controller/DoctorDirectoryController.java
+      kind: workflow_controller
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/controller/<Domain>Controller.java"
+    - path: backend-hospital/src/main/java/com/flexshell/controller/StructuredPrescriptionController.java
+      kind: workflow_controller
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/controller/<Domain>Controller.java"
+    - path: backend-hospital/src/main/java/com/flexshell/service/AppointmentService.java
+      kind: workflow_service
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/service/<Domain>Service.java"
+    - path: backend-hospital/src/main/java/com/flexshell/service/DoctorScheduleService.java
+      kind: workflow_service
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/service/<Domain>Service.java"
+    - path: backend-hospital/src/main/java/com/flexshell/service/MedicalDepartmentService.java
+      kind: workflow_service
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/service/<Domain>Service.java"
+    - path: backend-hospital/src/main/java/com/flexshell/appointment/AppointmentEntity.java
+      kind: entity
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/<domainpackage>/<Domain>Entity.java"
+    - path: backend-hospital/src/main/java/com/flexshell/doctorschedule/DoctorScheduleEntity.java
+      kind: entity
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/<domainpackage>/<Domain>Entity.java"
+    - path: backend-hospital/src/main/java/com/flexshell/medicaldepartment/MedicalDepartmentEntity.java
+      kind: entity
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/<domainpackage>/<Domain>Entity.java"
+    - path: backend-hospital/src/main/java/com/flexshell/prescription/StructuredPrescriptionEntity.java
+      kind: entity
+      replace_with: "backend-<domain>/src/main/java/com/flexshell/<domainpackage>/<Domain>Entity.java"
+
+workflow_contracts:
+  - name: read_list
+    sequence:
+      - controller endpoint accepts query/filter
+      - service executes query rules
+      - repository returns entities
+      - dto mapper returns response data
+  - name: write_mutation
+    sequence:
+      - controller validates body/params
+      - service applies business rules
+      - entity persists through repository
+      - standard success/error envelope returned
+  - name: role_protected_action
+    sequence:
+      - security matcher enforces authenticated role
+      - controller resolves principal context
+      - service authorizes actor on domain resource
+      - audit/log event emitted when required
