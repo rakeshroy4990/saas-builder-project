@@ -3574,7 +3574,7 @@ export const hospitalPages: PageConfig[] = [
                   sendMessageAction: { actionId: 'chat-send-message' },
                   supportUserId: 'support',
                   autoStart: false,
-                  termsUrl: '/hospital/terms'
+                  termsUrl: '/terms'
                 }
               }
             ]
@@ -3698,7 +3698,7 @@ export const hospitalPages: PageConfig[] = [
                   supportUserId: 'support',
                   autoStart: false,
                   embedded: true,
-                  termsUrl: '/hospital/terms',
+                  termsUrl: '/terms',
                   styles: { utilityClasses: 'w-full max-w-full min-w-0 h-full min-h-0' }
                 }
               }

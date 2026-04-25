@@ -223,8 +223,9 @@ apiClient.interceptors.response.use(
       }
       popupStore.openError(new Error('Server error. Please try again later.'));
     } else {
-      const message = error.response?.data?.message ?? error.message;
-      toastStore.show(message, 'error');
+      const data = error.response?.data as { Message?: string; message?: string } | undefined;
+      const message = data?.Message ?? data?.message ?? error.message;
+      toastStore.show(String(message), 'error');
     }
 
     return Promise.reject(error);

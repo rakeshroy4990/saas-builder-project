@@ -4,7 +4,7 @@
 
 **`pages.ts`** — large declarative registry of hospital routes under package `hospital` (home, appointments, admin flows, chat, etc.). Defines:
 
-- Page ids and metadata used in URLs: `/page/hospital/<pageId>`
+- Page ids and metadata used in URLs: `/<pageId>` (for example `/home`, `/dashboard`)
 - Layers, actions, and bindings consumed by `DynamicPage` + `useActionEngine`
 - Copy and static content sections (e.g. home hero) where inlined
 

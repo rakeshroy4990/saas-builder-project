@@ -6,10 +6,10 @@ Vue Router setup: **single dynamic page** pattern for declarative UI.
 
 ## Routes (`index.ts`)
 
-- `/` → redirect to `/page/<defaultPackage>/<defaultPageId>` (env: `VITE_DEFAULT_PACKAGE_NAME`, `VITE_DEFAULT_PAGE_ID`)
-- `/page/hospital` → `/page/hospital/home`
-- `/page/hospital/book-appointment` → `/page/hospital/home` (legacy cleanup)
-- `/page/:packageName/:pageId` → **`DynamicPage`**
+- `/` → redirect to `/<defaultPageId>` (env: `VITE_DEFAULT_PAGE_ID`)
+- `/:pageId` → **`DynamicPage`** (canonical hospital route, e.g. `/home`, `/dashboard`, `/terms`)
+- `/:packageName/:pageId` → `/:pageId` (legacy redirect; removes package segment from URL)
+- `/page/:packageName/:pageId` → `/:pageId` (legacy redirect; removes `/page` and package)
 - Catch-all → `NotFound`
 
 ## HTTP integration

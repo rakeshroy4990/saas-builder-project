@@ -13,9 +13,13 @@ def compute_file_hash(filepath: str) -> str:
     return hasher.hexdigest()
 
 
+def list_pdfs(pdf_dir: str) -> list[str]:
+    return glob(f"{pdf_dir}/**/*.pdf", recursive=True)
+
+
 def get_unprocessed_pdfs(pdf_dir: str) -> list[str]:
     db = get_db()
-    all_pdfs = glob(f"{pdf_dir}/**/*.pdf", recursive=True)
+    all_pdfs = list_pdfs(pdf_dir)
     processed_hashes = {
         row["_id"] for row in db.pdf_registry.find({"status": "processed"}, {"_id": 1})
     }
@@ -32,3 +36,10 @@ def mark_status(file_hash: str, status: str, **kwargs) -> None:
     if status == "processed":
         payload["ingested_at"] = datetime.now(timezone.utc)
     db.pdf_registry.update_one({"_id": file_hash}, {"$set": payload}, upsert=True)
+
+
+def ensure_registry_indexes() -> None:
+    db = get_db()
+    # Ensure collection exists and status lookups are efficient.
+    db.pdf_registry.create_index("status", name="pdf_registry_status_idx")
+    db.pdf_registry.create_index("ingested_at", name="pdf_registry_ingested_at_idx")

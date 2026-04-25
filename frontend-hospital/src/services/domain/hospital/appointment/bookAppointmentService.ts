@@ -57,7 +57,7 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
       const editingId = pickString(form, ['editingAppointmentId']).trim();
       if (!editingId) {
         useToastStore(pinia).show('Open an appointment from the dashboard to edit it.', 'info');
-        await router.replace('/hospital/dashboard');
+        await router.replace('/dashboard');
         return ok();
       }
       await ensureMedicalDepartmentOptionsLoaded();

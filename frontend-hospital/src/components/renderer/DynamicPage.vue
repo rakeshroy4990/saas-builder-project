@@ -10,8 +10,10 @@ import { pageRegistryRevision } from '../../core/registry/pageRegistryRevision';
 
 const route = useRoute();
 const router = useRouter();
+const defaultPackageName =
+  import.meta.env.VITE_DEFAULT_PACKAGE_NAME ?? import.meta.env.VITE_DEFAULT_NAMESPACE ?? 'hospital';
 
-const packageName = computed(() => String(route.params.packageName ?? ''));
+const packageName = computed(() => String(route.params.packageName ?? defaultPackageName));
 const pageId = computed(() => String(route.params.pageId ?? ''));
 const pageConfig = computed(() => {
   void pageRegistryRevision.value;
