@@ -46,16 +46,17 @@ export function registerStyleTemplates(): void {
       'sm:inset-x-auto sm:bottom-20 sm:right-6 sm:left-auto sm:h-[min(640px,85dvh)] sm:w-[min(92vw,520px)] sm:max-h-[85dvh] sm:rounded-[20px]'
   });
   StyleTemplateRegistry.register('system.popup.errorTitle', {
-    utilityClasses: 'mb-2 text-lg font-semibold text-red-600'
+    utilityClasses: 'mb-2 text-lg font-semibold text-slate-900'
   });
   StyleTemplateRegistry.register('system.popup.errorBody', {
-    utilityClasses: 'mb-4 text-gray-700'
+    utilityClasses: 'mb-4 text-sm leading-relaxed text-slate-600'
   });
   StyleTemplateRegistry.register('system.popup.missingPage', {
     utilityClasses: 'rounded-lg bg-amber-50 border border-amber-200 p-3 text-amber-800 text-sm'
   });
   StyleTemplateRegistry.register('system.popup.closeButton', {
-    utilityClasses: 'rounded bg-red-600 px-4 py-2 text-white'
+    utilityClasses:
+      'inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200'
   });
 
   StyleTemplateRegistry.register('system.toast.shell', {

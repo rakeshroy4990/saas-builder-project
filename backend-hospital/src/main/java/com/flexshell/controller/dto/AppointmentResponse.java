@@ -38,6 +38,14 @@ public record AppointmentResponse(
         @JsonProperty("CreatedBy")
         String createdBy,
         @JsonProperty("UpdatedBy")
-        String updatedBy
+        String updatedBy,
+        @JsonProperty("AppointmentEmailNotifyStatus")
+        String appointmentEmailNotifyStatus,
+        @JsonProperty("AppointmentEmailNotifyFailed")
+        Boolean appointmentEmailNotifyFailed,
+        @JsonProperty("AppointmentEmailNotifyDetail")
+        String appointmentEmailNotifyDetail,
+        @JsonProperty("AppointmentEmailNotifyAt")
+        String appointmentEmailNotifyAt
 ) {
 }

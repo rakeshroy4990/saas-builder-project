@@ -21,6 +21,7 @@ Vue 3 + Vite + TypeScript SPA for the **hospital** vertical. The UI is largely *
 - `src/main.js` — starts log sync, `bootstrap()`, auth hydrate, router HTTP binding, optional UI metadata hydrate from server, then mounts the app
 - `src/core/bootstrap/AppBootstrap.ts` — theme, `ComponentRegistry` + `registerHospitalModule()`
 - `src/modules/HospitalModule.ts` — registers `hospitalPages` + `hospitalServices` into `PageRegistry` / `ServiceRegistry`
+- Smart AI chat mode is integrated into existing chat page/popup through `pages.ts` + `chatServices.ts` and backend `/api/hospital/ai/chat`.
 
 ## Routing
 
@@ -50,4 +51,4 @@ Vue 3 + Vite + TypeScript SPA for the **hospital** vertical. The UI is largely *
 
 ---
 
-*Last updated: 2026-04-18 — initial context map.*
+*Last updated: 2026-04-22 — Smart AI chat integration notes.*

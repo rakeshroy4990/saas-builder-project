@@ -15,6 +15,7 @@ REST adapters for the hospital API. DTOs in `controller/dto` wrap requests/respo
 | `/api/setup` | `InitialAdminController` |
 | `/api/logs` | `LogController` |
 | `/api/test` | `TestController` |
+| `/api/hospital/ai` | `AiChatController` |
 
 Auth and UI metadata HTTP endpoints are primarily wired through **shared libraries** (`backend-auth-lib`, `backend-uimetadata-lib`) — see `auth` and `uimetadata` docs; routing is secured in `SecurityConfig`.
 
@@ -24,4 +25,4 @@ Keep paths aligned with **frontend** `URLRegistry` and integration tests under `
 
 ---
 
-*Last updated: 2026-04-18*
+*Last updated: 2026-04-22*

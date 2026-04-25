@@ -6,6 +6,7 @@ import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { stompClient } from '../../../realtime/stompClient';
+import { logClient } from '../../../logging/clientLogger';
 import { ok } from '../shared/response';
 import {
   clearChatSubscription,
@@ -18,8 +19,32 @@ import {
 } from '../shared/chatState';
 import { createChatQueueMessageHandler } from '../shared/chatQueueHandler';
 import { flushQueuedSupportMessages } from '../shared/flushQueuedSupportMessages';
+import {
+  AI_EMERGENCY_REPLY,
+  normalizedAiReply,
+  requiresEscalation
+} from './aiSafety';
 
 type HospitalAppStore = ReturnType<typeof useAppStore>;
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
+
+function getChatStore(appStore: HospitalAppStore): Record<string, unknown> {
+  return (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
+}
+
+function buildAiHistory(messagesByRoomId: Record<string, unknown>, roomId: string): ChatMessage[] {
+  const entries = Array.isArray(messagesByRoomId[roomId]) ? (messagesByRoomId[roomId] as unknown[]) : [];
+  return entries
+    .map((item) => {
+      const row = (item ?? {}) as Record<string, unknown>;
+      const body = String(row.body ?? '').trim();
+      if (!body) return null;
+      const mine = String(row.senderId ?? '').trim() === 'me';
+      return { role: mine ? 'user' : 'assistant', content: body } as ChatMessage;
+    })
+    .filter((item): item is ChatMessage => item !== null)
+    .slice(-12);
+}
 
 function roleIsAdmin(appStore: HospitalAppStore): boolean {
   const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
@@ -286,6 +311,79 @@ export const chatHospitalServices: ServiceDefinition[] = [
   },
   {
     packageName: 'hospital',
+    serviceId: 'chat-ai-show-disclaimer-once',
+    execute: async () => {
+      const appStore = useAppStore(pinia);
+      const chat = getChatStore(appStore);
+      if (chat.aiDisclaimerSeen) return ok();
+      appStore.setData('hospital', 'Chat', {
+        ...chat,
+        aiDisclaimerVisible: true
+      });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'chat-ai-dismiss-disclaimer',
+    execute: async () => {
+      const appStore = useAppStore(pinia);
+      const chat = getChatStore(appStore);
+      appStore.setData('hospital', 'Chat', {
+        ...chat,
+        aiDisclaimerVisible: false,
+        aiDisclaimerSeen: true
+      });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'chat-set-mode',
+    execute: async (request) => {
+      const mode = String(request.data?.mode ?? 'human').trim().toLowerCase() === 'smart_ai' ? 'smart_ai' : 'human';
+      const appStore = useAppStore(pinia);
+      const chat = getChatStore(appStore);
+      const currentActiveRoomId = String(chat.activeRoomId ?? '').trim();
+      const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
+      const preservedHumanRoomId =
+        currentActiveRoomId && currentActiveRoomId !== 'smart-ai'
+          ? currentActiveRoomId
+          : String(chat.humanActiveRoomId ?? '').trim();
+      appStore.setData('hospital', 'Chat', {
+        ...chat,
+        mode,
+        humanActiveRoomId: preservedHumanRoomId,
+        activeRoomId: mode === 'smart_ai' ? 'smart-ai' : preservedHumanRoomId,
+        messagesByRoomId:
+          mode === 'smart_ai'
+            ? { ...messagesByRoomId, 'smart-ai': messagesByRoomId['smart-ai'] ?? [] }
+            : messagesByRoomId
+      });
+      void logClient('INFO', 'chat mode switched', { mode });
+      return ok({ mode });
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'chat-ai-start',
+    execute: async () => {
+      const appStore = useAppStore(pinia);
+      const chat = getChatStore(appStore);
+      const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
+      appStore.setData('hospital', 'Chat', {
+        ...chat,
+        mode: 'smart_ai',
+        status: 'connected',
+        activeRoomId: 'smart-ai',
+        messagesByRoomId: { ...messagesByRoomId, 'smart-ai': messagesByRoomId['smart-ai'] ?? [] }
+      });
+      void logClient('INFO', 'smart ai chat started', { roomId: 'smart-ai' });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
     serviceId: 'chat-start',
     execute: async () => {
       const appStore = useAppStore(pinia);
@@ -404,6 +502,94 @@ export const chatHospitalServices: ServiceDefinition[] = [
         stompClient.publish('/app/chat.send', { roomId, body, clientMessageId });
       }
       return ok({ clientMessageId });
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'chat-ai-send-message',
+    execute: async (request) => {
+      const body = String(request.data?.body ?? '').trim();
+      const clientMessageId = String(request.data?.clientMessageId ?? crypto.randomUUID()).trim();
+      if (!body) return { responseCode: 'CHAT_AI_SEND_FAILED', message: 'Message is empty' };
+      void logClient('INFO', 'smart ai send message requested', { messageLength: body.length });
+
+      const appStore = useAppStore(pinia);
+      const toastStore = useToastStore(pinia);
+      const chat = getChatStore(appStore);
+      const roomId = 'smart-ai';
+      const now = new Date().toISOString();
+      const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
+      const existing = Array.isArray(messagesByRoomId[roomId]) ? (messagesByRoomId[roomId] as unknown[]) : [];
+      const withUserMessage = [
+        ...existing,
+        { roomId, senderId: 'me', body, clientMessageId, createdTimestamp: now, status: 'sent' }
+      ];
+
+      appStore.setData('hospital', 'Chat', {
+        ...chat,
+        mode: 'smart_ai',
+        status: 'connected',
+        activeRoomId: roomId,
+        aiProcessing: true,
+        messagesByRoomId: { ...messagesByRoomId, [roomId]: withUserMessage }
+      });
+
+      if (requiresEscalation(body)) {
+        const escalated = [
+          ...withUserMessage,
+          {
+            roomId,
+            senderId: 'ai',
+            body: AI_EMERGENCY_REPLY,
+            createdTimestamp: new Date().toISOString(),
+            status: 'sent'
+          }
+        ];
+        const latestChat = getChatStore(appStore);
+        const latestByRoom = (latestChat.messagesByRoomId ?? {}) as Record<string, unknown>;
+        appStore.setData('hospital', 'Chat', {
+          ...latestChat,
+          aiProcessing: false,
+          messagesByRoomId: { ...latestByRoom, [roomId]: escalated }
+        });
+        void logClient('WARN', 'smart ai escalation triggered', { messageLength: body.length });
+        return ok({ escalated: true });
+      }
+
+      try {
+        const history = buildAiHistory({ ...messagesByRoomId, [roomId]: withUserMessage }, roomId);
+        const response = await apiClient.post(URLRegistry.paths.hospitalAiChat, {
+          message: body,
+          history
+        });
+        const data = (response.data?.Data ?? response.data?.data ?? {}) as Record<string, unknown>;
+        const reply = normalizedAiReply(data.reply ?? data.message);
+        const nextMessages = [
+          ...withUserMessage,
+          {
+            roomId,
+            senderId: 'ai',
+            body: reply,
+            createdTimestamp: new Date().toISOString(),
+            status: 'sent'
+          }
+        ];
+        const latestChat = getChatStore(appStore);
+        const latestByRoom = (latestChat.messagesByRoomId ?? {}) as Record<string, unknown>;
+        appStore.setData('hospital', 'Chat', {
+          ...latestChat,
+          aiProcessing: false,
+          messagesByRoomId: { ...latestByRoom, [roomId]: nextMessages }
+        });
+        void logClient('INFO', 'smart ai response received', { replyLength: reply.length });
+        return ok();
+      } catch {
+        const latestChat = getChatStore(appStore);
+        appStore.setData('hospital', 'Chat', { ...latestChat, aiProcessing: false });
+        void logClient('ERROR', 'smart ai request failed', {});
+        toastStore.show('Smart AI is temporarily unavailable. Please try again shortly.', 'error');
+        return { responseCode: 'CHAT_AI_SEND_FAILED', message: 'AI service unavailable' };
+      }
     }
   },
   {

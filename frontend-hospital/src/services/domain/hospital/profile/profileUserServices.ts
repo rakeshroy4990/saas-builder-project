@@ -129,7 +129,7 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       const uid = String(session.userId ?? '').trim();
       if (!uid) {
         useToastStore(pinia).show('Please log in to view your profile.', 'info');
-        await router.replace('/page/hospital/home');
+        await router.replace('/hospital/home');
         return ok();
       }
       appStore.setData('hospital', 'ProfilePageUiState', { activeSection: 'profile' });
@@ -256,7 +256,7 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
       clearPersistedAuthSessionProfile();
       toast.show('Your account has been deactivated.', 'info');
-      window.location.assign('/page/hospital/home');
+      window.location.assign('/hospital/home');
       return ok();
     }
   }

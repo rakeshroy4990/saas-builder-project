@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UI_APP="${UI_APP:-ecommerce}"
 BACKEND_APP="${BACKEND_APP:-$UI_APP}"
+BACKEND_KIND="spring"
+START_FRONTEND=1
 
 case "$UI_APP" in
   ecommerce)
@@ -19,8 +21,13 @@ case "$UI_APP" in
     FRONTEND_DIR="$ROOT_DIR/frontend-social"
     DEFAULT_UI_PORT=5175
     ;;
+  none)
+    FRONTEND_DIR=""
+    DEFAULT_UI_PORT=0
+    START_FRONTEND=0
+    ;;
   *)
-    echo "Unsupported UI_APP: $UI_APP. Use ecommerce|hospital|social" >&2
+    echo "Unsupported UI_APP: $UI_APP. Use ecommerce|hospital|social|none" >&2
     exit 1
     ;;
 esac
@@ -35,21 +42,68 @@ case "$BACKEND_APP" in
   social)
     BACKEND_DIR="$ROOT_DIR/backend-social"
     ;;
+  pdf-rag)
+    BACKEND_DIR="$ROOT_DIR/pdf-rag-pipeline"
+    BACKEND_KIND="fastapi"
+    ;;
   *)
-    echo "Unsupported BACKEND_APP: $BACKEND_APP. Use ecommerce|hospital|social" >&2
+    echo "Unsupported BACKEND_APP: $BACKEND_APP. Use ecommerce|hospital|social|pdf-rag" >&2
     exit 1
     ;;
 esac
 
 UI_PORT="${UI_PORT:-$DEFAULT_UI_PORT}"
-BACKEND_PORT="${BACKEND_PORT:-8080}"
-BACKEND_DEBUG="${BACKEND_DEBUG:-0}"
+if [[ "$BACKEND_KIND" == "fastapi" ]]; then
+  BACKEND_PORT="${BACKEND_PORT:-8090}"
+else
+  BACKEND_PORT="${BACKEND_PORT:-8080}"
+fi
+if [[ "${BACKEND_DEBUG:-}" == "" ]]; then
+  if [[ "$BACKEND_APP" == "hospital" ]]; then
+    BACKEND_DEBUG=1
+  else
+    BACKEND_DEBUG=0
+  fi
+fi
 BACKEND_DEBUG_PORT="${BACKEND_DEBUG_PORT:-5005}"
 BACKEND_DEBUG_SUSPEND="${BACKEND_DEBUG_SUSPEND:-n}"
 # Set RUN_TESTS=1 to run Gradle tests during the server build (slower).
 RUN_TESTS="${RUN_TESTS:-0}"
 # Coturn (TURN) for WebRTC: START_COTURN unset = on for UI_APP=hospital only; 1 = always; 0 = skip.
 START_COTURN="${START_COTURN:-}"
+FASTAPI_VENV_DIR="${FASTAPI_VENV_DIR:-$ROOT_DIR/pdf-rag-pipeline/.venv}"
+EMAIL_NOTIFY_DIR="${EMAIL_NOTIFY_DIR:-$ROOT_DIR/packages/email-notify}"
+EMAIL_NOTIFY_INSTALL="${EMAIL_NOTIFY_INSTALL:-1}"
+if [[ "${START_EMAIL_NOTIFY:-}" == "" ]]; then
+  if [[ "$BACKEND_APP" == "hospital" ]]; then
+    START_EMAIL_NOTIFY=1
+  else
+    START_EMAIL_NOTIFY=0
+  fi
+fi
+HOSPITAL_APPOINTMENT_EMAIL_PORT="${HOSPITAL_APPOINTMENT_EMAIL_PORT:-8787}"
+if [[ "${START_HOSPITAL_APPOINTMENT_EMAIL_SERVER:-}" == "" ]]; then
+  if [[ "$BACKEND_APP" == "hospital" && "$START_EMAIL_NOTIFY" == "1" ]]; then
+    START_HOSPITAL_APPOINTMENT_EMAIL_SERVER=1
+  else
+    START_HOSPITAL_APPOINTMENT_EMAIL_SERVER=0
+  fi
+fi
+
+select_fastapi_python() {
+  local candidates=(python3.13 python3.12 python3.11 python3.10 python3)
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if ! command -v "$candidate" >/dev/null 2>&1; then
+      continue
+    fi
+    if "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
 
 setup_gradle_java() {
   # Gradle/Kotlin DSL in this project can fail on very new JDKs (e.g. 26).
@@ -117,7 +171,9 @@ kill_port() {
   pids="$(lsof -ti tcp:"$port" || true)"
   if [[ -n "$pids" ]]; then
     echo "Killing process(es) on port $port: $pids"
-    kill -9 $pids
+    if ! kill -9 $pids 2>/dev/null; then
+      echo "Warning: unable to kill one or more processes on port $port. You may need to stop them manually." >&2
+    fi
   else
     echo "Port $port is free."
   fi
@@ -160,6 +216,10 @@ restart_coturn() {
 }
 
 build_frontend() {
+  if [[ "$START_FRONTEND" != "1" ]]; then
+    echo "UI build skipped (UI_APP=$UI_APP)."
+    return
+  fi
   echo "Building UI (npm install + vite build)..."
   (
     cd "$FRONTEND_DIR"
@@ -172,6 +232,27 @@ build_backend() {
   echo "Building server..."
   (
     cd "$BACKEND_DIR"
+    if [[ "$BACKEND_KIND" == "fastapi" ]]; then
+      local python_bin=""
+      python_bin="$(select_fastapi_python || true)"
+      if [[ -z "$python_bin" ]]; then
+        echo "Python 3.9+ not found; cannot install FastAPI dependencies." >&2
+        exit 1
+      fi
+      echo "Using $python_bin for FastAPI."
+      if [[ -x "$FASTAPI_VENV_DIR/bin/python" ]]; then
+        if ! "$FASTAPI_VENV_DIR/bin/python" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
+          echo "Recreating FastAPI virtualenv: existing env is below Python 3.9."
+          rm -rf "$FASTAPI_VENV_DIR"
+        fi
+      fi
+      if [[ ! -d "$FASTAPI_VENV_DIR" ]]; then
+        echo "Creating FastAPI virtualenv at $FASTAPI_VENV_DIR..."
+        "$python_bin" -m venv "$FASTAPI_VENV_DIR"
+      fi
+      "$FASTAPI_VENV_DIR/bin/python" -m pip install -r requirements.txt
+      return
+    fi
     setup_gradle_java
     local gradle_test_args=()
     if [[ "$RUN_TESTS" != "1" ]]; then
@@ -204,7 +285,29 @@ build_backend() {
   )
 }
 
+build_email_notify() {
+  if [[ "$START_EMAIL_NOTIFY" != "1" ]]; then
+    return
+  fi
+  if [[ ! -f "$EMAIL_NOTIFY_DIR/package.json" ]]; then
+    echo "No email-notify package found at $EMAIL_NOTIFY_DIR; skipping."
+    return
+  fi
+
+  echo "Preparing email-notify package..."
+  (
+    cd "$EMAIL_NOTIFY_DIR"
+    if [[ "$EMAIL_NOTIFY_INSTALL" == "1" ]]; then
+      npm install
+    fi
+    npm run build
+  )
+}
+
 start_frontend() {
+  if [[ "$START_FRONTEND" != "1" ]]; then
+    return
+  fi
   echo "Starting UI on port $UI_PORT..."
   (
     cd "$FRONTEND_DIR"
@@ -217,6 +320,17 @@ start_backend() {
   echo "Starting backend on port $BACKEND_PORT..."
   (
     cd "$BACKEND_DIR"
+    if [[ "$BACKEND_KIND" == "fastapi" ]]; then
+      load_backend_env
+      if [[ -x "$FASTAPI_VENV_DIR/bin/python" ]]; then
+        "$FASTAPI_VENV_DIR/bin/python" -m uvicorn api.main:app --host 0.0.0.0 --reload --port "$BACKEND_PORT"
+      else
+        echo "FastAPI virtualenv missing at $FASTAPI_VENV_DIR/bin/python." >&2
+        echo "Run the script once to install dependencies." >&2
+        exit 1
+      fi
+      return
+    fi
     setup_gradle_java
     load_backend_env
     local debug_jvm_args="-agentlib:jdwp=transport=dt_socket,server=y,suspend=${BACKEND_DEBUG_SUSPEND},address=*:${BACKEND_DEBUG_PORT}"
@@ -282,23 +396,71 @@ start_backend() {
   BACKEND_PID=$!
 }
 
+start_email_notify() {
+  if [[ "$START_EMAIL_NOTIFY" != "1" ]]; then
+    return
+  fi
+  if [[ ! -f "$EMAIL_NOTIFY_DIR/package.json" ]]; then
+    return
+  fi
+
+  echo "Starting email-notify watcher..."
+  (
+    cd "$EMAIL_NOTIFY_DIR"
+    npm run build -- --watch
+  ) &
+  EMAIL_NOTIFY_PID=$!
+}
+
+start_hospital_appointment_email_server() {
+  if [[ "$START_HOSPITAL_APPOINTMENT_EMAIL_SERVER" != "1" ]]; then
+    return
+  fi
+  if [[ ! -f "$EMAIL_NOTIFY_DIR/package.json" ]]; then
+    return
+  fi
+
+  echo "Starting hospital appointment email server on port $HOSPITAL_APPOINTMENT_EMAIL_PORT..."
+  (
+    cd "$EMAIL_NOTIFY_DIR"
+    if [[ -f .env ]]; then
+      set -a
+      # shellcheck disable=SC1090
+      source .env
+      set +a
+    fi
+    export HOSPITAL_APPOINTMENT_EMAIL_PORT="$HOSPITAL_APPOINTMENT_EMAIL_PORT"
+    node dist/src/hospitalAppointmentEmailServer.js
+  ) &
+  HOSPITAL_EMAIL_SERVER_PID=$!
+}
+
 cleanup() {
   echo ""
   echo "Stopping services..."
   if [[ -n "${UI_PID:-}" ]]; then kill "$UI_PID" 2>/dev/null || true; fi
   if [[ -n "${BACKEND_PID:-}" ]]; then kill "$BACKEND_PID" 2>/dev/null || true; fi
+  if [[ -n "${EMAIL_NOTIFY_PID:-}" ]]; then kill "$EMAIL_NOTIFY_PID" 2>/dev/null || true; fi
+  if [[ -n "${HOSPITAL_EMAIL_SERVER_PID:-}" ]]; then kill "$HOSPITAL_EMAIL_SERVER_PID" 2>/dev/null || true; fi
 }
 
 trap cleanup EXIT INT TERM
 
 build_frontend
 build_backend
+build_email_notify
 
 echo "Preparing ports..."
 describe_port_owner "$UI_PORT" "ui"
 describe_port_owner "$BACKEND_PORT" "backend"
+if [[ "$START_HOSPITAL_APPOINTMENT_EMAIL_SERVER" == "1" ]]; then
+  describe_port_owner "$HOSPITAL_APPOINTMENT_EMAIL_PORT" "hospital-appointment-email"
+fi
 kill_port "$UI_PORT"
 kill_port "$BACKEND_PORT"
+if [[ "$START_HOSPITAL_APPOINTMENT_EMAIL_SERVER" == "1" ]]; then
+  kill_port "$HOSPITAL_APPOINTMENT_EMAIL_PORT"
+fi
 
 if should_start_coturn; then
   restart_coturn
@@ -307,13 +469,29 @@ else
 fi
 
 start_frontend
+start_email_notify
+start_hospital_appointment_email_server
 start_backend
 
 echo ""
 echo "UI App   : $UI_APP"
 echo "Backend  : $BACKEND_APP"
-echo "UI       : http://localhost:$UI_PORT"
+if [[ "$START_FRONTEND" == "1" ]]; then
+  echo "UI       : http://localhost:$UI_PORT"
+else
+  echo "UI       : skipped"
+fi
 echo "Server   : http://localhost:$BACKEND_PORT"
+if [[ "$START_EMAIL_NOTIFY" == "1" ]]; then
+  echo "Email    : email-notify build watcher (packages/email-notify)"
+else
+  echo "Email    : skipped"
+fi
+if [[ "$START_HOSPITAL_APPOINTMENT_EMAIL_SERVER" == "1" ]]; then
+  echo "Appt mail: http://localhost:$HOSPITAL_APPOINTMENT_EMAIL_PORT (POST /hospital/appointment-created)"
+else
+  echo "Appt mail: skipped"
+fi
 if [[ "$BACKEND_DEBUG" == "1" ]]; then
   echo "Debug    : JDWP open on localhost:$BACKEND_DEBUG_PORT (suspend=$BACKEND_DEBUG_SUSPEND)"
   echo "IntelliJ : Run -> Attach to Process / Remote JVM Debug"
@@ -324,9 +502,13 @@ if [[ "$RUN_TESTS" != "1" ]]; then
 fi
 echo "Tip      : BACKEND_DEBUG=1 BACKEND_DEBUG_PORT=5005 $0"
 echo "Tip      : UI_APP=hospital $0  (or UI_APP=social $0)"
+echo "Tip      : BACKEND_APP=pdf-rag UI_APP=none $0"
 echo "Tip      : Hospital dev starts coturn via Docker; START_COTURN=0 $0 to skip."
 echo "Tip      : BACKEND_APP=social UI_APP=ecommerce $0"
-echo "Press Ctrl+C to stop both."
+echo "Tip      : START_EMAIL_NOTIFY=0 $0  to skip email-notify prep/watch."
+echo "Tip      : START_HOSPITAL_APPOINTMENT_EMAIL_SERVER=0 $0  to skip appointment email HTTP server."
+echo "Tip      : APP_EMAIL_ENABLED=true for backend to use the internal email server (app.email.*)."
+echo "Press Ctrl+C to stop all services."
 echo ""
 
 wait

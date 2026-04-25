@@ -28,6 +28,7 @@ Spring Boot **3.4** (Java **17**) API for the hospital vertical: REST + WebSocke
 | UI metadata | `uimetadata`, `UiMetadataService` | `/api/uiMetdata` |
 | Logging | `logging`, `LogController` | `/api/logs/*` |
 | Realtime | `realtime.*` (chat, WebRTC WS) | chat/support/WebRTC endpoints (see package docs) |
+| Smart AI chat | `controller.AiChatController`, `service.AiChatService`, `ai.*` | `/api/hospital/ai/chat` |
 | Compliance | `compliance` | reserved / policy hooks |
 
 ## Layered context (package-level)
@@ -52,4 +53,4 @@ Spring Boot **3.4** (Java **17**) API for the hospital vertical: REST + WebSocke
 
 ---
 
-*Last updated: 2026-04-18 — initial context map.*
+*Last updated: 2026-04-22 — includes Smart AI chat endpoint/context.*

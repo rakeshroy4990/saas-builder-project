@@ -2,5 +2,10 @@
   "name": "saas-builder-project",
   "private": true,
   "description": "Monorepo root (optional): install tooling for packages/*",
-  "workspaces": ["packages/*"]
+  "workspaces": [
+    "packages/*"
+  ],
+  "dependencies": {
+    "openai": "^6.34.0"
+  }
 }

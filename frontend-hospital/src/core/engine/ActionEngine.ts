@@ -75,7 +75,7 @@ export class ActionEngine {
   }
 
   private navigate(nav: NavigationConfig): void {
-    this.router.push(`/page/${nav.packageName}/${nav.pageId}`);
+    this.router.push(`/${nav.packageName}/${nav.pageId}`);
   }
 
   private showPopup(req: PopupRequest): void {

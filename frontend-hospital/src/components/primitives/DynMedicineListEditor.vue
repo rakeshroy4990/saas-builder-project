@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { resolveStyle } from '../../core/engine/StyleResolver';
 import type { ActionConfig } from '../../core/types/ActionConfig';
 import type { StyleConfig } from '../../core/types/StyleConfig';
@@ -51,6 +51,7 @@ const routeOptions = ['Oral', 'Topical', 'Inhaled', 'IV', 'IM', 'Sublingual'];
 const commonDoseOptions = ['250 mg', '500 mg', '650 mg', '1 tablet', '5 ml'];
 const quickDurationOptions = ['3', '5', '7'];
 const showInstructionsForRowId = ref('');
+let queryEmitTimer: ReturnType<typeof setTimeout> | null = null;
 
 const fallbackMatches = reactive<MedicineSearchResult[]>([
   { id: 'fallback-para-650', name: 'Paracetamol 650', composition: 'Paracetamol', manufacturer: 'Generic' },
@@ -112,52 +113,71 @@ function parseIncoming(value: string | undefined): MedicineRow[] {
   }
 }
 
+function isRowStarted(row: MedicineRow): boolean {
+  return Boolean(
+    String(row.query ?? '').trim() ||
+      String(row.dose ?? '').trim() ||
+      String(row.frequency ?? '').trim() ||
+      String(row.durationDays ?? '').trim() ||
+      String(row.route ?? '').trim() ||
+      String(row.instructions ?? '').trim()
+  );
+}
+
+function rowErrors(row: MedicineRow): string[] {
+  if (!isRowStarted(row)) return [];
+  const errs: string[] = [];
+  const dose = String(row.dose ?? '').trim();
+  const frequency = String(row.frequency ?? '').trim();
+  const durationDays = String(row.durationDays ?? '').trim();
+  const route = String(row.route ?? '').trim();
+  if (!row.selectedFromSearch) errs.push('Select a medicine from suggestions.');
+  if (!dose) errs.push('Dose is required.');
+  if (!frequency) errs.push('Frequency is required.');
+  if (!durationDays || Number(durationDays) <= 0) errs.push('Duration must be a positive number.');
+  if (!route) errs.push('Route is required.');
+  return errs;
+}
+
+function normalizedRows(list: MedicineRow[]): Array<Record<string, unknown>> {
+  return list
+    .filter((row) => isRowStarted(row))
+    .map((row) => ({
+      name: String(row.name ?? '').trim(),
+      composition: String(row.composition ?? '').trim(),
+      manufacturer: String(row.manufacturer ?? '').trim(),
+      dose: String(row.dose ?? '').trim(),
+      frequency: String(row.frequency ?? '').trim(),
+      durationDays: String(row.durationDays ?? '').trim(),
+      route: String(row.route ?? '').trim(),
+      instructions: String(row.instructions ?? '').trim(),
+      isDiscontinued: row.isDiscontinued ? true : undefined
+    }));
+}
+
+function serializeRows(list: MedicineRow[] = rows.value): string {
+  return JSON.stringify(normalizedRows(list), null, 2);
+}
+
+function emitChange() {
+  emit('action', { action: props.config?.change, payload: { value: serializeRows() } });
+}
+
 watch(
   () => props.config?.value,
   (next) => {
-    rows.value = parseIncoming(next == null ? '' : String(next));
+    const nextRows = parseIncoming(next == null ? '' : String(next));
+    // Parent echoes this value after each input event; skip no-op hydration to preserve caret/typing flow.
+    if (rows.value.length > 0 && JSON.stringify(normalizedRows(rows.value)) === JSON.stringify(normalizedRows(nextRows))) {
+      return;
+    }
+    rows.value = nextRows;
     if (!editingRowId.value || !rows.value.some((row) => row.id === editingRowId.value)) {
       editingRowId.value = rows.value[rows.value.length - 1]?.id ?? '';
     }
   },
   { immediate: true }
 );
-
-function isRowStarted(row: MedicineRow): boolean {
-  return Boolean(row.query || row.dose || row.frequency || row.durationDays || row.route || row.instructions);
-}
-
-function rowErrors(row: MedicineRow): string[] {
-  if (!isRowStarted(row)) return [];
-  const errs: string[] = [];
-  if (!row.selectedFromSearch) errs.push('Select a medicine from suggestions.');
-  if (!row.dose.trim()) errs.push('Dose is required.');
-  if (!row.frequency.trim()) errs.push('Frequency is required.');
-  if (!row.durationDays.trim() || Number(row.durationDays) <= 0) errs.push('Duration must be a positive number.');
-  if (!row.route.trim()) errs.push('Route is required.');
-  return errs;
-}
-
-function serializeRows(): string {
-  const normalized = rows.value
-    .filter((row) => isRowStarted(row))
-    .map((row) => ({
-      name: row.name.trim(),
-      composition: row.composition.trim(),
-      manufacturer: row.manufacturer.trim(),
-      dose: row.dose.trim(),
-      frequency: row.frequency.trim(),
-      durationDays: row.durationDays.trim(),
-      route: row.route.trim(),
-      instructions: row.instructions.trim(),
-      isDiscontinued: row.isDiscontinued ? true : undefined
-    }));
-  return JSON.stringify(normalized, null, 2);
-}
-
-function emitChange() {
-  emit('action', { action: props.config?.change, payload: { value: serializeRows() } });
-}
 
 function focusRow(rowId: string) {
   editingRowId.value = rowId;
@@ -174,6 +194,10 @@ function updateQuery(row: MedicineRow, value: string) {
   row.manufacturer = '';
   row.isDiscontinued = false;
   focusRow(row.id);
+  if (queryEmitTimer) clearTimeout(queryEmitTimer);
+  queryEmitTimer = setTimeout(() => {
+    emitChange();
+  }, 120);
 }
 
 function pickSuggestion(row: MedicineRow, medicine: MedicineSearchResult) {
@@ -278,6 +302,10 @@ function setQuickDuration(row: MedicineRow, value: string): void {
   row.durationDays = value;
   emitChange();
 }
+
+onBeforeUnmount(() => {
+  if (queryEmitTimer) clearTimeout(queryEmitTimer);
+});
 </script>
 
 <template>
@@ -328,7 +356,7 @@ function setQuickDuration(row: MedicineRow, value: string): void {
             class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
             placeholder="Type at least 2 letters (e.g. Para...)"
             @focus="focusRow(row.id)"
-            @input="updateQuery(row, ($event.target as HTMLInputElement).value); emitChange()"
+            @input="updateQuery(row, ($event.target as HTMLInputElement).value)"
           />
           <div v-if="isLoading && activeRowId === row.id" class="mt-1 text-[11px] text-slate-500">Searching...</div>
           <div

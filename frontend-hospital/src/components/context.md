@@ -13,6 +13,7 @@ Vue building blocks for the metadata-driven UI.
 ## Realtime
 
 `DynChat` and `DynVideoCall` are registered from `@realtime` (shared lib), not under this folder. Video UI reads `hospital` / `VideoCall` store: **`remotePartyName`**, **`callId`** (short “Session ref” in the component), **`lastSignalType`**.
+`DynChat` now also supports a Smart AI mode toggle, disclaimer surface, and Terms-of-Use link rendering via config.
 
 ## When you change this
 
@@ -20,4 +21,4 @@ Document new **component tag names** in `core/bootstrap/AppBootstrap.ts` and her
 
 ---
 
-*Last updated: 2026-04-18*
+*Last updated: 2026-04-22*

@@ -45,7 +45,7 @@ const openChat = () => {
     popupStore.open({ packageName: 'hospital', pageId: 'login-popup', title: 'Login' });
     return;
   }
-  popupStore.open({ packageName: 'hospital', pageId: 'chat-popup', title: 'Chat' });
+  popupStore.open({ packageName: 'hospital', pageId: 'chat-popup', title: 'AI Symptom Triage Assistant' });
 };
 
 const onFabClick = () => {
@@ -61,7 +61,7 @@ const onFabClick = () => {
   <button
     id="hospital-chat-fab"
     type="button"
-    class="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-white shadow-xl transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200"
+    class="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-cyan-600 text-white shadow-xl transition hover:from-indigo-700 hover:to-cyan-700 focus:outline-none focus:ring-4 focus:ring-indigo-200"
     :aria-label="fabAriaLabel"
     @click="onFabClick"
   >
@@ -71,6 +71,12 @@ const onFabClick = () => {
       aria-hidden="true"
     >
       {{ badgeText }}
+    </span>
+    <span
+      class="pointer-events-none absolute -left-2 -top-2 rounded-full border border-white/70 bg-white/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-700"
+      aria-hidden="true"
+    >
+      AI
     </span>
     <!-- Closed: message bubble icon -->
     <svg

@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pymongo[srv]
+pymupdf
+openai
+google-generativeai
+python-dotenv
+PyJWT[crypto]
+pydantic
+pytest
