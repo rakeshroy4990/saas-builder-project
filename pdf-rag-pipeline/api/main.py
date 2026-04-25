@@ -4,7 +4,7 @@ import logging
 
 from api.routes import ingest, query
 from cache.query_cache import ensure_cache_ttl_index
-from config.settings import APP_LOG_LEVEL
+from config.settings import APP_LOG_LEVEL, CORS_ORIGINS
 from db.text_search_index import ensure_text_index
 from ingestion.pdf_tracker import ensure_registry_indexes
 
@@ -12,7 +12,7 @@ app = FastAPI(title="PDF RAG Pipeline API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["Authorization", "Content-Type"],

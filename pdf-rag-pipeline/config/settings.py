@@ -26,3 +26,8 @@ RAG_LOG_FULL_PROMPT = os.getenv("RAG_LOG_FULL_PROMPT", "false").strip().lower() 
 RAG_LOG_PROMPT_PREVIEW_CHARS = int(os.getenv("RAG_LOG_PROMPT_PREVIEW_CHARS", "400"))
 APP_LOG_LEVEL = os.getenv("APP_LOG_LEVEL", "INFO").strip().upper()
 DOMAIN_POINTS_FILE = os.getenv("DOMAIN_POINTS_FILE", "config/domain_points.json").strip()
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
