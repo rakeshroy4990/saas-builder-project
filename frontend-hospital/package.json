@@ -10,8 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "deploy": "npm run build && firebase deploy --only hosting"
+    "test:e2e:ui": "playwright test --ui"
   },
   "keywords": [],
   "author": "",

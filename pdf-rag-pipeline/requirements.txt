@@ -8,6 +8,3 @@ python-dotenv
 PyJWT[crypto]
 pydantic
 pytest
-pytesseract
-Pillow
-pytesseract

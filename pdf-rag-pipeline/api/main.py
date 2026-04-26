@@ -33,9 +33,6 @@ async def startup() -> None:
     ensure_cache_ttl_index()
     ensure_registry_indexes()
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
 
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
 app.include_router(ingest.router, prefix="/api/v1", tags=["Ingest"])
