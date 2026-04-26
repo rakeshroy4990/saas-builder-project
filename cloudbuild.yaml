@@ -1,0 +1,34 @@
+steps:
+  # backend-hospital
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital
+      - -f
+      - backend-hospital/Dockerfile
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital
+
+  # pdf-rag-pipeline
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+      - -f
+      - pdf-rag-pipeline/Dockerfile
+      - .                              # changed from pdf-rag-pipeline to .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+
+images:
+  - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital
+  - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
