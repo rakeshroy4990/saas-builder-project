@@ -1,0 +1,100 @@
+{
+  "version": "1.0",
+  "description": "Reference catalog (not served by the API). Runtime UI overrides are served from MongoDB via /api/uiMetdata when SPRING_DATA_MONGODB_URI is set.",
+  "packages": [
+    {
+      "packageName": "ecommerce",
+      "displayName": "Ecommerce",
+      "pages": [
+        {
+          "pageId": "home",
+          "title": "Urban Cart Home",
+          "initializeActions": [
+            { "actionId": "load-home-content" },
+            { "actionId": "load-products" }
+          ],
+          "container": {
+            "styleTemplate": "ecom.page.shell",
+            "layoutTemplate": "ecom.page.root",
+            "structure": {
+              "type": "composed",
+              "assembly": "assembleStandardHomePage",
+              "regions": [
+                { "id": "header", "layout": "headerLayout" },
+                { "id": "menu", "layout": "menuLayout" },
+                { "id": "main", "layout": "mainOutletLayout", "blocks": ["heroLayout"] },
+                { "id": "footer", "layout": "footerLayout" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "packageName": "hospital",
+      "displayName": "Hospital",
+      "pages": [
+        {
+          "pageId": "book-appointment",
+          "title": "Book Appointment",
+          "initializeActions": [{ "actionId": "load-doctors" }],
+          "container": {
+            "layoutTemplate": "flexshell.page.stack"
+          }
+        },
+        {
+          "pageId": "patient-dashboard",
+          "title": "Patient Dashboard",
+          "container": { "layoutTemplate": "flexshell.page.column" }
+        },
+        {
+          "pageId": "doctor-overview",
+          "title": "Doctor Overview",
+          "container": { "layoutTemplate": "flexshell.page.column" }
+        }
+      ]
+    },
+    {
+      "packageName": "social",
+      "displayName": "Social",
+      "pages": [
+        {
+          "pageId": "feed",
+          "title": "Social Feed",
+          "initializeActions": [{ "actionId": "load-feed" }],
+          "container": {
+            "layoutTemplate": "flexshell.page.stack",
+            "children": [
+              {
+                "type": "list",
+                "mapping": { "packageName": "social", "key": "Feed", "property": "posts" },
+                "itemLayoutTemplate": "social.post.card"
+              }
+            ]
+          }
+        },
+        {
+          "pageId": "profile",
+          "title": "Profile",
+          "container": { "layoutTemplate": "flexshell.page.column" }
+        },
+        {
+          "pageId": "messages",
+          "title": "Messages",
+          "container": { "layoutTemplate": "flexshell.page.column" }
+        }
+      ]
+    }
+  ],
+  "layoutModules": {
+    "ecommerce": [
+      "headerLayout",
+      "menuLayout",
+      "footerLayout",
+      "heroLayout",
+      "mainOutletLayout",
+      "standardShellLayout",
+      "assembleStandardHomePage"
+    ]
+  }
+}
