@@ -1,0 +1,82 @@
+Best way to test pdf-rag-pipeline is in 3 layers: unit tests, API auth checks, then end-to-end ingest/query.
+
+1) Quick unit tests (fastest sanity check)
+From repo root:
+
+cd pdf-rag-pipeline
+source .venv/bin/activate
+pytest -q tests/test_prefilter.py tests/test_safety.py
+These cover:
+
+page pre-filtering (test_prefilter.py)
+safety logic (test_safety.py)
+2) Run the API locally
+cd pdf-rag-pipeline
+cp .env.example .env   # first time only
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn api.main:app --reload --port 8090
+API routes:
+
+POST /api/v1/query (any authenticated user)
+POST /api/v1/ingest (admin role required)
+3) Configure .env properly
+Minimum important vars in pdf-rag-pipeline/.env:
+
+MONGO_URI / MONGO_DB
+JWT_SECRET, JWT_ALGORITHM, JWT_ISSUER (must match backend token config)
+LLM config:
+LLM_PROVIDER=openai + OPENAI_API_KEY, or
+LLM_PROVIDER=gemini + GEMINI_API_KEY
+PDF_DIR=./pdfs (or your custom folder)
+4) API smoke test with real JWT
+Use a JWT issued by your backend (after login).
+
+Query endpoint
+curl -X POST "http://localhost:8090/api/v1/query" \
+  -H "Authorization: Bearer <USER_JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What are the common symptoms of dengue?"}'
+Ingest endpoint (admin only)
+curl -X POST "http://localhost:8090/api/v1/ingest" \
+  -H "Authorization: Bearer <ADMIN_JWT>"
+Expected:
+
+non-admin token on /ingest -> 403 Admin role required
+admin token -> {"status":"ingestion started", ...}
+5) End-to-end flow to verify retrieval
+Put one or two PDFs in PDF_DIR
+Call /api/v1/ingest with admin token
+Wait briefly (ingest runs in background task)
+Ask a question via /api/v1/query that should match PDF content
+Confirm answer/source are returned
+If you want, I can give you a ready-to-run Postman/curl collection with placeholders for <ADMIN_JWT> and <USER_JWT>.
+
+
+
+curl -i -X POST "http://localhost:8090/api/v1/ingest" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2OWRmOWRiNjZiODFlMzZhOGE1YWExN2QiLCJpc3MiOiJmbGV4c2hlbGwtaG9zcGl0YWwiLCJhdWQiOlsid2ViIl0sImp0aSI6IjcyYjVmYmUyLTdlYjQtNDhlZS1iNTUxLWE5YTA5NWNjMmFmYyIsInRva2VuVmVyc2lvbiI6MSwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzc3MTEyNzQ3LCJleHAiOjE3NzcxMTM2NDd9.VBAqpW73r6SQXrDurjQMEL-WcbVta5p3Pi4mg9cr168"
+
+curl -X GET "http://localhost:8090/api/v1/ingest/status" \
+  -H "Authorization: Bearer <ADMIN_TOKEN>"
+
+curl -X GET "http://localhost:8090/api/v1/ingest/health" \
+  -H "Authorization: Bearer <ADMIN_TOKEN>"
+
+python3 - <<'PY'
+import base64, json
+t="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2OWRmOWRiNjZiODFlMzZhOGE1YWExN2QiLCJpc3MiOiJmbGV4c2hlbGwtaG9zcGl0YWwiLCJhdWQiOlsid2ViIl0sImp0aSI6ImM5ZjA5NDgyLTFhNzUtNDBhYi1iYTZkLTBhNmM1NjA4NjZmNSIsInRva2VuVmVyc2lvbiI6MSwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzc3MTA0MjgxLCJleHAiOjE3NzcxMDUxODF9.fLoKVL-VhxAe2ldunsC_bi7F4NeI3rtKS4nhtLlSeKg".split(".")[1]
+t += "=" * (-len(t) % 4)
+print(json.dumps(json.loads(base64.urlsafe_b64decode(t)), indent=2))
+PY
+
+
+python3 - <<'PY'
+import jwt
+token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2OWRmYTg4OWJmMTNhZTAzM2U1NjE1NjMiLCJpc3MiOiJmbGV4c2hlbGwtaG9zcGl0YWwiLCJhdWQiOlsid2ViIl0sImp0aSI6IjBiYjIzYzM2LWFmMjEtNGM0YS05NzQxLWJiYzk5Njk3YWFhNiIsInRva2VuVmVyc2lvbiI6MSwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzc3MTA3Mzg4LCJleHAiOjE3NzcxMDgyODh9.iG1kgBcJE0Kbx444LQ1RSUghb8YssrGpdeehck2TBkg"
+secret = "6pfcO9RhVqGtvNjDFrD+d2tMw7o3gbVyxMbLKh/uT9E="
+print(jwt.decode(token, key=secret, algorithms=["HS256"], issuer="flexshell-hospital", audience="web"))
+PY
+
+
+Give an option to attach a file to click photo and attach during chat of SmartAI. If file is attach read the data and then send to pdf-rag-pipeline

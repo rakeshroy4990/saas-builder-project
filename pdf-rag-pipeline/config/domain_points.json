@@ -47,7 +47,7 @@
     "digestive_system": ["vomiting", "diarrhea", "loose motion", "stomach pain", "abdominal pain", "constipation", "gastric", "indigestion"]
   },
   "role_audience_map": {
-    "ROLE_ADMIN": "expert",
+    "ROLE_ADMIN": "layman",
     "ROLE_DOCTOR": "expert",
     "ROLE_CLINICIAN": "expert",
     "ROLE_PATIENT": "layman",

@@ -1,0 +1,8 @@
+.gradle/
+build/
+.env
+.env.*
+application-local.properties
+application-secrets.properties
+secrets.properties
+pdfs/

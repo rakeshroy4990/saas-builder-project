@@ -128,6 +128,9 @@ const formatTime = (m: any): string => {
 type ParsedAiBody = { text: string; options: string[] };
 
 const OPTION_SPLIT_REGEX = /(?:\r?\n)+/g;
+const OPTION_PREFIX_REGEX = /^\s*(?:[-*•]|\d+[.)])\s+/;
+const NON_OPTION_TEXT_REGEX =
+  /^(?:i am not a doctor\b|this is general guidance only\b|for emergencies\b|terms of use\b|please consult\b)/i;
 
 function parseAiMessageBody(rawValue: unknown): ParsedAiBody {
   const raw = String(rawValue ?? '').trim();
@@ -145,14 +148,22 @@ function parseAiMessageBody(rawValue: unknown): ParsedAiBody {
   const seen = new Set<string>();
   const options = after
     .split(OPTION_SPLIT_REGEX)
-    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').trim())
+    .map((line) => {
+      const source = String(line ?? '');
+      const isPrefixedOption = OPTION_PREFIX_REGEX.test(source);
+      const cleaned = source.replace(/^[-*•\d.)\s]+/, '').trim();
+      return { cleaned, isPrefixedOption };
+    })
     .filter((line) => {
-      if (!line) return false;
-      const lowered = line.toLowerCase();
+      if (!line.cleaned) return false;
+      if (!line.isPrefixedOption) return false;
+      if (NON_OPTION_TEXT_REGEX.test(line.cleaned)) return false;
+      const lowered = line.cleaned.toLowerCase();
       if (seen.has(lowered)) return false;
       seen.add(lowered);
       return true;
     })
+    .map((line) => line.cleaned)
     .slice(0, 6);
 
   if (options.length === 0) return { text: raw, options: [] };

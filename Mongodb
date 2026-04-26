@@ -1,0 +1,69 @@
+Mongodb
+rakeshroy4990
+VZFm9qHr3XteAkQw
+
+Cloudinary
+CLOUDINARY_URL=cloudinary://742377227896842:**********@dbke33vfd
+Cloud Name - dbke33vfd
+API Key - 742377227896842
+Api Secret - GQCf_2df-OYBBqhW3O9XIy5Tj3c
+
+
+UI_APP=hospital ./start-dev.sh
+
+Act as expert using latest best practices from 2025:
+- Vue 3
+- Tailwind
+- Performance optimized
+
+Build responsive UI component
+
+UI_APP=hospital BACKEND_APP=hospital ./start-dev.sh
+
+
+Then in IntelliJ, use Remote JVM Debug attach to localhost:5005.
+
+
+
+UI_APP=hospital BACKEND_APP=hospital BACKEND_DEBUG=1 BACKEND_DEBUG_PORT=5005 ./start-dev.sh
+
+colima start
+
+docker run -d \
+  -p 3478:3478 \
+  -p 3478:3478/udp \
+  -p 5349:5349 \
+  -p 5349:5349/udp \
+  coturn/coturn:4.6-alpine
+
+
+
+
+
+cd infra/coturn
+docker compose up -d
+
+
+
+
+What to add in Render
+A separate service like:
+
+type: web
+runtime: python
+rootDir: pdf-rag-pipeline
+buildCommand: pip install -r requirements.txt
+startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+And set env vars from pdf-rag-pipeline/.env.example (Mongo URI, JWT settings, LLM keys, etc.).
+
+
+https://resend.com/onboarding
+rakesh
+re_d5HCjY8A_9vqq9VgAhuhqf1tepHY7dQEp
+peds
+re_G94wH1Ei_E7yVqpfmhnC1LQZfMKzT6XE8
+
+
+
+EGnRQ1M9pwN3adTVDFLelXfQXdFHlCcKku9yeM6uYYw=
+

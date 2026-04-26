@@ -22,7 +22,7 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
       const password = String(request.data.password ?? '').trim();
       if (!identity || !password) {
         useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', 'Email and password are required.');
-        return { responseCode: 'AUTH_FAILED', message: 'Missing credentials' };
+        return { responseCode: 'AUTH_FAILED', message: 'Missing credentials', suppressPopupInlineError: true };
       }
 
       try {
@@ -38,7 +38,11 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
             'authError',
             'Unexpected login response. Please try again.'
           );
-          return { responseCode: 'AUTH_FAILED', message: 'Login response missing user data' };
+          return {
+            responseCode: 'AUTH_FAILED',
+            message: 'Login response missing user data',
+            suppressPopupInlineError: true
+          };
         }
         const displayName = buildFriendlyDisplayName(userData, identity);
         const accessToken =
@@ -121,7 +125,7 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
           const message =
             pickString(errorPayload, ['Message', 'message']) || 'Invalid email or password';
           useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', message);
-          return { responseCode: 'AUTH_FAILED', message };
+          return { responseCode: 'AUTH_FAILED', message, suppressPopupInlineError: true };
         }
         useAppStore(pinia).setProperty(
           'hospital',
@@ -129,7 +133,11 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
           'authError',
           'Unable to login right now. Please try again.'
         );
-        return { responseCode: 'AUTH_FAILED', message: 'Unable to login right now. Please try again.' };
+        return {
+          responseCode: 'AUTH_FAILED',
+          message: 'Unable to login right now. Please try again.',
+          suppressPopupInlineError: true
+        };
       }
     }
   }

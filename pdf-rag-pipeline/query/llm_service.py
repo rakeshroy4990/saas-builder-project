@@ -228,31 +228,31 @@ def _build_grounded_next_option_lines(query: str, chunks: list[dict], audience: 
     if covered and focus:
         if audience == "expert":
             return [
-                f"Summarize management, complications, or staging for **{focus}** using only the cited excerpts.",
-                f"What diagnostics, labs, or public-health measures for **{focus}** appear on these pages?",
-                "List red-flag or follow-up criteria that appear in CONTEXT only (no outside sources).",
+                f"Would you like a concise clinical summary for **{focus}** (management, complications, and staging)?",
+                f"Should I outline relevant diagnostics, labs, and public-health considerations for **{focus}**?",
+                "Do you want red-flag signs and follow-up criteria to monitor next?",
             ]
         return [
-            f"What signs, course, or complications of **{focus}** do the cited pages describe?",
-            f"What care, isolation, or follow-up for **{focus}** is mentioned in the text?",
-            "Give a short bullet list limited strictly to these page excerpts.",
+            f"Would you like me to explain common signs, expected course, and possible complications of **{focus}**?",
+            f"Do you want practical care steps and follow-up advice for **{focus}**?",
+            "I can also give a short checklist of warning signs for when to seek urgent care.",
         ]
-    h0 = hints[0] if hints else "the topics on the retrieved pages"
+    h0 = hints[0] if hints else "the main symptom area"
     lines = [
         (
-            f"The excerpts may not clearly contain **{focus}**—try rephrasing with a term from **{h0}**."
+            f"I do not have enough details yet about **{focus}** to guide you clearly. Try asking with a symptom or condition term like **{h0}**."
             if focus
-            else f"The retrieved pages center on **{h0}**—try a question using that wording."
+            else f"To help you better, try rephrasing your question with a symptom or condition term like **{h0}**."
         ),
     ]
     if len(hints) > 1:
-        lines.append(f"Ask what the materials say about **{hints[1]}** (stay within these sources).")
+        lines.append(f"You can also ask specifically about **{hints[1]}**.")
     else:
-        lines.append("Try one phrase from the PDF title or a subheading that appears in the excerpts.")
+        lines.append("You can include symptom duration, severity, and related symptoms for a more useful reply.")
     if audience == "expert":
-        lines.append("Request differentials or workup only for entities explicitly named in CONTEXT.")
+        lines.append("If helpful, ask for a focused differential and workup plan.")
     else:
-        lines.append("Ask what your book says about when to seek care—using only these cited pages.")
+        lines.append("If symptoms are severe or worsening, please seek in-person medical care promptly.")
     return lines[:3]
 
 
