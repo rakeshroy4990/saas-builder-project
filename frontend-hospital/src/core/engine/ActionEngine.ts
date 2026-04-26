@@ -105,6 +105,10 @@ export class ActionEngine {
   }
 
   private setPopupInlineError(response: Record<string, unknown>): void {
+    const suppressInlineError = Boolean(response.suppressPopupInlineError);
+    if (suppressInlineError) {
+      return;
+    }
     const popupStore = usePopupStore(pinia);
     if (!popupStore.isOpen || popupStore.isError) {
       return;
