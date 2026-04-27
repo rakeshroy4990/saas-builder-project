@@ -2,6 +2,7 @@ import google.generativeai as genai
 from openai import OpenAI
 import logging
 import re
+from typing import Optional
 
 from query.keyword_extractor import SHORT_MEDICAL_TERMS, extract_keywords
 
@@ -16,6 +17,23 @@ from config.settings import (
 
 LOG = logging.getLogger(__name__)
 
+MAX_CONTEXT_CHARS = 8_000
+ 
+STOPWORDS = {
+    "have", "with", "and", "the", "for", "this", "that", "are",
+    "from", "your", "what", "which", "will", "been", "they",
+    "their", "there", "was", "were", "has", "had", "but", "not",
+    "can", "its", "into", "also", "more", "than", "then", "when",
+}
+
+ABBREV_PATTERN = re.compile(
+    r"\b(Dr|Mr|Mrs|Ms|Prof|Fig|vs|e\.g|i\.e|approx|etc)\."
+)
+
+TESTING_PATTERN = re.compile(
+    r"\b(test|assay|screen|x-?ray|culture|pcr|biopsy|scan|mri|ct|ultrasound|bloodwork)\b",
+    flags=re.IGNORECASE,
+)
 
 def _is_first_person_health_query(query: str) -> bool:
     q = str(query or "").lower()
@@ -58,38 +76,132 @@ def _looks_like_refusal(answer: str) -> bool:
     )
     return any(s in a for s in snippets)
 
+URGENCY_PATTERN = re.compile(
+    r"\b(emergency|urgent|severe|critical|chest pain|can't breathe|bleeding|stroke|seizure)\b",
+    flags=re.IGNORECASE,
+)
+
+EVAL_LEAD_INS = re.compile(
+    r"^\s*(evaluation|testing|assessment|screening|diagnosis)\b",
+    flags=re.IGNORECASE,
+)
+
+def _to_conversational_answer(
+    disease_sentence: Optional[str],
+    testing_sentence: Optional[str],
+    query: str,
+) -> str:
+    parts: list[str] = []
+
+    # Gap 6: guard against whitespace-only strings
+    disease_sentence = disease_sentence.strip() if disease_sentence else None
+    testing_sentence = testing_sentence.strip() if testing_sentence else None
+
+    # Opening
+    if disease_sentence:
+        opener = disease_sentence.removesuffix(".")  # Gap 1: exact single suffix removal
+        parts.append(f"{opener}.")
+    else:
+        # Gap 2: extract noun phrase, not raw query
+        topic = re.sub(r"^(what|how|why|when|is|are|can|does|do)\s+", "", query.strip().rstrip("?"), flags=re.IGNORECASE)
+        parts.append(
+            f"There isn't enough specific information available to fully answer about {topic}, "
+            f"but here's what can be said generally."
+        )
+
+    # Middle
+    if testing_sentence:
+        # Gap 4: strip whitespace before removesuffix
+        testing_clean = testing_sentence.strip().removesuffix(".")
+        # Gap 3: suppress bridge if sentence already has an eval lead-in
+        if EVAL_LEAD_INS.match(testing_clean):
+            parts.append(f"{testing_clean}.")
+        else:
+            parts.append(f"For evaluation, {testing_clean}.")
+    else:
+        parts.append(
+            "A proper evaluation would typically involve a clinical assessment "
+            "and possibly some diagnostic tests, depending on the presentation."
+        )
+
+    # Closing — Gap 7: only add urgency cue if query signals it
+    base_close = (
+        "It's best to see a doctor in person for a thorough evaluation "
+        "and any confirmatory testing."
+    )
+    if URGENCY_PATTERN.search(query):
+        base_close += " If symptoms are worsening or severe, please seek urgent care."
+    parts.append(base_close)
+
+    # Gap 5: normalise each part before joining
+    return " ".join(p.strip() for p in parts)
+    
+def _safe_split_sentences(text: str) -> list[str]:
+    masked = ABBREV_PATTERN.sub(lambda m: m.group(0).replace(".", "·"), text)
+    parts = re.split(r"(?<=[\.\!\?])\s+", masked)
+    return [p.replace("·", ".").strip() for p in parts if p.strip()]
+ 
+ 
+def _score_sentence(sentence: str, tokens: list[str]) -> int:
+    s_lower = sentence.lower()
+    return sum(
+        1 for t in tokens
+        if re.search(r"\b" + re.escape(t) + r"\b", s_lower)
+    )
+ 
+ 
+def _extract_chunks_text(chunks: list) -> str:
+    parts = []
+    total = 0
+    for c in (chunks or []):
+        if not isinstance(c, dict):
+            continue
+        text = str(c.get("text", "")).strip()
+        if not text:
+            continue
+        remaining = MAX_CONTEXT_CHARS - total
+        if remaining <= 0:
+            break
+        parts.append(text[:remaining])
+        total += len(text)
+    raw = " ".join(parts)
+    return re.sub(r"\s{2,}", " ", raw).strip()
 
 def _build_contextual_fallback(query: str, chunks: list[dict]) -> str:
-    context = " ".join(str(c.get("text", "")) for c in (chunks or []))
-    context = re.sub(r"\s{2,}", " ", context).strip()
-    testing_hint = ""
-    for sentence in re.split(r"(?<=[\.\!\?])\s+", context):
-        s = sentence.strip()
-        if not s:
-            continue
-        if re.search(r"\b(test|assay|screen|x-?ray|culture|pcr)\b", s, flags=re.IGNORECASE):
-            testing_hint = s
-            break
-
-    disease_hint = ""
-    q_tokens = [t for t in re.findall(r"[a-zA-Z]{3,}", query.lower()) if t not in {"have", "with", "and", "the"}]
-    for sentence in re.split(r"(?<=[\.\!\?])\s+", context):
-        s = sentence.strip()
-        if any(re.search(r"\b" + re.escape(t) + r"\b", s, flags=re.IGNORECASE) for t in q_tokens):
-            disease_hint = s
-            break
-    if not disease_hint:
-        disease_hint = "The context mentions this condition and indicates it is clinically important."
-
-    guidance = [
-        "1) What the context says:",
-        f"- {disease_hint}",
-        "2) Evaluation/testing from context:",
-        f"- {testing_hint or 'Context indicates formal medical testing/screening may be required.'}",
-        "3) Next step:",
-        "- Please see a doctor promptly for in-person evaluation and confirmatory testing. Seek urgent care if symptoms worsen.",
+    """
+    Returns a plain conversational string answer.
+    No labels, no 'context' mentions — reads like a direct Q&A response.
+    """
+    context = _extract_chunks_text(chunks)
+    sentences = _safe_split_sentences(context)
+ 
+    q_tokens = [
+        t for t in re.findall(r"[a-zA-Z]{3,}", query.lower())
+        if t not in STOPWORDS
     ]
-    return "\n".join(guidance)
+ 
+    # Best disease/condition sentence by query token overlap
+    best_disease: Optional[str] = None
+    best_disease_score = 0
+    for s in sentences:
+        score = _score_sentence(s, q_tokens)
+        if score > best_disease_score:
+            best_disease_score = score
+            best_disease = s
+ 
+    # Best testing sentence (also prefers query relevance)
+    best_testing: Optional[str] = None
+    best_testing_score = 0
+    for s in sentences:
+        if TESTING_PATTERN.search(s):
+            score = _score_sentence(s, q_tokens)
+            if score >= best_testing_score:
+                best_testing_score = score
+                best_testing = s
+ 
+    return _to_conversational_answer(best_disease, best_testing, query)
+ 
+
 
 
 def _prompt_preview(prompt: str, preview_chars: int) -> str:
@@ -110,21 +222,23 @@ def _build_prompt(query: str, chunks: list[dict], audience: str = "layman") -> s
         if audience == "layman"
         else "Audience: expert/doctor. You may use concise clinical terminology and structured medical language."
     )
-    return f"""You are a helpful medical information assistant.
+    return f"""You are Health Assistant, a supportive medical information guide.
 Use ONLY the context below to answer the question.
-Never diagnose. Always recommend seeing a doctor for personal medical decisions.
+Do not diagnose or claim certainty for individual cases.
 {audience_rules}
 
-If the user asks in first person (e.g., "I have <condition>") and the condition is explicitly present in context:
-- Do NOT reply with only "I don't have enough information to answer this."
-- Give concise, practical guidance grounded in context:
-  1) what the context says about the condition,
-  2) what evaluation/testing is mentioned in context (if any),
-  3) clear next medical follow-up recommendation.
+Response style rules (strict):
+- Start with one brief empathetic line when the user describes symptoms.
+- Ask 1-2 focused follow-up questions to clarify severity/duration/related symptoms.
+- Give simple, practical next steps in short bullets.
+- Include clear escalation guidance when red flags or worsening symptoms are relevant.
+- Keep legal wording short and only at the end (single sentence).
+- Avoid robotic phrasing and avoid repeating long safety disclaimers.
 
-Only use "I don't have enough information to answer this." when the condition/topic itself is not supported by context.
-
-If you include follow-ups, they MUST reference the user's topic or exact wording from CONTEXT (do not suggest unrelated diseases or chapters).
+Grounding rules:
+- If topic is present in context, provide useful guidance grounded in context.
+- Only say information is insufficient when the topic is not supported by context.
+- Do not invent unrelated diseases, chapters, tests, or treatments.
 
 CONTEXT:
 {context}
@@ -258,8 +372,11 @@ def _build_grounded_next_option_lines(query: str, chunks: list[dict], audience: 
 
 def _finalize_answer(raw: str, query: str, chunks: list[dict], audience: str) -> str:
     body = _strip_next_options_block(raw).strip()
-    opts = _build_grounded_next_option_lines(query, chunks, audience)
-    return body + "\n\nNext options:\n- " + "\n- ".join(opts)
+    if not body:
+        body = "I don't have enough information to answer this from the available material."
+    if "i am not a doctor" not in body.lower():
+        body = f"{body}\n\nI am not a doctor."
+    return body
 
 
 def answer_with_context(query: str, chunks: list[dict], audience: str = "layman") -> str:

@@ -193,7 +193,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 || error.response?.status === 403) {
       if (isLoginRequest || isRefreshRequest || isDoctorDirectoryRequest || isMultipartUpload || isSmartAiRequest) {
         if (isSmartAiRequest) {
-          toastStore.show('AI Symptom Triage Assistant is temporarily unavailable. Please try again shortly.', 'error');
+          toastStore.show('Health Assistant is temporarily unavailable. Please try again shortly.', 'error');
         }
         return Promise.reject(error);
       }
@@ -218,7 +218,7 @@ apiClient.interceptors.response.use(
       }
     } else if (error.response?.status >= 500) {
       if (isSmartAiRequest) {
-        toastStore.show('AI Symptom Triage Assistant is temporarily unavailable. Please try again shortly.', 'error');
+        toastStore.show('Health Assistant is temporarily unavailable. Please try again shortly.', 'error');
         return Promise.reject(error);
       }
       popupStore.openError(new Error('Server error. Please try again later.'));

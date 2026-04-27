@@ -3609,7 +3609,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-chat-popup-title',
                 type: 'text',
                 config: {
-                  text: 'AI Symptom Triage Assistant',
+                  text: 'Health Assistant',
                   styles: { utilityClasses: 'text-base font-semibold text-slate-900' }
                 }
               },

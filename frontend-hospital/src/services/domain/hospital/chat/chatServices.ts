@@ -27,6 +27,17 @@ import {
 
 type HospitalAppStore = ReturnType<typeof useAppStore>;
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
+const SMART_AI_ROOM_ID = 'smart-ai';
+const SMART_AI_WELCOME_MESSAGE = [
+  'Hi 👋 I’m here to help.',
+  '',
+  'Tell me your symptoms and I’ll guide you with what to do next.',
+  '',
+  'You can say things like:',
+  '• "I have fever for 2 days"',
+  '• "My child has cough"',
+  '• "Stomach pain after eating"'
+].join('\n');
 
 function getChatStore(appStore: HospitalAppStore): Record<string, unknown> {
   return (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
@@ -371,14 +382,32 @@ export const chatHospitalServices: ServiceDefinition[] = [
       const appStore = useAppStore(pinia);
       const chat = getChatStore(appStore);
       const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
+      const existingAiMessages = Array.isArray(messagesByRoomId[SMART_AI_ROOM_ID])
+        ? (messagesByRoomId[SMART_AI_ROOM_ID] as unknown[])
+        : [];
+      const hasWelcomeMessage = existingAiMessages.some((item) =>
+        String((item as Record<string, unknown>)?.body ?? '').includes('Hi 👋 I’m here to help.')
+      );
+      const nextAiMessages = hasWelcomeMessage
+        ? existingAiMessages
+        : [
+            ...existingAiMessages,
+            {
+              roomId: SMART_AI_ROOM_ID,
+              senderId: 'ai',
+              body: SMART_AI_WELCOME_MESSAGE,
+              createdTimestamp: new Date().toISOString(),
+              status: 'sent'
+            }
+          ];
       appStore.setData('hospital', 'Chat', {
         ...chat,
         mode: 'smart_ai',
         status: 'connected',
-        activeRoomId: 'smart-ai',
-        messagesByRoomId: { ...messagesByRoomId, 'smart-ai': messagesByRoomId['smart-ai'] ?? [] }
+        activeRoomId: SMART_AI_ROOM_ID,
+        messagesByRoomId: { ...messagesByRoomId, [SMART_AI_ROOM_ID]: nextAiMessages }
       });
-      void logClient('INFO', 'smart ai chat started', { roomId: 'smart-ai' });
+      void logClient('INFO', 'smart ai chat started', { roomId: SMART_AI_ROOM_ID });
       return ok();
     }
   },
