@@ -45,7 +45,7 @@ const openChat = () => {
     popupStore.open({ packageName: 'hospital', pageId: 'login-popup', title: 'Login' });
     return;
   }
-  popupStore.open({ packageName: 'hospital', pageId: 'chat-popup', title: 'AI Symptom Triage Assistant' });
+  popupStore.open({ packageName: 'hospital', pageId: 'chat-popup', title: 'Health Assistant' });
 };
 
 const onFabClick = () => {

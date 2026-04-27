@@ -1,6 +1,6 @@
 export const AI_DISCLAIMER_LINE =
-  '💡 This is general guidance only. If symptoms worsen or persist, please consult a qualified healthcare provider.';
-export const AI_NON_DOCTOR_LINE = 'I am not a doctor and this is not medical advice.';
+  '💡 General guidance only. If symptoms worsen or persist, consult a qualified healthcare provider.';
+export const AI_NON_DOCTOR_LINE = 'I am not a doctor.';
 export const AI_EMERGENCY_REPLY =
   'Your symptoms may need urgent medical attention. Please contact emergency services or visit the nearest emergency department immediately.\n\n' +
   `${AI_NON_DOCTOR_LINE}\n\n${AI_DISCLAIMER_LINE}`;

@@ -78,7 +78,12 @@ const myDisplayName = computed(() => {
 });
 const aiDisclaimerVisible = computed(() => Boolean(chat.value.aiDisclaimerVisible));
 const aiProcessing = computed(() => Boolean(chat.value.aiProcessing));
-const termsUrl = computed(() => String(props.config?.termsUrl ?? '/page/hospital/terms').trim());
+const smartAiQuickPrompts = [
+  'I have fever for 2 days',
+  'I have cold and cough',
+  'I have stomach pain after eating',
+  'My child has cough'
+];
 
 const looksLikeMongoId = (value: string): boolean => /^[a-f0-9]{24}$/i.test(value);
 
@@ -101,7 +106,7 @@ const resolveSenderLabel = (m: any): string => {
   if (senderDisplayName) return senderDisplayName;
   const senderId = String(m?.senderId ?? '').trim();
   if (!senderId) return '';
-  if (senderId.toLowerCase() === 'ai') return 'AI Symptom Triage Assistant';
+  if (senderId.toLowerCase() === 'ai') return 'Health Assistant';
   if (senderId === 'me') return myDisplayName.value;
   if (myUserId.value && senderId === myUserId.value) return myDisplayName.value;
   if (senderId === (props.config?.supportUserId ?? 'support')) return 'Support';
@@ -314,6 +319,11 @@ const sendQuickOption = async (option: string) => {
   await sendBody(String(option ?? '').trim());
 };
 
+const sendSmartAiQuickPrompt = async (prompt: string) => {
+  if (!smartAiMode.value || aiProcessing.value) return;
+  await sendBody(String(prompt ?? '').trim());
+};
+
 const canSendNow = computed(() => {
   if (smartAiMode.value) {
     return !aiDisclaimerVisible.value && !aiProcessing.value;
@@ -368,41 +378,45 @@ const sendInlineEdit = (m: any) => {
   <div :id="htmlId" :class="rootClass">
     <div :class="shellClass">
       <div
+        v-if="smartAiEnabled"
+        class="sticky top-0 z-20 shrink-0 border-b border-slate-200 bg-white/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/85 sm:px-4"
+      >
+        <div class="flex items-center justify-end">
+          <div class="flex items-center gap-1 rounded-full bg-slate-100 p-1">
+            <button
+              type="button"
+              class="rounded-full px-3 py-1 text-xs font-semibold"
+              :class="smartAiMode ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:bg-slate-200'"
+              @click="setChatMode('smart_ai')"
+            >
+              Smart AI
+            </button>
+            <button
+              type="button"
+              class="rounded-full px-3 py-1 text-xs font-semibold"
+              :class="!smartAiMode ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-200'"
+              @click="setChatMode('human')"
+            >
+              Human Support
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
         ref="messagesScrollEl"
         class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain bg-slate-50/50 p-3 sm:p-4 [-webkit-overflow-scrolling:touch]"
       >
-        <div v-if="smartAiEnabled" class="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-cyan-50 p-3">
-          <div class="flex items-center justify-between gap-2">
-            <div>
-              <div class="text-xs font-semibold uppercase tracking-wide text-indigo-700">AI Symptom Triage Assistant</div>
-              <div class="text-[11px] text-slate-700">General health guidance only (no diagnosis)</div>
-            </div>
-            <div class="flex items-center gap-1 rounded-full bg-white p-1 shadow-sm">
-              <button
-                type="button"
-                class="rounded-full px-3 py-1 text-xs font-semibold"
-                :class="smartAiMode ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:bg-slate-100'"
-                @click="setChatMode('smart_ai')"
-              >
-                Smart AI
-              </button>
-              <button
-                type="button"
-                class="rounded-full px-3 py-1 text-xs font-semibold"
-                :class="!smartAiMode ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'"
-                @click="setChatMode('human')"
-              >
-                Human Support
-              </button>
-            </div>
+        <div v-if="smartAiEnabled" class="rounded-2xl border border-slate-200 bg-white p-3">
+          <div class="text-[11px] text-slate-600">
+            <span class="font-semibold text-indigo-700">Health Assistant</span>
+            <span class="ml-1">General health guidance only</span>
           </div>
         </div>
 
         <div v-if="smartAiMode && aiDisclaimerVisible" class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
           <div class="text-xs font-semibold text-amber-900">Safety notice</div>
           <p class="mt-1 text-xs leading-relaxed text-amber-800">
-            I am not a doctor and this is not medical advice. For emergencies, contact your nearest emergency service
-            immediately.
+            This is general guidance, not medical diagnosis. For emergencies, contact your nearest emergency service immediately.
           </p>
           <button
             type="button"
@@ -416,7 +430,7 @@ const sendInlineEdit = (m: any) => {
           v-if="smartAiMode && aiProcessing"
           class="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-800"
         >
-          AI Symptom Triage Assistant is processing your request...
+          Health Assistant is processing your request...
         </div>
 
         <div v-if="isAdmin && supportRequests.length > 0" class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
@@ -500,6 +514,43 @@ const sendInlineEdit = (m: any) => {
         <div v-else class="flex flex-col gap-2">
           <div v-if="activeMessages.length === 0" class="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
             Say hi—support will respond here.
+          </div>
+          <div
+            v-if="smartAiMode && !aiDisclaimerVisible && !aiProcessing"
+            class="flex flex-wrap gap-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3"
+          >
+            <button
+              type="button"
+              class="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-800 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="!canSendNow"
+              @click="sendSmartAiQuickPrompt(smartAiQuickPrompts[0])"
+            >
+              Fever 🤒
+            </button>
+            <button
+              type="button"
+              class="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-800 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="!canSendNow"
+              @click="sendSmartAiQuickPrompt(smartAiQuickPrompts[1])"
+            >
+              Cold &amp; cough 🤧
+            </button>
+            <button
+              type="button"
+              class="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-800 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="!canSendNow"
+              @click="sendSmartAiQuickPrompt(smartAiQuickPrompts[2])"
+            >
+              Stomach pain 🤢
+            </button>
+            <button
+              type="button"
+              class="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-800 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="!canSendNow"
+              @click="sendSmartAiQuickPrompt(smartAiQuickPrompts[3])"
+            >
+              Child health 👶
+            </button>
           </div>
 
           <div
@@ -595,10 +646,10 @@ const sendInlineEdit = (m: any) => {
             v-if="smartAiMode && aiProcessing"
             class="flex min-w-0 justify-start"
             aria-live="polite"
-            aria-label="AI Symptom Triage Assistant is typing"
+            aria-label="Health Assistant is typing"
           >
             <div class="max-w-[85%] rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-sm">
-              <div class="mb-1 text-[11px] font-semibold text-slate-500">AI Symptom Triage Assistant</div>
+              <div class="mb-1 text-[11px] font-semibold text-slate-500">Health Assistant</div>
               <div class="text-sm font-semibold tracking-[0.15em] text-black">{{ processingDots }}</div>
             </div>
           </div>
@@ -610,17 +661,10 @@ const sendInlineEdit = (m: any) => {
           v-if="smartAiMode && aiProcessing"
           class="mb-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
           aria-live="polite"
-          aria-label="AI Symptom Triage Assistant is processing"
+          aria-label="Health Assistant is processing"
         >
-          <span class="text-xs font-medium text-slate-800">AI Symptom Triage Assistant is thinking</span>
+          <span class="text-xs font-medium text-slate-800">Health Assistant is typing</span>
           <span class="ml-1 min-w-[1.75rem] text-sm font-semibold tracking-[0.15em] text-black">{{ processingDots }}</span>
-        </div>
-        <div v-if="smartAiMode" class="mb-2 rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2">
-          <div class="text-[11px] font-semibold text-indigo-800">AI Symptom Triage Assistant disclaimer</div>
-          <div class="mt-0.5 text-[11px] leading-relaxed text-indigo-700">
-            I am not a doctor and this is not medical advice.
-            <a :href="termsUrl" target="_blank" rel="noopener noreferrer" class="ml-1 font-semibold underline">Terms of Use</a>
-          </div>
         </div>
         <div class="flex items-center gap-2">
           <input
@@ -634,7 +678,7 @@ const sendInlineEdit = (m: any) => {
                   ? 'Please click I understand to continue...'
                   : aiProcessing
                     ? 'Processing your request...'
-                  : 'Ask AI Symptom Triage Assistant about your symptoms…'
+                  : 'Tell Health Assistant your symptoms...'
                 : 'Type a message…'
             "
             @keydown.enter.prevent="send"
