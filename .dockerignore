@@ -1,9 +1,9 @@
-# Speed up `docker build` when context is the monorepo root (hospital backend image).
 .git
 **/.gradle
 **/node_modules
 **/dist
 **/build
+!**/build/libs/*.jar
 frontend-hospital
 frontend-realtime-lib
 packages
