@@ -48,14 +48,14 @@ public class AiChatService {
             String greetingReply = "Hello! I am the AI Symptom Triage Assistant. Please share your symptoms and how long you have had them, and I can provide general guidance.\n\n"
                     + AiSafetyPolicy.NON_DOCTOR_LINE + "\n\n"
                     + AiSafetyPolicy.DISCLAIMER_LINE;
-            return new AiChatResponse(greetingReply, false, "llm");
+            return new AiChatResponse(greetingReply, false, "llm", List.of());
         }
         String audience = resolveAudience(userRoles);
         smartAiQuotaService.assertWithinTokenBudget(request);
         smartAiQuotaService.consumeDailyRequestOrThrow(actor);
         if (!"expert".equalsIgnoreCase(audience) && safetyPolicy.requiresEscalation(message)) {
             LOG.info("aiChat escalation actor={} messageLength={}", actor, messageLength);
-            return new AiChatResponse(safetyPolicy.escalationReply(), true, "escalation");
+            return new AiChatResponse(safetyPolicy.escalationReply(), true, "escalation", List.of());
         }
         List<AiChatMessageDto> history = request.history() == null ? List.of() : request.history();
         LOG.info("aiChat request actor={} messageLength={} historyCount={}", actor, messageLength, history.size());
@@ -69,7 +69,10 @@ public class AiChatService {
         LOG.info("aiChat response actor={} replyLength={}", actor, safeReply.length());
         boolean cache = "cache".equalsIgnoreCase(ragResult == null ? "" : ragResult.source());
         String mode = cache ? "rag_cache_" + audience : "rag_" + audience;
-        return new AiChatResponse(safeReply, false, mode);
+        List<String> followUpQuestions = ragResult == null || ragResult.followUpQuestions() == null
+                ? List.of()
+                : ragResult.followUpQuestions();
+        return new AiChatResponse(safeReply, false, mode, followUpQuestions);
     }
 
     private static String resolveAudience(List<String> userRoles) {

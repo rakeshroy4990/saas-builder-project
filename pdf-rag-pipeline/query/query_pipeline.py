@@ -155,8 +155,21 @@ def _build_effective_question(user_query: str, history: Optional[list]) -> str:
     turns = _history_pairs(history)[-6:]
     if not turns:
         return latest
-    transcript = " ".join([f"{role}: {content}" for role, content in turns])
-    return f"{transcript} user: {latest}".strip()
+    # Retrieval should be anchored on user intent, not assistant phrasing.
+    # Including assistant responses often dilutes keywords and hurts relevance.
+    user_turns = [content for role, content in turns if role in {"user", "patient"}]
+    if not user_turns:
+        return latest
+    transcript = " ".join(user_turns[-3:])
+    return f"{transcript} {latest}".strip()
+
+
+def _build_cache_query_key(user_query: str) -> str:
+    """
+    Keep cache key stable across turns for the same visible question.
+    Do NOT include assistant/user transcript in cache identity.
+    """
+    return str(user_query or "").strip()
 
 
 async def handle_query(
@@ -169,10 +182,15 @@ async def handle_query(
     LOG.info("[RAG][QUERY] user_id=%s conversation_id=%s question=%s", user_id or "", conversation_id or "default", user_query)
     audience = infer_user_audience(user_roles or [])
     effective_question = _build_effective_question(user_query, history)
-    cached = get_cached(effective_question, audience=audience)
+    cache_query_key = _build_cache_query_key(user_query)
+    cached = get_cached(cache_query_key, audience=audience)
     if cached:
         LOG.info("[RAG][CACHE] hit question=%s audience=%s", user_query, audience)
-        return {"answer": cached, "follow_up_questions": [], "source": "cache"}
+        return {
+            "answer": str(cached.get("answer", "")).strip(),
+            "follow_up_questions": cached.get("follow_up_questions", []),
+            "source": "cache"
+        }
     LOG.info("[RAG][CACHE] miss question=%s audience=%s", user_query, audience)
 
     safety = check_safety(user_query)
@@ -275,7 +293,12 @@ async def handle_query(
     if not isinstance(follow_up_questions, list):
         follow_up_questions = []
     if not _is_non_cacheable_answer(answer):
-        set_cache(effective_question, answer, audience=audience)
+        set_cache(
+            cache_query_key,
+            answer,
+            audience=audience,
+            follow_up_questions=follow_up_questions,
+        )
         LOG.info("[RAG][CACHE] stored question=%s audience=%s", user_query, audience)
     else:
         LOG.info("[RAG][CACHE] skipped_store_for_fallback question=%s", user_query)

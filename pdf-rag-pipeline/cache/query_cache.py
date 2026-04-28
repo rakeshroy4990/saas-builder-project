@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, TypedDict
 
 from config.settings import CACHE_TTL_HOURS
 from db.mongo_client import get_db
@@ -15,12 +15,27 @@ def _cache_key(query: str, audience: str = "") -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def get_cached(query: str, audience: str = "") -> Optional[str]:
+class CachedQueryResult(TypedDict):
+    answer: str
+    follow_up_questions: list[str]
+
+
+def get_cached(query: str, audience: str = "") -> Optional[CachedQueryResult]:
     doc = get_db().query_cache.find_one({"_id": _cache_key(query, audience)})
-    return doc.get("answer") if doc else None
+    if not doc:
+        return None
+    answer = str(doc.get("answer", "")).strip()
+    raw_followups = doc.get("follow_up_questions")
+    if isinstance(raw_followups, list):
+        follow_up_questions = [
+            str(item).strip() for item in raw_followups if str(item).strip()
+        ][:6]
+    else:
+        follow_up_questions = []
+    return {"answer": answer, "follow_up_questions": follow_up_questions}
 
 
-def set_cache(query: str, answer: str, audience: str = "") -> None:
+def set_cache(query: str, answer: str, audience: str = "", follow_up_questions: Optional[list[str]] = None) -> None:
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=CACHE_TTL_HOURS)
     scope = str(audience or "").strip().lower()
@@ -31,6 +46,7 @@ def set_cache(query: str, answer: str, audience: str = "") -> None:
                 "query": query,
                 "audience": scope,
                 "answer": answer,
+                "follow_up_questions": list(follow_up_questions or []),
                 "cached_at": now,
                 "expires_at": expires_at,
             }
