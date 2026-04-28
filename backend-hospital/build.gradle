@@ -13,6 +13,9 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+jar {
+    enabled = false  // disables the plain jar, keeps only the fat jar
+}
 repositories {
     mavenCentral()
 }

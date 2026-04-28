@@ -4,7 +4,7 @@ steps:
     args:
       - build
       - -t
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:$COMMIT_SHA
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:$SHORT_SHA
       - -t
       - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:latest
       - -f
@@ -24,11 +24,12 @@ steps:
       - deploy
       - backend-hospital
       - --image
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:$COMMIT_SHA
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:$SHORT_SHA
       - --region
       - asia-south1
       - --platform
       - managed
+      - --allow-unauthenticated
       - --quiet
 
   # ── pdf-rag-pipeline ──────────────────────────────────────────
@@ -36,7 +37,7 @@ steps:
     args:
       - build
       - -t
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$COMMIT_SHA
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$SHORT_SHA
       - -t
       - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:latest
       - -f
@@ -56,11 +57,12 @@ steps:
       - deploy
       - pdf-rag-pipeline
       - --image
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$COMMIT_SHA
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$SHORT_SHA
       - --region
       - asia-south1
       - --platform
       - managed
+      - --allow-unauthenticated
       - --quiet
 
 images:
