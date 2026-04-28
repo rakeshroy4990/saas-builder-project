@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Component
 public class AiSafetyPolicy {
@@ -45,6 +46,7 @@ public class AiSafetyPolicy {
             "accidental ingestion", "took too much", "too many tablets",
             "azithromycin overdose", "azithromycin toxicity"
     );
+    private static final Pattern NEXT_OPTIONS_BLOCK_PATTERN = Pattern.compile("(?is)\\n\\s*next options\\s*:.*$");
 
     public AiSafetyPolicy(@Value("${app.ai.system-prompt:}") String configuredSystemPrompt) {
         String prompt = String.valueOf(configuredSystemPrompt == null ? "" : configuredSystemPrompt).trim();
@@ -72,16 +74,8 @@ public class AiSafetyPolicy {
 
     public String enforceSafeResponse(String raw) {
         String body = normalizeWhitespace(raw);
+        body = stripNextOptionsBlock(body);
         if (isRagFallbackMessage(body)) {
-            if (!body.toLowerCase(Locale.ROOT).contains("not a doctor")) {
-                body = body + "\n\n" + NON_DOCTOR_LINE;
-            }
-            if (!body.contains(DISCLAIMER_LINE)) {
-                body = body + "\n\n" + DISCLAIMER_LINE;
-            }
-            return body.trim();
-        }
-        if (hasEndOptionsBlock(body)) {
             if (!body.toLowerCase(Locale.ROOT).contains("not a doctor")) {
                 body = body + "\n\n" + NON_DOCTOR_LINE;
             }
@@ -128,8 +122,11 @@ public class AiSafetyPolicy {
                 && normalized.contains("3. when to see a doctor");
     }
 
-    private static boolean hasEndOptionsBlock(String body) {
-        return body.toLowerCase(Locale.ROOT).contains("next options:");
+    private static String stripNextOptionsBlock(String body) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        return NEXT_OPTIONS_BLOCK_PATTERN.matcher(body).replaceFirst("").trim();
     }
 
     private static String fallbackStructuredResponse(String rawModelText) {

@@ -51,6 +51,11 @@ class QueryResponse(BaseModel):
         validation_alias=AliasChoices("ChunksUsed", "chunks_used"),
         serialization_alias="ChunksUsed",
     )
+    follow_up_questions: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("FollowUpQuestions", "follow_up_questions"),
+        serialization_alias="FollowUpQuestions",
+    )
 
 
 class IngestResponse(BaseModel):

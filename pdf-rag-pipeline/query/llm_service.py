@@ -1,5 +1,6 @@
 import google.generativeai as genai
 from openai import OpenAI
+import json
 import logging
 import re
 from typing import Optional
@@ -18,6 +19,9 @@ from config.settings import (
 LOG = logging.getLogger(__name__)
 
 MAX_CONTEXT_CHARS = 8_000
+
+INSUFFICIENT_EXPERT_MESSAGE = "Insufficient data in provided context."
+INSUFFICIENT_LAYMAN_MESSAGE = "I don't have enough information to answer this."
  
 STOPWORDS = {
     "have", "with", "and", "the", "for", "this", "that", "are",
@@ -59,6 +63,7 @@ def _looks_like_refusal(answer: str) -> bool:
         return False
     if a in {
         "i don't have enough information to answer this.",
+        "insufficient data in provided context.",
         "not available",
         "not enough information in knowledge base.",
     }:
@@ -70,6 +75,7 @@ def _looks_like_refusal(answer: str) -> bool:
         "don't have enough information to answer",
         "not enough information in knowledge base",
         "not enough information to answer",
+        "insufficient data in provided context",
         "is not supported by context",
         "cannot find relevant information",
         "no relevant information",
@@ -216,29 +222,64 @@ def _build_prompt(query: str, chunks: list[dict], audience: str = "layman") -> s
     context = "\n\n".join(
         [f"[Source: {c['source_file']}, Page {c['page_num']}]\n{c['text']}" for c in chunks]
     )
-    audience_rules = (
-        "Audience: layman/patient. Use simple everyday language, avoid jargon, "
-        "and explain terms in plain words."
-        if audience == "layman"
-        else "Audience: expert/doctor. You may use concise clinical terminology and structured medical language."
-    )
-    return f"""You are Health Assistant, a supportive medical information guide.
-Use ONLY the context below to answer the question.
-Do not diagnose or claim certainty for individual cases.
-{audience_rules}
+    if audience == "expert":
+        return f"""You are a medical information assistant for healthcare professionals.
 
-Response style rules (strict):
-- Start with one brief empathetic line when the user describes symptoms.
-- Ask 1-2 focused follow-up questions to clarify severity/duration/related symptoms.
-- Give simple, practical next steps in short bullets.
-- Include clear escalation guidance when red flags or worsening symptoms are relevant.
-- Keep legal wording short and only at the end (single sentence).
-- Avoid robotic phrasing and avoid repeating long safety disclaimers.
+Guidelines:
+- Provide clinically accurate, structured, and detailed information
+- Use medical terminology (no simplification unless necessary)
+- Focus on pathophysiology, diagnosis, and management
+- Do NOT include emotional language, reassurance, or personal advice
+- Do NOT address the user directly as a patient
+- Keep tone objective and educational
+- Use ONLY the provided context; do not add external facts
 
-Grounding rules:
-- If topic is present in context, provide useful guidance grounded in context.
-- Only say information is insufficient when the topic is not supported by context.
-- Do not invent unrelated diseases, chapters, tests, or treatments.
+At the end of the response, suggest 2–4 clinically relevant follow-up questions.
+
+Guidelines:
+- Focus on differential diagnosis, investigations, or management
+- Keep them precise and medically relevant
+- Avoid basic or obvious questions
+
+If information is insufficient, say exactly: "{INSUFFICIENT_EXPERT_MESSAGE}"
+
+Return strict JSON only (no markdown, no prose outside JSON) with this shape:
+{{
+  "answer": "<main response text>",
+  "follow_up_questions": ["<question 1>", "<question 2>"]
+}}
+
+CONTEXT:
+{context}
+
+QUESTION: {query}
+
+ANSWER:"""
+    return f"""You are a medical information assistant for patients.
+
+Guidelines:
+- Use simple, clear, non-technical language
+- Be empathetic and supportive in tone
+- Explain the condition, symptoms, and general next steps
+- Avoid overwhelming details
+- Encourage consulting a doctor for diagnosis/treatment
+- Do NOT provide definitive diagnosis
+- Use ONLY the provided context; do not add external facts
+
+At the end of the response, suggest 2–3 helpful follow-up questions the patient might ask next.
+
+Guidelines:
+- Keep them simple and relevant
+- Focus on symptoms, next steps, or safety
+- Be supportive and practical
+
+If information is insufficient, say exactly: "{INSUFFICIENT_LAYMAN_MESSAGE}"
+
+Return strict JSON only (no markdown, no prose outside JSON) with this shape:
+{{
+  "answer": "<main response text>",
+  "follow_up_questions": ["<question 1>", "<question 2>"]
+}}
 
 CONTEXT:
 {context}
@@ -370,16 +411,73 @@ def _build_grounded_next_option_lines(query: str, chunks: list[dict], audience: 
     return lines[:3]
 
 
-def _finalize_answer(raw: str, query: str, chunks: list[dict], audience: str) -> str:
-    body = _strip_next_options_block(raw).strip()
+def _default_follow_ups_for_audience(audience: str) -> list[str]:
+    if audience == "expert":
+        return [
+            "What differential diagnoses are most likely based on this presentation?",
+            "Which investigations are highest yield to confirm the diagnosis?",
+            "What initial management steps should be prioritized now?",
+        ]
+    return [
+        "What symptoms should I watch closely over the next 24 hours?",
+        "What should I do next at home before seeing a doctor?",
+        "When should I seek urgent medical care?",
+    ]
+
+
+def _parse_follow_up_questions(raw: object, audience: str) -> list[str]:
+    if not isinstance(raw, list):
+        return _default_follow_ups_for_audience(audience)
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    max_items = 4 if audience == "expert" else 3
+    for value in raw:
+        item = str(value or "").strip()
+        if not item:
+            continue
+        key = item.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(item)
+        if len(cleaned) >= max_items:
+            break
+    return cleaned if cleaned else _default_follow_ups_for_audience(audience)
+
+
+def _extract_json_object(raw: str) -> str:
+    text = str(raw or "").strip()
+    if not text:
+        return "{}"
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return "{}"
+    return text[start : end + 1]
+
+
+def _coerce_structured_output(raw: str, audience: str) -> dict:
+    parsed_obj: dict = {}
+    try:
+        parsed_obj = json.loads(_extract_json_object(raw))
+        if not isinstance(parsed_obj, dict):
+            parsed_obj = {}
+    except Exception:
+        parsed_obj = {}
+    body = _strip_next_options_block(str(parsed_obj.get("answer") if parsed_obj else raw)).strip()
     if not body:
-        body = "I don't have enough information to answer this from the available material."
-    if "i am not a doctor" not in body.lower():
+        body = INSUFFICIENT_EXPERT_MESSAGE if audience == "expert" else INSUFFICIENT_LAYMAN_MESSAGE
+    if audience != "expert" and "i am not a doctor" not in body.lower():
         body = f"{body}\n\nI am not a doctor."
-    return body
+    follow_ups = _parse_follow_up_questions(parsed_obj.get("follow_up_questions"), audience)
+    return {"answer": body, "follow_up_questions": follow_ups}
 
 
-def answer_with_context(query: str, chunks: list[dict], audience: str = "layman") -> str:
+def _finalize_answer(raw: str, query: str, chunks: list[dict], audience: str) -> dict:
+    return _coerce_structured_output(raw, audience)
+
+
+def answer_with_context(query: str, chunks: list[dict], audience: str = "layman") -> dict:
     prompt = _build_prompt(query, chunks, audience=audience)
     LOG.info(
         "[RAG][LLM] provider=%s model=%s audience=%s query_len=%s chunks=%s prompt_chars=%s",
