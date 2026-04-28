@@ -6,6 +6,7 @@ import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
+import { trackEvent } from '../../../analytics/firebaseAnalytics';
 
 export const registerUserHospitalServices: ServiceDefinition[] = [
   {
@@ -27,6 +28,7 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
       const smcRegistrationNumber = String(request.data.smcRegistrationNumber ?? '').trim();
       const acceptTerms = Boolean(request.data.acceptTerms);
       if (!acceptTerms) {
+        trackEvent('register_failed', { reason: 'terms_not_accepted' });
         useAppStore(pinia).setProperty(
           'hospital',
           'RegisterForm',
@@ -36,10 +38,12 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
         return { responseCode: 'REGISTER_FAILED', message: 'Terms not accepted' };
       }
       if (!firstName || !lastName || !emailId || !password || !address || !gender || !mobileNumber) {
+        trackEvent('register_failed', { reason: 'missing_required_fields' });
         useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', 'All fields are required.');
         return { responseCode: 'REGISTER_FAILED', message: 'Missing registration details' };
       }
       if (role === 'DOCTOR' && (!qualifications || !smcName || !smcRegistrationNumber)) {
+        trackEvent('register_failed', { reason: 'missing_doctor_fields' });
         useAppStore(pinia).setProperty(
           'hospital',
           'RegisterForm',
@@ -89,6 +93,7 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
           'registerSuccessMessage',
           successMessage
         );
+        trackEvent('register_success', { role, roleStatus: roleStatus || 'APPROVED' });
         return ok();
       } catch (error) {
         const message = isAxiosError(error)
@@ -100,6 +105,7 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
           'registerError',
           message || 'Unable to register right now. Please try again.'
         );
+        trackEvent('register_failed', { reason: 'request_failed' });
         return { responseCode: 'REGISTER_FAILED', message: message || 'Registration failed' };
       }
     }

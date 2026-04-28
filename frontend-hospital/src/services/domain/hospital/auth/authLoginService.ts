@@ -11,6 +11,7 @@ import { pickString } from '../shared/strings';
 import { buildFriendlyDisplayName } from '../shared/displayName';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
 import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
+import { trackEvent } from '../../../analytics/firebaseAnalytics';
 
 export const authLoginHospitalServices: ServiceDefinition[] = [
   {
@@ -21,6 +22,7 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
       const identity = String(request.data.identity ?? '').trim();
       const password = String(request.data.password ?? '').trim();
       if (!identity || !password) {
+        trackEvent('login_failed', { reason: 'missing_credentials' });
         useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', 'Email and password are required.');
         return { responseCode: 'AUTH_FAILED', message: 'Missing credentials', suppressPopupInlineError: true };
       }
@@ -118,15 +120,18 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
             // Non-fatal: badge/chat still work after opening the chat popup.
           }
         }
+        trackEvent('login_success', { role: resolvedRole });
         return ok();
       } catch (error) {
         if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+          trackEvent('login_failed', { reason: 'unauthorized' });
           const errorPayload = (error.response?.data ?? {}) as Record<string, unknown>;
           const message =
             pickString(errorPayload, ['Message', 'message']) || 'Invalid email or password';
           useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', message);
           return { responseCode: 'AUTH_FAILED', message, suppressPopupInlineError: true };
         }
+        trackEvent('login_failed', { reason: 'request_failed' });
         useAppStore(pinia).setProperty(
           'hospital',
           'AuthForm',

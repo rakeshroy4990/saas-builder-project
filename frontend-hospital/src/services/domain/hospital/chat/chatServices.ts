@@ -7,6 +7,7 @@ import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { stompClient } from '../../../realtime/stompClient';
 import { logClient } from '../../../logging/clientLogger';
+import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { ok } from '../shared/response';
 import {
   clearChatSubscription,
@@ -434,6 +435,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
         const response = await apiClient.post(URLRegistry.paths.chatSupportRequest, {});
         const dataNode = (response.data?.Data ?? response.data?.data ?? response.data ?? {}) as Record<string, unknown>;
         const requestId = String(dataNode.id ?? dataNode.Id ?? '').trim();
+        trackEvent('chat_support_request_created', { requestId });
         const chat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
         appStore.setData('hospital', 'Chat', {
           ...chat,
@@ -564,6 +566,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
       });
 
       if (requiresEscalation(body)) {
+        trackEvent('chat_ai_escalated');
         const escalated = [
           ...withUserMessage,
           {
@@ -611,11 +614,13 @@ export const chatHospitalServices: ServiceDefinition[] = [
           messagesByRoomId: { ...latestByRoom, [roomId]: nextMessages }
         });
         void logClient('INFO', 'smart ai response received', { replyLength: reply.length });
+        trackEvent('chat_ai_reply_received');
         return ok();
       } catch {
         const latestChat = getChatStore(appStore);
         appStore.setData('hospital', 'Chat', { ...latestChat, aiProcessing: false });
         void logClient('ERROR', 'smart ai request failed', {});
+        trackEvent('chat_ai_failed');
         toastStore.show('Smart AI is temporarily unavailable. Please try again shortly.', 'error');
         return { responseCode: 'CHAT_AI_SEND_FAILED', message: 'AI service unavailable' };
       }

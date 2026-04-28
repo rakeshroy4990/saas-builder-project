@@ -18,7 +18,7 @@ export const hospitalHomeContent = {
       'Experience compassionate care with state-of-the-art medical facilities. Our team of expert physicians is dedicated to your wellbeing.',
     image: CLOUDINARY_YOUR_HEALTH_OUR_PRIORITY,
     ctaPrimary: 'Schedule Visit',
-    ctaSecondary: 'Emergency Care'
+    // ctaSecondary: 'Emergency Care'
   },
   services: [
     {
@@ -41,7 +41,7 @@ export const hospitalHomeContent = {
   highlights: [
     { title: 'Advanced Technology', detail: 'Latest medical equipment and diagnostic tools' },
     { title: 'Expert Medical Team', detail: 'Board-certified physicians and specialists' },
-    { title: '24/7 Emergency Care', detail: 'Round-the-clock emergency services' },
+    // { title: '24/7 Emergency Care', detail: 'Round-the-clock emergency services' },
     { title: 'Patient-Centered Care', detail: 'Personalized treatment plans for every patient' }
   ],
   contact: {

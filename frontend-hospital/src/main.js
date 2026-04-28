@@ -10,6 +10,8 @@ import { logClient, startLogSyncScheduler } from './services/logging/clientLogge
 import { pinia } from './store/pinia'
 import { hydrateAuthSessionProfile, syncHospitalUserIdFromAccessToken } from './services/auth/authSessionStore'
 import { hydrateAuthTokensFromSessionStorage } from './services/auth/authToken'
+import { initFirebaseAnalytics } from './services/analytics/firebaseAnalytics'
+import { initSentry } from './services/observability/sentry'
 
 async function start() {
   startLogSyncScheduler()
@@ -19,9 +21,14 @@ async function start() {
   hydrateAuthSessionProfile()
   syncHospitalUserIdFromAccessToken()
   bindHttpRouter(router)
+  await initFirebaseAnalytics(router).catch(async (err) => {
+    await logClient('WARN', 'Firebase Analytics init skipped', { reason: String(err) })
+  })
   await hydrateUiMetadataFromServer().catch(() => {})
   await logClient('INFO', 'FlexShell UI startup complete')
-  createApp(App).use(pinia).use(router).mount('#app')
+  const app = createApp(App).use(pinia).use(router)
+  initSentry(app, router)
+  app.mount('#app')
 }
 
 start().catch(async (err) => {
