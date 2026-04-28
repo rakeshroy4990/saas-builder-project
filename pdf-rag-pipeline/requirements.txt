@@ -8,3 +8,5 @@ python-dotenv
 PyJWT[crypto]
 pydantic
 pytest
+sentry-sdk[fastapi]
+sentry-sdk==2.58.0

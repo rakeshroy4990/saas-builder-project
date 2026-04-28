@@ -77,14 +77,14 @@ export const hospitalPages: PageConfig[] = [
                               click: { actionId: 'open-appointment-popup' }
                             }
                           },
-                          {
-                            id: 'hospital-home-hero-secondary-cta',
-                            type: 'button',
-                            config: {
-                              text: 'Emergency Care',
-                              styles: { styleTemplate: 'hosp.button.secondary' }
-                            }
-                          },
+                          // {
+                          //   id: 'hospital-home-hero-secondary-cta',
+                          //   type: 'button',
+                          //   config: {
+                          //     text: 'Emergency Care',
+                          //     styles: { styleTemplate: 'hosp.button.secondary' }
+                          //   }
+                          // },
                         ]
                       }
                     },

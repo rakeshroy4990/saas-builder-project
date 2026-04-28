@@ -13,6 +13,7 @@ import { clearAppointmentPrescriptionFiles, getAppointmentPrescriptionFiles } fr
 import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
 import { loadDashboardAppointmentsPage } from '../shared/dashboardAppointments';
 import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppointmentTimeSlots';
+import { trackEvent } from '../../../analytics/firebaseAnalytics';
 
 function clearAppointmentFormFieldsAfterSave(): void {
   const store = useAppStore(pinia);
@@ -115,6 +116,11 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
         .map((field) => field.label);
 
       if (missingRequiredFields.length > 0) {
+        trackEvent('appointment_submit_failed', {
+          reason: 'missing_required_fields',
+          missingCount: missingRequiredFields.length,
+          isEdit: Boolean(editingId)
+        });
         return {
           responseCode: 'BOOK_APPOINTMENT_FAILED',
           message: `Missing required fields: ${missingRequiredFields.join(', ')}.`
@@ -125,6 +131,7 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
         const ageDigits = String(payload.AgeGroup).replace(/\D/g, '');
         const ageNum = parseInt(ageDigits, 10);
         if (!Number.isNaN(ageNum) && ageNum > 20) {
+          trackEvent('appointment_submit_failed', { reason: 'age_limit', isEdit: false });
           return { responseCode: 'BOOK_APPOINTMENT_FAILED', message: 'Age must be 20 years or less for booking.' };
         }
       }
@@ -142,18 +149,30 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
           useToastStore(pinia).show('Appointment updated.', 'success');
           usePopupStore(pinia).close();
           await loadDashboardAppointmentsPage();
+          trackEvent('appointment_updated', {
+            appointmentId: editingId,
+            department: String(payload.Department || ''),
+            doctorId: String(payload.DoctorId || '')
+          });
           return ok({ appointmentId: editingId });
         }
 
         const response = await apiClient.post(URLRegistry.paths.appointmentCreate, formData);
         const dataNode = (response.data?.Data ?? response.data?.data ?? response.data ?? {}) as Record<string, unknown>;
         clearAppointmentFormFieldsAfterSave();
-        return ok({ appointmentId: pickString(dataNode, ['Id', 'id']) || '' });
+        const appointmentId = pickString(dataNode, ['Id', 'id']) || '';
+        trackEvent('appointment_created', {
+          appointmentId,
+          department: String(payload.Department || ''),
+          doctorId: String(payload.DoctorId || '')
+        });
+        return ok({ appointmentId });
       } catch (error) {
         const message = isAxiosError(error)
           ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||
             'Unable to save appointment right now.'
           : 'Unable to save appointment right now.';
+        trackEvent('appointment_submit_failed', { reason: 'request_failed', isEdit: Boolean(editingId) });
         return { responseCode: 'BOOK_APPOINTMENT_FAILED', message };
       }
     }

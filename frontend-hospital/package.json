@@ -11,7 +11,7 @@
     "test": "vitest run --config vitest.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "deploy": "npm run build && firebase deploy"
+    "deploy": "npm run build && firebase deploy --only hosting"
   },
   "keywords": [],
   "author": "",
@@ -23,8 +23,10 @@
   },
   "dependencies": {
     "@saas-builder/vue-async-ui": "file:../packages/vue-async-ui",
+    "@sentry/vue": "^10.50.0",
     "@stomp/stompjs": "^7.2.1",
     "axios": "^1.15.0",
+    "firebase": "^12.12.1",
     "pinia": "^3.0.4",
     "vue": "^3.5.32",
     "vue-router": "^4.6.4"
@@ -33,9 +35,9 @@
     "@emnapi/core": "1.10.0",
     "@emnapi/runtime": "1.10.0",
     "@playwright/test": "^1.50.1",
-    "@types/node": "^22.10.0",
     "@saas-builder/playwright-core": "file:../packages/playwright-core",
     "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^22.10.0",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.27",

@@ -8,12 +8,14 @@ import { clearAuthToken } from '../../../auth/authToken';
 import { clearPersistedAuthSessionProfile } from '../../../auth/authSessionStore';
 import { ok } from '../shared/response';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
+import { trackEvent } from '../../../analytics/firebaseAnalytics';
 
 export const logoutUserHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
     serviceId: 'logout-user',
     execute: async () => {
+      trackEvent('logout');
       try {
         await apiClient.post(URLRegistry.paths.logout, { DeviceId: 'browser' });
       } catch {
