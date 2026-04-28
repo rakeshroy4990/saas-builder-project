@@ -19,6 +19,13 @@ from typing import List, Optional
 
 LOG = logging.getLogger(__name__)
 
+INSUFFICIENT_EXPERT_MESSAGE = "Insufficient data in provided context."
+INSUFFICIENT_LAYMAN_MESSAGE = "I don't have enough information to answer this."
+
+
+def _insufficient_message_for_audience(audience: str) -> str:
+    return INSUFFICIENT_EXPERT_MESSAGE if audience == "expert" else INSUFFICIENT_LAYMAN_MESSAGE
+
 
 def _answer_body_without_followups(answer: str) -> str:
     """Main reply text only (follow-up chips are not part of the cacheability decision)."""
@@ -38,6 +45,7 @@ def _is_non_cacheable_answer(answer: str) -> bool:
         return True
     if body in {
         "i don't have enough information to answer this.",
+        "insufficient data in provided context.",
         "not available",
         "not enough information in knowledge base.",
     }:
@@ -49,6 +57,7 @@ def _is_non_cacheable_answer(answer: str) -> bool:
         "don't have enough information to answer",
         "not enough information in knowledge base",
         "not enough information to answer",
+        "insufficient data in provided context",
         "is not supported by context",
         "cannot find relevant information",
         "no relevant information",
@@ -163,16 +172,17 @@ async def handle_query(
     cached = get_cached(effective_question, audience=audience)
     if cached:
         LOG.info("[RAG][CACHE] hit question=%s audience=%s", user_query, audience)
-        return {"answer": cached, "source": "cache"}
+        return {"answer": cached, "follow_up_questions": [], "source": "cache"}
     LOG.info("[RAG][CACHE] miss question=%s audience=%s", user_query, audience)
 
     safety = check_safety(user_query)
     if not safety.safe:
-        return {"answer": safety.reason, "source": "safety_block"}
+        return {"answer": safety.reason, "follow_up_questions": [], "source": "safety_block"}
 
     if safety.escalate:
         return {
             "answer": "Your symptoms may indicate an emergency. Please call emergency services or visit the nearest hospital immediately.",
+            "follow_up_questions": [],
             "source": "escalation",
         }
 
@@ -199,7 +209,8 @@ async def handle_query(
     if not chunks:
         LOG.warning("[RAG][INSUFFICIENT] no chunks after retrieval query=%s", user_query)
         return {
-            "answer": "Not enough information in knowledge base.",
+            "answer": _insufficient_message_for_audience(audience),
+            "follow_up_questions": [],
             "source": "insufficient_chunks",
         }
     if len(chunks) < MIN_CHUNKS_REQUIRED:
@@ -210,7 +221,8 @@ async def handle_query(
             MIN_CHUNKS_REQUIRED,
         )
         return {
-            "answer": "Not enough information in knowledge base.",
+            "answer": _insufficient_message_for_audience(audience),
+            "follow_up_questions": [],
             "source": "insufficient_chunks",
         }
 
@@ -233,7 +245,8 @@ async def handle_query(
 
     if len(selected) < MIN_CHUNKS_REQUIRED:
         return {
-            "answer": "Not enough information in knowledge base.",
+            "answer": _insufficient_message_for_audience(audience),
+            "follow_up_questions": [],
             "source": "insufficient_chunks",
         }
     for idx, chunk in enumerate(selected, start=1):
@@ -256,7 +269,11 @@ async def handle_query(
             chunk.get("page_num", "?"),
             len(focused_text),
         )
-    answer = answer_with_context(user_query, focused_selected, audience=audience)
+    llm_result = answer_with_context(user_query, focused_selected, audience=audience)
+    answer = str(llm_result.get("answer", "")).strip()
+    follow_up_questions = llm_result.get("follow_up_questions")
+    if not isinstance(follow_up_questions, list):
+        follow_up_questions = []
     if not _is_non_cacheable_answer(answer):
         set_cache(effective_question, answer, audience=audience)
         LOG.info("[RAG][CACHE] stored question=%s audience=%s", user_query, audience)
@@ -265,6 +282,7 @@ async def handle_query(
 
     return {
         "answer": answer,
+        "follow_up_questions": follow_up_questions,
         "source": "rag",
         "chunks_used": len(selected),
         "context_tokens": context_token_count,
