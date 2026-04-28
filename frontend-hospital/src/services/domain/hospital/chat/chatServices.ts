@@ -69,6 +69,29 @@ function roleIsExpert(appStore: HospitalAppStore): boolean {
   return role === 'ADMIN' || role === 'DOCTOR' || role === 'CLINICIAN';
 }
 
+function composeReplyWithFollowUps(reply: string, rawData: Record<string, unknown>): string {
+  const text = String(reply ?? '').trim();
+  if (!text) return text;
+  const lower = text.toLowerCase();
+  if (
+    lower.includes("i don't have enough information")
+    || lower.includes('insufficient data in provided context')
+    || lower.includes('not enough information in knowledge base')
+    || lower.includes('not available')
+  ) {
+    return text;
+  }
+  const rawFollowUps = rawData.followUpQuestions ?? rawData.follow_up_questions ?? rawData.FollowUpQuestions;
+  if (!Array.isArray(rawFollowUps)) return text;
+  const followUps = rawFollowUps
+    .map((item) => String(item ?? '').trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  if (followUps.length === 0) return text;
+  if (lower.includes('next options:')) return text;
+  return `${text}\n\nNext options:\n${followUps.map((item) => `- ${item}`).join('\n')}`;
+}
+
 function subscribeHospitalChatQueueIfNeeded(appStore: HospitalAppStore): void {
   if (getChatSubscription()) return;
   setChatSubscription(stompClient.subscribe('/user/queue/chat', createChatQueueMessageHandler(appStore)));
@@ -601,7 +624,8 @@ export const chatHospitalServices: ServiceDefinition[] = [
           history
         });
         const data = (response.data?.Data ?? response.data?.data ?? {}) as Record<string, unknown>;
-        const reply = normalizedAiReply(data.reply ?? data.message);
+        const baseReply = normalizedAiReply(data.reply ?? data.message);
+        const reply = composeReplyWithFollowUps(baseReply, data);
         const nextMessages = [
           ...withUserMessage,
           {

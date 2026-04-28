@@ -82,6 +82,7 @@ public class PdfRagQueryAdapter {
                 if (source.isEmpty()) {
                     source = response == null ? "" : String.valueOf(response.getOrDefault("source", "")).trim();
                 }
+                List<String> followUpQuestions = parseFollowUpQuestions(response);
                 if (answer.isEmpty()) {
                     throw new AiProviderException(
                             AiProviderException.Kind.PROVIDER_FAILED,
@@ -91,7 +92,7 @@ public class PdfRagQueryAdapter {
                             "EMPTY_ANSWER"
                     );
                 }
-                return new RagQueryResult(answer, source);
+                return new RagQueryResult(answer, source, followUpQuestions);
             } catch (RestClientResponseException ex) {
                 int statusCode = ex.getStatusCode().value();
                 boolean retryable = statusCode == 429 || statusCode == 503;
@@ -123,7 +124,27 @@ public class PdfRagQueryAdapter {
         }
     }
 
-    public record RagQueryResult(String answer, String source) {
+    public record RagQueryResult(String answer, String source, List<String> followUpQuestions) {
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> parseFollowUpQuestions(Map<String, Object> response) {
+        if (response == null || response.isEmpty()) {
+            return List.of();
+        }
+        Object raw = response.get("FollowUpQuestions");
+        if (!(raw instanceof List<?>)) {
+            raw = response.get("follow_up_questions");
+        }
+        if (!(raw instanceof List<?> items)) {
+            return List.of();
+        }
+        return items.stream()
+                .map(value -> String.valueOf(value == null ? "" : value).trim())
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .limit(6)
+                .collect(Collectors.toList());
     }
 
     private static String resolveAudience(List<String> userRoles) {

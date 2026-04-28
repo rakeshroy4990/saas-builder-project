@@ -1,10 +1,12 @@
-FROM eclipse-temurin:17-jre-jammy AS build
+# Stage 1 — build
+FROM eclipse-temurin:17-jdk-jammy AS build
 WORKDIR /app
 COPY . .
-RUN gradle build --no-daemon
+RUN ./gradlew build --no-daemon
 
-FROM eclipse-temurin:17-jre-jammy AS build
+# Stage 2 — runtime
+FROM eclipse-temurin:17-jre-jammy AS runtime
 WORKDIR /app
-COPY --from=build build/libs/*.jar app.jar
+COPY --from=build /app/build/libs/*.jar app.jar
 EXPOSE 8080
 CMD ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
