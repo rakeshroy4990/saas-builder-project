@@ -2,7 +2,8 @@ export const AI_DISCLAIMER_LINE =
   '💡 General guidance only. If symptoms worsen or persist, consult a qualified healthcare provider.';
 export const AI_NON_DOCTOR_LINE = 'I am not a doctor.';
 export const AI_EMERGENCY_REPLY =
-  'Your symptoms may need urgent medical attention. Please contact emergency services or visit the nearest emergency department immediately.\n\n' +
+  'This may be a possible overdose or poisoning emergency. Call your local emergency number immediately, or contact your poison control center right away for urgent guidance.\n\n' +
+  'If this happened recently, do not take more medicine, and keep the medicine strip/bottle nearby to share exact dose and time taken.\n\n' +
   `${AI_NON_DOCTOR_LINE}\n\n${AI_DISCLAIMER_LINE}`;
 
 export function normalizedAiReply(raw: unknown): string {
@@ -33,7 +34,20 @@ export function requiresEscalation(input: string): boolean {
     'severe abdominal pain',
     'suicidal',
     'self-harm',
-    'self harm'
+    'self harm',
+    'overdose',
+    'toxic dose',
+    'toxicity',
+    'poison',
+    'poisoning',
+    'drug overdose',
+    'medication overdose',
+    'pill overdose',
+    'accidental ingestion',
+    'took too much',
+    'too many tablets',
+    'azithromycin overdose',
+    'azithromycin toxicity'
   ];
   return criticalKeywords.some((term) => text.includes(term));
 }

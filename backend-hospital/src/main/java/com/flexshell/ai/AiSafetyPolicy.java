@@ -39,7 +39,11 @@ public class AiSafetyPolicy {
             "chest pain", "difficulty breathing", "shortness of breath", "stroke",
             "slurred speech", "face drooping", "uncontrolled bleeding",
             "severe abdominal pain", "suicidal", "suicide", "self-harm", "self harm",
-            "infant fever", "high fever", "fever 103", "39.4"
+            "infant fever", "high fever", "fever 103", "39.4",
+            "overdose", "toxic dose", "toxicity", "poison", "poisoning",
+            "drug overdose", "medication overdose", "pill overdose",
+            "accidental ingestion", "took too much", "too many tablets",
+            "azithromycin overdose", "azithromycin toxicity"
     );
 
     public AiSafetyPolicy(@Value("${app.ai.system-prompt:}") String configuredSystemPrompt) {
@@ -60,7 +64,8 @@ public class AiSafetyPolicy {
     }
 
     public String escalationReply() {
-        return "Your symptoms may need urgent medical attention. Please contact emergency services or visit the nearest emergency department immediately.\n\n"
+        return "This may be a possible overdose or poisoning emergency. Call your local emergency number immediately, or contact your poison control center right away for urgent guidance.\n\n"
+                + "If this happened recently, do not take more medicine, and keep the medicine strip/bottle nearby to share exact dose and time taken.\n\n"
                 + NON_DOCTOR_LINE + "\n\n"
                 + DISCLAIMER_LINE;
     }

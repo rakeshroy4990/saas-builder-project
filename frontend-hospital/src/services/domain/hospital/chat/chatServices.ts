@@ -63,6 +63,12 @@ function roleIsAdmin(appStore: HospitalAppStore): boolean {
   return String(authSession.role ?? '').trim().toUpperCase() === 'ADMIN';
 }
 
+function roleIsExpert(appStore: HospitalAppStore): boolean {
+  const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+  const role = String(authSession.role ?? '').trim().toUpperCase();
+  return role === 'ADMIN' || role === 'DOCTOR' || role === 'CLINICIAN';
+}
+
 function subscribeHospitalChatQueueIfNeeded(appStore: HospitalAppStore): void {
   if (getChatSubscription()) return;
   setChatSubscription(stompClient.subscribe('/user/queue/chat', createChatQueueMessageHandler(appStore)));
@@ -565,7 +571,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
         messagesByRoomId: { ...messagesByRoomId, [roomId]: withUserMessage }
       });
 
-      if (requiresEscalation(body)) {
+      if (!roleIsExpert(appStore) && requiresEscalation(body)) {
         trackEvent('chat_ai_escalated');
         const escalated = [
           ...withUserMessage,

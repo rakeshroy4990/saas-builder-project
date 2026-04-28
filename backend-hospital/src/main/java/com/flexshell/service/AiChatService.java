@@ -50,9 +50,10 @@ public class AiChatService {
                     + AiSafetyPolicy.DISCLAIMER_LINE;
             return new AiChatResponse(greetingReply, false, "llm");
         }
+        String audience = resolveAudience(userRoles);
         smartAiQuotaService.assertWithinTokenBudget(request);
         smartAiQuotaService.consumeDailyRequestOrThrow(actor);
-        if (safetyPolicy.requiresEscalation(message)) {
+        if (!"expert".equalsIgnoreCase(audience) && safetyPolicy.requiresEscalation(message)) {
             LOG.info("aiChat escalation actor={} messageLength={}", actor, messageLength);
             return new AiChatResponse(safetyPolicy.escalationReply(), true, "escalation");
         }
@@ -62,10 +63,11 @@ public class AiChatService {
         PdfRagQueryAdapter.RagQueryResult ragResult =
                 pdfRagQueryAdapter.query(message, conversationId, history, authorizationHeader, userRoles);
         String rawReply = ragResult == null ? "" : Objects.toString(ragResult.answer(), "");
-        String safeReply = safetyPolicy.enforceSafeResponse(rawReply);
+        String safeReply = "expert".equalsIgnoreCase(audience)
+                ? rawReply.trim()
+                : safetyPolicy.enforceSafeResponse(rawReply);
         LOG.info("aiChat response actor={} replyLength={}", actor, safeReply.length());
         boolean cache = "cache".equalsIgnoreCase(ragResult == null ? "" : ragResult.source());
-        String audience = resolveAudience(userRoles);
         String mode = cache ? "rag_cache_" + audience : "rag_" + audience;
         return new AiChatResponse(safeReply, false, mode);
     }

@@ -5,3 +5,8 @@
 !.env.example
 !**/.env.example
 *cloudrun.yaml
+**/*cloudrun.yaml
+**/*cloudrun.yml
+backend-hospital-cloudrun.yaml
+pdf-rag-pipeline-cloudrun.yaml
+backend-hospital/backend-hospital-cloudrun.yaml
