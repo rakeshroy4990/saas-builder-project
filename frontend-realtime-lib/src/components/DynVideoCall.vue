@@ -123,7 +123,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div :id="htmlId" :class="rootClass">
-    <div class="flex items-center justify-between">
+    <div v-if="!isVideosFullscreen" class="flex items-center justify-between">
       <div class="text-lg font-semibold text-slate-900">Video call</div>
       <button
         class="rounded border border-slate-300 px-3 py-1 text-sm"
@@ -152,7 +152,7 @@ onBeforeUnmount(() => {
         <p v-if="mediaError" class="mt-2 text-sm text-rose-600">{{ mediaError }}</p>
       </div>
 
-      <div class="mt-4 flex flex-wrap items-center gap-2">
+      <div v-if="!isVideosFullscreen" class="mt-4 flex flex-wrap items-center gap-2">
         <button
           class="rounded border border-slate-400 px-3 py-2 text-sm text-slate-800"
           type="button"
@@ -193,12 +193,22 @@ onBeforeUnmount(() => {
             : 'grid grid-cols-1 gap-3 overflow-hidden rounded-lg md:grid-cols-2'
         ]"
       >
+        <div
+          v-if="isVideosFullscreen"
+          class="pointer-events-none absolute left-1/2 top-6 z-20 -translate-x-1/2 text-center text-white"
+        >
+          <div class="text-[30px] font-semibold tracking-tight drop-shadow-md">
+            {{ remotePartyName || 'Participant' }}
+          </div>
+          <div class="mt-1 text-base text-white/90 drop-shadow-md">🔒 End-to-end encrypted</div>
+        </div>
+
         <video
           ref="localVideo"
           :class="[
             'bg-black object-cover',
             isVideosFullscreen
-              ? 'absolute bottom-3 right-3 z-10 aspect-video w-[38%] max-w-[240px] rounded-lg shadow-lg ring-2 ring-white/25 sm:bottom-4 sm:right-4 sm:max-w-[min(300px,32vw)]'
+              ? 'absolute right-4 top-20 z-10 aspect-video w-[34%] max-w-[220px] rounded-2xl shadow-lg ring-2 ring-white/25 sm:max-w-[min(280px,30vw)]'
               : 'aspect-video w-full rounded'
           ]"
           autoplay
@@ -218,16 +228,44 @@ onBeforeUnmount(() => {
           aria-label="Remote participant"
         />
 
-        <button
+        <div
           v-if="isVideosFullscreen"
-          type="button"
-          class="absolute left-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg ring-2 ring-white/20 transition hover:bg-rose-700 sm:left-4 sm:top-4"
-          title="End call"
-          :disabled="!callId"
-          @click="end"
+          class="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/45 px-4 py-3 backdrop-blur-md"
         >
-          ✕
-        </button>
+          <button
+            type="button"
+            class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-xl text-white ring-1 ring-white/15 transition hover:bg-white/25"
+            title="More"
+          >
+            ⋯
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-lg text-white ring-1 ring-white/15 transition hover:bg-white/25"
+            :disabled="!callId"
+            title="Heartbeat"
+            @click="heartbeat"
+          >
+            ↻
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-lg text-white ring-1 ring-white/15 transition hover:bg-white/25"
+            title="Exit fullscreen"
+            @click="toggleVideosFullscreen"
+          >
+            ⤢
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-rose-600 text-2xl text-white shadow-xl ring-2 ring-white/20 transition hover:bg-rose-700"
+            title="End call"
+            :disabled="!callId"
+            @click="end"
+          >
+            📞
+          </button>
+        </div>
       </div>
     </div>
   </div>

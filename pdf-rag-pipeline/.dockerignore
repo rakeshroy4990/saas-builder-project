@@ -1,0 +1,9 @@
+# pdf-rag-pipeline/.dockerignore
+.git
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.env*
+tests/

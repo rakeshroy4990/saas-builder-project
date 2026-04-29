@@ -45,6 +45,30 @@ function parseAppointmentStartMs(preferredDate: string, preferredTimeSlot: strin
   return day.getTime();
 }
 
+function formatMinutesToTwelveHour(totalMinutes: number): string {
+  const safe = Math.max(0, Math.min(totalMinutes, 23 * 60 + 59));
+  const hh24 = Math.floor(safe / 60);
+  const mm = safe % 60;
+  const meridiem = hh24 >= 12 ? 'PM' : 'AM';
+  const hh12 = hh24 % 12 === 0 ? 12 : hh24 % 12;
+  return `${hh12}:${String(mm).padStart(2, '0')} ${meridiem}`;
+}
+
+function formatSlotTimeToken(raw: string): string {
+  const minutes = parseTimeToMinutes(raw);
+  if (minutes == null) return String(raw ?? '').trim();
+  return formatMinutesToTwelveHour(minutes);
+}
+
+function formatPreferredTimeSlot(raw: string): string {
+  const slot = String(raw ?? '').trim();
+  if (!slot) return '';
+  const parts = slot.split(/\s*(?:-|–|—|\bto\b)\s*/i).map((part) => part.trim()).filter(Boolean);
+  if (parts.length === 0) return slot;
+  if (parts.length === 1) return formatSlotTimeToken(parts[0]);
+  return `${formatSlotTimeToken(parts[0])} - ${formatSlotTimeToken(parts[1])}`;
+}
+
 function resolveAppointmentRowPayload(entry: unknown): Record<string, unknown> {
   const row = (entry ?? {}) as Record<string, unknown>;
   const nested = (row.Data ?? row.data ?? row.Item ?? row.item) as unknown;
@@ -112,7 +136,7 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
     doctorName:
       pickString(row, ['DoctorName', 'doctorName', 'AssignedDoctorName', 'assignedDoctorName']) || 'Doctor',
     preferredDate,
-    preferredTimeSlot,
+    preferredTimeSlot: formatPreferredTimeSlot(preferredTimeSlot),
     status: pickString(row, ['Status', 'status']) || 'SCHEDULED',
     additionalNotes: pickString(row, ['AdditionalNotes', 'additionalNotes']),
     createdTimestamp,
@@ -164,15 +188,26 @@ export function filterDashboardAppointments(
   filters: Record<string, unknown>
 ): Array<Record<string, unknown>> {
   const status = String(filters.status ?? '').trim().toUpperCase();
+  const statusSelectedExplicitly = Boolean(filters.statusSelectedExplicitly);
   const preferredDate = String(filters.preferredDate ?? '').trim();
   const doctorId = String(filters.doctorId ?? '').trim();
   const department = String(filters.department ?? '').trim().toLowerCase();
+  const statusFilterApplied = Boolean(status && status !== '__ALL__');
+  const defaultFilterState = !statusSelectedExplicitly && !statusFilterApplied && !preferredDate && !doctorId && !department;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const nowMs = Date.now();
   return list.filter((row) => {
     const rowStatus = String(row.status ?? '').trim().toUpperCase();
-    const rowDate = String(row.preferredDate ?? '').trim();
+    const rowDateRaw = String(row.preferredDate ?? '').trim();
+    const rowDate = rowDateRaw.slice(0, 10);
     const rowDoctorId = String(row.doctorId ?? '').trim();
     const rowDepartment = String(row.department ?? '').trim().toLowerCase();
-    if (status && rowStatus !== status) return false;
+    if (defaultFilterState) {
+      const rowStartMs = parseAppointmentStartMs(rowDateRaw, String(row.preferredTimeSlot ?? '').trim());
+      if (rowStartMs != null && rowStartMs < nowMs) return false;
+      if (rowStartMs == null && rowDate && rowDate < todayIso) return false;
+    }
+    if (statusFilterApplied && rowStatus !== status) return false;
     if (preferredDate && rowDate !== preferredDate) return false;
     if (doctorId && rowDoctorId !== doctorId) return false;
     if (department && rowDepartment !== department) return false;
@@ -206,6 +241,40 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
         : [];
     const normalized = sortAppointmentsByDateDesc(rows.map((entry, idx) => normalizeAppointmentRecord(entry, idx)));
     const filtered = filterDashboardAppointments(normalized, filters);
+    const doctorFromAppointments = normalized
+      .map((row) => {
+        const value = String(row.doctorId ?? '').trim();
+        const label = String(row.doctorName ?? value).trim();
+        if (!value || !label) return null;
+        return { id: value, value, label };
+      })
+      .filter((entry): entry is { id: string; value: string; label: string } => entry !== null);
+    const doctorMap = new Map<string, { id: string; value: string; label: string }>();
+    for (const option of doctorFromAppointments) {
+      if (!doctorMap.has(option.value)) doctorMap.set(option.value, option);
+    }
+    const existingFilters = (appStore.getData('hospital', 'DashboardFilters') ?? {}) as Record<string, unknown>;
+    const existingDoctorOptions = Array.isArray(existingFilters.doctorOptions)
+      ? (existingFilters.doctorOptions as Array<{ id?: string; value?: string; label?: string }>)
+      : [];
+    const mergedDoctorOptions = [
+      { id: 'all', value: '', label: 'All Doctors' },
+      ...existingDoctorOptions
+        .filter((option) => String(option.value ?? '').trim())
+        .map((option) => ({
+          id: String(option.id ?? option.value ?? '').trim(),
+          value: String(option.value ?? '').trim(),
+          label: String(option.label ?? option.value ?? '').trim()
+        })),
+      ...doctorMap.values()
+    ].filter((option, index, arr) => {
+      if (!option.value) return index === 0;
+      return arr.findIndex((x) => x.value === option.value) === index;
+    });
+    appStore.setData('hospital', 'DashboardFilters', {
+      ...existingFilters,
+      doctorOptions: mergedDoctorOptions
+    });
     const totalElementsRaw = Number(
       (dataNode as Record<string, unknown>)?.totalElements ??
         (dataNode as Record<string, unknown>)?.total ??
