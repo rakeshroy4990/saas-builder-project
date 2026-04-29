@@ -14,8 +14,11 @@ yarn-error.log
 **/.gradle/
 **/build/
 *.class
-*.jar
 *.war
+
+# Allow gradle wrapper jar (required for ./gradlew)
+!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 
 # Python
 **/__pycache__/
