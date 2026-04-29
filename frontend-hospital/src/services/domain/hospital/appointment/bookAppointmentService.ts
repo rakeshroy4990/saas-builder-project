@@ -14,6 +14,8 @@ import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartmen
 import { loadDashboardAppointmentsPage } from '../shared/dashboardAppointments';
 import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppointmentTimeSlots';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
+import { getOrCreateTraceId } from '../../../logging/traceContext';
+import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
 
 function clearAppointmentFormFieldsAfterSave(): void {
   const store = useAppStore(pinia);
@@ -119,7 +121,11 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
         trackEvent('appointment_submit_failed', {
           reason: 'missing_required_fields',
           missingCount: missingRequiredFields.length,
-          isEdit: Boolean(editingId)
+          isEdit: Boolean(editingId),
+          domain: 'appointment',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.appointment.validationError,
+          trace_id: getOrCreateTraceId()
         });
         return {
           responseCode: 'BOOK_APPOINTMENT_FAILED',
@@ -131,7 +137,14 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
         const ageDigits = String(payload.AgeGroup).replace(/\D/g, '');
         const ageNum = parseInt(ageDigits, 10);
         if (!Number.isNaN(ageNum) && ageNum > 20) {
-          trackEvent('appointment_submit_failed', { reason: 'age_limit', isEdit: false });
+          trackEvent('appointment_submit_failed', {
+            reason: 'age_limit',
+            isEdit: false,
+            domain: 'appointment',
+            status: 'fail',
+            reason_code: telemetryReasonCodes.appointment.ageLimit,
+            trace_id: getOrCreateTraceId()
+          });
           return { responseCode: 'BOOK_APPOINTMENT_FAILED', message: 'Age must be 20 years or less for booking.' };
         }
       }
@@ -152,7 +165,11 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
           trackEvent('appointment_updated', {
             appointmentId: editingId,
             department: String(payload.Department || ''),
-            doctorId: String(payload.DoctorId || '')
+            doctorId: String(payload.DoctorId || ''),
+            domain: 'appointment',
+            status: 'success',
+            reason_code: telemetryReasonCodes.appointment.updateSuccess,
+            trace_id: getOrCreateTraceId()
           });
           return ok({ appointmentId: editingId });
         }
@@ -164,7 +181,11 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
         trackEvent('appointment_created', {
           appointmentId,
           department: String(payload.Department || ''),
-          doctorId: String(payload.DoctorId || '')
+          doctorId: String(payload.DoctorId || ''),
+          domain: 'appointment',
+          status: 'success',
+          reason_code: telemetryReasonCodes.appointment.createSuccess,
+          trace_id: getOrCreateTraceId()
         });
         return ok({ appointmentId });
       } catch (error) {
@@ -172,7 +193,15 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
           ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||
             'Unable to save appointment right now.'
           : 'Unable to save appointment right now.';
-        trackEvent('appointment_submit_failed', { reason: 'request_failed', isEdit: Boolean(editingId) });
+        trackEvent('appointment_submit_failed', {
+          reason: 'request_failed',
+          isEdit: Boolean(editingId),
+          domain: 'appointment',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.appointment.requestFailed,
+          http_status: isAxiosError(error) ? error.response?.status : undefined,
+          trace_id: getOrCreateTraceId()
+        });
         return { responseCode: 'BOOK_APPOINTMENT_FAILED', message };
       }
     }

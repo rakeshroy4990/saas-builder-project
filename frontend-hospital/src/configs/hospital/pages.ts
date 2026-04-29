@@ -2104,7 +2104,9 @@ export const hospitalPages: PageConfig[] = [
                           },
                           onSuccess: {
                             actionType: 'closePopup',
-                            onSuccess: { actionType: 'reloadWindow' }
+                            onSuccess: {
+                              actionId: 'execute-post-login-action'
+                            }
                           }
                         }
                       }
@@ -3899,7 +3901,7 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   text: 'X',
                   styles: { styleTemplate: 'hosp.popup.header.closeButton' },
-                  click: { actionType: 'closePopup' }
+                  click: { actionId: 'call-end' }
                 }
               }
             ]

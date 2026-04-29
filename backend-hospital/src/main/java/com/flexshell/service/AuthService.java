@@ -16,6 +16,7 @@ import com.flexshell.auth.api.RefreshTokenRequest;
 import com.flexshell.auth.api.RefreshTokenResponse;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
+import com.flexshell.observability.ObservabilityLogger;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import org.slf4j.Logger;
@@ -64,6 +65,11 @@ public class AuthService implements AuthFacade {
                 ? userRepository.findByEmail(identity)
                 : userRepository.findByUsername(identity);
         if (user.isEmpty()) {
+            ObservabilityLogger.warn(log, "login_attempt", Map.of(
+                    "domain", "auth",
+                    "status", "fail",
+                    "reason_code", "invalid_credentials",
+                    "identity_hint", identity.contains("@") ? "email" : "username"));
             return Optional.empty();
         }
         UserEntity account = user.get();
@@ -100,8 +106,22 @@ public class AuthService implements AuthFacade {
         }
 
         String hash = account.getPasswordHash();
-        if (hash == null || hash.isBlank()) return Optional.empty();
-        if (!passwordEncoder.matches(rawPassword, hash)) return Optional.empty();
+        if (hash == null || hash.isBlank()) {
+            ObservabilityLogger.warn(log, "login_attempt", Map.of(
+                    "domain", "auth",
+                    "status", "fail",
+                    "reason_code", "invalid_credentials",
+                    "user_id", account.getId()));
+            return Optional.empty();
+        }
+        if (!passwordEncoder.matches(rawPassword, hash)) {
+            ObservabilityLogger.warn(log, "login_attempt", Map.of(
+                    "domain", "auth",
+                    "status", "fail",
+                    "reason_code", "invalid_credentials",
+                    "user_id", account.getId()));
+            return Optional.empty();
+        }
 
         String subject = account.getId();
         String audience = "web";
@@ -143,6 +163,12 @@ public class AuthService implements AuthFacade {
         response.setRoleStatus(account.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : account.getRoleStatus().name());
         response.setRequestedRole(account.getRequestedRole() == null ? null : account.getRequestedRole().name());
         response.setRoleRejectedReason(account.getRoleRejectedReason());
+        ObservabilityLogger.info(log, "login_attempt", Map.of(
+                "domain", "auth",
+                "status", "success",
+                "reason_code", "login_success",
+                "user_id", account.getId(),
+                "role", response.getRole()));
         return Optional.of(response);
     }
 

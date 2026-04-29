@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app'
 import { getAnalytics, isSupported, logEvent } from 'firebase/analytics'
 import type { Analytics } from 'firebase/analytics'
 import type { Router } from 'vue-router'
+import type { TelemetryDomain, TelemetryReasonCode, TelemetryStatus } from '../observability/telemetrySchema'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -33,9 +34,17 @@ type AnalyticsEventParamsMap = {
   }
   login_success: {
     role: string
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    trace_id: string
   }
   login_failed: {
     reason: 'missing_credentials' | 'unauthorized' | 'request_failed'
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    http_status?: number
+    trace_id: string
   }
   logout: Record<string, never>
   register_success: {
@@ -49,28 +58,67 @@ type AnalyticsEventParamsMap = {
     appointmentId: string
     department: string
     doctorId: string
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
   }
   appointment_updated: {
     appointmentId: string
     department: string
     doctorId: string
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
   }
   appointment_submit_failed: {
     reason: 'missing_required_fields' | 'age_limit' | 'request_failed'
     missingCount?: number
     isEdit: boolean
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    http_status?: number
+    trace_id: string
   }
   chat_support_request_created: {
     requestId: string
   }
-  chat_ai_reply_received: Record<string, never>
-  chat_ai_escalated: Record<string, never>
-  chat_ai_failed: Record<string, never>
+  chat_ai_reply_received: {
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+    provider?: string
+  }
+  chat_ai_escalated: {
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+  }
+  chat_ai_failed: {
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+    provider?: string
+    http_status?: number
+  }
+  video_call_event: {
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+    call_id?: string
+    duration_sec?: number
+  }
 }
 
 export type AnalyticsEventName = keyof AnalyticsEventParamsMap
 
-type AnalyticsFlowKey = 'navigation' | 'auth' | 'registration' | 'appointment' | 'chat'
+type AnalyticsFlowKey = 'navigation' | 'auth' | 'registration' | 'appointment' | 'chat' | 'video'
 
 const analyticsFlowByEvent: Record<AnalyticsEventName, AnalyticsFlowKey> = {
   page_view: 'navigation',
@@ -85,7 +133,8 @@ const analyticsFlowByEvent: Record<AnalyticsEventName, AnalyticsFlowKey> = {
   chat_support_request_created: 'chat',
   chat_ai_reply_received: 'chat',
   chat_ai_escalated: 'chat',
-  chat_ai_failed: 'chat'
+  chat_ai_failed: 'chat',
+  video_call_event: 'video'
 }
 
 export function trackEvent<TEventName extends AnalyticsEventName>(

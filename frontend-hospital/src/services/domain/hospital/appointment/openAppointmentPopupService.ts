@@ -5,6 +5,7 @@ import { pinia } from '../../../../store/pinia';
 import { ok } from '../shared/response';
 import { clearAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
 import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
+import { setDeferredPostLoginAction } from '../auth/postLoginAction';
 export const openAppointmentPopupHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
@@ -16,6 +17,10 @@ export const openAppointmentPopupHospitalServices: ServiceDefinition[] = [
       >;
       const userId = String(authSession.userId ?? '').trim();
       if (!userId) {
+        setDeferredPostLoginAction({
+          packageName: 'hospital',
+          actionId: 'open-appointment-popup'
+        });
         useAppStore(pinia).setProperty('hospital', 'AuthForm', 'identity', '');
         useAppStore(pinia).setProperty('hospital', 'AuthForm', 'password', '');
         useAppStore(pinia).setProperty('hospital', 'AuthForm', 'emailError', '');

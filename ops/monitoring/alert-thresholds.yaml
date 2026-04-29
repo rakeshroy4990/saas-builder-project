@@ -1,0 +1,21 @@
+alerts:
+  - name: auth-login-failure-rate
+    condition: "login_failures / (login_failures + login_success) > 0.15"
+    window: 10m
+    severity: warning
+  - name: appointment-create-failure-rate
+    condition: "appointment_create_failures / (appointment_create_failures + appointment_create_success) > 0.05"
+    window: 10m
+    severity: warning
+  - name: video-call-drop-rate
+    condition: "video_call_drop / (video_call_drop + video_call_connected) > 0.08"
+    window: 15m
+    severity: critical
+  - name: chat-ai-failure-rate
+    condition: "chat_ai_fail / (chat_ai_fail + chat_ai_success) > 0.10"
+    window: 10m
+    severity: warning
+  - name: chat-ai-quota-daily-spike
+    condition: "chat_ai_quota_daily > 20"
+    window: 10m
+    severity: warning

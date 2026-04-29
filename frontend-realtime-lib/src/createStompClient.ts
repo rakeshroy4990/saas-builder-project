@@ -26,8 +26,14 @@ export function createStompClient(deps: StompClientDeps) {
   let connectPromise: Promise<void> | null = null;
 
   async function connect(): Promise<void> {
-    if (client?.active) return;
+    // `active=true` only means activation/reconnect loop is running, not that we can publish.
+    // Callers need a hard guarantee that `connect()` resolves only when publish/subscribe are safe.
+    if (client?.connected) return;
     if (connectPromise) return connectPromise;
+    if (client?.active && !client.connected) {
+      client.deactivate();
+      client = null;
+    }
 
     connectPromise = (async () => {
       const connectHeaders: Record<string, string> = {};
