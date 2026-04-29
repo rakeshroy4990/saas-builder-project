@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Component
 public class AiSafetyPolicy {
@@ -39,8 +40,13 @@ public class AiSafetyPolicy {
             "chest pain", "difficulty breathing", "shortness of breath", "stroke",
             "slurred speech", "face drooping", "uncontrolled bleeding",
             "severe abdominal pain", "suicidal", "suicide", "self-harm", "self harm",
-            "infant fever", "high fever", "fever 103", "39.4"
+            "infant fever", "high fever", "fever 103", "39.4",
+            "overdose", "toxic dose", "toxicity", "poison", "poisoning",
+            "drug overdose", "medication overdose", "pill overdose",
+            "accidental ingestion", "took too much", "too many tablets",
+            "azithromycin overdose", "azithromycin toxicity"
     );
+    private static final Pattern NEXT_OPTIONS_BLOCK_PATTERN = Pattern.compile("(?is)\\n\\s*next options\\s*:.*$");
 
     public AiSafetyPolicy(@Value("${app.ai.system-prompt:}") String configuredSystemPrompt) {
         String prompt = String.valueOf(configuredSystemPrompt == null ? "" : configuredSystemPrompt).trim();
@@ -60,23 +66,16 @@ public class AiSafetyPolicy {
     }
 
     public String escalationReply() {
-        return "Your symptoms may need urgent medical attention. Please contact emergency services or visit the nearest emergency department immediately.\n\n"
+        return "This may be a possible overdose or poisoning emergency. Call your local emergency number immediately, or contact your poison control center right away for urgent guidance.\n\n"
+                + "If this happened recently, do not take more medicine, and keep the medicine strip/bottle nearby to share exact dose and time taken.\n\n"
                 + NON_DOCTOR_LINE + "\n\n"
                 + DISCLAIMER_LINE;
     }
 
     public String enforceSafeResponse(String raw) {
         String body = normalizeWhitespace(raw);
+        body = stripNextOptionsBlock(body);
         if (isRagFallbackMessage(body)) {
-            if (!body.toLowerCase(Locale.ROOT).contains("not a doctor")) {
-                body = body + "\n\n" + NON_DOCTOR_LINE;
-            }
-            if (!body.contains(DISCLAIMER_LINE)) {
-                body = body + "\n\n" + DISCLAIMER_LINE;
-            }
-            return body.trim();
-        }
-        if (hasEndOptionsBlock(body)) {
             if (!body.toLowerCase(Locale.ROOT).contains("not a doctor")) {
                 body = body + "\n\n" + NON_DOCTOR_LINE;
             }
@@ -123,8 +122,11 @@ public class AiSafetyPolicy {
                 && normalized.contains("3. when to see a doctor");
     }
 
-    private static boolean hasEndOptionsBlock(String body) {
-        return body.toLowerCase(Locale.ROOT).contains("next options:");
+    private static String stripNextOptionsBlock(String body) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        return NEXT_OPTIONS_BLOCK_PATTERN.matcher(body).replaceFirst("").trim();
     }
 
     private static String fallbackStructuredResponse(String rawModelText) {
