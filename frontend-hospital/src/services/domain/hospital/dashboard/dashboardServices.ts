@@ -31,7 +31,8 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
     execute: async () => {
       const appStore = useAppStore(pinia);
       const prevNav = (appStore.getData('hospital', 'DashboardNav') ?? {}) as { activeItem?: string };
-      const keepWorkingSlots = String(prevNav.activeItem ?? '').trim() === 'working-slots';
+      const previousActiveItem = String(prevNav.activeItem ?? '').trim();
+      const keepWorkingSlots = previousActiveItem === 'working-slots';
       appStore.setData('hospital', 'DashboardNav', {
         activeItem: keepWorkingSlots ? 'working-slots' : 'appointments'
       });

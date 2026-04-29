@@ -15,6 +15,12 @@ import org.springframework.stereotype.Component;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -35,15 +41,16 @@ public class ClinicPrescriptionPdfRenderer {
             Font normal = FontFactory.getFont(FontFactory.HELVETICA, 10);
             Font small = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 8);
 
-            doc.add(new Paragraph("E-PRESCRIPTION (clinic telemedicine layout)", title));
+            doc.add(new Paragraph("E-PRESCRIPTION", title));
             doc.add(new Paragraph(
-                    "Template v" + str(payload.get(ClinicTelemedicinePrescriptionSchema.KEY_TEMPLATE_VERSION))
-                            + " — legal validity requires counsel-approved signing and records.",
+                    "Electronically generated clinical prescription. Valid only when finalized and signed by the treating practitioner.",
                     small));
             doc.add(new Paragraph(" "));
 
             doc.add(section("Consultation", normal));
-            doc.add(line("Date & time: " + str(payload.get(ClinicTelemedicinePrescriptionSchema.KEY_CONSULTATION_DATE_TIME)), normal));
+            doc.add(line(
+                    "Date & time: " + formatFriendlyDateTime(str(payload.get(ClinicTelemedicinePrescriptionSchema.KEY_CONSULTATION_DATE_TIME))),
+                    normal));
             doc.add(line("Mode: " + str(payload.get(ClinicTelemedicinePrescriptionSchema.KEY_CONSULTATION_MODE)), normal));
             doc.add(new Paragraph(" "));
 
@@ -145,5 +152,35 @@ public class ClinicPrescriptionPdfRenderer {
 
     private static String str(Object v) {
         return v == null ? "" : String.valueOf(v).trim();
+    }
+
+    private static String formatFriendlyDateTime(String raw) {
+        String input = str(raw);
+        if (input.isEmpty()) return "";
+        DateTimeFormatter out = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a z");
+        try {
+            Instant instant = Instant.parse(input);
+            ZonedDateTime zdt = instant.atZone(ZoneId.systemDefault());
+            return out.format(zdt);
+        } catch (Exception ignored) {
+            // Try local date-time formats if backend ever sends non-ISO instant.
+        }
+        try {
+            LocalDateTime ldt = LocalDateTime.parse(input);
+            return out.format(ldt.atZone(ZoneId.systemDefault()));
+        } catch (Exception ignored) {
+        }
+        try {
+            ZonedDateTime zdt = ZonedDateTime.parse(input);
+            return out.format(zdt);
+        } catch (Exception ignored) {
+        }
+        try {
+            // Fallback for timestamps with trailing Z but no offset parsing support in earlier step.
+            LocalDateTime ldt = LocalDateTime.parse(input.replace("Z", ""));
+            return out.format(ldt.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneId.systemDefault()));
+        } catch (Exception ignored) {
+        }
+        return input;
     }
 }

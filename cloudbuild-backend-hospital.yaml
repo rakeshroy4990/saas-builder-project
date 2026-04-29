@@ -1,0 +1,48 @@
+# Build and deploy only `backend-hospital` to Cloud Run.
+# Uses:
+#   - `backend-hospital/cloudrun-env.yaml` (committed, non-secret env vars)
+#   - Secret Manager via `--set-secrets` (no secret values in this file)
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:$SHORT_SHA
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:latest
+      - -f
+      - backend-hospital/Dockerfile
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - backend-hospital
+      - --image
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:$SHORT_SHA
+      - --region
+      - asia-south1
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --env-vars-file
+      - backend-hospital/cloudrun-env.yaml
+      - --set-secrets
+      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest
+      - --quiet
+
+images:
+  - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+

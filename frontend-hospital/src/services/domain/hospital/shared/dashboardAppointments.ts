@@ -5,6 +5,46 @@ import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { pickString } from './strings';
 
+function parseTimeToMinutes(raw: string): number | null {
+  const text = String(raw ?? '').trim();
+  if (!text) return null;
+
+  const twentyFour = text.match(/^(\d{1,2}):(\d{2})$/);
+  if (twentyFour) {
+    const hh = Number(twentyFour[1]);
+    const mm = Number(twentyFour[2]);
+    if (Number.isFinite(hh) && Number.isFinite(mm) && hh >= 0 && hh < 24 && mm >= 0 && mm < 60) {
+      return hh * 60 + mm;
+    }
+  }
+
+  const twelveHour = text.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/);
+  if (!twelveHour) return null;
+  let hh = Number(twelveHour[1]);
+  const mm = Number(twelveHour[2]);
+  const meridiem = String(twelveHour[3]).toUpperCase();
+  if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh < 1 || hh > 12 || mm < 0 || mm > 59) return null;
+  if (meridiem === 'AM') {
+    if (hh === 12) hh = 0;
+  } else if (hh !== 12) {
+    hh += 12;
+  }
+  return hh * 60 + mm;
+}
+
+function parseAppointmentStartMs(preferredDate: string, preferredTimeSlot: string): number | null {
+  const date = String(preferredDate ?? '').trim();
+  const slot = String(preferredTimeSlot ?? '').trim();
+  if (!date || !slot) return null;
+  const firstToken = slot.split(/\s*(?:-|–|—|\bto\b)\s*/i)[0]?.trim() ?? '';
+  const minutes = parseTimeToMinutes(firstToken);
+  if (minutes == null) return null;
+  const day = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(day.getTime())) return null;
+  day.setMinutes(minutes);
+  return day.getTime();
+}
+
 function resolveAppointmentRowPayload(entry: unknown): Record<string, unknown> {
   const row = (entry ?? {}) as Record<string, unknown>;
   const nested = (row.Data ?? row.data ?? row.Item ?? row.item) as unknown;
@@ -54,6 +94,13 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
   const canIssueEprescription = isAssignedDoctor && statusU === 'COMPLETED';
   const canDownloadEprescription =
     statusU === 'COMPLETED' && (canEditAppointment === 'Y' || isAssignedDoctor || role === 'ADMIN');
+  const preferredTimeSlot = pickString(row, ['PreferredTimeSlot', 'preferredTimeSlot']);
+  const appointmentStartMs = parseAppointmentStartMs(preferredDate, preferredTimeSlot);
+  const canStartVideoCall =
+    statusU !== 'CANCELLED'
+    && statusU !== 'COMPLETED'
+    && appointmentStartMs != null
+    && Date.now() >= appointmentStartMs - 15 * 60 * 1000;
   return {
     id,
     patientName: pickString(row, ['PatientName', 'patientName']) || 'Patient',
@@ -65,7 +112,7 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
     doctorName:
       pickString(row, ['DoctorName', 'doctorName', 'AssignedDoctorName', 'assignedDoctorName']) || 'Doctor',
     preferredDate,
-    preferredTimeSlot: pickString(row, ['PreferredTimeSlot', 'preferredTimeSlot']),
+    preferredTimeSlot,
     status: pickString(row, ['Status', 'status']) || 'SCHEDULED',
     additionalNotes: pickString(row, ['AdditionalNotes', 'additionalNotes']),
     createdTimestamp,
@@ -96,7 +143,8 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
     isAssignedDoctor: isAssignedDoctor ? 'Y' : '',
     canMarkVisitComplete: canMarkVisitComplete ? 'Y' : '',
     canIssueEprescription: canIssueEprescription ? 'Y' : '',
-    canDownloadEprescription: canDownloadEprescription ? 'Y' : ''
+    canDownloadEprescription: canDownloadEprescription ? 'Y' : '',
+    canStartVideoCall: canStartVideoCall ? 'Y' : ''
   };
 }
 

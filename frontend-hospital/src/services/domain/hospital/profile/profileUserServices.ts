@@ -132,7 +132,11 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         await router.replace('/home');
         return ok();
       }
-      appStore.setData('hospital', 'ProfilePageUiState', { activeSection: 'profile' });
+      const existingProfileUi = (appStore.getData('hospital', 'ProfilePageUiState') ?? {}) as Record<string, unknown>;
+      const existingSection = String(existingProfileUi.activeSection ?? '').trim().toLowerCase();
+      appStore.setData('hospital', 'ProfilePageUiState', {
+        activeSection: existingSection === 'inactive' ? 'inactive' : 'profile'
+      });
       appStore.setProperty('hospital', 'ProfileForm', 'saveError', '');
       appStore.setProperty('hospital', 'ProfileForm', 'saving', true);
       try {

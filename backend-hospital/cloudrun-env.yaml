@@ -12,9 +12,6 @@ APP_CORS_ALLOWED_ORIGIN_PATTERNS: "https://oshucare-clinic.web.app,https://oshu-
 APP_MONGODB_DATABASE: flexshell
 APP_VIDEO_PROVIDER: agora
 APP_VIDEO_AGORA_APP_ID: "383d01ff66e543e4892bcfb6b9844a8b"
-APP_AI_PROVIDER: gemini
-APP_AI_GEMINI_MODEL: gemini-flash-latest
-APP_AI_GEMINI_BASE_URL: https://generativelanguage.googleapis.com
 SENTRY_ENABLED: "true"
 SENTRY_ENVIRONMENT: production
 SENTRY_TRACES_SAMPLE_RATE: "0"
