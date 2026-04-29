@@ -8,6 +8,8 @@ import { URLRegistry } from '../../../http/URLRegistry';
 import { stompClient } from '../../../realtime/stompClient';
 import { logClient } from '../../../logging/clientLogger';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
+import { getOrCreateTraceId } from '../../../logging/traceContext';
+import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
 import { ok } from '../shared/response';
 import {
   clearChatSubscription,
@@ -595,7 +597,12 @@ export const chatHospitalServices: ServiceDefinition[] = [
       });
 
       if (!roleIsExpert(appStore) && requiresEscalation(body)) {
-        trackEvent('chat_ai_escalated');
+        trackEvent('chat_ai_escalated', {
+          domain: 'chat',
+          status: 'success',
+          reason_code: telemetryReasonCodes.chat.escalatedToHuman,
+          trace_id: getOrCreateTraceId()
+        });
         const escalated = [
           ...withUserMessage,
           {
@@ -644,13 +651,36 @@ export const chatHospitalServices: ServiceDefinition[] = [
           messagesByRoomId: { ...latestByRoom, [roomId]: nextMessages }
         });
         void logClient('INFO', 'smart ai response received', { replyLength: reply.length });
-        trackEvent('chat_ai_reply_received');
+        trackEvent('chat_ai_reply_received', {
+          domain: 'chat',
+          status: 'success',
+          reason_code: telemetryReasonCodes.chat.replyReceived,
+          trace_id: getOrCreateTraceId()
+        });
         return ok();
-      } catch {
+      } catch (error) {
         const latestChat = getChatStore(appStore);
         appStore.setData('hospital', 'Chat', { ...latestChat, aiProcessing: false });
-        void logClient('ERROR', 'smart ai request failed', {});
-        trackEvent('chat_ai_failed');
+        const status = isAxiosError(error) ? error.response?.status : undefined;
+        const errorCode = String(
+          (isAxiosError(error) ? error.response?.data?.ErrorCode : '') ?? ''
+        ).trim().toUpperCase();
+        const reasonCode =
+          errorCode === 'AI_SMART_QUOTA_DAILY'
+            ? telemetryReasonCodes.chat.quotaDaily
+            : status === 429
+              ? telemetryReasonCodes.chat.provider429
+              : (status ?? 0) >= 500
+                ? telemetryReasonCodes.chat.provider5xx
+                : telemetryReasonCodes.chat.requestFailed;
+        void logClient('ERROR', 'smart ai request failed', { status, errorCode, reason_code: reasonCode });
+        trackEvent('chat_ai_failed', {
+          domain: 'chat',
+          status: 'fail',
+          reason_code: reasonCode,
+          trace_id: getOrCreateTraceId(),
+          http_status: status
+        });
         toastStore.show('Smart AI is temporarily unavailable. Please try again shortly.', 'error');
         return { responseCode: 'CHAT_AI_SEND_FAILED', message: 'AI service unavailable' };
       }

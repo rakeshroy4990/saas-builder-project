@@ -18,6 +18,9 @@ import {
   resetHospitalVideoCallPiniaState
 } from '../shared/hospitalVideoCallStoreReset';
 import { getHospitalVideoProviderFromEnv, isBuiltinHospitalVideo } from '../shared/videoProviderConfig';
+import { trackEvent } from '../../../analytics/firebaseAnalytics';
+import { getOrCreateTraceId } from '../../../logging/traceContext';
+import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
 
 /**
  * STOMP publish requires a connected client. Default `{}` avoids `undefined` reaching
@@ -29,7 +32,14 @@ async function publishWebRtcSignal(body: Record<string, unknown> = {}): Promise<
   try {
     await stompClient.connect();
     subscribeHospitalWebRtcInboundIfNeeded();
-    stompClient.publish('/app/webrtc.signal', envelope);
+    try {
+      stompClient.publish('/app/webrtc.signal', envelope);
+    } catch {
+      // One fast reconnect+retry handles transient socket races during reconnect.
+      await stompClient.connect();
+      subscribeHospitalWebRtcInboundIfNeeded();
+      stompClient.publish('/app/webrtc.signal', envelope);
+    }
   } catch (err: unknown) {
     console.error('[STOMP] publishWebRtcSignal failed', { envelope, err });
     throw err;
@@ -84,10 +94,22 @@ export const callHospitalServices: ServiceDefinition[] = [
           uid
         };
         appStore.setData('hospital', 'VideoCall', { ...after, videoSession });
+        trackEvent('video_call_event', {
+          domain: 'video',
+          status: 'success',
+          reason_code: telemetryReasonCodes.video.callStarted,
+          trace_id: getOrCreateTraceId()
+        });
         return ok({ provider: videoSession.provider });
       } catch (err: unknown) {
         console.error('[Video] hospital-prepare-video-session failed', err);
         toastStore.show('Could not prepare video session. Check server video configuration.', 'error');
+        trackEvent('video_call_event', {
+          domain: 'video',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.video.sessionPrepFailed,
+          trace_id: getOrCreateTraceId()
+        });
         return { responseCode: 'HOSPITAL_VIDEO_SESSION_FAILED', message: 'Session request failed' };
       }
     }
@@ -141,10 +163,22 @@ export const callHospitalServices: ServiceDefinition[] = [
       }
       try {
         await publishWebRtcSignal({ type: 'invite', toUserId, payload: {} });
+        trackEvent('video_call_event', {
+          domain: 'video',
+          status: 'success',
+          reason_code: telemetryReasonCodes.video.callConnected,
+          trace_id: getOrCreateTraceId()
+        });
         return ok();
       } catch (err: unknown) {
         console.error('[STOMP] call-invite failed', { toUserId, err });
         toastStore.show('Could not send invite. Check your connection and try again.', 'error');
+        trackEvent('video_call_event', {
+          domain: 'video',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.video.publishFailed,
+          trace_id: getOrCreateTraceId()
+        });
         return { responseCode: 'CALL_INVITE_FAILED', message: 'Publish failed' };
       }
     }
@@ -187,12 +221,24 @@ export const callHospitalServices: ServiceDefinition[] = [
           toUserId,
           payload
         });
+        trackEvent('video_call_event', {
+          domain: 'video',
+          status: 'success',
+          reason_code: telemetryReasonCodes.video.callConnected,
+          trace_id: getOrCreateTraceId()
+        });
         const after = (appStore.getData('hospital', 'VideoCall') ?? {}) as Record<string, unknown>;
         appStore.setData('hospital', 'VideoCall', { ...after, videoCallOutgoingInvite: false });
         return ok({ toUserId });
       } catch (err: unknown) {
         console.error('[STOMP] call-send-appointment-invite failed', { toUserId, err });
         toastStore.show('Could not send call invite. Check network and login, then try again.', 'error');
+        trackEvent('video_call_event', {
+          domain: 'video',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.video.publishFailed,
+          trace_id: getOrCreateTraceId()
+        });
         return { responseCode: 'CALL_INVITE_FAILED', message: 'Publish failed' };
       }
     }
@@ -314,6 +360,13 @@ export const callHospitalServices: ServiceDefinition[] = [
               stompClient.publish('/app/webrtc.signal', { type: 'heartbeat', callId, payload: {} });
             } catch (err: unknown) {
               console.error('[STOMP] call-heartbeat tick failed', { callId, err });
+              trackEvent('video_call_event', {
+                domain: 'video',
+                status: 'drop',
+                reason_code: telemetryReasonCodes.video.heartbeatFailed,
+                trace_id: getOrCreateTraceId(),
+                call_id: callId
+              });
             }
           })();
         }, 5000)

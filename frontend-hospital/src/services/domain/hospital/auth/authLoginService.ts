@@ -12,6 +12,8 @@ import { buildFriendlyDisplayName } from '../shared/displayName';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
 import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
+import { getOrCreateTraceId } from '../../../logging/traceContext';
+import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
 
 export const authLoginHospitalServices: ServiceDefinition[] = [
   {
@@ -22,7 +24,13 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
       const identity = String(request.data.identity ?? '').trim();
       const password = String(request.data.password ?? '').trim();
       if (!identity || !password) {
-        trackEvent('login_failed', { reason: 'missing_credentials' });
+        trackEvent('login_failed', {
+          reason: 'missing_credentials',
+          domain: 'auth',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.auth.missingCredentials,
+          trace_id: getOrCreateTraceId()
+        });
         useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', 'Email and password are required.');
         return { responseCode: 'AUTH_FAILED', message: 'Missing credentials', suppressPopupInlineError: true };
       }
@@ -120,18 +128,37 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
             // Non-fatal: badge/chat still work after opening the chat popup.
           }
         }
-        trackEvent('login_success', { role: resolvedRole });
+        trackEvent('login_success', {
+          role: resolvedRole,
+          domain: 'auth',
+          status: 'success',
+          trace_id: getOrCreateTraceId()
+        });
         return ok();
       } catch (error) {
         if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
-          trackEvent('login_failed', { reason: 'unauthorized' });
+          trackEvent('login_failed', {
+            reason: 'unauthorized',
+            domain: 'auth',
+            status: 'fail',
+            reason_code: telemetryReasonCodes.auth.unauthorized,
+            http_status: error.response?.status,
+            trace_id: getOrCreateTraceId()
+          });
           const errorPayload = (error.response?.data ?? {}) as Record<string, unknown>;
           const message =
             pickString(errorPayload, ['Message', 'message']) || 'Invalid email or password';
           useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', message);
           return { responseCode: 'AUTH_FAILED', message, suppressPopupInlineError: true };
         }
-        trackEvent('login_failed', { reason: 'request_failed' });
+        trackEvent('login_failed', {
+          reason: 'request_failed',
+          domain: 'auth',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.auth.requestFailed,
+          http_status: isAxiosError(error) ? error.response?.status : undefined,
+          trace_id: getOrCreateTraceId()
+        });
         useAppStore(pinia).setProperty(
           'hospital',
           'AuthForm',

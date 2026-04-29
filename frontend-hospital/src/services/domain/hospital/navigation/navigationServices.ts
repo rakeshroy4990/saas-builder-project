@@ -5,6 +5,8 @@ import { pinia } from '../../../../store/pinia';
 import { router } from '../../../../router/index';
 import { ok } from '../shared/response';
 import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
+import { consumeDeferredPostLoginAction } from '../auth/postLoginAction';
+import { ServiceRegistry } from '../../../../core/registry/ServiceRegistry';
 
 export const navigationHospitalServices: ServiceDefinition[] = [
   {
@@ -215,6 +217,29 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     execute: async () => {
       useAppStore(pinia).setData('hospital', 'DashboardNav', { activeItem: 'working-slots' });
       return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'execute-post-login-action',
+    execute: async () => {
+      const deferredAction = consumeDeferredPostLoginAction();
+      if (!deferredAction) {
+        return ok({ resumed: false });
+      }
+      const deferredService = ServiceRegistry.getInstance().get(
+        deferredAction.packageName,
+        deferredAction.actionId
+      );
+      if (!deferredService) {
+        return ok({ resumed: false });
+      }
+      try {
+        await deferredService.execute({ data: deferredAction.data ?? {} });
+        return ok({ resumed: true });
+      } catch {
+        return ok({ resumed: false });
+      }
     }
   }
 ];

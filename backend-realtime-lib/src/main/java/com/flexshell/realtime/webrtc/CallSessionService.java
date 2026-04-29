@@ -1,6 +1,8 @@
 package com.flexshell.realtime.webrtc;
 
 import com.flexshell.compliance.PhiRetentionPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -8,6 +10,7 @@ import java.util.Objects;
 
 @Service
 public class CallSessionService {
+    private static final Logger log = LoggerFactory.getLogger(CallSessionService.class);
     private final CallSessionRepository repository;
     private final CallPermissionEvaluator permissionEvaluator;
     private final PhiRetentionPolicy retentionPolicy;
@@ -48,6 +51,8 @@ public class CallSessionService {
         CallSessionEntity session = requireSession(callId);
         ensureParticipant(session, actorUserId);
         session.setStatus(CallSessionStatus.ACTIVE);
+        log.info("event_name=video_call_event domain=video status=success reason_code=call_connected call_id={} user_id={}",
+                session.getCallId(), normalize(actorUserId));
         return repository.save(session);
     }
 
@@ -67,6 +72,8 @@ public class CallSessionService {
         session.setStatus(CallSessionStatus.ENDED);
         session.setEndTime(Instant.now());
         session.setEndedReason(normalize(reason));
+        log.info("event_name=video_call_event domain=video status=drop reason_code=call_dropped call_id={} user_id={} ended_reason={}",
+                session.getCallId(), normalize(actorUserId), normalize(reason));
         return repository.save(session);
     }
 

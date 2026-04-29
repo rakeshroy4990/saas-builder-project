@@ -2,6 +2,8 @@ package com.flexshell.realtime.webrtc;
 
 import com.flexshell.realtime.ws.auth.WsSessionAuthRegistry;
 import com.flexshell.realtime.webrtc.ws.WebRtcSignalEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
@@ -11,6 +13,7 @@ import java.util.Map;
 
 @Component
 public class CallSessionDisconnectListener {
+    private static final Logger log = LoggerFactory.getLogger(CallSessionDisconnectListener.class);
     private final CallSessionConnectionRegistry connectionRegistry;
     private final CallSessionService callSessionService;
     private final WsSessionAuthRegistry wsSessionAuthRegistry;
@@ -47,8 +50,10 @@ public class CallSessionDisconnectListener {
         try {
             session = callSessionService.end(callId, userId, "DISCONNECTED");
         } catch (Exception ex) {
+            log.warn("event_name=video_call_event domain=video status=drop reason_code=stomp_disconnect call_id={} user_id={}", callId, userId);
             return;
         }
+        log.info("event_name=video_call_event domain=video status=drop reason_code=peer_disconnected call_id={} user_id={}", callId, userId);
         heartbeatRegistry.remove(callId);
         String other = callSessionService.otherParticipant(session, userId);
         if (other == null || other.isBlank()) return;
