@@ -1,47 +1,42 @@
-cat > .gcloudignore << 'EOF'
-.git
-.gitignore
-.gcloudignore
+# Git
+.git/
 
-# Node
+# ── Frontends — never needed for Cloud Build ──
+frontend/
+frontend-hospital/
+frontend-ecommerce/
+frontend-social/
+frontend-realtime-lib/
+
+# ── Root node_modules ──
 node_modules/
-npm-debug.log
-yarn-error.log
-**/node_modules/
 
-# Java/Maven/Gradle
-**/target/
-**/.gradle/
-**/build/
-*.class
-*.war
+# ── Python venv / model files inside pdf-rag-pipeline ──
+pdf-rag-pipeline/.venv/
+pdf-rag-pipeline/venv/
+pdf-rag-pipeline/env/
+pdf-rag-pipeline/__pycache__/
+pdf-rag-pipeline/**/__pycache__/
+pdf-rag-pipeline/*.pyc
+pdf-rag-pipeline/models/
+pdf-rag-pipeline/chroma_db/
+pdf-rag-pipeline/vector_store/
+pdf-rag-pipeline/.pytest_cache/
 
-# Allow gradle wrapper jar (required for ./gradlew)
-!gradle/wrapper/gradle-wrapper.jar
-!**/gradle/wrapper/gradle-wrapper.jar
+# ── Java build artifacts ──
+backend-hospital/build/
+backend-hospital/.gradle/
+backend/build/
+backend/.gradle/
+backend-ecommerce/build/
+backend-social/build/
 
-# Python
-**/__pycache__/
-**/*.pyc
-**/*.pyo
-**/.venv/
-**/venv/
-**/*.egg-info/
-
-# IDE
+# ── IDE / OS ──
 .idea/
 .vscode/
-*.iml
-
-# OS
 .DS_Store
-Thumbs.db
+**/.DS_Store
 
-# Logs
+# ── Logs ──
 *.log
 logs/
-
-# Test/coverage
-**/coverage/
-**/.nyc_output/
-EOF
