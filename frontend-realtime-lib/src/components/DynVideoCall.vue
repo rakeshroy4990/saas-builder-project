@@ -198,7 +198,7 @@ onBeforeUnmount(() => {
           :class="[
             'bg-black object-cover',
             isVideosFullscreen
-              ? 'absolute bottom-3 right-3 z-10 aspect-video w-[32%] max-w-[200px] rounded-lg shadow-lg ring-2 ring-white/25 sm:bottom-4 sm:right-4 sm:max-w-[min(240px,28vw)]'
+              ? 'absolute bottom-3 right-3 z-10 aspect-video w-[38%] max-w-[240px] rounded-lg shadow-lg ring-2 ring-white/25 sm:bottom-4 sm:right-4 sm:max-w-[min(300px,32vw)]'
               : 'aspect-video w-full rounded'
           ]"
           autoplay
@@ -217,6 +217,17 @@ onBeforeUnmount(() => {
           playsinline
           aria-label="Remote participant"
         />
+
+        <button
+          v-if="isVideosFullscreen"
+          type="button"
+          class="absolute left-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg ring-2 ring-white/20 transition hover:bg-rose-700 sm:left-4 sm:top-4"
+          title="End call"
+          :disabled="!callId"
+          @click="end"
+        >
+          ✕
+        </button>
       </div>
     </div>
   </div>

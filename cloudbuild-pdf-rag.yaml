@@ -1,0 +1,49 @@
+# Build and deploy only `pdf-rag-pipeline` to Cloud Run.
+# Uses:
+#   - `pdf-rag-pipeline/cloudrun-env.yaml` (committed, non-secret env vars)
+#   - Secret Manager via `--set-secrets` (no secret values in this file)
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --no-cache
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$SHORT_SHA
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:latest
+      - -f
+      - pdf-rag-pipeline/Dockerfile
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - pdf-rag-pipeline
+      - --image
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$SHORT_SHA
+      - --region
+      - asia-south1
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --env-vars-file
+      - pdf-rag-pipeline/cloudrun-env.yaml
+      - --set-secrets
+      - MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest
+      - --quiet
+
+images:
+  - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+

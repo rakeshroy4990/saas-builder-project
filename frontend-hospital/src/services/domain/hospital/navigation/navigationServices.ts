@@ -44,7 +44,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-home-header-active',
     execute: async () => {
-      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'HOME' });
+      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'HOME', profileMenuOpen: false });
       const responsive = (useAppStore(pinia).getData('hospital', 'ResponsiveUiState') ?? {}) as Record<
         string,
         unknown
@@ -57,7 +57,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-profile-header-active',
     execute: async () => {
-      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'PROFILE' });
+      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'PROFILE', profileMenuOpen: false });
       const responsive = (useAppStore(pinia).getData('hospital', 'ResponsiveUiState') ?? {}) as Record<
         string,
         unknown
@@ -70,7 +70,20 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-dashboard-header-active',
     execute: async () => {
-      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'DASHBOARD' });
+      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'DASHBOARD', profileMenuOpen: false });
+      const responsive = (useAppStore(pinia).getData('hospital', 'ResponsiveUiState') ?? {}) as Record<
+        string,
+        unknown
+      >;
+      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', { ...responsive, headerMenuOpen: false });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'set-education-header-active',
+    execute: async () => {
+      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'EDUCATION', profileMenuOpen: false });
       const responsive = (useAppStore(pinia).getData('hospital', 'ResponsiveUiState') ?? {}) as Record<
         string,
         unknown
@@ -84,12 +97,33 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     serviceId: 'set-header-active-menu',
     execute: async (request) => {
       const menu = String(request.data.menu ?? '').trim().toUpperCase() || 'HOME';
-      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: menu });
+      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: menu, profileMenuOpen: false });
       const responsive = (useAppStore(pinia).getData('hospital', 'ResponsiveUiState') ?? {}) as Record<
         string,
         unknown
       >;
       useAppStore(pinia).setData('hospital', 'ResponsiveUiState', { ...responsive, headerMenuOpen: false });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'toggle-profile-header-menu',
+    execute: async () => {
+      const appStore = useAppStore(pinia);
+      const header = (appStore.getData('hospital', 'HeaderUiState') ?? {}) as Record<string, unknown>;
+      const next = !Boolean(header.profileMenuOpen);
+      appStore.setData('hospital', 'HeaderUiState', { ...header, profileMenuOpen: next });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'close-profile-header-menu',
+    execute: async () => {
+      const appStore = useAppStore(pinia);
+      const header = (appStore.getData('hospital', 'HeaderUiState') ?? {}) as Record<string, unknown>;
+      appStore.setData('hospital', 'HeaderUiState', { ...header, profileMenuOpen: false });
       return ok();
     }
   },

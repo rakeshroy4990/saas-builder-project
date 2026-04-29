@@ -556,45 +556,51 @@ export const hospitalPages: PageConfig[] = [
                       }
                     },
                     {
-                      id: 'hospital-dashboard-header-nav-profile-active',
+                      id: 'hospital-dashboard-header-nav-education-active',
                       type: 'button',
                       condition: {
                         expression:
-                          "userId && String(userId).trim().length > 0 && activeMenu === 'PROFILE'",
+                          "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu === 'EDUCATION'",
                         mappings: {
-                          userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
                           activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
                         }
                       },
                       config: {
-                        text: 'Profile',
+                        text: 'Education',
                         styles: {
                           styleTemplate: 'hosp.header.menuButton',
                           utilityClasses: 'bg-emerald-100 text-emerald-700'
                         },
                         click: {
-                          actionId: 'set-profile-header-active',
-                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                          actionId: 'set-education-header-active',
+                          onSuccess: {
+                            actionType: 'navigate',
+                            navigate: { packageName: 'hospital', pageId: 'doctor-education' }
+                          }
                         }
                       }
                     },
                     {
-                      id: 'hospital-dashboard-header-nav-profile',
+                      id: 'hospital-dashboard-header-nav-education',
                       type: 'button',
                       condition: {
                         expression:
-                          "userId && String(userId).trim().length > 0 && activeMenu !== 'PROFILE'",
+                          "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu !== 'EDUCATION'",
                         mappings: {
-                          userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
                           activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
                         }
                       },
                       config: {
-                        text: 'Profile',
+                        text: 'Education',
                         styles: { styleTemplate: 'hosp.header.menuButton' },
                         click: {
-                          actionId: 'set-profile-header-active',
-                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                          actionId: 'set-education-header-active',
+                          onSuccess: {
+                            actionType: 'navigate',
+                            navigate: { packageName: 'hospital', pageId: 'doctor-education' }
+                          }
                         }
                       }
                     },
@@ -668,26 +674,78 @@ export const hospitalPages: PageConfig[] = [
                       }
                     },
                     {
-                      id: 'hospital-dashboard-header-user-display',
-                      type: 'button',
+                      id: 'hospital-dashboard-header-user-anchor',
+                      type: 'container',
                       condition: {
                         expression: "userId && String(userId).trim().length > 0",
                         mappings: {
-                          userId: {
-                            packageName: 'hospital',
-                            key: 'AuthSession',
-                            property: 'userId'
-                          }
+                          userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
                         }
                       },
                       config: {
-                        mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                        styles: { styleTemplate: 'hosp.header.userButton' },
-                        title: 'Profile',
-                        click: {
-                          actionId: 'set-profile-header-active',
-                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
-                        }
+                        styles: { utilityClasses: 'relative' },
+                        children: [
+                          {
+                            id: 'hospital-dashboard-header-user-display',
+                            type: 'button',
+                            config: {
+                              mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
+                              styles: { styleTemplate: 'hosp.header.userButton' },
+                              title: 'Open profile menu',
+                              click: { actionId: 'toggle-profile-header-menu' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-header-user-menu',
+                            type: 'container',
+                            condition: {
+                              expression: 'profileMenuOpen',
+                              mappings: {
+                                profileMenuOpen: { packageName: 'hospital', key: 'HeaderUiState', property: 'profileMenuOpen' }
+                              }
+                            },
+                            config: {
+                              styles: {
+                                utilityClasses:
+                                  'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
+                              },
+                              children: [
+                                {
+                                  id: 'hospital-dashboard-header-user-menu-profile',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Profile',
+                                    styles: { styleTemplate: 'hosp.header.menuButton' },
+                                    click: {
+                                      actionId: 'set-profile-page-section',
+                                      data: { section: 'profile' },
+                                      onSuccess: {
+                                        actionId: 'set-profile-header-active',
+                                        onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-header-user-menu-inactive',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Inactive Account',
+                                    styles: { styleTemplate: 'hosp.header.menuButton' },
+                                    click: {
+                                      actionId: 'set-profile-page-section',
+                                      data: { section: 'inactive' },
+                                      onSuccess: {
+                                        actionId: 'set-profile-header-active',
+                                        onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
                       }
                     },
                     {
@@ -774,6 +832,24 @@ export const hospitalPages: PageConfig[] = [
                   text: 'Dashboard',
                   styles: { styleTemplate: 'hosp.header.menuButton' },
                   click: { actionId: 'set-dashboard-header-active' }
+                }
+              },
+              {
+                id: 'hospital-dashboard-mobile-menu-education',
+                type: 'button',
+                condition: {
+                  expression: "String(role ?? '').toUpperCase() === 'DOCTOR'",
+                  mappings: {
+                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                  }
+                },
+                config: {
+                  text: 'Education',
+                  styles: { styleTemplate: 'hosp.header.menuButton' },
+                  click: {
+                    actionId: 'set-education-header-active',
+                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'doctor-education' } }
+                  }
                 }
               },
               {
@@ -941,7 +1017,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-dashboard-panel-appointments',
                       type: 'container',
                       condition: {
-                        expression: "String(activeItem ?? '') !== 'working-slots'",
+                        expression: "String(activeItem ?? '') === 'appointments'",
                         mappings: {
                           activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
                         }
@@ -1317,6 +1393,9 @@ export const hospitalPages: PageConfig[] = [
                                   {
                                     id: 'hospital-dashboard-appointment-video',
                                     type: 'button',
+                                    disabledCondition: {
+                                      expression: 'canStartVideoCall !== "Y"'
+                                    },
                                     config: {
                                       text: '📞🎥',
                                       title: 'Video Call',
@@ -1732,6 +1811,65 @@ export const hospitalPages: PageConfig[] = [
         hospitalSiteFooter(
           'hospital-doctor-overview-footer',
           'Little Sprouts Care | Meet our care team and specialists.'
+        )
+      ]
+    }
+  },
+  {
+    packageName: 'hospital',
+    pageId: 'doctor-education',
+    title: 'Doctor Education',
+    initializeActions: [{ actionId: 'set-education-header-active' }, { actionId: 'init-doctor-education' }],
+    container: {
+      layoutTemplate: 'hosp.page.root',
+      children: [
+        ...hospitalPublicChromeTop,
+        {
+          id: 'hospital-doctor-education-main',
+          type: 'container',
+          config: {
+            styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col gap-6' },
+            children: [
+              {
+                id: 'hospital-doctor-education-flashcards',
+                type: 'doctor-education-flashcards',
+                condition: {
+                  expression: "String(role ?? '').toUpperCase() === 'DOCTOR'",
+                  mappings: {
+                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                  }
+                },
+                config: {}
+              },
+              {
+                id: 'hospital-doctor-education-access-denied',
+                type: 'container',
+                condition: {
+                  expression: "String(role ?? '').toUpperCase() !== 'DOCTOR'",
+                  mappings: {
+                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                  }
+                },
+                config: {
+                  styles: { styleTemplate: 'hosp.section.card' },
+                  children: [
+                    {
+                      id: 'hospital-doctor-education-access-denied-text',
+                      type: 'text',
+                      config: {
+                        text: 'Education is available for doctor users only.',
+                        styles: { utilityClasses: 'text-sm font-medium text-slate-700' }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        hospitalSiteFooter(
+          'hospital-doctor-education-footer',
+          'Little Sprouts Care | Clinical flashcards for continuous medical learning.'
         )
       ]
     }
