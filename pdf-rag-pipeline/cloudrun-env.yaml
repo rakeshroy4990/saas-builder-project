@@ -1,0 +1,27 @@
+# Non-secret env vars for Cloud Run (gcloud --env-vars-file).
+# See ../cloudbuild.yaml --set-secrets for pdf-rag-pipeline (MONGO_URI, JWT, LLM keys).
+# To enable Sentry: set SENTRY_ENABLED true, create secret pdf-rag-pipeline-sentry-dsn,
+# then add SENTRY_DSN to --set-secrets or use Cloud Run UI.
+
+MONGO_DB: rag_db
+JWT_ALGORITHM: HS256
+JWT_ISSUER: flexshell-hospital
+JWT_AUDIENCE: web
+LLM_PROVIDER: openai
+LLM_MODEL: gpt-4o-mini
+TEXT_SEARCH_MIN_SCORE: "0.7"
+MAX_CHUNKS: "3"
+MAX_CONTEXT_TOKENS: "1200"
+MIN_CHUNKS_REQUIRED: "1"
+CACHE_TTL_HOURS: "12"
+PDF_DIR: "./pdfs"
+APP_LOG_LEVEL: INFO
+RAG_LOG_FULL_PROMPT: "true"
+RAG_LOG_PROMPT_PREVIEW_CHARS: "400"
+DOMAIN_POINTS_FILE: config/domain_points.json
+CORS_ORIGINS: "https://backend-hospital-yspwmymsgq-el.a.run.app,https://oshu-ai-clinic-ui.onrender.com,http://localhost:5173"
+SENTRY_TRACES_SAMPLE_RATE: "0"
+SENTRY_ENABLED: "true"
+SENTRY_DSN: "https://13c8f9a52f54d607d42214e4e936f653@o4511297937539072.ingest.us.sentry.io/4511297943306240"
+SENTRY_ENVIRONMENT: "production"
+SENTRY_TRACES_SAMPLE_RATE: "0"
