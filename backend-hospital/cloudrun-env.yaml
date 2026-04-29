@@ -1,0 +1,23 @@
+# Non-secret env vars for Cloud Run (gcloud --env-vars-file).
+# Sensitive values: create Secret Manager secrets (IDs in ../cloudbuild.yaml) and grant
+# the Cloud Run runtime service account roles/secretmanager.secretAccessor on each.
+
+APP_LOG_LEVEL: INFO
+APP_AI_RAG_ENABLED: "true"
+APP_AI_RAG_QUERY_PATH: /api/v1/query
+# Point at your deployed pdf-rag service (GCP Cloud Run URL or other host).
+APP_AI_RAG_BASE_URL: https://pdf-rag-pipeline-yspwmymsgq-el.a.run.app
+APP_AUTH_JWT_ISSUER: flexshell-hospital
+APP_CORS_ALLOWED_ORIGIN_PATTERNS: "https://oshucare-clinic.web.app,https://oshu-ai-clinic-ui.onrender.com,https://*.onrender.com,http://localhost:5173"
+APP_MONGODB_DATABASE: flexshell
+APP_VIDEO_PROVIDER: agora
+APP_VIDEO_AGORA_APP_ID: "383d01ff66e543e4892bcfb6b9844a8b"
+APP_AI_PROVIDER: gemini
+APP_AI_GEMINI_MODEL: gemini-flash-latest
+APP_AI_GEMINI_BASE_URL: https://generativelanguage.googleapis.com
+APP_VIDEO_AGORA_APP_CERTIFICATE: d8c4c4a4260f499e8a09401b47b29642
+SENTRY_ENABLED: "true"
+SENTRY_ENVIRONMENT: production
+SENTRY_TRACES_SAMPLE_RATE: "0"
+SENTRY_SEND_DEFAULT_PII: "false"
+SENTRY_DSN: https://13c8f9a52f54d607d42214e4e936f653@o4511297937539072.ingest.us.sentry.io/4511297943306240

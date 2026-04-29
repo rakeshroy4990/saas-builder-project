@@ -1,3 +1,28 @@
+# Cloud Run env: committed *.yaml (non-secret) + Secret Manager (--set-secrets).
+#
+# backend-hospital — create secrets (never commit values):
+#   printf %s 'mongodb+srv://...' | gcloud secrets create backend-hospital-spring-data-mongodb-uri --data-file=-
+#   printf %s 'your-jwt-secret' | gcloud secrets create backend-hospital-app-auth-jwt-secret --data-file=-
+#   printf %s 'agora-cert' | gcloud secrets create backend-hospital-app-video-agora-certificate --data-file=-
+#   printf %s 'AIza...' | gcloud secrets create backend-hospital-app-ai-gemini-api-key --data-file=-
+#
+# pdf-rag-pipeline — create secrets:
+#   printf %s 'mongodb+srv://...' | gcloud secrets create pdf-rag-pipeline-mongo-uri --data-file=-
+#   printf %s 'jwt-signing-secret' | gcloud secrets create pdf-rag-pipeline-jwt-secret --data-file=-
+#   printf %s 'sk-...' | gcloud secrets create pdf-rag-pipeline-openai-api-key --data-file=-
+#   printf %s '' | gcloud secrets create pdf-rag-pipeline-gemini-api-key --data-file=-   # empty if using OpenAI only
+#
+# Grant Cloud Run runtime + Cloud Build SA secretAccessor (replace PROJECT_NUMBER):
+#   RUNTIME_SA="PROJECT_NUMBER-compute@developer.gserviceaccount.com"
+#   for s in \
+#     backend-hospital-spring-data-mongodb-uri backend-hospital-app-auth-jwt-secret \
+#     backend-hospital-app-video-agora-certificate backend-hospital-app-ai-gemini-api-key \
+#     pdf-rag-pipeline-mongo-uri pdf-rag-pipeline-jwt-secret \
+#     pdf-rag-pipeline-openai-api-key pdf-rag-pipeline-gemini-api-key; do
+#     gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${RUNTIME_SA}" --role="roles/secretmanager.secretAccessor"
+#   done
+# Repeat with your Cloud Build service account if different from runtime SA.
+
 steps:
   # ── backend-hospital ─────────────────────────────────────────
   - name: gcr.io/cloud-builders/docker
@@ -30,12 +55,17 @@ steps:
       - --platform
       - managed
       - --allow-unauthenticated
+      - --env-vars-file
+      - backend-hospital/cloudrun-env.yaml
+      - --set-secrets
+      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest
       - --quiet
 
   # ── pdf-rag-pipeline ──────────────────────────────────────────
   - name: gcr.io/cloud-builders/docker
     args:
       - build
+      - --no-cache
       - -t
       - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$SHORT_SHA
       - -t
@@ -63,6 +93,10 @@ steps:
       - --platform
       - managed
       - --allow-unauthenticated
+      - --env-vars-file
+      - pdf-rag-pipeline/cloudrun-env.yaml
+      - --set-secrets
+      - MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest,GEMINI_API_KEY=pdf-rag-pipeline-gemini-api-key:latest
       - --quiet
 
 images:
