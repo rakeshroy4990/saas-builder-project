@@ -1120,23 +1120,18 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-actions-mobile',
                             type: 'container',
                             config: {
-                              layout: { type: 'flex', flex: ['flex', 'items-end', 'gap-2', 'flex-wrap'] },
+                              layout: { type: 'flex', flex: ['flex', 'justify-end', 'items-end'] },
                               children: [
-                                {
-                                  id: 'hospital-dashboard-filter-apply-mobile',
-                                  type: 'button',
-                                  config: {
-                                    text: 'Apply',
-                                    styles: { styleTemplate: 'hosp.button.primary' },
-                                    click: { actionId: 'apply-dashboard-filters' }
-                                  }
-                                },
                                 {
                                   id: 'hospital-dashboard-filter-clear-mobile',
                                   type: 'button',
                                   config: {
-                                    text: 'Clear',
-                                    styles: { styleTemplate: 'hosp.button.secondary' },
+                                    text: '↺',
+                                    title: 'Clear filters',
+                                    styles: {
+                                      utilityClasses:
+                                        'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-600 bg-white text-xl font-semibold text-emerald-700'
+                                    },
                                     click: { actionId: 'clear-dashboard-filters' }
                                   }
                                 }
@@ -1150,7 +1145,9 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-dashboard-filter-grid',
                       type: 'container',
                       config: {
-                        styles: { utilityClasses: 'hidden lg:grid lg:grid-cols-5 gap-3' },
+                        styles: {
+                          utilityClasses: 'hidden lg:grid lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] items-end gap-3'
+                        },
                         children: [
                           {
                             id: 'hospital-dashboard-filter-status',
@@ -1196,23 +1193,18 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-actions',
                             type: 'container',
                             config: {
-                              layout: { type: 'flex', flex: ['flex', 'items-end', 'gap-2', 'flex-wrap'] },
+                              layout: { type: 'flex', flex: ['flex', 'items-end', 'justify-end'] },
                               children: [
-                                {
-                                  id: 'hospital-dashboard-filter-apply',
-                                  type: 'button',
-                                  config: {
-                                    text: 'Apply',
-                                    styles: { styleTemplate: 'hosp.button.primary' },
-                                    click: { actionId: 'apply-dashboard-filters' }
-                                  }
-                                },
                                 {
                                   id: 'hospital-dashboard-filter-clear',
                                   type: 'button',
                                   config: {
-                                    text: 'Clear',
-                                    styles: { styleTemplate: 'hosp.button.secondary' },
+                                    text: '↺',
+                                    title: 'Clear filters',
+                                    styles: {
+                                      utilityClasses:
+                                        'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-600 bg-white text-xl font-semibold text-emerald-700'
+                                    },
                                     click: { actionId: 'clear-dashboard-filters' }
                                   }
                                 }

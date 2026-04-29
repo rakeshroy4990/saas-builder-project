@@ -24,12 +24,39 @@ function appointmentPreferredDateToInput(raw: unknown): string {
   return m ? m[1] : '';
 }
 
+async function loadActiveDoctorFilterOptions(userRole: string): Promise<Array<{ id: string; value: string; label: string }>> {
+  if (String(userRole ?? '').trim().toUpperCase() !== 'ADMIN') {
+    return [];
+  }
+  try {
+    const response = await apiClient.get(URLRegistry.paths.doctorListActive, { params: { page: 0, size: 500 } });
+    const envelope = (response.data ?? {}) as Record<string, unknown>;
+    const raw = (envelope.Data ?? envelope.data ?? []) as unknown;
+    const list = Array.isArray(raw) ? raw : [];
+    return list
+      .map((entry, index) => {
+        const row = (entry ?? {}) as Record<string, unknown>;
+        const id = pickString(row, ['Id', 'id']).trim() || `doctor-${index}`;
+        const firstName = pickString(row, ['FirstName', 'firstName']);
+        const lastName = pickString(row, ['LastName', 'lastName']);
+        const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+        const name = pickString(row, ['Name', 'name']).trim() || fullName || id;
+        return { id, value: id, label: name };
+      })
+      .filter((entry): entry is { id: string; value: string; label: string } => entry !== null);
+  } catch {
+    return [];
+  }
+}
+
 export const dashboardHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
     serviceId: 'init-dashboard',
     execute: async () => {
       const appStore = useAppStore(pinia);
+      const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+      const role = String(authSession.role ?? '').trim().toUpperCase();
       const prevNav = (appStore.getData('hospital', 'DashboardNav') ?? {}) as { activeItem?: string };
       const previousActiveItem = String(prevNav.activeItem ?? '').trim();
       const keepWorkingSlots = previousActiveItem === 'working-slots';
@@ -39,24 +66,9 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       await ensureMedicalDepartmentOptionsLoaded();
       const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
       const departmentList = Array.isArray(departmentsNode.list) ? (departmentsNode.list as unknown[]) : [];
-      const doctorCatalog = (appStore.getData('hospital', 'AppointmentDoctorCatalog') ?? {}) as Record<
-        string,
-        unknown
-      >;
-      const byDepartment = ((doctorCatalog.byDepartment ?? {}) as Record<string, unknown>) ?? {};
-      const doctorOptions = Object.values(byDepartment)
-        .flatMap((entry) => (Array.isArray(entry) ? entry : []))
-        .map((entry) => {
-          const row = (entry ?? {}) as Record<string, unknown>;
-          const value = String(row.value ?? row.id ?? '').trim();
-          const label = String(row.label ?? row.name ?? value).trim();
-          if (!value || !label) return null;
-          return { id: value, value, label };
-        })
-        .filter((entry): entry is { id: string; value: string; label: string } => entry !== null);
-
+      const activeDoctorOptions = await loadActiveDoctorFilterOptions(role);
       const uniqueDoctorMap = new Map<string, { id: string; value: string; label: string }>();
-      for (const doctor of doctorOptions) {
+      for (const doctor of activeDoctorOptions) {
         if (!uniqueDoctorMap.has(doctor.value)) {
           uniqueDoctorMap.set(doctor.value, doctor);
         }
@@ -68,18 +80,17 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       appStore.setData('hospital', 'ResponsiveUiState', { ...responsive, dashboardFiltersOpen: false });
       appStore.setData('hospital', 'DashboardFilters', {
         status: '',
+        statusSelectedExplicitly: false,
         preferredDate: '',
         doctorId: '',
         department: '',
         statusOptions: [
-          { id: 'all', value: '', label: 'All Statuses' },
-          { id: 'scheduled', value: 'SCHEDULED', label: 'Scheduled' },
+          { id: 'allAppointments', value: 'All Appointments', label: 'All Appointments' },
           { id: 'completed', value: 'COMPLETED', label: 'Completed' },
           { id: 'cancelled', value: 'CANCELLED', label: 'Cancelled' }
         ],
-        doctorOptions: [{ id: 'all', value: '', label: 'All Doctors' }, ...uniqueDoctors],
+        doctorOptions: [...uniqueDoctors],
         departmentOptions: [
-          { id: 'all', value: '', label: 'All Departments' },
           ...departmentList.map((option, index) => {
             const row = (option ?? {}) as Record<string, unknown>;
             const value = String(row.value ?? row.id ?? '').trim();
@@ -104,7 +115,6 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         totalLabel: 'Total Appointments: 0'
       });
       await loadDashboardAppointmentsPage(0);
-      const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       if (String(authSession.userId ?? '').trim()) {
         try {
           await ensureHospitalWebRtcInboundConnected();
@@ -139,7 +149,21 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
     execute: async (request) => {
       const appStore = useAppStore(pinia);
       const filters = (appStore.getData('hospital', 'DashboardFilters') ?? {}) as Record<string, unknown>;
-      appStore.setData('hospital', 'DashboardFilters', { ...filters, status: String(request.data.value ?? '').trim() });
+      const rawValue = String(request.data.value ?? '').trim().toUpperCase();
+      const normalizedStatus =
+        rawValue === '__ALL__'
+        || rawValue === 'ALL'
+        || rawValue === 'ALL APPOINTMENTS'
+        || rawValue === 'ALL_APPOINTMENTS'
+        || !rawValue
+          ? '__ALL__'
+          : rawValue;
+      appStore.setData('hospital', 'DashboardFilters', {
+        ...filters,
+        status: normalizedStatus,
+        statusSelectedExplicitly: true
+      });
+      await loadDashboardAppointmentsPage(0);
       return ok();
     }
   },
@@ -153,6 +177,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         ...filters,
         preferredDate: String(request.data.value ?? '').trim()
       });
+      await loadDashboardAppointmentsPage(0);
       return ok();
     }
   },
@@ -163,6 +188,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const appStore = useAppStore(pinia);
       const filters = (appStore.getData('hospital', 'DashboardFilters') ?? {}) as Record<string, unknown>;
       appStore.setData('hospital', 'DashboardFilters', { ...filters, doctorId: String(request.data.value ?? '').trim() });
+      await loadDashboardAppointmentsPage(0);
       return ok();
     }
   },
@@ -176,6 +202,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         ...filters,
         department: String(request.data.value ?? '').trim()
       });
+      await loadDashboardAppointmentsPage(0);
       return ok();
     }
   },
@@ -200,6 +227,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       appStore.setData('hospital', 'DashboardFilters', {
         ...filters,
         status: '',
+        statusSelectedExplicitly: false,
         preferredDate: '',
         doctorId: '',
         department: ''

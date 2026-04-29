@@ -10,9 +10,8 @@
 #   printf %s 'mongodb+srv://...' | gcloud secrets create pdf-rag-pipeline-mongo-uri --data-file=-
 #   printf %s 'jwt-signing-secret' | gcloud secrets create pdf-rag-pipeline-jwt-secret --data-file=-
 #   printf %s 'sk-...' | gcloud secrets create pdf-rag-pipeline-openai-api-key --data-file=-
-#   printf %s '' | gcloud secrets create pdf-rag-pipeline-gemini-api-key --data-file=-   # empty if using OpenAI only
 #
-# Grant Cloud Run runtime + Cloud Build SA secretAccessor (replace PROJECT_NUMBER):
+# Grant Cloud Run runtime SA secretAccessor (replace PROJECT_NUMBER):
 #   RUNTIME_SA="PROJECT_NUMBER-compute@developer.gserviceaccount.com"
 #   for s in \
 #     backend-hospital-spring-data-mongodb-uri backend-hospital-app-auth-jwt-secret \
@@ -21,13 +20,15 @@
 #     pdf-rag-pipeline-openai-api-key pdf-rag-pipeline-gemini-api-key; do
 #     gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${RUNTIME_SA}" --role="roles/secretmanager.secretAccessor"
 #   done
-# Repeat with your Cloud Build service account if different from runtime SA.
 
 steps:
-  # ── backend-hospital ─────────────────────────────────────────
-  - name: gcr.io/cloud-builders/docker
+  # ── backend-hospital: build ───────────────────────────────────
+  - id: build-backend
+    name: gcr.io/cloud-builders/docker
     args:
       - build
+      - --cache-from
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:latest
       - -t
       - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:$SHORT_SHA
       - -t
@@ -36,13 +37,44 @@ steps:
       - backend-hospital/Dockerfile
       - .
 
-  - name: gcr.io/cloud-builders/docker
+  # ── pdf-rag-pipeline: build (parallel with backend push+deploy) ──
+  - id: build-rag
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']   # starts immediately, parallel to build-backend
+    args:
+      - build
+      - --cache-from
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:latest
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$SHORT_SHA
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:latest
+      - -f
+      - pdf-rag-pipeline/Dockerfile
+      - .
+
+  # ── backend-hospital: push ────────────────────────────────────
+  - id: push-backend
+    name: gcr.io/cloud-builders/docker
+    waitFor: [build-backend]
     args:
       - push
       - --all-tags
       - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital
 
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  # ── pdf-rag-pipeline: push ────────────────────────────────────
+  - id: push-rag
+    name: gcr.io/cloud-builders/docker
+    waitFor: [build-rag]
+    args:
+      - push
+      - --all-tags
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+
+  # ── backend-hospital: deploy ──────────────────────────────────
+  - id: deploy-backend
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    waitFor: [push-backend]
     entrypoint: gcloud
     args:
       - run
@@ -61,26 +93,10 @@ steps:
       - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest
       - --quiet
 
-  # ── pdf-rag-pipeline ──────────────────────────────────────────
-  - name: gcr.io/cloud-builders/docker
-    args:
-      - build
-      - --no-cache
-      - -t
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$SHORT_SHA
-      - -t
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:latest
-      - -f
-      - pdf-rag-pipeline/Dockerfile
-      - .
-
-  - name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - --all-tags
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
-
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  # ── pdf-rag-pipeline: deploy ──────────────────────────────────
+  - id: deploy-rag
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    waitFor: [push-rag]
     entrypoint: gcloud
     args:
       - run
@@ -105,3 +121,4 @@ images:
 
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8   # faster CPU for parallel builds
