@@ -96,7 +96,7 @@ steps:
       - --env-vars-file
       - pdf-rag-pipeline/cloudrun-env.yaml
       - --set-secrets
-      - MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest,GEMINI_API_KEY=pdf-rag-pipeline-gemini-api-key:latest
+      - MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest
       - --quiet
 
 images:
