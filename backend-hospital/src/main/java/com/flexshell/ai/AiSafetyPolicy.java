@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -62,6 +63,28 @@ public class AiSafetyPolicy {
             "accidental ingestion", "took too much", "too many tablets",
             "azithromycin overdose", "azithromycin toxicity"
     );
+    private static final Pattern OVERDOSE_PATTERNS = Pattern.compile(
+            "\\boverdos(e|ed|ing)\\b|\\bpoison(ing)?\\b|toxic\\s*(dose|level|amount)?|"
+                    + "accidental\\s+ingestion|took\\s+too\\s+much|too\\s+many\\s+(tablets|pills|capsules)",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern CARDIAC_PATTERNS = Pattern.compile(
+            "chest\\s*pain|difficulty\\s*breath|short\\s*ness\\s*of\\s*breath|"
+                    + "can'?t\\s*breathe|stroke|face\\s*droop|slurred\\s*speech",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern MENTAL_HEALTH_PATTERNS = Pattern.compile(
+            "suicidal|self[\\s-]?harm|suicide",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern BLEEDING_PATTERNS = Pattern.compile(
+            "uncontrolled\\s+bleeding",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern HIGH_FEVER_PATTERNS = Pattern.compile(
+            "high\\s+fever|39\\.4|103",
+            Pattern.CASE_INSENSITIVE
+    );
     public enum EscalationType {
         OVERDOSE_POISONING,
         CARDIAC_RESPIRATORY,
@@ -78,6 +101,14 @@ public class AiSafetyPolicy {
 
     public String systemPrompt() {
         return effectiveSystemPrompt;
+    }
+
+    public boolean requiresEscalation(String input) {
+        String normalized = normalize(input);
+        if (normalized.isBlank()) {
+            return false;
+        }
+        return CRITICAL_KEYWORDS.stream().anyMatch(normalized::contains) || detectEscalationType(normalized).isPresent();
     }
 
     public Optional<EscalationType> detectEscalationType(String input) {
@@ -137,7 +168,7 @@ public class AiSafetyPolicy {
         }
         String normalizedUserMessage = normalizeWhitespace(userMessage);
         if (body.isBlank()) {
-            body = fallbackStructuredResponse(normalizedUserMessage);
+            body = fallbackStructuredResponse();
         }
         if (!body.toLowerCase(Locale.ROOT).contains("not a doctor")) {
             body = body + "\n\n" + NON_DOCTOR_LINE;
@@ -190,7 +221,7 @@ public class AiSafetyPolicy {
             + "or new symptoms appear.\n"
             + "- Seek urgent care immediately for severe pain, breathing difficulty, "
             + "confusion, persistent high fever, dehydration, or bleeding.\n\n"
-            + AI_NON_DOCTOR_LINE + "\n\n"
-            + AI_DISCLAIMER_LINE;
+            + NON_DOCTOR_LINE + "\n\n"
+            + DISCLAIMER_LINE;
 }
 }

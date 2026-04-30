@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class AiChatService {
@@ -55,7 +56,9 @@ public class AiChatService {
         smartAiQuotaService.consumeDailyRequestOrThrow(actor);
         if (!"expert".equalsIgnoreCase(audience) && safetyPolicy.requiresEscalation(message)) {
             LOG.info("aiChat escalation actor={} messageLength={}", actor, messageLength);
-            EscalationType escalationType = safetyPolicy.detectEscalationType(userMessage);
+            Optional<AiSafetyPolicy.EscalationType> escalationTypeOptional = safetyPolicy.detectEscalationType(message);
+            AiSafetyPolicy.EscalationType escalationType =
+                    escalationTypeOptional.orElse(AiSafetyPolicy.EscalationType.CARDIAC_RESPIRATORY);
             String escalationMessage = safetyPolicy.escalationReply(escalationType);
             return new AiChatResponse(escalationMessage, true, escalationType.name().toLowerCase(), List.of());
         }
