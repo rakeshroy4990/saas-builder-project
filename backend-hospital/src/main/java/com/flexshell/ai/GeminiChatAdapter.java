@@ -15,7 +15,6 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -114,10 +113,26 @@ public class GeminiChatAdapter {
 
     private String buildRequestBody(List<AiChatMessageDto> history, String message) throws IOException {
         List<Map<String, Object>> contents = new ArrayList<>();
-        contents.add(Map.of(
-                "role", "user",
-                "parts", List.of(Map.of("text", buildCombinedUserText(history, message)))
-        ));
+        if (history != null) {
+            for (AiChatMessageDto item : history) {
+                if (item == null) continue;
+                String role = Objects.toString(item.role(), "").trim().toLowerCase();
+                String content = Objects.toString(item.content(), "").trim();
+                if (content.isBlank()) continue;
+                if (!"assistant".equals(role) && !"user".equals(role)) continue;
+                contents.add(Map.of(
+                        "role", "assistant".equals(role) ? "model" : "user",
+                        "parts", List.of(Map.of("text", content))
+                ));
+            }
+        }
+        String latest = Objects.toString(message, "").trim();
+        if (!latest.isBlank()) {
+            contents.add(Map.of(
+                    "role", "user",
+                    "parts", List.of(Map.of("text", latest))
+            ));
+        }
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("systemInstruction", Map.of("parts", List.of(Map.of("text", aiSafetyPolicy.systemPrompt()))));
@@ -127,35 +142,6 @@ public class GeminiChatAdapter {
                 "maxOutputTokens", maxTokens
         ));
         return objectMapper.writeValueAsString(payload);
-    }
-
-    private static String buildCombinedUserText(List<AiChatMessageDto> history, String latestMessage) {
-        LinkedHashSet<String> uniqueUserInputs = new LinkedHashSet<>();
-        if (history != null) {
-            for (AiChatMessageDto item : history) {
-                if (item == null) continue;
-                String role = Objects.toString(item.role(), "").trim().toLowerCase();
-                if (!"user".equals(role)) continue;
-                String content = Objects.toString(item.content(), "").trim();
-                if (!content.isBlank()) {
-                    uniqueUserInputs.add(content);
-                }
-            }
-        }
-        String latest = Objects.toString(latestMessage, "").trim();
-        if (!latest.isBlank()) {
-            uniqueUserInputs.add(latest);
-        }
-        if (uniqueUserInputs.isEmpty()) {
-            return "";
-        }
-        StringBuilder out = new StringBuilder("Patient-reported symptoms/context:\n");
-        int idx = 1;
-        for (String text : uniqueUserInputs) {
-            out.append(idx++).append(". ").append(text).append('\n');
-        }
-        out.append("\nPlease respond to the latest concern using the required triage format.");
-        return out.toString().trim();
     }
 
     private String parseResponseText(String body) throws IOException {

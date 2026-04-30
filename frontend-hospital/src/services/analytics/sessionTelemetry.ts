@@ -26,6 +26,7 @@ export async function ingestSessionTelemetry(payload: SessionTelemetryPayload): 
     const userId = readPersistedUserId();
     await URLRegistry.request('telemetrySessionEvent', {
       method: 'POST',
+      credentials: 'omit',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
         ...payload,

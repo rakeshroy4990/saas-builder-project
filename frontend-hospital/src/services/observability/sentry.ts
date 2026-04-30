@@ -14,8 +14,9 @@ function parseNumberEnv(value: string | undefined, defaultValue: number): number
 }
 
 export function initSentry(app: App, router: Router): void {
-  const enabled = parseBooleanEnv(import.meta.env.VITE_SENTRY_ENABLED, false)
+  const enabledByFlag = parseBooleanEnv(import.meta.env.VITE_SENTRY_ENABLED, false)
   const dsn = String(import.meta.env.VITE_SENTRY_DSN ?? '').trim()
+  const enabled = (import.meta.env.PROD && Boolean(dsn)) || enabledByFlag
 
   if (!enabled || !dsn) {
     return
@@ -29,4 +30,11 @@ export function initSentry(app: App, router: Router): void {
     integrations: [Sentry.browserTracingIntegration({ router })],
     sendDefaultPii: false
   })
+
+  // Manual runtime probe: run `window.__triggerSentryTestError()` in browser console.
+  if (typeof window !== 'undefined') {
+    (window as Window & { __triggerSentryTestError?: () => void }).__triggerSentryTestError = () => {
+      Sentry.captureException(new Error('Manual Sentry probe from browser console'))
+    }
+  }
 }
