@@ -12,6 +12,9 @@ import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
 import { clearChatSubscription, clearSupportSubscription } from '../shared/chatState';
+import { trackEvent } from '../../../analytics/firebaseAnalytics';
+import { getOrCreateTraceId } from '../../../logging/traceContext';
+import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
 
 function mapMeToProfileForm(row: Record<string, unknown>): void {
   const store = useAppStore(pinia);
@@ -94,6 +97,13 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       const section = String(request.data.section ?? 'profile').trim().toLowerCase();
       const next = section === 'inactive' ? 'inactive' : 'profile';
       useAppStore(pinia).setData('hospital', 'ProfilePageUiState', { activeSection: next });
+      trackEvent('profile_viewed', {
+        section: next,
+        domain: 'profile',
+        status: 'success',
+        reason_code: telemetryReasonCodes.profile.sectionChanged,
+        trace_id: getOrCreateTraceId()
+      });
       return ok();
     }
   },
@@ -145,8 +155,24 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         const data = (root.Data ?? root.data ?? {}) as Record<string, unknown>;
         mapMeToProfileForm(data);
         syncAuthSessionFromProfile(data);
+        const currentUi = (appStore.getData('hospital', 'ProfilePageUiState') ?? {}) as Record<string, unknown>;
+        const activeSection = String(currentUi.activeSection ?? 'profile').trim().toLowerCase() === 'inactive' ? 'inactive' : 'profile';
+        trackEvent('profile_viewed', {
+          section: activeSection,
+          domain: 'profile',
+          status: 'success',
+          reason_code: telemetryReasonCodes.profile.pageLoaded,
+          trace_id: getOrCreateTraceId()
+        });
         return ok();
       } catch (err: unknown) {
+        trackEvent('profile_view_failed', {
+          domain: 'profile',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.profile.pageLoadFailed,
+          trace_id: getOrCreateTraceId(),
+          http_status: isAxiosError(err) ? err.response?.status : undefined
+        });
         const msg = isAxiosError(err)
           ? String((err.response?.data as Record<string, unknown>)?.Message ?? err.response?.data ?? err.message)
           : 'Could not load profile';
@@ -199,9 +225,22 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         const data = (root.Data ?? root.data ?? {}) as Record<string, unknown>;
         mapMeToProfileForm(data);
         syncAuthSessionFromProfile(data);
+        trackEvent('profile_saved', {
+          domain: 'profile',
+          status: 'success',
+          reason_code: telemetryReasonCodes.profile.saveSuccess,
+          trace_id: getOrCreateTraceId()
+        });
         toast.show('Profile saved.', 'success');
         return ok();
       } catch (err: unknown) {
+        trackEvent('profile_save_failed', {
+          domain: 'profile',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.profile.saveFailed,
+          trace_id: getOrCreateTraceId(),
+          http_status: isAxiosError(err) ? err.response?.status : undefined
+        });
         const msg = isAxiosError(err)
           ? String((err.response?.data as Record<string, unknown>)?.Message ?? 'Save failed')
           : 'Save failed';
@@ -229,6 +268,13 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       try {
         await apiClient.put(URLRegistry.paths.user, null, { params: { userId: uid, inactive: true } });
       } catch (err: unknown) {
+        trackEvent('profile_deactivate_failed', {
+          domain: 'profile',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.profile.deactivateFailed,
+          trace_id: getOrCreateTraceId(),
+          http_status: isAxiosError(err) ? err.response?.status : undefined
+        });
         const msg = isAxiosError(err)
           ? String((err.response?.data as Record<string, unknown>)?.Message ?? 'Could not deactivate account')
           : 'Could not deactivate account';
@@ -259,6 +305,12 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       appStore.setProperty('hospital', 'AuthSession', 'role', '');
       appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
       clearPersistedAuthSessionProfile();
+      trackEvent('profile_deactivated', {
+        domain: 'profile',
+        status: 'success',
+        reason_code: telemetryReasonCodes.profile.deactivateSuccess,
+        trace_id: getOrCreateTraceId()
+      });
       toast.show('Your account has been deactivated.', 'info');
       window.location.assign('/home');
       return ok();

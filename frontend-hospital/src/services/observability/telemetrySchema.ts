@@ -1,4 +1,4 @@
-export type TelemetryDomain = 'auth' | 'appointment' | 'video' | 'chat';
+export type TelemetryDomain = 'auth' | 'appointment' | 'video' | 'chat' | 'profile';
 export type TelemetryStatus = 'success' | 'fail' | 'drop';
 
 type DomainReasonMap = Record<string, string>;
@@ -23,10 +23,12 @@ export const telemetryReasonCodes = {
   appointment: defineDomainReasons({
     createSuccess: 'create_success',
     updateSuccess: 'update_success',
+    cancelSuccess: 'cancel_success',
     createFailed: 'create_failed',
     validationError: 'validation_error',
     ageLimit: 'age_limit',
     requestFailed: 'request_failed',
+    cancelFailed: 'cancel_failed',
     notificationFailed: 'notification_failed'
   }),
   video: defineDomainReasons({
@@ -50,6 +52,15 @@ export const telemetryReasonCodes = {
     provider5xx: 'provider_5xx',
     timeout: 'timeout',
     requestFailed: 'request_failed'
+  }),
+  profile: defineDomainReasons({
+    pageLoaded: 'page_loaded',
+    pageLoadFailed: 'page_load_failed',
+    sectionChanged: 'section_changed',
+    saveSuccess: 'save_success',
+    saveFailed: 'save_failed',
+    deactivateSuccess: 'deactivate_success',
+    deactivateFailed: 'deactivate_failed'
   })
 } as const;
 
@@ -57,7 +68,8 @@ export type TelemetryReasonCode =
   | (typeof telemetryReasonCodes.auth)[keyof typeof telemetryReasonCodes.auth]
   | (typeof telemetryReasonCodes.appointment)[keyof typeof telemetryReasonCodes.appointment]
   | (typeof telemetryReasonCodes.video)[keyof typeof telemetryReasonCodes.video]
-  | (typeof telemetryReasonCodes.chat)[keyof typeof telemetryReasonCodes.chat];
+  | (typeof telemetryReasonCodes.chat)[keyof typeof telemetryReasonCodes.chat]
+  | (typeof telemetryReasonCodes.profile)[keyof typeof telemetryReasonCodes.profile];
 
 export type TelemetryEventBase = {
   domain: TelemetryDomain;

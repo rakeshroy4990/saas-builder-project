@@ -15,3 +15,9 @@ export function getOrCreateTraceId(): string {
   return created;
 }
 
+export function startNewTraceId(): string {
+  const created = newTraceId();
+  sessionStorage.setItem(TRACE_KEY, created);
+  return created;
+}
+

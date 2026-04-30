@@ -282,7 +282,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                styles: { utilityClasses: 'relative' },
+                styles: { utilityClasses: 'relative hidden lg:block' },
                 children: [
                   {
                     id: 'hospital-public-header-user-display',
@@ -451,24 +451,6 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           click: {
             actionId: 'set-education-header-active',
             onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'doctor-education' } }
-          }
-        }
-      },
-      {
-        id: 'hospital-public-mobile-menu-profile',
-        type: 'button',
-        condition: {
-          expression: "userId && String(userId).trim().length > 0",
-          mappings: {
-            userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
-          }
-        },
-        config: {
-          text: 'Profile',
-          styles: { styleTemplate: 'hosp.header.menuButton' },
-          click: {
-            actionId: 'set-profile-header-active',
-            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
           }
         }
       },

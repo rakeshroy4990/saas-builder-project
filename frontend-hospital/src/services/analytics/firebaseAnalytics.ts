@@ -3,6 +3,8 @@ import { getAnalytics, isSupported, logEvent } from 'firebase/analytics'
 import type { Analytics } from 'firebase/analytics'
 import type { Router } from 'vue-router'
 import type { TelemetryDomain, TelemetryReasonCode, TelemetryStatus } from '../observability/telemetrySchema'
+import { ingestSessionTelemetry } from './sessionTelemetry'
+import { getOrCreateTraceId } from '../logging/traceContext'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -82,6 +84,21 @@ type AnalyticsEventParamsMap = {
     http_status?: number
     trace_id: string
   }
+  appointment_cancelled: {
+    appointmentId: string
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+  }
+  appointment_cancel_failed: {
+    appointmentId?: string
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    http_status?: number
+    trace_id: string
+  }
   chat_support_request_created: {
     requestId: string
   }
@@ -114,11 +131,51 @@ type AnalyticsEventParamsMap = {
     call_id?: string
     duration_sec?: number
   }
+  profile_viewed: {
+    section: 'profile' | 'inactive'
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+  }
+  profile_view_failed: {
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+    http_status?: number
+  }
+  profile_saved: {
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+  }
+  profile_save_failed: {
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+    http_status?: number
+  }
+  profile_deactivated: {
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+  }
+  profile_deactivate_failed: {
+    domain: TelemetryDomain
+    status: TelemetryStatus
+    reason_code: TelemetryReasonCode
+    trace_id: string
+    http_status?: number
+  }
 }
 
 export type AnalyticsEventName = keyof AnalyticsEventParamsMap
 
-type AnalyticsFlowKey = 'navigation' | 'auth' | 'registration' | 'appointment' | 'chat' | 'video'
+type AnalyticsFlowKey = 'navigation' | 'auth' | 'registration' | 'appointment' | 'chat' | 'video' | 'profile'
 
 const analyticsFlowByEvent: Record<AnalyticsEventName, AnalyticsFlowKey> = {
   page_view: 'navigation',
@@ -130,22 +187,55 @@ const analyticsFlowByEvent: Record<AnalyticsEventName, AnalyticsFlowKey> = {
   appointment_created: 'appointment',
   appointment_updated: 'appointment',
   appointment_submit_failed: 'appointment',
+  appointment_cancelled: 'appointment',
+  appointment_cancel_failed: 'appointment',
   chat_support_request_created: 'chat',
   chat_ai_reply_received: 'chat',
   chat_ai_escalated: 'chat',
   chat_ai_failed: 'chat',
-  video_call_event: 'video'
+  video_call_event: 'video',
+  profile_viewed: 'profile',
+  profile_view_failed: 'profile',
+  profile_saved: 'profile',
+  profile_save_failed: 'profile',
+  profile_deactivated: 'profile',
+  profile_deactivate_failed: 'profile'
 }
 
 export function trackEvent<TEventName extends AnalyticsEventName>(
   eventName: TEventName,
   params?: AnalyticsEventParamsMap[TEventName]
 ): void {
+  const eventParams = params ?? {}
+  const flow = analyticsFlowByEvent[eventName]
+  if (
+    flow === 'appointment'
+    || flow === 'chat'
+    || flow === 'video'
+    || flow === 'profile'
+    || eventName === 'login_success'
+    || eventName === 'logout'
+  ) {
+    const traceId =
+      String((eventParams as Record<string, unknown>)?.trace_id ?? '').trim() || getOrCreateTraceId()
+    const telemetryPayload = {
+      event_name: eventName as string,
+      flow,
+      status: String((eventParams as Record<string, unknown>)?.status ?? ''),
+      reason_code: String((eventParams as Record<string, unknown>)?.reason_code ?? ''),
+      http_status:
+        typeof (eventParams as Record<string, unknown>)?.http_status === 'number'
+          ? Number((eventParams as Record<string, unknown>).http_status)
+          : undefined,
+      trace_id: traceId
+    }
+    void ingestSessionTelemetry(telemetryPayload)
+  }
+
   if (!analytics) {
     return
   }
 
-  const eventParams = params ?? {}
   logEvent(analytics, eventName as string, {
     ...eventParams,
     flow: analyticsFlowByEvent[eventName],
