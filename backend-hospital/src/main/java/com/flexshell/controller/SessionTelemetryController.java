@@ -28,7 +28,7 @@ public class SessionTelemetryController {
             @Valid @RequestBody SessionTelemetryEventRequest request,
             Authentication authentication
     ) {
-        String actorUserId = authentication == null ? "" : String(authentication.getName());
+        String actorUserId = authentication == null ? "" : authentication.getName();
         Map<String, Object> data = sessionTelemetryService.ingestSessionEvent(actorUserId, request);
         return ResponseEntity.ok(StandardApiResponse.success("Telemetry session updated", data));
     }
