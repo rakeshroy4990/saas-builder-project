@@ -12,7 +12,7 @@ import { buildFriendlyDisplayName } from '../shared/displayName';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
 import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
-import { getOrCreateTraceId } from '../../../logging/traceContext';
+import { getOrCreateTraceId, startNewTraceId } from '../../../logging/traceContext';
 import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
 
 export const authLoginHospitalServices: ServiceDefinition[] = [
@@ -128,11 +128,12 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
             // Non-fatal: badge/chat still work after opening the chat popup.
           }
         }
+        const loginSessionTraceId = startNewTraceId();
         trackEvent('login_success', {
           role: resolvedRole,
           domain: 'auth',
           status: 'success',
-          trace_id: getOrCreateTraceId()
+          trace_id: loginSessionTraceId
         });
         return ok();
       } catch (error) {

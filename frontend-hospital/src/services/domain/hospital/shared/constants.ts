@@ -45,8 +45,8 @@ export const hospitalHomeContent = {
     { title: 'Patient-Centered Care', detail: 'Personalized treatment plans for every patient' }
   ],
   contact: {
-    phone: 'Emergency: 9569955006 | Appointments: 9569955006',
-    whatsapp: 'WhatsApp: 6360895190',
+    // phone: 'Emergency: 9569955006 | Appointments: 9569955006',
+    whatsapp: 'WhatsApp Only: 6360895190',
     email: 'EmailId: pedsforpeople@gmail.com',
     // location: '123 Medical Center Whitefield, Bangalore 560066',
     // hours: 'Monday - Friday: 8AM - 8PM'

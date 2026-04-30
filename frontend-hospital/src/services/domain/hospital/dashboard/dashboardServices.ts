@@ -16,6 +16,9 @@ import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
 import { ensureDoctorOptionsLoadedByDepartment } from '../shared/doctorCatalog';
 import { clearAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
 import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppointmentTimeSlots';
+import { trackEvent } from '../../../analytics/firebaseAnalytics';
+import { getOrCreateTraceId } from '../../../logging/traceContext';
+import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
 
 function appointmentPreferredDateToInput(raw: unknown): string {
   const s = String(raw ?? '').trim();
@@ -280,10 +283,25 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       if (!appointmentId) return { responseCode: 'APPOINTMENT_CANCEL_FAILED', message: 'Missing appointment id' };
       try {
         await apiClient.post(`${URLRegistry.paths.appointmentCancel}/${encodeURIComponent(appointmentId)}`);
+        trackEvent('appointment_cancelled', {
+          appointmentId,
+          domain: 'appointment',
+          status: 'success',
+          reason_code: telemetryReasonCodes.appointment.cancelSuccess,
+          trace_id: getOrCreateTraceId()
+        });
         useToastStore(pinia).show('Appointment cancelled.', 'success');
         await loadDashboardAppointmentsPage();
         return ok();
       } catch (error) {
+        trackEvent('appointment_cancel_failed', {
+          appointmentId,
+          domain: 'appointment',
+          status: 'fail',
+          reason_code: telemetryReasonCodes.appointment.cancelFailed,
+          http_status: isAxiosError(error) ? error.response?.status : undefined,
+          trace_id: getOrCreateTraceId()
+        });
         const message = isAxiosError(error)
           ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||
             'Unable to cancel appointment right now.'
