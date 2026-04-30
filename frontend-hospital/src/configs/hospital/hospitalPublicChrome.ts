@@ -404,7 +404,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
   id: 'hospital-public-mobile-menu-panel',
   type: 'container',
   condition: {
-    expression: 'headerMenuOpen',
+    expression: 'headerMenuOpen !== false',
     mappings: {
       headerMenuOpen: { packageName: 'hospital', key: 'ResponsiveUiState', property: 'headerMenuOpen' }
     }

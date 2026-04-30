@@ -24,6 +24,42 @@ const emptySlots = { list: [] as Array<{ id: string; label: string; value: strin
 
 const NO_SLOTS_MESSAGE =
   'No time slots are available for this doctor on the selected date. Please choose a different doctor or date.';
+const NO_FUTURE_SLOTS_TODAY_MESSAGE =
+  'No future time slots are available today. Please choose a later date.';
+
+function toIsoLocalDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function parseSlotStartMinutes(slotValue: string): number | null {
+  const value = String(slotValue ?? '').trim();
+  const dash = value.indexOf('-');
+  const start = (dash >= 0 ? value.slice(0, dash) : value).trim();
+  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(start);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours * 60 + minutes;
+}
+
+function keepOnlyFutureSlotsForToday(
+  selectedDateIso: string,
+  slots: Array<{ id: string; label: string; value: string }>
+): Array<{ id: string; label: string; value: string }> {
+  if (selectedDateIso !== toIsoLocalDate(new Date())) {
+    return slots;
+  }
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  return slots.filter((slot) => {
+    const slotStartMinutes = parseSlotStartMinutes(slot.value);
+    if (slotStartMinutes == null) return true;
+    return slotStartMinutes > nowMinutes;
+  });
+}
 
 /**
  * Loads bookable slots for doctor + date via {@link URLRegistry.paths.appointmentBookingAvailableSlots}
@@ -55,14 +91,17 @@ export async function refreshAppointmentTimeSlotOptionsFromForm(): Promise<void>
     const envelope = (response.data ?? {}) as Record<string, unknown>;
     const dataNode = envelope.Data ?? envelope.data ?? {};
     const { list } = mapAvailableSlotsPayload(dataNode);
-    appStore.setData('hospital', 'AppointmentTimeSlots', { list });
+    const filteredList = keepOnlyFutureSlotsForToday(date, list);
+    appStore.setData('hospital', 'AppointmentTimeSlots', { list: filteredList });
 
     if (list.length === 0) {
       appStore.setProperty('hospital', 'AppointmentForm', 'slotAvailabilityMessage', NO_SLOTS_MESSAGE);
+    } else if (filteredList.length === 0) {
+      appStore.setProperty('hospital', 'AppointmentForm', 'slotAvailabilityMessage', NO_FUTURE_SLOTS_TODAY_MESSAGE);
     }
 
     const currentSlot = pickString(form, ['preferredTimeSlot', 'PreferredTimeSlot']).trim();
-    if (currentSlot && !list.some((o) => o.value === currentSlot)) {
+    if (currentSlot && !filteredList.some((o) => o.value === currentSlot)) {
       appStore.setProperty('hospital', 'AppointmentForm', 'preferredTimeSlot', '');
     }
   } catch (error) {

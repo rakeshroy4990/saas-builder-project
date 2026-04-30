@@ -8,6 +8,10 @@ import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartmen
 import { consumeDeferredPostLoginAction } from '../auth/postLoginAction';
 import { ServiceRegistry } from '../../../../core/registry/ServiceRegistry';
 
+function resolveHeaderMenuOpenState(responsive: Record<string, unknown>): boolean {
+  return responsive.headerMenuOpen !== false;
+}
+
 export const navigationHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
@@ -51,7 +55,10 @@ export const navigationHospitalServices: ServiceDefinition[] = [
         string,
         unknown
       >;
-      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', { ...responsive, headerMenuOpen: false });
+      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', {
+        ...responsive,
+        headerMenuOpen: resolveHeaderMenuOpenState(responsive)
+      });
       return ok();
     }
   },
@@ -64,7 +71,10 @@ export const navigationHospitalServices: ServiceDefinition[] = [
         string,
         unknown
       >;
-      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', { ...responsive, headerMenuOpen: false });
+      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', {
+        ...responsive,
+        headerMenuOpen: resolveHeaderMenuOpenState(responsive)
+      });
       return ok();
     }
   },
@@ -77,7 +87,10 @@ export const navigationHospitalServices: ServiceDefinition[] = [
         string,
         unknown
       >;
-      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', { ...responsive, headerMenuOpen: false });
+      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', {
+        ...responsive,
+        headerMenuOpen: resolveHeaderMenuOpenState(responsive)
+      });
       return ok();
     }
   },
@@ -90,7 +103,10 @@ export const navigationHospitalServices: ServiceDefinition[] = [
         string,
         unknown
       >;
-      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', { ...responsive, headerMenuOpen: false });
+      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', {
+        ...responsive,
+        headerMenuOpen: resolveHeaderMenuOpenState(responsive)
+      });
       return ok();
     }
   },
@@ -104,7 +120,10 @@ export const navigationHospitalServices: ServiceDefinition[] = [
         string,
         unknown
       >;
-      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', { ...responsive, headerMenuOpen: false });
+      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', {
+        ...responsive,
+        headerMenuOpen: resolveHeaderMenuOpenState(responsive)
+      });
       return ok();
     }
   },
@@ -135,7 +154,8 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     execute: async () => {
       const appStore = useAppStore(pinia);
       const responsive = (appStore.getData('hospital', 'ResponsiveUiState') ?? {}) as Record<string, unknown>;
-      const next = !Boolean(responsive.headerMenuOpen);
+      const currentOpen = responsive.headerMenuOpen !== false;
+      const next = !currentOpen;
       appStore.setData('hospital', 'ResponsiveUiState', { ...responsive, headerMenuOpen: next });
       return ok();
     }

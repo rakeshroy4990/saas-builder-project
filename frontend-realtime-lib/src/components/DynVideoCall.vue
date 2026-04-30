@@ -208,7 +208,7 @@ onBeforeUnmount(() => {
           :class="[
             'bg-black object-cover',
             isVideosFullscreen
-              ? 'absolute right-4 top-20 z-10 aspect-video w-[34%] max-w-[220px] rounded-2xl shadow-lg ring-2 ring-white/25 sm:max-w-[min(280px,30vw)]'
+              ? 'absolute right-4 top-20 z-10 aspect-video w-[42%] max-w-[300px] rounded-2xl shadow-lg ring-2 ring-white/25 sm:max-w-[min(360px,36vw)]'
               : 'aspect-video w-full rounded'
           ]"
           autoplay

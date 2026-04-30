@@ -6,6 +6,7 @@ import DynamicContainer from '../../components/renderer/DynamicContainer.vue';
 import DynButton from '../../components/primitives/DynButton.vue';
 import DynText from '../../components/primitives/DynText.vue';
 import DynInput from '../../components/primitives/DynInput.vue';
+import DynDatePicker from '../../components/primitives/DynDatePicker.vue';
 import DynDropdown from '../../components/primitives/DynDropdown.vue';
 import DynList from '../../components/primitives/DynList.vue';
 import DynImage from '../../components/primitives/DynImage.vue';
@@ -26,6 +27,7 @@ export function bootstrap(): void {
   ComponentRegistry.register('button', DynButton);
   ComponentRegistry.register('text', DynText);
   ComponentRegistry.register('input', DynInput);
+  ComponentRegistry.register('date-picker', DynDatePicker);
   ComponentRegistry.register('dropdown', DynDropdown);
   ComponentRegistry.register('list', DynList);
   ComponentRegistry.register('container', DynamicContainer);

@@ -11,6 +11,7 @@ import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { clearAppointmentPrescriptionFiles, getAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
 import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
+import { refreshAppointmentDateAvailabilityFromForm } from '../shared/refreshAppointmentDateAvailability';
 import { loadDashboardAppointmentsPage } from '../shared/dashboardAppointments';
 import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppointmentTimeSlots';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
@@ -35,6 +36,7 @@ function clearAppointmentFormFieldsAfterSave(): void {
   store.setProperty('hospital', 'AppointmentForm', 'doctorLoadError', '');
   store.setData('hospital', 'AppointmentDoctors', { list: [] });
   store.setData('hospital', 'AppointmentTimeSlots', { list: [] });
+  store.setData('hospital', 'AppointmentDateAvailability', { unavailableDates: [], slotCounts: [], summaryText: '' });
   clearAppointmentPrescriptionFiles();
 }
 
@@ -48,6 +50,7 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
       const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
       const departmentList = Array.isArray(departmentsNode.list) ? (departmentsNode.list as unknown[]) : [];
       appStore.setData('hospital', 'AppointmentDepartments', { list: departmentList });
+      await refreshAppointmentDateAvailabilityFromForm();
       await refreshAppointmentTimeSlotOptionsFromForm();
       return ok();
     }
@@ -68,6 +71,7 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
       const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
       const departmentList = Array.isArray(departmentsNode.list) ? (departmentsNode.list as unknown[]) : [];
       appStore.setData('hospital', 'AppointmentDepartments', { list: departmentList });
+      await refreshAppointmentDateAvailabilityFromForm();
       await refreshAppointmentTimeSlotOptionsFromForm();
       return ok();
     }
@@ -177,6 +181,9 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
         const response = await apiClient.post(URLRegistry.paths.appointmentCreate, formData);
         const dataNode = (response.data?.Data ?? response.data?.data ?? response.data ?? {}) as Record<string, unknown>;
         clearAppointmentFormFieldsAfterSave();
+        usePopupStore(pinia).close();
+        await router.replace('/dashboard');
+        await loadDashboardAppointmentsPage();
         const appointmentId = pickString(dataNode, ['Id', 'id']) || '';
         trackEvent('appointment_created', {
           appointmentId,
