@@ -13,6 +13,7 @@ import { setAuthTokens } from '../auth/authToken';
 import { isAuthTokenExpired, subscribeAuthToken } from '../auth/authToken';
 import { clearPersistedAuthSessionProfile, syncHospitalUserIdFromAccessToken } from '../auth/authSessionStore';
 import { useAppStore } from '../../store/useAppStore';
+import { ingestSessionTelemetry } from '../analytics/sessionTelemetry';
 
 let appRouter: Router | null = null;
 
@@ -81,6 +82,25 @@ function performLocalLogoutAndRedirect(message = DEFAULT_AUTH_UNAUTHORIZED_MESSA
   navigateToLogin();
 }
 
+function emitSessionExpiredTelemetryOnce(httpStatus?: number): void {
+  const traceId = getOrCreateTraceId();
+  const dedupeKey = `flexshell-auth-expired-telemetry:${traceId}`;
+  try {
+    if (sessionStorage.getItem(dedupeKey) === '1') return;
+    sessionStorage.setItem(dedupeKey, '1');
+  } catch {
+    // continue without dedupe if storage unavailable
+  }
+  void ingestSessionTelemetry({
+    event_name: 'auth_session_expired',
+    flow: 'auth',
+    status: 'fail',
+    reason_code: 'session_expired',
+    http_status: httpStatus,
+    trace_id: traceId
+  });
+}
+
 function readUnauthorizedPayload(payload: unknown): { isUnauthorized: boolean; message: string } {
   const row = (payload ?? {}) as Record<string, unknown>;
   const code = String(row.code ?? row.Code ?? '').trim().toUpperCase();
@@ -105,6 +125,7 @@ subscribeAuthToken(({ accessToken, expiresAtMs }) => {
   const delayMs = Math.max(0, expiresAtMs - now + 250);
   tokenExpiryTimer = setTimeout(() => {
     if (isAuthTokenExpired()) {
+      emitSessionExpiredTelemetryOnce(401);
       performLocalLogoutAndRedirect();
     }
   }, delayMs);
@@ -151,6 +172,7 @@ apiClient.interceptors.request.use((config) => {
   }
   const accessToken = getAuthToken();
   if (accessToken && isAuthTokenExpired()) {
+    emitSessionExpiredTelemetryOnce(401);
     performLocalLogoutAndRedirect();
     return Promise.reject(new Error('Session expired. Please log in again.'));
   }
@@ -164,6 +186,7 @@ apiClient.interceptors.response.use(
   (response) => {
     const authPayload = readUnauthorizedPayload(response.data);
     if (authPayload.isUnauthorized) {
+      emitSessionExpiredTelemetryOnce(401);
       performLocalLogoutAndRedirect(authPayload.message);
       return Promise.reject(new Error(authPayload.message));
     }
@@ -186,6 +209,7 @@ apiClient.interceptors.response.use(
     const authPayload = readUnauthorizedPayload(error.response?.data);
 
     if (authPayload.isUnauthorized) {
+      emitSessionExpiredTelemetryOnce(error.response?.status);
       performLocalLogoutAndRedirect(authPayload.message);
       return Promise.reject(error);
     }
@@ -207,6 +231,7 @@ apiClient.interceptors.response.use(
         }
       }
       if (error.response?.status === 401) {
+        emitSessionExpiredTelemetryOnce(401);
         const message =
           normalizeAuthUserMessage(
             String(error.response?.data?.message ?? error.response?.data?.Message ?? '').trim()

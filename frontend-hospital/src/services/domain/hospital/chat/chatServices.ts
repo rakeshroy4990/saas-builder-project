@@ -24,6 +24,7 @@ import { createChatQueueMessageHandler } from '../shared/chatQueueHandler';
 import { flushQueuedSupportMessages } from '../shared/flushQueuedSupportMessages';
 import {
   AI_EMERGENCY_REPLY,
+  ConversationMessage,
   normalizedAiReply,
   requiresEscalation
 } from './aiSafety';
@@ -631,7 +632,15 @@ export const chatHospitalServices: ServiceDefinition[] = [
           history
         });
         const data = (response.data?.Data ?? response.data?.data ?? {}) as Record<string, unknown>;
-        const baseReply = normalizedAiReply(data.reply ?? data.message);
+
+        const conversationHistory: ConversationMessage[] = (
+          (messagesByRoomId[roomId] ?? []) as Array<{ senderId: string; body: string }>
+        ).map((msg) => ({
+          role: msg.senderId === 'ai' ? 'assistant' : 'user',
+          content: msg.body
+        }));
+
+        const baseReply = normalizedAiReply(data.reply ?? data.message, body, conversationHistory);
         const reply = composeReplyWithFollowUps(baseReply, data);
         const nextMessages = [
           ...withUserMessage,
