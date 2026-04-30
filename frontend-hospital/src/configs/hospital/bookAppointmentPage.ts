@@ -43,7 +43,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         id: 'hospital-book-appt-age',
         type: 'input',
         config: {
-          label: 'Age (years) *',
+          label: 'Patient Age (years) *',
           placeholder: 'Digits only, e.g. 25 or 72',
           inputType: 'text',
           inputMode: 'numeric',
@@ -114,12 +114,56 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         }
       },
       {
-        id: 'hospital-book-appt-date',
-        type: 'input',
+        id: 'hospital-book-appt-date-disabled',
+        type: 'date-picker',
+        condition: {
+          expression: "!department || String(department).trim().length === 0 || !doctor || String(doctor).trim().length === 0",
+          mappings: {
+            department: { packageName: 'hospital', key: 'AppointmentForm', property: 'department' },
+            doctor: { packageName: 'hospital', key: 'AppointmentForm', property: 'doctor' }
+          }
+        },
         config: {
           label: 'Preferred Date *',
-          inputType: 'date',
+          disabled: true,
           mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'preferredDate' },
+          unavailableDatesMapping: {
+            packageName: 'hospital',
+            key: 'AppointmentDateAvailability',
+            property: 'unavailableDates'
+          },
+          slotCountsMapping: {
+            packageName: 'hospital',
+            key: 'AppointmentDateAvailability',
+            property: 'slotCounts'
+          },
+          change: { actionId: 'set-appointment-date' },
+          styles: { styleTemplate: 'hosp.form.input' }
+        }
+      },
+      {
+        id: 'hospital-book-appt-date',
+        type: 'date-picker',
+        condition: {
+          expression: "department && String(department).trim().length > 0 && doctor && String(doctor).trim().length > 0",
+          mappings: {
+            department: { packageName: 'hospital', key: 'AppointmentForm', property: 'department' },
+            doctor: { packageName: 'hospital', key: 'AppointmentForm', property: 'doctor' }
+          }
+        },
+        config: {
+          label: 'Preferred Date *',
+          mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'preferredDate' },
+          unavailableDatesMapping: {
+            packageName: 'hospital',
+            key: 'AppointmentDateAvailability',
+            property: 'unavailableDates'
+          },
+          slotCountsMapping: {
+            packageName: 'hospital',
+            key: 'AppointmentDateAvailability',
+            property: 'slotCounts'
+          },
           change: { actionId: 'set-appointment-date' },
           styles: { styleTemplate: 'hosp.form.input' }
         }

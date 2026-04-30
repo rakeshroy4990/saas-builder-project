@@ -24,6 +24,7 @@ interface InputConfig {
   /** Defaults to theme template `form.label.stack` */
   labelStyles?: StyleConfig;
   change?: ActionConfig;
+  unavailableDates?: string[];
 }
 
 const props = defineProps<{ config?: InputConfig; htmlId?: string }>();
@@ -40,6 +41,7 @@ const fieldId = computed(() => (props.htmlId ? `${props.htmlId}-field` : undefin
 const labelTextId = computed(() => (props.htmlId ? `${props.htmlId}-label` : undefined));
 const inputId = computed(() => (props.htmlId ? `${props.htmlId}-input` : undefined));
 const inputElementRef = ref<HTMLInputElement | null>(null);
+const unavailableDateSet = computed(() => new Set((props.config?.unavailableDates ?? []).map((x) => String(x).trim())));
 
 const emitChange = async () => {
   emit('action', { action: props.config?.change, payload: { value: model.value } });
@@ -51,6 +53,15 @@ const onTextOrDateInput = async () => {
     if (digits !== model.value) {
       model.value = digits;
     }
+  }
+  if (props.config?.inputType === 'date' && model.value && unavailableDateSet.value.has(model.value)) {
+    const input = inputElementRef.value;
+    if (input) {
+      input.setCustomValidity('No slots available for this date. Please choose another date.');
+      input.reportValidity();
+      input.setCustomValidity('');
+    }
+    model.value = '';
   }
   await emitChange();
 };

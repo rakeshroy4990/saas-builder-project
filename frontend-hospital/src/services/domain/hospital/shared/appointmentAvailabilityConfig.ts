@@ -1,0 +1,1 @@
+export const APPOINTMENT_SLOT_LOOKAHEAD_DAYS = 10;

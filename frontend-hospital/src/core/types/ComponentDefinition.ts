@@ -12,6 +12,7 @@ export type ComponentType =
   | 'text'
   | 'container'
   | 'input'
+  | 'date-picker'
   | 'dropdown'
   | 'list'
   | 'image'

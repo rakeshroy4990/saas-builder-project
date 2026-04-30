@@ -109,7 +109,34 @@ const resolvedConfig = computed(() => {
 
   if ((props.definition.type === 'input' || props.definition.type === 'medicine-list-editor') && config.mapping) {
     const mapped = resolveMapping(config.mapping as MappingConfig);
-    return { ...config, value: mapped == null ? '' : String(mapped) };
+    let out: Record<string, unknown> = { ...config, value: mapped == null ? '' : String(mapped) };
+    if (props.definition.type === 'input' && config.unavailableDatesMapping) {
+      const mappedDates = resolveMapping(config.unavailableDatesMapping as MappingConfig);
+      out = { ...out, unavailableDates: Array.isArray(mappedDates) ? mappedDates : [] };
+    }
+    return out;
+  }
+
+  if (props.definition.type === 'input' && config.unavailableDatesMapping) {
+    const mappedDates = resolveMapping(config.unavailableDatesMapping as MappingConfig);
+    return { ...config, unavailableDates: Array.isArray(mappedDates) ? mappedDates : [] };
+  }
+
+  if (props.definition.type === 'date-picker') {
+    let out: Record<string, unknown> = { ...config };
+    if (config.mapping) {
+      const mapped = resolveMapping(config.mapping as MappingConfig);
+      out = { ...out, value: mapped == null ? '' : String(mapped) };
+    }
+    if (config.unavailableDatesMapping) {
+      const mappedDates = resolveMapping(config.unavailableDatesMapping as MappingConfig);
+      out = { ...out, unavailableDates: Array.isArray(mappedDates) ? mappedDates : [] };
+    }
+    if (config.slotCountsMapping) {
+      const mappedCounts = resolveMapping(config.slotCountsMapping as MappingConfig);
+      out = { ...out, slotCounts: Array.isArray(mappedCounts) ? mappedCounts : [] };
+    }
+    return out;
   }
 
   if (props.definition.type === 'checkbox' && config.mapping) {

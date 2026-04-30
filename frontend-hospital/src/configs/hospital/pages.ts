@@ -805,7 +805,7 @@ export const hospitalPages: PageConfig[] = [
           id: 'hospital-dashboard-mobile-menu-panel',
           type: 'container',
           condition: {
-            expression: 'headerMenuOpen',
+            expression: 'headerMenuOpen !== false',
             mappings: {
               headerMenuOpen: { packageName: 'hospital', key: 'ResponsiveUiState', property: 'headerMenuOpen' }
             }
@@ -3189,7 +3189,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-age',
                 type: 'input',
                 config: {
-                  label: 'Age (years) *',
+                  label: 'Patient Age (years) *',
                   placeholder: 'Age in numbers, max 20',
                   inputType: 'text',
                   inputMode: 'numeric',
@@ -3273,12 +3273,56 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
-                id: 'hospital-popup-date',
-                type: 'input',
+                id: 'hospital-popup-date-disabled',
+                type: 'date-picker',
+                condition: {
+                  expression: "!department || String(department).trim().length === 0 || !doctor || String(doctor).trim().length === 0",
+                  mappings: {
+                    department: { packageName: 'hospital', key: 'AppointmentForm', property: 'department' },
+                    doctor: { packageName: 'hospital', key: 'AppointmentForm', property: 'doctor' }
+                  }
+                },
                 config: {
                   label: 'Preferred Date *',
-                  inputType: 'date',
+                  disabled: true,
                   min: todayDateInputValue,
+                  unavailableDatesMapping: {
+                    packageName: 'hospital',
+                    key: 'AppointmentDateAvailability',
+                    property: 'unavailableDates'
+                  },
+                  slotCountsMapping: {
+                    packageName: 'hospital',
+                    key: 'AppointmentDateAvailability',
+                    property: 'slotCounts'
+                  },
+                  change: { actionId: 'set-appointment-date' },
+                  styles: { styleTemplate: 'hosp.form.input' }
+                }
+              },
+              {
+                id: 'hospital-popup-date',
+                type: 'date-picker',
+                condition: {
+                  expression: "department && String(department).trim().length > 0 && doctor && String(doctor).trim().length > 0",
+                  mappings: {
+                    department: { packageName: 'hospital', key: 'AppointmentForm', property: 'department' },
+                    doctor: { packageName: 'hospital', key: 'AppointmentForm', property: 'doctor' }
+                  }
+                },
+                config: {
+                  label: 'Preferred Date *',
+                  min: todayDateInputValue,
+                  unavailableDatesMapping: {
+                    packageName: 'hospital',
+                    key: 'AppointmentDateAvailability',
+                    property: 'unavailableDates'
+                  },
+                  slotCountsMapping: {
+                    packageName: 'hospital',
+                    key: 'AppointmentDateAvailability',
+                    property: 'slotCounts'
+                  },
                   change: { actionId: 'set-appointment-date' },
                   styles: { styleTemplate: 'hosp.form.input' }
                 }

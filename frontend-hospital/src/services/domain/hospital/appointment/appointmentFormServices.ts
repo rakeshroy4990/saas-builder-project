@@ -5,6 +5,7 @@ import { ok } from '../shared/response';
 import { PRESCRIPTION_LIMIT_ERROR_MESSAGE } from '../shared/constants';
 import { setAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
 import { ensureDoctorOptionsLoadedByDepartment } from '../shared/doctorCatalog';
+import { refreshAppointmentDateAvailabilityFromForm } from '../shared/refreshAppointmentDateAvailability';
 import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppointmentTimeSlots';
 
 export const appointmentFormHospitalServices: ServiceDefinition[] = [
@@ -59,8 +60,10 @@ export const appointmentFormHospitalServices: ServiceDefinition[] = [
       const department = String(request.data.value ?? '').trim();
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'department', department);
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'doctor', '');
+      useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'preferredDate', '');
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'preferredTimeSlot', '');
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'doctorLoadError', '');
+      await refreshAppointmentDateAvailabilityFromForm();
       if (!department) {
         useAppStore(pinia).setData('hospital', 'AppointmentDoctors', { list: [] });
         await refreshAppointmentTimeSlotOptionsFromForm();
@@ -92,7 +95,9 @@ export const appointmentFormHospitalServices: ServiceDefinition[] = [
         'doctor',
         String(request.data.value ?? '').trim()
       );
+      useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'preferredDate', '');
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'preferredTimeSlot', '');
+      await refreshAppointmentDateAvailabilityFromForm();
       await refreshAppointmentTimeSlotOptionsFromForm();
       return ok();
     }
