@@ -306,6 +306,10 @@ export function registerStyleTemplates(): void {
     utilityClasses:
       'min-h-0 w-full h-auto max-h-[min(70dvh,22rem)] sm:max-h-[26rem] md:max-h-[30rem] lg:max-h-[min(85dvh,40rem)] xl:max-h-[44rem] rounded-2xl bg-slate-100 object-contain'
   });
+  StyleTemplateRegistry.register('hosp.hero.youtube', {
+    utilityClasses:
+      'relative aspect-video w-full min-h-0 max-h-[min(70dvh,22rem)] sm:max-h-[26rem] md:max-h-[30rem] lg:max-h-[min(85dvh,40rem)] xl:max-h-[44rem] overflow-hidden rounded-2xl bg-slate-100 shadow-sm'
+  });
   StyleTemplateRegistry.register('hosp.button.primary', {
     utilityClasses: 'rounded-xl bg-emerald-600 text-white font-semibold px-5 py-3 hover:bg-emerald-700'
   });

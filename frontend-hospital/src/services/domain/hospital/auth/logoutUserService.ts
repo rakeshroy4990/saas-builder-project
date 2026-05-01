@@ -9,6 +9,7 @@ import { clearPersistedAuthSessionProfile } from '../../../auth/authSessionStore
 import { ok } from '../shared/response';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
+import { emitSessionSummaryAuthLogout } from '../../../analytics/sessionSummary';
 
 export const logoutUserHospitalServices: ServiceDefinition[] = [
   {
@@ -16,6 +17,7 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
     serviceId: 'logout-user',
     execute: async () => {
       trackEvent('logout');
+      emitSessionSummaryAuthLogout({ reason: 'user_initiated' });
       try {
         await apiClient.post(URLRegistry.paths.logout, { DeviceId: 'browser' });
       } catch {

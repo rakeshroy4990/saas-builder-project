@@ -7,14 +7,17 @@ import { buildFriendlyDisplayName } from '../shared/displayName';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
 import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
+import { emitSessionSummaryAuthLogin } from '../../../analytics/sessionSummary';
 import { startNewTraceId } from '../../../logging/traceContext';
+import { refreshHeroYoutubeFromUserQueryCache } from '../home/resolveHeroYoutubeVideoService';
 
 /**
  * Applies login API payload to Pinia, persistence, and post-login side effects (WebRTC, admin inbox).
  */
 export async function finalizeHospitalLoginSession(
   userData: Record<string, unknown>,
-  identityFallback: string
+  identityFallback: string,
+  options?: { authMethod?: 'password' | 'google' }
 ): Promise<void> {
   const accessToken =
     pickString(userData, ['accessToken', 'AccessToken', 'token', 'Token']) || '';
@@ -104,5 +107,7 @@ export async function finalizeHospitalLoginSession(
     status: 'success',
     trace_id: loginSessionTraceId
   });
+  emitSessionSummaryAuthLogin(options?.authMethod === 'google' ? 'google' : 'password');
   syncHospitalUserIdFromAccessToken();
+  void refreshHeroYoutubeFromUserQueryCache();
 }

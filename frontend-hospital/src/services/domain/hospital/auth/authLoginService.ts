@@ -51,7 +51,7 @@ export const authLoginHospitalServices: ServiceDefinition[] = [
             suppressPopupInlineError: true
           };
         }
-        await finalizeHospitalLoginSession(userData, identity);
+        await finalizeHospitalLoginSession(userData, identity, { authMethod: 'password' });
         return ok();
       } catch (error) {
         if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {

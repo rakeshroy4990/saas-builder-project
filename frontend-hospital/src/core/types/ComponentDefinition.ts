@@ -16,6 +16,7 @@ export type ComponentType =
   | 'dropdown'
   | 'list'
   | 'image'
+  | 'youtube-embed'
   | 'checkbox'
   | 'radio-group'
   | 'chat'

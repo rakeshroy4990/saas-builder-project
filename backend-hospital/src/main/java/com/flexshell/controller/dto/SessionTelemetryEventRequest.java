@@ -28,6 +28,9 @@ public class SessionTelemetryEventRequest {
     @JsonProperty("user_id")
     private String userId;
 
+    @JsonProperty("session_summary_entry")
+    private SessionSummaryEntryDto sessionSummaryEntry;
+
     public String getEventName() {
         return eventName;
     }
@@ -82,5 +85,13 @@ public class SessionTelemetryEventRequest {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public SessionSummaryEntryDto getSessionSummaryEntry() {
+        return sessionSummaryEntry;
+    }
+
+    public void setSessionSummaryEntry(SessionSummaryEntryDto sessionSummaryEntry) {
+        this.sessionSummaryEntry = sessionSummaryEntry;
     }
 }

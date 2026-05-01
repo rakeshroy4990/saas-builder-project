@@ -12,6 +12,7 @@ import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
 import { clearChatSubscription, clearSupportSubscription } from '../shared/chatState';
+import { emitSessionSummaryAuthLogout } from '../../../analytics/sessionSummary';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { getOrCreateTraceId } from '../../../logging/traceContext';
 import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
@@ -286,6 +287,7 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       } catch {
         // ignore
       }
+      emitSessionSummaryAuthLogout({ reason: 'account_deactivated' });
       clearWebrtcSubscription();
       clearChatSubscription();
       clearSupportSubscription();

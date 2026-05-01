@@ -11,6 +11,7 @@ import { pinia } from './store/pinia'
 import { hydrateAuthSessionProfile, syncHospitalUserIdFromAccessToken } from './services/auth/authSessionStore'
 import { hydrateAuthTokensFromSessionStorage } from './services/auth/authToken'
 import { initFirebaseAnalytics } from './services/analytics/firebaseAnalytics'
+import { initSessionSummaryNavigation } from './services/analytics/sessionSummary'
 import { initSentry } from './services/observability/sentry'
 
 async function start() {
@@ -21,6 +22,7 @@ async function start() {
   hydrateAuthSessionProfile()
   syncHospitalUserIdFromAccessToken()
   bindHttpRouter(router)
+  initSessionSummaryNavigation(router)
   await initFirebaseAnalytics(router).catch(async (err) => {
     await logClient('WARN', 'Firebase Analytics init skipped', { reason: String(err) })
   })

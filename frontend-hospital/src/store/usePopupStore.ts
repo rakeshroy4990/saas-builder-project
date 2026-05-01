@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import type { PopupRequest } from '../core/types/ActionConfig';
+import { emitLoggedInSessionSummary, SessionSummaryKind } from '../services/analytics/sessionSummary';
 
 interface PopupState {
   isOpen: boolean;
@@ -55,6 +56,12 @@ export const usePopupStore = defineStore('popup', {
         activePackageName: packageName,
         activePageId: pageId,
         title: req?.title
+      });
+      emitLoggedInSessionSummary({
+        kind: SessionSummaryKind.POPUP_OPEN,
+        popup_page_id: pageId,
+        package_name: packageName,
+        attributes: req?.title ? { title: req.title } : undefined
       });
     },
     openError(err: unknown) {
