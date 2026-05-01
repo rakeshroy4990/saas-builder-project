@@ -9,6 +9,7 @@ import { getOrCreateTraceId } from '../logging/traceContext';
 import { logClient } from '../logging/clientLogger';
 import { clearAuthToken } from '../auth/authToken';
 import { getAuthToken } from '../auth/authToken';
+import { getRefreshToken } from '../auth/authToken';
 import { setAuthTokens } from '../auth/authToken';
 import { isAuthTokenExpired, subscribeAuthToken } from '../auth/authToken';
 import { clearPersistedAuthSessionProfile, syncHospitalUserIdFromAccessToken } from '../auth/authSessionStore';
@@ -248,6 +249,7 @@ apiClient.interceptors.response.use(
     const requestUrl = String(error.config?.url ?? '');
     const isLoginRequest =
       requestUrl.includes(URLRegistry.paths.login) || requestUrl.includes(URLRegistry.paths.googleLogin);
+    const isLogoutRequest = requestUrl.includes(URLRegistry.paths.logout);
     const isRefreshRequest = requestUrl.includes(URLRegistry.paths.refresh);
     const isDoctorDirectoryRequest = requestUrl.includes(URLRegistry.paths.doctorGet);
     const isSmartAiRequest = requestUrl.includes(URLRegistry.paths.hospitalAiChat);
@@ -261,7 +263,14 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401 || error.response?.status === 403) {
-      if (isLoginRequest || isRefreshRequest || isDoctorDirectoryRequest || isMultipartUpload || isSmartAiRequest) {
+      if (
+        isLoginRequest ||
+        isLogoutRequest ||
+        isRefreshRequest ||
+        isDoctorDirectoryRequest ||
+        isMultipartUpload ||
+        isSmartAiRequest
+      ) {
         if (isSmartAiRequest) {
           toastStore.show('Health Assistant is temporarily unavailable. Please try again shortly.', 'error');
         }
@@ -305,6 +314,7 @@ apiClient.interceptors.response.use(
 
 async function refreshAccessToken(): Promise<boolean> {
   if (refreshInFlight) return refreshInFlight;
+  if (!getRefreshToken()) return false;
 
   refreshInFlight = (async () => {
     try {

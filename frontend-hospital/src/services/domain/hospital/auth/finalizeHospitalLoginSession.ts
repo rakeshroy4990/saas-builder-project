@@ -1,6 +1,6 @@
 import { useAppStore } from '../../../../store/useAppStore';
 import { pinia } from '../../../../store/pinia';
-import { parseJwtSubject, setAuthTokens } from '../../../auth/authToken';
+import { parseJwtSubject, setAuthToken, setAuthTokens } from '../../../auth/authToken';
 import { persistAuthSessionProfile, syncHospitalUserIdFromAccessToken } from '../../../auth/authSessionStore';
 import { pickString } from '../shared/strings';
 import { buildFriendlyDisplayName } from '../shared/displayName';
@@ -24,6 +24,9 @@ export async function finalizeHospitalLoginSession(
   const refreshToken = pickString(userData, ['refreshToken', 'RefreshToken']) || '';
   if (accessToken && refreshToken) {
     setAuthTokens(accessToken, refreshToken);
+  } else if (accessToken) {
+    // Google/login gateways may omit refresh token in edge cases; keep access token usable.
+    setAuthToken(accessToken);
   }
   const canonicalUserId =
     parseJwtSubject(accessToken) || pickString(userData, ['UserId', 'userId']) || identityFallback;
