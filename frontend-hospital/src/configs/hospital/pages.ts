@@ -3544,7 +3544,7 @@ export const hospitalPages: PageConfig[] = [
                 type: 'input',
                 config: {
                   label:
-                    'Prior documents / scans (optional, up to 2 images) — separate from the doctor-issued structured e-prescription',
+                    'Prior documents / scans (optional, up to 2 images)',
                   inputType: 'file',
                   accept: 'image/*',
                   multiple: true,

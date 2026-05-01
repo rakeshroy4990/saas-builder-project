@@ -55,6 +55,14 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
         ...currentHome,
         hero: { ...currentHero, videoId: null, videoKind: null }
       });
+      // Remove last Smart AI conversation from Pinia to prevent stale query reuse after logout.
+      const currentChat = (useAppStore(pinia).getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
+      useAppStore(pinia).setData('hospital', 'Chat', {
+        ...currentChat,
+        activeRoomId: '',
+        aiProcessing: false,
+        messagesByRoomId: {}
+      });
       clearPersistedAuthSessionProfile();
       useAppStore(pinia).setProperty('hospital', 'AuthForm', 'identity', '');
       useAppStore(pinia).setProperty('hospital', 'AuthForm', 'password', '');

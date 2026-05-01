@@ -13,6 +13,7 @@ import { hydrateAuthTokensFromSessionStorage } from './services/auth/authToken'
 import { initFirebaseAnalytics } from './services/analytics/firebaseAnalytics'
 import { initSessionSummaryNavigation } from './services/analytics/sessionSummary'
 import { initSentry } from './services/observability/sentry'
+import * as Sentry from '@sentry/vue'
 
 async function start() {
   startLogSyncScheduler()
@@ -34,5 +35,6 @@ async function start() {
 }
 
 start().catch(async (err) => {
+  Sentry.captureException(err instanceof Error ? err : new Error(String(err)))
   await logClient('ERROR', 'FlexShell UI startup failed', { reason: String(err) })
 })

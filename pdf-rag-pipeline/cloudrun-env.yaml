@@ -19,7 +19,7 @@ APP_LOG_LEVEL: INFO
 RAG_LOG_FULL_PROMPT: "true"
 RAG_LOG_PROMPT_PREVIEW_CHARS: "400"
 DOMAIN_POINTS_FILE: config/domain_points.json
-CORS_ORIGINS: "https://backend-hospital-yspwmymsgq-el.a.run.app,https://oshu-ai-clinic-ui.onrender.com,http://localhost:5173"
+CORS_ORIGINS: "https://agastyahealthcare.com,https://www.agastyahealthcare.com,https://backend-hospital-yspwmymsgq-el.a.run.app,https://oshu-ai-clinic-ui.onrender.com,http://localhost:5173"
 SENTRY_TRACES_SAMPLE_RATE: "1.0"
 SENTRY_ENABLED: "true"
 SENTRY_DSN: "https://13c8f9a52f54d607d42214e4e936f653@o4511297937539072.ingest.us.sentry.io/4511297943306240"
