@@ -54,7 +54,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                     id: 'hospital-public-header-logo',
                     type: 'image',
                     config: {
-                      src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/stetho_n1bp0a.jpg',
+                      src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/logo_oz0zzd.jpg',
                       alt: 'Agastya Healthcare logo',
                       styles: { styleTemplate: 'hosp.header.logo' },
                       click: {
