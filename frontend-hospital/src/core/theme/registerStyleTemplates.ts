@@ -283,9 +283,10 @@ export function registerStyleTemplates(): void {
     utilityClasses:
       'inline-flex min-w-24 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100'
   });
-  StyleTemplateRegistry.register('hosp.header.loginStateChip', {
+  /** Mobile header username → opens profile menu; no pill/shading (matches Logout as plain text control). */
+  StyleTemplateRegistry.register('hosp.header.userMenuTriggerMobile', {
     utilityClasses:
-      'inline-flex md:hidden items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200'
+      'inline-flex items-center justify-start rounded-lg px-2 py-1 text-sm font-semibold text-slate-800 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1'
   });
   StyleTemplateRegistry.register('hosp.header.ctaButton', {
     utilityClasses:
