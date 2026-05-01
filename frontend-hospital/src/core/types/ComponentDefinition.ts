@@ -59,6 +59,8 @@ export interface ContainerConfig {
    * Literal DOM `id` for this container when it is the page root (overrides default `{package}-{page}-page`).
    */
   domId?: string;
+  /** Merged onto the container root element (e.g. `data-profile-menu-root` for click-outside). */
+  rootAttrs?: Record<string, string | number | boolean>;
   children: ComponentDefinition[];
   click?: ActionConfig;
 }

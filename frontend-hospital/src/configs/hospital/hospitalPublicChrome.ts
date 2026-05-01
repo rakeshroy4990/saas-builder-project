@@ -284,6 +284,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               config: {
                 // lg hid the name on iPad/tablet (<1024px); md matches tablet portrait/landscape.
                 styles: { utilityClasses: 'relative hidden md:block' },
+                rootAttrs: { 'data-profile-menu-root': true },
                 children: [
                   {
                     id: 'hospital-public-header-user-display',
@@ -340,6 +341,15 @@ const hospitalPublicHeader: ComponentDefinition = {
                               }
                             }
                           }
+                        },
+                        {
+                          id: 'hospital-public-header-user-menu-logout',
+                          type: 'button',
+                          config: {
+                            text: 'Logout',
+                            styles: { styleTemplate: 'hosp.header.menuButton' },
+                            click: { actionId: 'logout-user' }
+                          }
                         }
                       ]
                     }
@@ -358,13 +368,14 @@ const hospitalPublicHeader: ComponentDefinition = {
               },
               config: {
                 styles: { utilityClasses: 'relative md:hidden' },
+                rootAttrs: { 'data-profile-menu-root': true },
                 children: [
                   {
                     id: 'hospital-public-header-user-display-mobile',
                     type: 'button',
                     config: {
                       mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                      mappingMaxLength: 10,
+                      mappingMaxLength: 50,
                       textFallback: 'Account',
                       styles: {
                         styleTemplate: 'hosp.header.userMenuTriggerMobile',
@@ -420,30 +431,20 @@ const hospitalPublicHeader: ComponentDefinition = {
                               }
                             }
                           }
+                        },
+                        {
+                          id: 'hospital-public-header-user-menu-logout-mobile',
+                          type: 'button',
+                          config: {
+                            text: 'Logout',
+                            styles: { styleTemplate: 'hosp.header.menuButton' },
+                            click: { actionId: 'logout-user' }
+                          }
                         }
                       ]
                     }
                   }
                 ]
-              }
-            },
-            {
-              id: 'hospital-public-header-logout',
-              type: 'button',
-              condition: {
-                expression: "userId && String(userId).trim().length > 0",
-                mappings: {
-                  userId: {
-                    packageName: 'hospital',
-                    key: 'AuthSession',
-                    property: 'userId'
-                  }
-                }
-              },
-              config: {
-                text: 'Logout',
-                styles: { styleTemplate: 'hosp.header.authButton' },
-                click: { actionId: 'logout-user' }
               }
             },
             {

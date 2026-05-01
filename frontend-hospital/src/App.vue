@@ -3,9 +3,12 @@
 import { computed } from 'vue';
 import { RouterView } from 'vue-router';
 import { resolveStyle } from './core/engine/StyleResolver';
+import { useHospitalProfileMenuPointerOutsideClose } from './composables/useHospitalProfileMenuPointerOutsideClose';
 import GlobalPopup from './components/system/GlobalPopup.vue';
 import GlobalToast from './components/system/GlobalToast.vue';
 import ChatFab from './components/system/ChatFab.vue';
+
+useHospitalProfileMenuPointerOutsideClose();
 
 const shellRoot = computed(() => resolveStyle({ styleTemplate: 'shell.app.root' }));
 const shellMain = computed(() => resolveStyle({ styleTemplate: 'shell.app.content' }));
