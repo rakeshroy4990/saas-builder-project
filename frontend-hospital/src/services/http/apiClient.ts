@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as Sentry from '@sentry/vue';
 import type { Router } from 'vue-router';
 import { usePopupStore } from '../../store/usePopupStore';
 import { useToastStore } from '../../store/useToastStore';
@@ -255,11 +256,26 @@ apiClient.interceptors.response.use(
     const isSmartAiRequest = requestUrl.includes(URLRegistry.paths.hospitalAiChat);
     const isMultipartUpload = typeof FormData !== 'undefined' && error.config?.data instanceof FormData;
     const authPayload = readUnauthorizedPayload(error.response?.data);
+    const status = error.response?.status as number | undefined;
 
     if (authPayload.isUnauthorized) {
       emitSessionExpiredTelemetryOnce(error.response?.status);
       performLocalLogoutAndRedirect(authPayload.message);
       return Promise.reject(error);
+    }
+
+    // Sentry: capture handled transport/server failures (exclude expected auth failures).
+    if (!isLoginRequest && !isLogoutRequest && !isRefreshRequest) {
+      if (!status || status >= 500) {
+        Sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+          tags: { area: 'http', kind: 'api_client' },
+          extra: {
+            url: requestUrl,
+            method: String(error.config?.method ?? 'get').toUpperCase(),
+            status: status ?? null
+          }
+        });
+      }
     }
 
     if (error.response?.status === 401 || error.response?.status === 403) {

@@ -8,7 +8,7 @@ APP_AI_RAG_QUERY_PATH: /api/v1/query
 # Point at your deployed pdf-rag service (GCP Cloud Run URL or other host).
 APP_AI_RAG_BASE_URL: https://pdf-rag-pipeline-yspwmymsgq-el.a.run.app
 APP_AUTH_JWT_ISSUER: flexshell-hospital
-APP_CORS_ALLOWED_ORIGIN_PATTERNS: "https://oshucare-clinic.web.app,https://oshu-ai-clinic-ui.onrender.com,https://*.onrender.com,http://localhost:5173"
+APP_CORS_ALLOWED_ORIGIN_PATTERNS: "https://agastyahealthcare.com,https://www.agastyahealthcare.com,https://oshucare-clinic.web.app,https://oshu-ai-clinic-ui.onrender.com,https://*.onrender.com,http://localhost:5173"
 APP_MONGODB_DATABASE: flexshell
 APP_VIDEO_PROVIDER: agora
 APP_VIDEO_AGORA_APP_ID: "383d01ff66e543e4892bcfb6b9844a8b"
