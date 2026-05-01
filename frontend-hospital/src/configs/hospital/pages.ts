@@ -683,7 +683,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        styles: { utilityClasses: 'relative hidden lg:block' },
+                        styles: { utilityClasses: 'relative hidden md:block' },
                         children: [
                           {
                             id: 'hospital-dashboard-header-user-display',
@@ -2076,6 +2076,45 @@ export const hospitalPages: PageConfig[] = [
                               hideNil: true
                             }
                           },
+                          onSuccess: {
+                            actionType: 'closePopup',
+                            onSuccess: {
+                              actionId: 'execute-post-login-action'
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                id: 'hospital-login-popup-google-section',
+                type: 'container',
+                config: {
+                  layout: { type: 'flex', flex: ['flex', 'flex-col', 'items-center', 'gap-3', 'w-full'] },
+                  children: [
+                    {
+                      id: 'hospital-login-popup-or-text',
+                      type: 'text',
+                      config: {
+                        text: 'or',
+                        styles: { styleTemplate: 'hosp.form.infoText', utilityClasses: 'text-center w-full' }
+                      }
+                    },
+                    {
+                      id: 'hospital-login-popup-google',
+                      type: 'button',
+                      config: {
+                        iconPreset: 'google',
+                        text: 'Sign In With Google',
+                        title: 'Sign In With Google',
+                        styles: {
+                          styleTemplate: 'hosp.popup.button.secondary',
+                          utilityClasses: 'w-full max-w-xs gap-3'
+                        },
+                        click: {
+                          actionId: 'auth-login-google',
                           onSuccess: {
                             actionType: 'closePopup',
                             onSuccess: {

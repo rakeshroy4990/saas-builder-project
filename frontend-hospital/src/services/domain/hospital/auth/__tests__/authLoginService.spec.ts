@@ -12,7 +12,8 @@ vi.mock('../../../../auth/authToken', () => ({
 }));
 
 vi.mock('../../../../auth/authSessionStore', () => ({
-  persistAuthSessionProfile: vi.fn()
+  persistAuthSessionProfile: vi.fn(),
+  syncHospitalUserIdFromAccessToken: vi.fn()
 }));
 
 vi.mock('../../shared/hospitalWebRtcInbound', () => ({

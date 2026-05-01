@@ -4,6 +4,10 @@
 **/.env.*
 !.env.example
 !**/.env.example
+
+# Google Cloud Console OAuth "Desktop" / client JSON — contains client_secret (never commit).
+client_secret_*.json
+**/client_secret_*.json
 *cloudrun.yaml
 **/*cloudrun.yaml
 **/*cloudrun.yml

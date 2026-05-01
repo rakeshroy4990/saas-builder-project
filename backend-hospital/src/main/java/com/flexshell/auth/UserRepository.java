@@ -14,6 +14,8 @@ public interface UserRepository extends MongoRepository<UserEntity, String> {
 
     Optional<UserEntity> findByEmail(String email);
 
+    Optional<UserEntity> findByEmailIgnoreCase(String email);
+
     @Query("{ '_id': ?0 }")
     Optional<UserEntity> findByObjectId(ObjectId objectId);
 

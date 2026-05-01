@@ -9,6 +9,15 @@ import java.util.Optional;
 public interface AuthFacade {
     Optional<LoginResponse> login(String emailId, String password);
 
+    /**
+     * Completes login using a Google OAuth access token (browser token client). Implementations
+     * should validate the token with Google, resolve a verified email, and issue the same tokens
+     * as password login when a matching account exists.
+     */
+    default Optional<LoginResponse> loginWithGoogleAccessToken(String accessToken) {
+        return Optional.empty();
+    }
+
     Optional<RegisterResponse> register(RegisterRequest request);
 
     /**
