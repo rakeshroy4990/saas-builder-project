@@ -30,6 +30,11 @@ const classes = computed(() =>
   ])
 );
 
+const rootAttrsBind = computed(() => {
+  const r = props.config.rootAttrs;
+  return r && typeof r === 'object' ? r : {};
+});
+
 const handleClick = async () => {
   if (props.config.click) {
     await execute(props.config.click);
@@ -38,7 +43,7 @@ const handleClick = async () => {
 </script>
 
 <template>
-  <div :id="htmlId" :class="classes" @click="handleClick">
+  <div :id="htmlId" :class="classes" v-bind="rootAttrsBind" @click="handleClick">
     <template v-for="child in config.children" :key="child.id">
       <DynamicComponent
         :definition="child"

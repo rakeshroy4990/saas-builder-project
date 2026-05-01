@@ -684,6 +684,7 @@ export const hospitalPages: PageConfig[] = [
                       },
                       config: {
                         styles: { utilityClasses: 'relative hidden md:block' },
+                        rootAttrs: { 'data-profile-menu-root': true },
                         children: [
                           {
                             id: 'hospital-dashboard-header-user-display',
@@ -741,6 +742,15 @@ export const hospitalPages: PageConfig[] = [
                                       }
                                     }
                                   }
+                                },
+                                {
+                                  id: 'hospital-dashboard-header-user-menu-logout',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Logout',
+                                    styles: { styleTemplate: 'hosp.header.menuButton' },
+                                    click: { actionId: 'logout-user' }
+                                  }
                                 }
                               ]
                             }
@@ -759,13 +769,14 @@ export const hospitalPages: PageConfig[] = [
                       },
                       config: {
                         styles: { utilityClasses: 'relative md:hidden' },
+                        rootAttrs: { 'data-profile-menu-root': true },
                         children: [
                           {
                             id: 'hospital-dashboard-header-user-display-mobile',
                             type: 'button',
                             config: {
                               mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                              mappingMaxLength: 10,
+                              mappingMaxLength: 50,
                               textFallback: 'Account',
                               styles: {
                                 styleTemplate: 'hosp.header.userMenuTriggerMobile',
@@ -821,30 +832,20 @@ export const hospitalPages: PageConfig[] = [
                                       }
                                     }
                                   }
+                                },
+                                {
+                                  id: 'hospital-dashboard-header-user-menu-logout-mobile',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Logout',
+                                    styles: { styleTemplate: 'hosp.header.menuButton' },
+                                    click: { actionId: 'logout-user' }
+                                  }
                                 }
                               ]
                             }
                           }
                         ]
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-logout',
-                      type: 'button',
-                      condition: {
-                        expression: "userId && String(userId).trim().length > 0",
-                        mappings: {
-                          userId: {
-                            packageName: 'hospital',
-                            key: 'AuthSession',
-                            property: 'userId'
-                          }
-                        }
-                      },
-                      config: {
-                        text: 'Logout',
-                        styles: { styleTemplate: 'hosp.header.authButton' },
-                        click: { actionId: 'logout-user' }
                       }
                     },
                     {
