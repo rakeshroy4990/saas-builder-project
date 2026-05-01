@@ -12,6 +12,28 @@ import type { ActionConfig } from '../../core/types/ActionConfig';
 import type { MappingConfig } from '../../core/types/MappingConfig';
 import { resolveComponentDomId } from '../../core/utils/domId';
 
+/** `text` from `mapping`, optional truncation via `mappingMaxLength`, `textFallback` when empty; `truncatedTitle` = full string when truncated. */
+function resolveMappedDisplayFields(
+  mapping: MappingConfig,
+  config: Record<string, unknown>
+): { text: string; truncatedTitle?: string } {
+  const raw = resolveMapping(mapping);
+  let full = raw == null ? '' : String(raw).trim();
+  const maxRaw = config.mappingMaxLength;
+  const maxLen =
+    typeof maxRaw === 'number' && Number.isFinite(maxRaw) && maxRaw > 0 ? Math.floor(maxRaw) : undefined;
+  let s = full;
+  if (maxLen != null && s.length > maxLen) {
+    s = s.slice(0, maxLen);
+  }
+  if (!s) {
+    const fb = config.textFallback;
+    s = typeof fb === 'string' && fb.trim().length > 0 ? fb.trim() : '';
+  }
+  const truncatedTitle = maxLen != null && full.length > s.length ? full : undefined;
+  return { text: s, truncatedTitle };
+}
+
 const props = defineProps<{
   definition: ComponentDefinition;
   pageConfig: PageConfig;
@@ -68,13 +90,21 @@ const resolvedConfig = computed(() => {
   const config = resolveTemplateObject(props.definition.config ?? {}) as Record<string, unknown>;
 
   if (props.definition.type === 'text' && config.mapping) {
-    return { ...config, text: resolveMapping(config.mapping as MappingConfig) };
+    const { text, truncatedTitle } = resolveMappedDisplayFields(config.mapping as MappingConfig, config);
+    const out: Record<string, unknown> = { ...config, text };
+    if (truncatedTitle) {
+      out.title = truncatedTitle;
+    }
+    return out;
   }
 
   if (props.definition.type === 'button') {
     let out: Record<string, unknown> = { ...config };
     if (config.mapping) {
-      out = { ...out, text: resolveMapping(config.mapping as MappingConfig) };
+      const { text, truncatedTitle } = resolveMappedDisplayFields(config.mapping as MappingConfig, config);
+      const explicitTitle =
+        typeof config.title === 'string' && config.title.trim().length > 0 ? config.title.trim() : undefined;
+      out = { ...out, text, title: truncatedTitle ?? explicitTitle };
     }
     const dc = props.definition.disabledCondition;
     if (dc && evaluateCondition(dc, props.context)) {
