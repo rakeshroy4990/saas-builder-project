@@ -37,9 +37,24 @@ export const openAppointmentPopupHospitalServices: ServiceDefinition[] = [
       const departmentList = Array.isArray(departments.list) ? departments.list : [];
       useAppStore(pinia).setData('hospital', 'AppointmentDepartments', { list: departmentList });
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'editingAppointmentId', '');
-      useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'patientName', '');
-      useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'patientEmail', '');
-      useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'patientPhone', '');
+      useAppStore(pinia).setProperty(
+        'hospital',
+        'AppointmentForm',
+        'patientName',
+        String(authSession.fullName ?? authSession.userDisplayName ?? '').trim()
+      );
+      useAppStore(pinia).setProperty(
+        'hospital',
+        'AppointmentForm',
+        'patientEmail',
+        String(authSession.email ?? '').trim()
+      );
+      useAppStore(pinia).setProperty(
+        'hospital',
+        'AppointmentForm',
+        'patientPhone',
+        String(authSession.mobileNumber ?? '').trim()
+      );
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'department', '');
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'doctor', '');
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'ageGroup', '');
