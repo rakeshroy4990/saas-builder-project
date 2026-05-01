@@ -98,7 +98,7 @@ export const hospitalTermsPage: PageConfig = {
                           id: 'hospital-terms-updated-body',
                           type: 'text',
                           config: {
-                            text: 'These terms apply when you use Little Sprouts Care telehealth and online booking services for pediatric care.',
+                            text: 'These terms apply when you use Agastya Healthcare telehealth and online booking services for pediatric care.',
                             styles: { utilityClasses: 'block w-full text-sm leading-relaxed text-slate-600' }
                           }
                         }
@@ -108,7 +108,7 @@ export const hospitalTermsPage: PageConfig = {
                   termsSection(
                     'hospital-terms-s1',
                     '1. Nature of the service',
-                    'Little Sprouts Care offers online information, scheduling, and remote consultations related to pediatric and family health. Online sessions are not a substitute for an in-person examination when your clinician recommends one, and not all concerns can be assessed safely by video or chat.'
+                    'Agastya Healthcare offers online information, scheduling, and remote consultations related to pediatric and family health. Online sessions are not a substitute for an in-person examination when your clinician recommends one, and not all concerns can be assessed safely by video or chat.'
                   ),
                   termsSection(
                     'hospital-terms-s2',
@@ -148,7 +148,7 @@ export const hospitalTermsPage: PageConfig = {
                   termsSection(
                     'hospital-terms-s8',
                     '8. Limitation of liability',
-                    'To the fullest extent permitted by law, Little Sprouts Care and its staff are not liable for indirect or consequential damages arising from use of this website or online consultations. Some jurisdictions do not allow certain limitations; in those cases, our liability is limited to the maximum allowed by law.'
+                    'To the fullest extent permitted by law, Agastya Healthcare and its staff are not liable for indirect or consequential damages arising from use of this website or online consultations. Some jurisdictions do not allow certain limitations; in those cases, our liability is limited to the maximum allowed by law.'
                   ),
                   termsSection(
                     'hospital-terms-s9',
@@ -168,7 +168,7 @@ export const hospitalTermsPage: PageConfig = {
       },
       hospitalSiteFooter(
         'hospital-terms-footer',
-        'Little Sprouts Care | Pediatric and family care you can trust.',
+        'Agastya Healthcare | Pediatric and family care you can trust.',
         { termsPageId: '' }
       )
     ]

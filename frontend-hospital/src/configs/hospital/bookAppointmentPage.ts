@@ -356,7 +356,7 @@ export const hospitalBookAppointmentPage: PageConfig = {
       },
       hospitalSiteFooter(
         'hospital-book-appt-footer',
-        'Little Sprouts Care | Update your appointment details.'
+        'Agastya Healthcare | Update your appointment details.'
       )
     ]
   }

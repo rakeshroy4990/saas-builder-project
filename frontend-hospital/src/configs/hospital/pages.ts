@@ -15,7 +15,7 @@ export const hospitalPages: PageConfig[] = [
   {
     packageName: 'hospital',
     pageId: 'home',
-    title: 'Little Sprouts Care Hospital',
+    title: 'Agastya Healthcare Hospital',
     initializeActions: [
       { actionId: 'set-home-header-active' },
       { actionId: 'load-home-content' },
@@ -148,7 +148,7 @@ export const hospitalPages: PageConfig[] = [
                           property: 'videoKind'
                         },
                         styles: { styleTemplate: 'hosp.hero.youtube' },
-                        title: 'Featured video from Little Sprouts Care'
+                        title: 'Featured video from Agastya Healthcare'
                       }
                     },
                     {
@@ -307,7 +307,7 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-home-highlights-heading',
                 type: 'text',
-                config: { text: 'Why Choose Little Sprouts Care?', styles: { styleTemplate: 'hosp.section.heading' } }
+                config: { text: 'Why Choose Agastya Healthcare?', styles: { styleTemplate: 'hosp.section.heading' } }
               },
               {
                 id: 'hospital-home-highlights-list',
@@ -433,7 +433,7 @@ export const hospitalPages: PageConfig[] = [
         },
         hospitalSiteFooter(
           'hospital-home-footer',
-          'Little Sprouts Care | Pediatric and family care you can trust.'
+          'Agastya Healthcare | Pediatric and family care you can trust.'
         )
       ]
     }
@@ -497,7 +497,7 @@ export const hospitalPages: PageConfig[] = [
                             type: 'image',
                             config: {
                               src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/stetho_n1bp0a.jpg',
-                              alt: 'Little Sprouts Care logo',
+                              alt: 'Agastya Healthcare logo',
                               styles: { styleTemplate: 'hosp.header.logo' },
                               click: {
                                 actionId: 'set-home-header-active',
@@ -512,7 +512,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-header-title',
                             type: 'text',
                             config: {
-                              text: 'Little Sprouts Care',
+                              text: 'Agastya Healthcare',
                               styles: { styleTemplate: 'hosp.header.title' },
                               plainClick: true,
                               click: {
@@ -831,7 +831,7 @@ export const hospitalPages: PageConfig[] = [
                               textFallback: 'Account',
                               styles: {
                                 styleTemplate: 'hosp.header.userMenuTriggerMobile',
-                                utilityClasses: 'shrink-0 max-w-[11ch] truncate'
+                                utilityClasses: 'min-w-0 max-w-[18ch] sm:max-w-[22ch] truncate'
                               },
                               title: 'Open profile menu',
                               click: { actionId: 'toggle-profile-header-menu' }
@@ -928,8 +928,29 @@ export const hospitalPages: PageConfig[] = [
             styles: { utilityClasses: 'lg:hidden rounded-xl border border-slate-200 bg-white px-3 py-2' },
             children: [
               {
+                id: 'hospital-dashboard-mobile-menu-home-active',
+                type: 'button',
+                condition: {
+                  expression: "activeMenu === 'HOME'",
+                  mappings: {
+                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                  }
+                },
+                config: {
+                  text: 'Home',
+                  styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+                  click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                }
+              },
+              {
                 id: 'hospital-dashboard-mobile-menu-home',
                 type: 'button',
+                condition: {
+                  expression: "activeMenu !== 'HOME'",
+                  mappings: {
+                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                  }
+                },
                 config: {
                   text: 'Home',
                   styles: { styleTemplate: 'hosp.header.menuButton' },
@@ -940,8 +961,29 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
+                id: 'hospital-dashboard-mobile-menu-dashboard-active',
+                type: 'button',
+                condition: {
+                  expression: "activeMenu === 'DASHBOARD'",
+                  mappings: {
+                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                  }
+                },
+                config: {
+                  text: 'Dashboard',
+                  styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+                  click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+                }
+              },
+              {
                 id: 'hospital-dashboard-mobile-menu-dashboard',
                 type: 'button',
+                condition: {
+                  expression: "activeMenu !== 'DASHBOARD'",
+                  mappings: {
+                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                  }
+                },
                 config: {
                   text: 'Dashboard',
                   styles: { styleTemplate: 'hosp.header.menuButton' },
@@ -949,12 +991,29 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
+                id: 'hospital-dashboard-mobile-menu-education-active',
+                type: 'button',
+                condition: {
+                  expression: "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu === 'EDUCATION'",
+                  mappings: {
+                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                  }
+                },
+                config: {
+                  text: 'Education',
+                  styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+                  click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'doctor-education' } }
+                }
+              },
+              {
                 id: 'hospital-dashboard-mobile-menu-education',
                 type: 'button',
                 condition: {
-                  expression: "String(role ?? '').toUpperCase() === 'DOCTOR'",
+                  expression: "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu !== 'EDUCATION'",
                   mappings: {
-                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
                   }
                 },
                 config: {
@@ -967,8 +1026,29 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
+                id: 'hospital-dashboard-mobile-menu-contact-active',
+                type: 'button',
+                condition: {
+                  expression: "activeMenu === 'CONTACT'",
+                  mappings: {
+                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                  }
+                },
+                config: {
+                  text: 'Contact',
+                  styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+                  click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                }
+              },
+              {
                 id: 'hospital-dashboard-mobile-menu-contact',
                 type: 'button',
+                condition: {
+                  expression: "activeMenu !== 'CONTACT'",
+                  mappings: {
+                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                  }
+                },
                 config: {
                   text: 'Contact',
                   styles: { styleTemplate: 'hosp.header.menuButton' },
@@ -1757,7 +1837,7 @@ export const hospitalPages: PageConfig[] = [
         },
         hospitalSiteFooter(
           'hospital-dashboard-footer',
-          'Little Sprouts Care Dashboard | Manage appointments efficiently.'
+          'Agastya Healthcare Dashboard | Manage appointments efficiently.'
         )
       ]
     }
@@ -1829,7 +1909,7 @@ export const hospitalPages: PageConfig[] = [
         },
         hospitalSiteFooter(
           'hospital-patient-dashboard-footer',
-          'Little Sprouts Care | Your patient dashboard and care updates.'
+          'Agastya Healthcare | Your patient dashboard and care updates.'
         )
       ]
     }
@@ -1898,7 +1978,7 @@ export const hospitalPages: PageConfig[] = [
         },
         hospitalSiteFooter(
           'hospital-doctor-overview-footer',
-          'Little Sprouts Care | Meet our care team and specialists.'
+          'Agastya Healthcare | Meet our care team and specialists.'
         )
       ]
     }
@@ -1957,7 +2037,7 @@ export const hospitalPages: PageConfig[] = [
         },
         hospitalSiteFooter(
           'hospital-doctor-education-footer',
-          'Little Sprouts Care | Clinical flashcards for continuous medical learning.'
+          'Agastya Healthcare | Clinical flashcards for continuous medical learning.'
         )
       ]
     }
@@ -2987,12 +3067,15 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-reset-password-popup-email-row',
                 type: 'container',
                 config: {
-                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-6'] },
                   children: [
                     {
                       id: 'hospital-reset-password-popup-email-label',
                       type: 'text',
-                      config: { text: 'Email *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: {
+                        text: 'Email *',
+                        styles: { styleTemplate: 'hosp.form.inlineLabel', utilityClasses: 'w-44 md:w-48' }
+                      }
                     },
                     {
                       id: 'hospital-reset-password-popup-email',
@@ -3012,12 +3095,15 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-reset-password-popup-old-row',
                 type: 'container',
                 config: {
-                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-6'] },
                   children: [
                     {
                       id: 'hospital-reset-password-popup-old-label',
                       type: 'text',
-                      config: { text: 'Current password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: {
+                        text: 'Current password *',
+                        styles: { styleTemplate: 'hosp.form.inlineLabel', utilityClasses: 'w-44 md:w-48' }
+                      }
                     },
                     {
                       id: 'hospital-reset-password-popup-old',
@@ -3038,12 +3124,15 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-reset-password-popup-new-row',
                 type: 'container',
                 config: {
-                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-6'] },
                   children: [
                     {
                       id: 'hospital-reset-password-popup-new-label',
                       type: 'text',
-                      config: { text: 'New password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: {
+                        text: 'New password *',
+                        styles: { styleTemplate: 'hosp.form.inlineLabel', utilityClasses: 'w-44 md:w-48' }
+                      }
                     },
                     {
                       id: 'hospital-reset-password-popup-new',
@@ -3064,12 +3153,15 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-reset-password-popup-confirm-row',
                 type: 'container',
                 config: {
-                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-6'] },
                   children: [
                     {
                       id: 'hospital-reset-password-popup-confirm-label',
                       type: 'text',
-                      config: { text: 'Confirm new password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: {
+                        text: 'Confirm new password *',
+                        styles: { styleTemplate: 'hosp.form.inlineLabel', utilityClasses: 'w-44 md:w-48' }
+                      }
                     },
                     {
                       id: 'hospital-reset-password-popup-confirm',
@@ -3893,7 +3985,7 @@ export const hospitalPages: PageConfig[] = [
         },
         hospitalSiteFooter(
           'hospital-chat-footer',
-          'Little Sprouts Care | Questions? Our team is here to help.'
+          'Agastya Healthcare | Questions? Our team is here to help.'
         )
       ]
     }
