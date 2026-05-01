@@ -2849,7 +2849,7 @@ export const hospitalPages: PageConfig[] = [
                 type: 'button',
                 disabledCondition: {
                   expression:
-                    "String(firstName ?? '').trim().length === 0 || String(lastName ?? '').trim().length === 0 || String(emailId ?? '').trim().length === 0 || String(password ?? '').trim().length === 0 || String(address ?? '').trim().length === 0 || String(gender ?? '').trim().length === 0 || String(mobileNumber ?? '').trim().length === 0 || (String(role ?? '').toUpperCase() === 'DOCTOR' && (String(department ?? '').trim().length === 0 || String(qualifications ?? '').trim().length === 0 || String(smcName ?? '').trim().length === 0 || String(smcRegistrationNumber ?? '').trim().length === 0)) || acceptTerms !== true",
+                    "String(firstName ?? '').trim().length === 0 || String(lastName ?? '').trim().length === 0 || String(emailId ?? '').trim().length === 0 || String(password ?? '').trim().length === 0 || String(gender ?? '').trim().length === 0 || String(mobileNumber ?? '').trim().length === 0 || (String(role ?? '').toUpperCase() === 'DOCTOR' && (String(department ?? '').trim().length === 0 || String(qualifications ?? '').trim().length === 0 || String(smcName ?? '').trim().length === 0 || String(smcRegistrationNumber ?? '').trim().length === 0)) || acceptTerms !== true",
                   mappings: {
                     firstName: {
                       packageName: 'hospital',
@@ -3388,7 +3388,8 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   label: 'Patient Name *',
                   placeholder: 'Your Name',
-                  mapping: { packageName: 'hospital', key: 'AuthSession', property: 'fullName' },
+                  mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'patientName' },
+                  change: { actionId: 'set-appointment-patient-field', data: { field: 'patientName' } },
                   styles: { styleTemplate: 'hosp.form.input' }
                 }
               },
@@ -3398,7 +3399,8 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   label: 'Email Address *',
                   placeholder: 'youremail@example.com',
-                  mapping: { packageName: 'hospital', key: 'AuthSession', property: 'email' },
+                  mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'patientEmail' },
+                  change: { actionId: 'set-appointment-patient-field', data: { field: 'patientEmail' } },
                   styles: { styleTemplate: 'hosp.form.input' }
                 }
               },
@@ -3408,7 +3410,8 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   label: 'Phone Number *',
                   placeholder: 'Phone Number',
-                  mapping: { packageName: 'hospital', key: 'AuthSession', property: 'mobileNumber' },
+                  mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'patientPhone' },
+                  change: { actionId: 'set-appointment-patient-field', data: { field: 'patientPhone' } },
                   styles: { styleTemplate: 'hosp.form.input' }
                 }
               },
