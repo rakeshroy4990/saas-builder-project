@@ -183,7 +183,7 @@ async def handle_query(
     audience = infer_user_audience(user_roles or [])
     effective_question = _build_effective_question(user_query, history)
     cache_query_key = _build_cache_query_key(user_query)
-    cached = get_cached(cache_query_key, audience=audience)
+    cached = get_cached(cache_query_key, audience=audience, user_id=user_id)
     if cached:
         LOG.info("[RAG][CACHE] hit question=%s audience=%s", user_query, audience)
         return {
@@ -298,6 +298,7 @@ async def handle_query(
             answer,
             audience=audience,
             follow_up_questions=follow_up_questions,
+            user_id=user_id,
         )
         LOG.info("[RAG][CACHE] stored question=%s audience=%s", user_query, audience)
     else:

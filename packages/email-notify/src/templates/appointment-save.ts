@@ -1,4 +1,5 @@
 import { AppointmentSavePayload } from '../types';
+import { withBrandShell } from './brand-shell';
 
 export function buildAppointmentSaveEmail(payload: AppointmentSavePayload) {
   const formattedDate = new Date(payload.appointmentDate).toLocaleString('en-US', {
@@ -6,7 +7,7 @@ export function buildAppointmentSaveEmail(payload: AppointmentSavePayload) {
     timeStyle: 'short',
   });
 
-  const html = `
+  const contentHtml = `
     <h2>Appointment Confirmed</h2>
     <p>Hi ${payload.userName},</p>
     <p>Your appointment has been saved.</p>
@@ -26,6 +27,7 @@ export function buildAppointmentSaveEmail(payload: AppointmentSavePayload) {
     </table>
     <p>Appointment ID: <code>${payload.appointmentId}</code></p>
   `;
+  const html = withBrandShell(contentHtml, '');
 
   return {
     subject: `Appointment Confirmed: ${payload.appointmentTitle}`,

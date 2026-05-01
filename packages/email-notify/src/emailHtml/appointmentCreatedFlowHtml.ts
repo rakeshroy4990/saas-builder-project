@@ -9,6 +9,7 @@ import {
   APPOINTMENT_CREATED_HTML_TO_DOCTOR,
   APPOINTMENT_CREATED_HTML_TO_PATIENT,
 } from './appointmentCreatedEmailHtml.constants';
+import { withBrandShell } from '../templates/brand-shell';
 
 export const AppointmentEmailFlow = {
   ToPatient: 'ToPatient',
@@ -136,7 +137,7 @@ export function buildAppointmentCreatedHtml(
       ? APPOINTMENT_CREATED_HTML_TO_PATIENT
       : APPOINTMENT_CREATED_HTML_TO_DOCTOR;
 
-  return fillTemplate(shell, vars).trim();
+  return withBrandShell(fillTemplate(shell, vars).trim(), ctx.appBaseUrl);
 }
 
 export function buildAppointmentCreatedPlainText(

@@ -12,6 +12,7 @@ export type {
   ITokenStore,
   ResetPasswordPayload,
   SendResult,
+  WelcomeRegistrationPayload,
 } from './types';
 export {
   AppointmentEmailFlow,

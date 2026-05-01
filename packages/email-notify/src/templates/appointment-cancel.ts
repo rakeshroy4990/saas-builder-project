@@ -1,4 +1,5 @@
 import { AppointmentCancelPayload } from '../types';
+import { withBrandShell } from './brand-shell';
 
 export function buildAppointmentCancelEmail(payload: AppointmentCancelPayload) {
   const formattedDate = new Date(payload.appointmentDate).toLocaleString('en-US', {
@@ -6,7 +7,7 @@ export function buildAppointmentCancelEmail(payload: AppointmentCancelPayload) {
     timeStyle: 'short',
   });
 
-  const html = `
+  const contentHtml = `
     <h2>Appointment Cancelled</h2>
     <p>Hi ${payload.userName},</p>
     <p>Your appointment has been cancelled.</p>
@@ -22,6 +23,7 @@ export function buildAppointmentCancelEmail(payload: AppointmentCancelPayload) {
     <p>Appointment ID: <code>${payload.appointmentId}</code></p>
     <p>If this was a mistake, please reschedule through your portal.</p>
   `;
+  const html = withBrandShell(contentHtml, '');
 
   return {
     subject: `Appointment Cancelled: ${payload.appointmentTitle}`,

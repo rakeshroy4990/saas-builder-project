@@ -8,10 +8,12 @@ import {
   EmailNotifyConfig,
   ITokenStore,
   SendResult,
+  WelcomeRegistrationPayload,
 } from './types';
 import { buildAppointmentCancelEmail } from './templates/appointment-cancel';
 import { buildAppointmentSaveEmail } from './templates/appointment-save';
 import { buildResetPasswordEmail } from './templates/reset-password';
+import { buildWelcomeRegistrationEmail } from './templates/welcome-registration';
 import {
   AppointmentEmailFlow,
   buildAppointmentCreatedHtml,
@@ -73,6 +75,15 @@ export class EmailNotifyService {
 
   async sendAppointmentCancel(payload: AppointmentCancelPayload): Promise<SendResult> {
     const template = buildAppointmentCancelEmail(payload);
+    return this.provider.send({
+      from: this.config.fromAddress,
+      to: payload.toEmail,
+      ...template,
+    });
+  }
+
+  async sendWelcomeRegistration(payload: WelcomeRegistrationPayload): Promise<SendResult> {
+    const template = buildWelcomeRegistrationEmail(payload, this.config.appBaseUrl);
     return this.provider.send({
       from: this.config.fromAddress,
       to: payload.toEmail,

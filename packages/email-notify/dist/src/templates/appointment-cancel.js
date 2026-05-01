@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildAppointmentCancelEmail = buildAppointmentCancelEmail;
+const brand_shell_1 = require("./brand-shell");
 function buildAppointmentCancelEmail(payload) {
     const formattedDate = new Date(payload.appointmentDate).toLocaleString('en-US', {
         dateStyle: 'full',
         timeStyle: 'short',
     });
-    const html = `
+    const contentHtml = `
     <h2>Appointment Cancelled</h2>
     <p>Hi ${payload.userName},</p>
     <p>Your appointment has been cancelled.</p>
@@ -20,6 +21,7 @@ function buildAppointmentCancelEmail(payload) {
     <p>Appointment ID: <code>${payload.appointmentId}</code></p>
     <p>If this was a mistake, please reschedule through your portal.</p>
   `;
+    const html = (0, brand_shell_1.withBrandShell)(contentHtml, '');
     return {
         subject: `Appointment Cancelled: ${payload.appointmentTitle}`,
         html,

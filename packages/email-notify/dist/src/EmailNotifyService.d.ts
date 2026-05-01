@@ -1,5 +1,5 @@
 import { IEmailProvider } from './providers/IEmailProvider';
-import { AppointmentCancelPayload, AppointmentCreatedEmailContext, AppointmentSavePayload, EmailNotifyConfig, ITokenStore, SendResult } from './types';
+import { AppointmentCancelPayload, AppointmentCreatedEmailContext, AppointmentSavePayload, EmailNotifyConfig, ITokenStore, SendResult, WelcomeRegistrationPayload } from './types';
 export declare class EmailNotifyService {
     private readonly provider;
     private readonly tokenService;
@@ -11,6 +11,7 @@ export declare class EmailNotifyService {
     validateResetToken(rawToken: string): Promise<string | null>;
     sendAppointmentSave(payload: AppointmentSavePayload): Promise<SendResult>;
     sendAppointmentCancel(payload: AppointmentCancelPayload): Promise<SendResult>;
+    sendWelcomeRegistration(payload: WelcomeRegistrationPayload): Promise<SendResult>;
     /**
      * Sends appointment-created notifications: one to the patient and one to the doctor.
      * Doctor email is skipped when {@link AppointmentCreatedEmailContext.doctorEmail} is blank.

@@ -77,10 +77,23 @@ function parseContext(raw) {
         appBaseUrl,
     };
 }
+function parseWelcomePayload(raw) {
+    const data = JSON.parse(raw || '{}');
+    const email = String(data.email ?? '').trim();
+    const userName = String(data.userName ?? '').trim();
+    if (!email) {
+        throw new Error('email is required');
+    }
+    if (!userName) {
+        throw new Error('userName is required');
+    }
+    return { email, userName };
+}
 const port = Number(process.env.PORT || process.env.HOSPITAL_APPOINTMENT_EMAIL_PORT || 8787);
 const internalSecret = String(process.env.EMAIL_INTERNAL_SECRET || '').trim();
 const server = http_1.default.createServer(async (req, res) => {
-    if (req.method !== 'POST' || req.url !== '/hospital/appointment-created') {
+    if (req.method !== 'POST' ||
+        (req.url !== '/hospital/appointment-created' && req.url !== '/hospital/welcome-registration')) {
         res.statusCode = 404;
         res.end();
         return;
@@ -94,8 +107,17 @@ const server = http_1.default.createServer(async (req, res) => {
     }
     try {
         const raw = await readJsonBody(req);
-        const ctx = parseContext(raw);
         const emailService = (0, createEmailNotifyFromEnv_1.createEmailNotifyFromEnv)(new NoopTokenStore());
+        if (req.url === '/hospital/welcome-registration') {
+            const payload = parseWelcomePayload(raw);
+            const result = await emailService.sendWelcomeRegistration({
+                toEmail: payload.email,
+                userName: payload.userName,
+            });
+            json(res, 200, { ok: true, result });
+            return;
+        }
+        const ctx = parseContext(raw);
         const results = await emailService.sendAppointmentCreatedDual(ctx);
         json(res, 200, { ok: true, ...results });
     }
