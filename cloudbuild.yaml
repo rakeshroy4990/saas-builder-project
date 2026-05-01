@@ -5,6 +5,7 @@
 #   printf %s 'your-jwt-secret' | gcloud secrets create backend-hospital-app-auth-jwt-secret --data-file=-
 #   printf %s 'agora-cert' | gcloud secrets create backend-hospital-app-video-agora-certificate --data-file=-
 #   printf %s 'AIza...' | gcloud secrets create backend-hospital-app-ai-gemini-api-key --data-file=-
+#   printf %s 'AIza...' | gcloud secrets create backend-hospital-youtube-api-key --data-file=-   # YouTube Data API v3 (app.youtube.api-key / YOUTUBE_API_KEY)
 #
 # pdf-rag-pipeline — create secrets:
 #   printf %s 'mongodb+srv://...' | gcloud secrets create pdf-rag-pipeline-mongo-uri --data-file=-
@@ -16,6 +17,7 @@
 #   for s in \
 #     backend-hospital-spring-data-mongodb-uri backend-hospital-app-auth-jwt-secret \
 #     backend-hospital-app-video-agora-certificate backend-hospital-app-ai-gemini-api-key \
+#     backend-hospital-youtube-api-key \
 #     pdf-rag-pipeline-mongo-uri pdf-rag-pipeline-jwt-secret \
 #     pdf-rag-pipeline-openai-api-key pdf-rag-pipeline-gemini-api-key; do
 #     gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${RUNTIME_SA}" --role="roles/secretmanager.secretAccessor"
@@ -90,7 +92,7 @@ steps:
       - --env-vars-file
       - backend-hospital/cloudrun-env.yaml
       - --set-secrets
-      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest
+      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest,YOUTUBE_API_KEY=backend-hospital-youtube-api-key:latest
       - --quiet
 
   # ── pdf-rag-pipeline: deploy ──────────────────────────────────

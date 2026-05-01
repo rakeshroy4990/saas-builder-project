@@ -3,7 +3,9 @@ package com.flexshell.controller;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.controller.dto.YoutubeQueryCacheEntryDto;
 import com.flexshell.service.UserService;
+import com.flexshell.service.YoutubeQueryCacheService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,13 +17,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
     private final UserService userService;
+    private final YoutubeQueryCacheService youtubeQueryCacheService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, YoutubeQueryCacheService youtubeQueryCacheService) {
         this.userService = userService;
+        this.youtubeQueryCacheService = youtubeQueryCacheService;
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -38,6 +44,30 @@ public class UserController {
                 .map(body -> ResponseEntity.ok(StandardApiResponse.success("OK", body)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(StandardApiResponse.error("User not found", "USER_NOT_FOUND")));
+    }
+
+    /**
+     * Recent YouTube hero search rows from {@code query_cache} for the authenticated user (self only).
+     */
+    @GetMapping(value = "/youtube-queries", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<List<YoutubeQueryCacheEntryDto>>> listYoutubeQueries(
+            @RequestParam(value = "userId", required = false) String userId,
+            @RequestParam(value = "limit", required = false, defaultValue = "50") int limit,
+            Authentication authentication
+    ) {
+        String id = resolveActorUserId(userId, authentication);
+        if (id.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(
+                            "userId is required or you must be authenticated",
+                            "USER_QUERY_INVALID"));
+        }
+        if (!isSelf(authentication, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error("Forbidden", "USER_FORBIDDEN"));
+        }
+        List<YoutubeQueryCacheEntryDto> rows = youtubeQueryCacheService.listRecentForUser(id, limit);
+        return ResponseEntity.ok(StandardApiResponse.success("OK", rows));
     }
 
     @PutMapping(value = "/profile", produces = MediaType.APPLICATION_JSON_VALUE)

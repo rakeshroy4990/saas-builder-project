@@ -17,6 +17,8 @@ export const hospitalHomeContent = {
     subtitle:
       'Experience compassionate care with state-of-the-art medical facilities. Our team of expert physicians is dedicated to your wellbeing.',
     image: CLOUDINARY_YOUR_HEALTH_OUR_PRIORITY,
+    /** Set by `resolve-hero-youtube-video` from the latest `query_cache` row for the user (home / login). */
+    videoId: null as string | null,
     ctaPrimary: 'Schedule Visit',
     // ctaSecondary: 'Emergency Care'
   },

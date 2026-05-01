@@ -47,6 +47,8 @@ export const SERVER_PATHS = {
   chatSupportReject: '/api/chat/support/reject',
   chatSupportOpen: '/api/chat/support/open',
   telemetrySessionEvent: '/api/telemetry/session-event',
+  /** GET `?trace_id=` — current tab session row including `sessionSummary` (public). */
+  telemetrySessionSnapshot: '/api/telemetry/session-snapshot',
   /** Mint RTC / vendor session after hospital call permission checks. */
   hospitalVideoSession: '/api/hospital/video/session',
   hospitalAiChat: '/api/hospital/ai/chat',
@@ -54,7 +56,11 @@ export const SERVER_PATHS = {
   user: '/api/user',
   /** PUT save profile: same body as `PUT /api/user`; optional `userId` query (else JWT principal). */
   userProfile: '/api/user/profile',
-  test: '/api/test'
+  test: '/api/test',
+  /** GET `?q=` — YouTube channel hero video (public; API key on server). Optional `user_id` scopes query_cache. */
+  youtubeHeroVideo: '/api/youtube/hero-video',
+  /** GET `?userId=&limit=` — recent YouTube hero queries from `query_cache` (authenticated; self only). */
+  youtubeUserQueries: '/api/user/youtube-queries'
 } as const;
 
 export type ServerPathKey = keyof typeof SERVER_PATHS;

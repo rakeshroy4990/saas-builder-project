@@ -17,3 +17,9 @@ SENTRY_ENVIRONMENT: production
 SENTRY_TRACES_SAMPLE_RATE: "0"
 SENTRY_SEND_DEFAULT_PII: "false"
 SENTRY_DSN: https://13c8f9a52f54d607d42214e4e936f653@o4511297937539072.ingest.us.sentry.io/4511297943306240
+
+# YouTube Data API v3 (hero video search). Maps to app.youtube.* in application.properties.
+# YOUTUBE_API_KEY: set via Secret Manager or Cloud Run secret (never commit real keys in this file).
+APP_YOUTUBE_CHANNEL_HANDLE: LittleSproutsCare_DrSwati
+# In-process search result cache (ms) to reduce quota usage.
+APP_YOUTUBE_SEARCH_CACHE_TTL_MS: "300000"

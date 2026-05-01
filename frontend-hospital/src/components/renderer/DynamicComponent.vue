@@ -8,7 +8,7 @@ import { evaluateCondition } from '../../core/engine/ConditionEvaluator';
 import { useActionEngine } from '../../composables/useActionEngine';
 import { resolveMapping } from '../../core/engine/DataMapper';
 import { resolveStyle } from '../../core/engine/StyleResolver';
-import type { ActionConfig } from '../../core/types/ActionConfig';
+import type { ActionConfig, ActionRunTelemetryContext } from '../../core/types/ActionConfig';
 import type { MappingConfig } from '../../core/types/MappingConfig';
 import { resolveComponentDomId } from '../../core/utils/domId';
 
@@ -137,6 +137,11 @@ const resolvedConfig = computed(() => {
     return { ...config, src: typeof mapped === 'string' ? mapped : '' };
   }
 
+  if (props.definition.type === 'youtube-embed' && config.mapping) {
+    const mapped = resolveMapping(config.mapping as MappingConfig);
+    return { ...config, videoId: mapped == null ? '' : String(mapped).trim() };
+  }
+
   if ((props.definition.type === 'input' || props.definition.type === 'medicine-list-editor') && config.mapping) {
     const mapped = resolveMapping(config.mapping as MappingConfig);
     let out: Record<string, unknown> = { ...config, value: mapped == null ? '' : String(mapped) };
@@ -197,14 +202,19 @@ const displayConfig = computed(() => {
   };
 });
 
+const runTelemetry = computed<ActionRunTelemetryContext | undefined>(() => ({
+  component_id: elementHtmlId.value
+}));
+
 const onAction = async (event: { action?: ActionConfig; payload?: Record<string, unknown> }) => {
   if (!event?.action) return;
   const raw = props.definition.config as Record<string, unknown> | undefined;
+  const tel = runTelemetry.value;
   if (props.definition.type === 'button' && raw?.click) {
-    await asyncBusy.runExclusive(() => execute(event.action!, event.payload));
+    await asyncBusy.runExclusive(() => execute(event.action!, event.payload, tel));
     return;
   }
-  await execute(event.action, event.payload);
+  await execute(event.action, event.payload, tel);
 };
 
 const unknownTypeClass = computed(() => resolveStyle({ styleTemplate: 'system.error.unknownType' }));

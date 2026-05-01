@@ -17,10 +17,37 @@ import {
   closeVideoCallPopupIfOpen,
   resetHospitalVideoCallPiniaState
 } from '../shared/hospitalVideoCallStoreReset';
-import { getHospitalVideoProviderFromEnv, isBuiltinHospitalVideo } from '../shared/videoProviderConfig';
+import {
+  getHospitalVideoProviderFromEnv,
+  isBuiltinHospitalVideo
+} from '../shared/videoProviderConfig';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { getOrCreateTraceId } from '../../../logging/traceContext';
 import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
+
+/**
+ * Agora (etc.) requires a minted session before ringing the peer; builtin WebRTC does not.
+ */
+function hasJoinableVendorVideoSession(call: Record<string, unknown>): boolean {
+  if (isBuiltinHospitalVideo()) {
+    return true;
+  }
+  const vs = call.videoSession;
+  if (!vs || typeof vs !== 'object' || Array.isArray(vs)) {
+    return false;
+  }
+  const o = vs as Record<string, unknown>;
+  const token = pickString(o, ['token', 'Token']);
+  const roomId = pickString(o, ['roomId', 'RoomId']);
+  const appId = pickString(o, ['appId', 'AppId']);
+  const uidRaw = o.uid ?? o.Uid;
+  const uidNum =
+    typeof uidRaw === 'number' && Number.isFinite(uidRaw)
+      ? uidRaw
+      : Number.parseInt(String(uidRaw ?? ''), 10);
+  const uidOk = Number.isFinite(uidNum) && uidNum !== 0;
+  return Boolean(token && roomId && appId && uidOk);
+}
 
 /**
  * STOMP publish requires a connected client. Default `{}` avoids `undefined` reaching
@@ -103,6 +130,13 @@ export const callHospitalServices: ServiceDefinition[] = [
         return ok({ provider: videoSession.provider });
       } catch (err: unknown) {
         console.error('[Video] hospital-prepare-video-session failed', err);
+        const afterFail = (appStore.getData('hospital', 'VideoCall') ?? {}) as Record<string, unknown>;
+        appStore.setData('hospital', 'VideoCall', {
+          ...afterFail,
+          videoSession: undefined,
+          /** Stops the follow-up `call-send-appointment-invite` from ringing without a joinable session. */
+          videoCallOutgoingInvite: false
+        });
         toastStore.show('Could not prepare video session. Check server video configuration.', 'error');
         trackEvent('video_call_event', {
           domain: 'video',
@@ -193,6 +227,19 @@ export const callHospitalServices: ServiceDefinition[] = [
       const call = (appStore.getData('hospital', 'VideoCall') ?? {}) as Record<string, unknown>;
       if (!Boolean(call.videoCallOutgoingInvite)) {
         return ok({ skipped: true });
+      }
+      if (!hasJoinableVendorVideoSession(call)) {
+        toastStore.show(
+          'Video session is not ready (or the previous attempt failed). Close this window and start the call again.',
+          'error'
+        );
+        const cleared = (appStore.getData('hospital', 'VideoCall') ?? {}) as Record<string, unknown>;
+        appStore.setData('hospital', 'VideoCall', {
+          ...cleared,
+          videoCallOutgoingInvite: false,
+          videoSession: undefined
+        });
+        return { responseCode: 'CALL_INVITE_FAILED', message: 'Video session not ready' };
       }
       const toUserId = String(call.inviteToUserId ?? '').trim();
       if (!toUserId) {

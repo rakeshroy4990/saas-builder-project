@@ -14,12 +14,26 @@ import { isAuthTokenExpired, subscribeAuthToken } from '../auth/authToken';
 import { clearPersistedAuthSessionProfile, syncHospitalUserIdFromAccessToken } from '../auth/authSessionStore';
 import { useAppStore } from '../../store/useAppStore';
 import { ingestSessionTelemetry } from '../analytics/sessionTelemetry';
+import { emitLoggedInSessionSummary, SessionSummaryKind } from '../analytics/sessionSummary';
 
 let appRouter: Router | null = null;
 
 export const bindHttpRouter = (router: Router) => {
   appRouter = router;
 };
+
+type FlexshellTelemetryConfig = { __flexshellTelemetryT0?: number };
+
+function axiosResolvedUrl(config: { baseURL?: string; url?: string }): string {
+  const u = String(config.url ?? '');
+  if (u.startsWith('http')) return u;
+  const b = String(config.baseURL ?? '').replace(/\/$/, '');
+  return `${b}${u.startsWith('/') ? '' : '/'}${u}`;
+}
+
+function shouldSkipSessionSummaryForAxios(config: { baseURL?: string; url?: string }): boolean {
+  return axiosResolvedUrl(config).includes('/api/telemetry/session-event');
+}
 
 export const apiClient = axios.create({
   baseURL: getApiBaseUrl(),
@@ -179,11 +193,26 @@ apiClient.interceptors.request.use((config) => {
   if (accessToken && !getHeader(config.headers, 'Authorization')) {
     setHeader(config.headers, 'Authorization', `Bearer ${accessToken}`);
   }
+  if (!shouldSkipSessionSummaryForAxios(config)) {
+    (config as FlexshellTelemetryConfig).__flexshellTelemetryT0 = performance.now();
+  }
   return config;
 });
 
 apiClient.interceptors.response.use(
   (response) => {
+    if (!shouldSkipSessionSummaryForAxios(response.config)) {
+      const cfg = response.config as FlexshellTelemetryConfig;
+      const t0 = cfg.__flexshellTelemetryT0;
+      const durationMs = typeof t0 === 'number' ? Math.round(performance.now() - t0) : undefined;
+      emitLoggedInSessionSummary({
+        kind: SessionSummaryKind.API_CALL,
+        api_path: axiosResolvedUrl(response.config),
+        http_method: String(response.config.method ?? 'get').toUpperCase(),
+        http_status: response.status,
+        duration_ms: durationMs
+      });
+    }
     const authPayload = readUnauthorizedPayload(response.data);
     if (authPayload.isUnauthorized) {
       emitSessionExpiredTelemetryOnce(401);
@@ -198,6 +227,22 @@ apiClient.interceptors.response.use(
       url: error.config?.url,
       method: error.config?.method
     });
+    if (error.config && !shouldSkipSessionSummaryForAxios(error.config)) {
+      const cfg = error.config as FlexshellTelemetryConfig;
+      const t0 = cfg.__flexshellTelemetryT0;
+      const durationMs = typeof t0 === 'number' ? Math.round(performance.now() - t0) : undefined;
+      const data = error.response?.data as { Message?: string; message?: string } | undefined;
+      const errMsg =
+        (data?.Message ?? data?.message ?? (error instanceof Error ? error.message : String(error))).toString();
+      emitLoggedInSessionSummary({
+        kind: SessionSummaryKind.API_ERROR,
+        api_path: axiosResolvedUrl(error.config),
+        http_method: String(error.config.method ?? 'get').toUpperCase(),
+        http_status: error.response?.status,
+        duration_ms: durationMs,
+        error_message: errMsg.slice(0, 2000)
+      });
+    }
     const popupStore = usePopupStore(pinia);
     const toastStore = useToastStore(pinia);
     const requestUrl = String(error.config?.url ?? '');

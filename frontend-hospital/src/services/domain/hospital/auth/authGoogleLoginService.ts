@@ -172,7 +172,7 @@ export const authGoogleLoginHospitalServices: ServiceDefinition[] = [
           pickString(userData, ['Email', 'email']) ||
           pickString(userData, ['UserId', 'userId']) ||
           '';
-        await finalizeHospitalLoginSession(userData, identity);
+        await finalizeHospitalLoginSession(userData, identity, { authMethod: 'google' });
         return ok();
       } catch (error) {
         if (isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {

@@ -5,7 +5,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Document(collection = "session_telemetry")
@@ -51,6 +53,12 @@ public class SessionTelemetryEntity {
 
     @Field("LastHttpStatus")
     private Integer lastHttpStatus;
+
+    /**
+     * Ordered log of UI/API actions for the authenticated session (same {@link #traceId} as the browser tab).
+     */
+    @Field("SessionSummary")
+    private List<SessionSummaryEntryDocument> sessionSummary = new ArrayList<>();
 
     public String getId() {
         return id;
@@ -162,5 +170,13 @@ public class SessionTelemetryEntity {
 
     public void setLastHttpStatus(Integer lastHttpStatus) {
         this.lastHttpStatus = lastHttpStatus;
+    }
+
+    public List<SessionSummaryEntryDocument> getSessionSummary() {
+        return sessionSummary;
+    }
+
+    public void setSessionSummary(List<SessionSummaryEntryDocument> sessionSummary) {
+        this.sessionSummary = sessionSummary;
     }
 }

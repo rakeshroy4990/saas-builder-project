@@ -10,6 +10,7 @@ import DynDatePicker from '../../components/primitives/DynDatePicker.vue';
 import DynDropdown from '../../components/primitives/DynDropdown.vue';
 import DynList from '../../components/primitives/DynList.vue';
 import DynImage from '../../components/primitives/DynImage.vue';
+import DynYouTubeEmbed from '../../components/primitives/DynYouTubeEmbed.vue';
 import DynCheckbox from '../../components/primitives/DynCheckbox.vue';
 import DynRadioGroup from '../../components/primitives/DynRadioGroup.vue';
 import DynDoctorScheduleEditor from '../../components/primitives/DynDoctorScheduleEditor.vue';
@@ -32,6 +33,7 @@ export function bootstrap(): void {
   ComponentRegistry.register('list', DynList);
   ComponentRegistry.register('container', DynamicContainer);
   ComponentRegistry.register('image', DynImage);
+  ComponentRegistry.register('youtube-embed', DynYouTubeEmbed);
   ComponentRegistry.register('checkbox', DynCheckbox);
   ComponentRegistry.register('radio-group', DynRadioGroup);
   ComponentRegistry.register('chat', DynChat);

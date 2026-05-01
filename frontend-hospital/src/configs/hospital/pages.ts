@@ -16,7 +16,12 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'home',
     title: 'Little Sprouts Care Hospital',
-    initializeActions: [{ actionId: 'set-home-header-active' }, { actionId: 'load-home-content' }, { actionId: 'load-doctors' }],
+    initializeActions: [
+      { actionId: 'set-home-header-active' },
+      { actionId: 'load-home-content' },
+      { actionId: 'resolve-hero-youtube-video' },
+      { actionId: 'load-doctors' }
+    ],
     container: {
       layoutTemplate: 'hosp.page.root',
       children: [
@@ -115,12 +120,52 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
-                id: 'hospital-home-hero-image',
-                type: 'image',
+                id: 'hospital-home-hero-media',
+                type: 'container',
                 config: {
-                  mapping: { packageName: 'hospital', key: 'HomeContent', path: 'hero', property: 'image' },
-                  styles: { styleTemplate: 'hosp.hero.image' },
-                  alt: 'Hospital hero'
+                  layout: { type: 'flex', flex: ['flex', 'flex-col', 'w-full', 'min-h-0', 'min-w-0'] },
+                  children: [
+                    {
+                      id: 'hospital-home-hero-youtube',
+                      type: 'youtube-embed',
+                      condition: {
+                        expression: "heroVideoId && String(heroVideoId).trim().length > 0",
+                        mappings: {
+                          heroVideoId: {
+                            packageName: 'hospital',
+                            key: 'HomeContent',
+                            path: 'hero',
+                            property: 'videoId'
+                          }
+                        }
+                      },
+                      config: {
+                        mapping: { packageName: 'hospital', key: 'HomeContent', path: 'hero', property: 'videoId' },
+                        styles: { styleTemplate: 'hosp.hero.youtube' },
+                        title: 'Featured video from Little Sprouts Care'
+                      }
+                    },
+                    {
+                      id: 'hospital-home-hero-image',
+                      type: 'image',
+                      condition: {
+                        expression: "!heroVideoId || String(heroVideoId ?? '').trim().length === 0",
+                        mappings: {
+                          heroVideoId: {
+                            packageName: 'hospital',
+                            key: 'HomeContent',
+                            path: 'hero',
+                            property: 'videoId'
+                          }
+                        }
+                      },
+                      config: {
+                        mapping: { packageName: 'hospital', key: 'HomeContent', path: 'hero', property: 'image' },
+                        styles: { styleTemplate: 'hosp.hero.image' },
+                        alt: 'Hospital hero'
+                      }
+                    }
+                  ]
                 }
               }
             ]

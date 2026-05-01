@@ -1,5 +1,6 @@
 import type { Router } from 'vue-router';
-import type { ActionConfig, NavigationConfig, PopupRequest } from '../types/ActionConfig';
+import type { ActionConfig, ActionRunTelemetryContext, NavigationConfig, PopupRequest } from '../types/ActionConfig';
+import { emitLoggedInSessionSummary, SessionSummaryKind } from '../../services/analytics/sessionSummary';
 import type { PageConfig } from '../types/PageConfig';
 import { resolveMapping, resolveMappings } from './DataMapper';
 import { ServiceRegistry } from '../registry/ServiceRegistry';
@@ -12,8 +13,22 @@ export class ActionEngine {
     private readonly router: Router
   ) {}
 
-  async execute(actionRef: ActionConfig, inputData?: Record<string, unknown>): Promise<void> {
+  async execute(
+    actionRef: ActionConfig,
+    inputData?: Record<string, unknown>,
+    runTelemetry?: ActionRunTelemetryContext
+  ): Promise<void> {
     const action = this.resolveAction(actionRef);
+    if (runTelemetry?.component_id) {
+      emitLoggedInSessionSummary({
+        kind: SessionSummaryKind.BUTTON_CLICK,
+        page_id: this.pageConfig.pageId,
+        package_name: this.pageConfig.packageName,
+        component_id: runTelemetry.component_id,
+        action_alias: action.alias,
+        action_id: action.actionId
+      });
+    }
     const mappedData = action.mappings
       ? resolveMappings(action.mappings)
       : action.mapping
@@ -32,13 +47,13 @@ export class ActionEngine {
       } else if (action.actionType === 'closePopup') {
         usePopupStore(pinia).close();
         if (action.onSuccess) {
-          await this.execute(action.onSuccess);
+          await this.execute(action.onSuccess, undefined, undefined);
         }
       } else if (action.actionType === 'reloadWindow') {
         window.location.reload();
       }
     } catch (err) {
-      if (action.onFailure) await this.execute(action.onFailure);
+      if (action.onFailure) await this.execute(action.onFailure, undefined, undefined);
       else this.handleGlobalError(err);
     }
   }
@@ -65,10 +80,10 @@ export class ActionEngine {
     const failed = service.responseCodes?.failure?.includes(response.responseCode) ?? false;
 
     if (!failed && action.onSuccess) {
-      await this.execute(action.onSuccess);
+      await this.execute(action.onSuccess, undefined, undefined);
     } else if (failed && action.onFailure) {
       this.setPopupInlineError(response);
-      await this.execute(action.onFailure);
+      await this.execute(action.onFailure, undefined, undefined);
     } else if (failed) {
       this.setPopupInlineError(response);
     }

@@ -229,11 +229,10 @@ export function registerLayoutTemplates(): void {
       'flex-wrap',
       'items-center',
       'gap-2',
-      'sm:justify-end',
+      'justify-end',
       'md:w-auto',
       'md:shrink-0',
-      'md:flex-nowrap',
-      'md:justify-end'
+      'md:flex-nowrap'
     ]
   });
   LayoutTemplateRegistry.register('hosp.hero.section', {

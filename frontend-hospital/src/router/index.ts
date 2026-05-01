@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import DynamicPage from '../components/renderer/DynamicPage.vue';
 import NotFound from '../components/system/NotFound.vue';
+import SessionTelemetryDebug from '../components/system/SessionTelemetryDebug.vue';
 
 const defaultPageId = import.meta.env.VITE_DEFAULT_PAGE_ID ?? 'home';
 const routePackageName = 'hospital';
@@ -30,6 +31,10 @@ export const router = createRouter({
     {
       path: '/page/:packageName/:pageId',
       redirect: (to) => `/${String(to.params.pageId ?? '')}`
+    },
+    {
+      path: '/_telemetry/session',
+      component: SessionTelemetryDebug
     },
     {
       path: '/:pageId',

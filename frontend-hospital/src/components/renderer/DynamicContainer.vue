@@ -37,7 +37,9 @@ const rootAttrsBind = computed(() => {
 
 const handleClick = async () => {
   if (props.config.click) {
-    await execute(props.config.click);
+    await execute(props.config.click, undefined, {
+      component_id: props.config.domId ?? props.htmlId ?? 'container'
+    });
   }
 };
 </script>

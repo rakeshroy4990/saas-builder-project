@@ -16,6 +16,11 @@ export interface PopupRequest {
   initKey?: string;
 }
 
+/** When present on {@link ActionEngine.execute}, records a {@code button_click} session summary row. */
+export interface ActionRunTelemetryContext {
+  component_id: string;
+}
+
 export interface ActionConfig {
   alias?: string;
   actionType?: ActionType;

@@ -5,6 +5,7 @@ import { scrollHomeContactHospitalServices } from './navigation/scrollHomeContac
 import { logoutUserHospitalServices } from './auth/logoutUserService';
 import { registerRoleDepartmentHospitalServices } from './register/registerRoleDepartmentServices';
 import { loadHomeContentHospitalServices } from './home/loadHomeContentService';
+import { resolveHeroYoutubeVideoHospitalServices } from './home/resolveHeroYoutubeVideoService';
 import { registerSuccessHospitalServices } from './register/registerSuccessServices';
 import { loadDoctorsHospitalServices } from './home/loadDoctorsService';
 import { authFormHospitalServices } from './auth/authFormServices';
@@ -34,6 +35,7 @@ export const hospitalServices: ServiceDefinition[] = [
   ...logoutUserHospitalServices,
   ...registerRoleDepartmentHospitalServices,
   ...loadHomeContentHospitalServices,
+  ...resolveHeroYoutubeVideoHospitalServices,
   ...registerSuccessHospitalServices,
   ...loadDoctorsHospitalServices,
   ...authFormHospitalServices,
