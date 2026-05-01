@@ -768,7 +768,7 @@ export const hospitalPages: PageConfig[] = [
                               mappingMaxLength: 10,
                               textFallback: 'Account',
                               styles: {
-                                styleTemplate: 'hosp.header.loginStateChip',
+                                styleTemplate: 'hosp.header.userMenuTriggerMobile',
                                 utilityClasses: 'shrink-0 max-w-[11ch] truncate'
                               },
                               title: 'Open profile menu',
