@@ -211,9 +211,7 @@ public class AppointmentService {
         PageRequest pageRequest = PageRequest.of(safePage, safeSize);
         UserRole actorRole = resolveUserRole(actorUserId);
         Page<AppointmentEntity> result;
-        if (actorRole == UserRole.ADMIN) {
-            result = repository.findAll(pageRequest);
-        } else if (actorRole == UserRole.DOCTOR) {
+        if (actorRole == UserRole.DOCTOR) {
             result = repository.findByDoctorId(actorUserId, pageRequest);
         } else {
             result = repository.findByCreatedBy(actorUserId, pageRequest);
@@ -517,9 +515,6 @@ public class AppointmentService {
             throw new IllegalArgumentException("Appointment not found");
         }
         UserRole actorRole = resolveUserRole(actorUserId);
-        if (actorRole == UserRole.ADMIN) {
-            return;
-        }
         String doctorId = normalize(entity.getDoctorId());
         if (actorRole == UserRole.DOCTOR && doctorId.equals(actorUserId)) {
             return;

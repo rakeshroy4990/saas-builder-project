@@ -20,8 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Resolves a video id within a YouTube channel using Data API v3 search.
  * API key stays server-side only.
  * <p>
- * When {@code userId} is provided, results are persisted to {@code query_cache} and the in-memory
- * search cache is scoped per user.
+ * When {@code userId} is provided, results are persisted to shared {@code rag_db.query_cache}
+ * and the in-memory search cache is scoped per user.
  */
 @Service
 public class YoutubeHeroService {
@@ -56,7 +56,7 @@ public class YoutubeHeroService {
 
     /**
      * @param rawQuery search text from client (trimmed / bounded)
-     * @param userId   optional logged-in user id; when set, cache keys and Mongo {@code query_cache} are scoped to this user
+     * @param userId   optional logged-in user id; when set, cache keys and Mongo shared {@code query_cache} are scoped to this user
      * @return video id + title, or null ids when disabled, empty query, or no match
      */
     public YoutubeHeroVideoResponse resolveHeroVideo(String rawQuery, String userId) {

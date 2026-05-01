@@ -23,8 +23,12 @@ SENTRY_DSN: https://13c8f9a52f54d607d42214e4e936f653@o4511297937539072.ingest.us
 APP_YOUTUBE_CHANNEL_HANDLE: LittleSproutsCare_DrSwati
 # In-process search result cache (ms) to reduce quota usage.
 APP_YOUTUBE_SEARCH_CACHE_TTL_MS: "300000"
+# Use existing shared query_cache collection in rag_db.
+APP_YOUTUBE_QUERY_CACHE_DATABASE: rag_db
 
 # Internal email URLs (maps to app.email.* in application.properties).
 APP_EMAIL_ENABLED: "true"
-APP_EMAIL_INTERNAL_BASE_URL: https://backend-hospital-yspwmymsgq-el.a.run.app
+# IMPORTANT: this must point to the deployed Node email-notify service,
+# not backend-hospital itself. Example: https://email-notify-<hash>-el.a.run.app
+APP_EMAIL_INTERNAL_BASE_URL: https://email-notify-yspwmymsgq-el.a.run.app
 APP_EMAIL_PORTAL_BASE_URL: https://agastyahealthcare.com

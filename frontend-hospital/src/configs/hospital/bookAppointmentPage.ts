@@ -242,7 +242,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         type: 'input',
         config: {
           label:
-            'Prior documents / scans (optional, up to 2 images) — not the doctor-issued structured e-prescription',
+            'Prior documents / scans (optional, up to 2 images)',
           inputType: 'file',
           accept: 'image/*',
           multiple: true,

@@ -1,0 +1,7 @@
+# Non-secret env vars for Cloud Run email-notify service.
+# Secrets should be injected via --set-secrets in cloudbuild.yaml.
+
+NODE_ENV: production
+APP_BASE_URL: https://agastyahealthcare.com
+# Must be a sender identity verified in Resend.
+EMAIL_FROM_ADDRESS: no-reply@agastyahealthcare.com

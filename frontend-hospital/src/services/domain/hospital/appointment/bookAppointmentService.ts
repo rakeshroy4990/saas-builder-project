@@ -85,15 +85,16 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
       const form = (useAppStore(pinia).getData('hospital', 'AppointmentForm') ?? {}) as Record<string, unknown>;
       const editingId = pickString(form, ['editingAppointmentId']).trim();
 
-      const patientName = editingId
-        ? pickString(form, ['patientName', 'PatientName'])
-        : pickString(authSession, ['fullName', 'FullName', 'userDisplayName']);
-      const email = editingId
-        ? pickString(form, ['patientEmail', 'Email'])
-        : pickString(authSession, ['email', 'Email']);
-      const phoneNumber = editingId
-        ? pickString(form, ['patientPhone', 'PhoneNumber'])
-        : pickString(authSession, ['mobileNumber', 'MobileNumber', 'PhoneNumber']);
+      // Requested/typed form values must win; fallback to AuthSession only when form is blank.
+      const patientName =
+        pickString(form, ['patientName', 'PatientName']) ||
+        pickString(authSession, ['fullName', 'FullName', 'userDisplayName']);
+      const email =
+        pickString(form, ['patientEmail', 'Email']) ||
+        pickString(authSession, ['email', 'Email']);
+      const phoneNumber =
+        pickString(form, ['patientPhone', 'PhoneNumber']) ||
+        pickString(authSession, ['mobileNumber', 'MobileNumber', 'PhoneNumber']);
 
       const payload = {
         PatientName: patientName,

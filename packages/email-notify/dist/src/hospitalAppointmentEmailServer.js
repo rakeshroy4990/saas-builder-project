@@ -77,7 +77,7 @@ function parseContext(raw) {
         appBaseUrl,
     };
 }
-const port = Number(process.env.HOSPITAL_APPOINTMENT_EMAIL_PORT || 8787);
+const port = Number(process.env.PORT || process.env.HOSPITAL_APPOINTMENT_EMAIL_PORT || 8787);
 const internalSecret = String(process.env.EMAIL_INTERNAL_SECRET || '').trim();
 const server = http_1.default.createServer(async (req, res) => {
     if (req.method !== 'POST' || req.url !== '/hospital/appointment-created') {

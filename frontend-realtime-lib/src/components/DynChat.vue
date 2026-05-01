@@ -549,7 +549,7 @@ const sendInlineEdit = (m: any) => {
               :disabled="!canSendNow"
               @click="sendSmartAiQuickPrompt(smartAiQuickPrompts[3])"
             >
-              Child health 👶
+              Child Cough 👶
             </button>
           </div>
 
