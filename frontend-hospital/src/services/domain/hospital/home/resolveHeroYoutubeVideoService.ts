@@ -32,7 +32,8 @@ export async function refreshHeroYoutubeFromUserQueryCache(): Promise<void> {
 
   try {
     const res = await apiClient.get(URLRegistry.paths.youtubeUserQueries, {
-      params: { userId, limit: 10 }
+      // Do not send userId: backend resolves actor from JWT principal and enforces self-only access.
+      params: { limit: 10 }
     });
     const json = res.data as Record<string, unknown>;
     if (json.Success === false || json.success === false) {
