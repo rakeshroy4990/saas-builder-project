@@ -7,6 +7,7 @@
 #   printf %s 'AIza...' | gcloud secrets create backend-hospital-app-ai-gemini-api-key --data-file=-
 #   printf %s 'AIza...' | gcloud secrets create backend-hospital-youtube-api-key --data-file=-   # YouTube Data API v3 (app.youtube.api-key / YOUTUBE_API_KEY)
 #   printf %s 'internal-email-secret' | gcloud secrets create backend-hospital-app-email-internal-secret --data-file=-
+#   printf %s 're_...' | gcloud secrets create email-notify-resend-api-key --data-file=-
 #
 # pdf-rag-pipeline — create secrets:
 #   printf %s 'mongodb+srv://...' | gcloud secrets create pdf-rag-pipeline-mongo-uri --data-file=-
@@ -19,6 +20,7 @@
 #     backend-hospital-spring-data-mongodb-uri backend-hospital-app-auth-jwt-secret \
 #     backend-hospital-app-video-agora-certificate backend-hospital-app-ai-gemini-api-key \
 #     backend-hospital-youtube-api-key backend-hospital-app-email-internal-secret \
+#     email-notify-resend-api-key \
 #     pdf-rag-pipeline-mongo-uri pdf-rag-pipeline-jwt-secret \
 #     pdf-rag-pipeline-openai-api-key pdf-rag-pipeline-gemini-api-key; do
 #     gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${RUNTIME_SA}" --role="roles/secretmanager.secretAccessor"
@@ -56,6 +58,22 @@ steps:
       - pdf-rag-pipeline/Dockerfile
       - .
 
+  # ── email-notify: build (parallel) ─────────────────────────────
+  - id: build-email-notify
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']
+    args:
+      - build
+      - --cache-from
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/email-notify:latest
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/email-notify:$SHORT_SHA
+      - -t
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/email-notify:latest
+      - -f
+      - packages/email-notify/Dockerfile
+      - packages/email-notify
+
   # ── backend-hospital: push ────────────────────────────────────
   - id: push-backend
     name: gcr.io/cloud-builders/docker
@@ -73,6 +91,15 @@ steps:
       - push
       - --all-tags
       - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+
+  # ── email-notify: push ────────────────────────────────────────
+  - id: push-email-notify
+    name: gcr.io/cloud-builders/docker
+    waitFor: [build-email-notify]
+    args:
+      - push
+      - --all-tags
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/email-notify
 
   # ── backend-hospital: deploy ──────────────────────────────────
   - id: deploy-backend
@@ -118,9 +145,32 @@ steps:
       - MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest
       - --quiet
 
+  # ── email-notify: deploy ──────────────────────────────────────
+  - id: deploy-email-notify
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    waitFor: [push-email-notify]
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - email-notify
+      - --image
+      - asia-south1-docker.pkg.dev/oshucare/oshucare/email-notify:$SHORT_SHA
+      - --region
+      - asia-south1
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --env-vars-file
+      - packages/email-notify/cloudrun-env.yaml
+      - --set-secrets
+      - RESEND_API_KEY=email-notify-resend-api-key:latest,EMAIL_INTERNAL_SECRET=backend-hospital-app-email-internal-secret:latest
+      - --quiet
+
 images:
   - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital
   - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+  - asia-south1-docker.pkg.dev/oshucare/oshucare/email-notify
 
 options:
   logging: CLOUD_LOGGING_ONLY
