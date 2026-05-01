@@ -749,21 +749,83 @@ export const hospitalPages: PageConfig[] = [
                       }
                     },
                     {
-                      id: 'hospital-dashboard-header-login-state',
-                      type: 'text',
+                      id: 'hospital-dashboard-header-user-anchor-mobile',
+                      type: 'container',
                       condition: {
                         expression: "userId && String(userId).trim().length > 0",
                         mappings: {
-                          userId: {
-                            packageName: 'hospital',
-                            key: 'AuthSession',
-                            property: 'userId'
-                          }
+                          userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
                         }
                       },
                       config: {
-                        text: 'Logged in',
-                        styles: { styleTemplate: 'hosp.header.loginStateChip' }
+                        styles: { utilityClasses: 'relative md:hidden' },
+                        children: [
+                          {
+                            id: 'hospital-dashboard-header-user-display-mobile',
+                            type: 'button',
+                            config: {
+                              mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
+                              mappingMaxLength: 10,
+                              textFallback: 'Account',
+                              styles: {
+                                styleTemplate: 'hosp.header.loginStateChip',
+                                utilityClasses: 'shrink-0 max-w-[11ch] truncate'
+                              },
+                              title: 'Open profile menu',
+                              click: { actionId: 'toggle-profile-header-menu' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-header-user-menu-mobile',
+                            type: 'container',
+                            condition: {
+                              expression: 'profileMenuOpen',
+                              mappings: {
+                                profileMenuOpen: { packageName: 'hospital', key: 'HeaderUiState', property: 'profileMenuOpen' }
+                              }
+                            },
+                            config: {
+                              styles: {
+                                utilityClasses:
+                                  'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
+                              },
+                              children: [
+                                {
+                                  id: 'hospital-dashboard-header-user-menu-profile-mobile',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Profile',
+                                    styles: { styleTemplate: 'hosp.header.menuButton' },
+                                    click: {
+                                      actionId: 'set-profile-page-section',
+                                      data: { section: 'profile' },
+                                      onSuccess: {
+                                        actionId: 'set-profile-header-active',
+                                        onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-header-user-menu-inactive-mobile',
+                                  type: 'button',
+                                  config: {
+                                    text: 'Inactive Account',
+                                    styles: { styleTemplate: 'hosp.header.menuButton' },
+                                    click: {
+                                      actionId: 'set-profile-page-section',
+                                      data: { section: 'inactive' },
+                                      onSuccess: {
+                                        actionId: 'set-profile-header-active',
+                                        onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
                       }
                     },
                     {

@@ -6,6 +6,8 @@ import type { StyleConfig } from '../../core/types/StyleConfig';
 
 interface TextConfig {
   text?: string;
+  /** Native tooltip (e.g. full name when `text` is truncated). */
+  title?: string;
   styles?: StyleConfig;
   click?: ActionConfig;
   /** With `click`, skip hover underline; use a light background hover instead (e.g. header brand title). */
@@ -47,10 +49,11 @@ const onKeydown = (e: KeyboardEvent) => {
     :id="htmlId"
     role="link"
     tabindex="0"
+    :title="config?.title"
     :class="[classes, interactiveClasses]"
     @click="onClick"
     @keydown="onKeydown"
     >{{ value }}</span
   >
-  <span v-else :id="htmlId" :class="classes">{{ value }}</span>
+  <span v-else :id="htmlId" :title="config?.title" :class="classes">{{ value }}</span>
 </template>
