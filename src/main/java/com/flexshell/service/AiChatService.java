@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class AiChatService {
@@ -55,7 +56,11 @@ public class AiChatService {
         smartAiQuotaService.consumeDailyRequestOrThrow(actor);
         if (!"expert".equalsIgnoreCase(audience) && safetyPolicy.requiresEscalation(message)) {
             LOG.info("aiChat escalation actor={} messageLength={}", actor, messageLength);
-            return new AiChatResponse(safetyPolicy.escalationReply(), true, "escalation", List.of());
+            Optional<AiSafetyPolicy.EscalationType> escalationTypeOptional = safetyPolicy.detectEscalationType(message);
+            AiSafetyPolicy.EscalationType escalationType =
+                    escalationTypeOptional.orElse(AiSafetyPolicy.EscalationType.CARDIAC_RESPIRATORY);
+            String escalationMessage = safetyPolicy.escalationReply(escalationType);
+            return new AiChatResponse(escalationMessage, true, escalationType.name().toLowerCase(), List.of());
         }
         List<AiChatMessageDto> history = request.history() == null ? List.of() : request.history();
         LOG.info("aiChat request actor={} messageLength={} historyCount={}", actor, messageLength, history.size());
@@ -65,7 +70,7 @@ public class AiChatService {
         String rawReply = ragResult == null ? "" : Objects.toString(ragResult.answer(), "");
         String safeReply = "expert".equalsIgnoreCase(audience)
                 ? rawReply.trim()
-                : safetyPolicy.enforceSafeResponse(rawReply);
+                : safetyPolicy.enforceSafeResponse(rawReply, message);
         LOG.info("aiChat response actor={} replyLength={}", actor, safeReply.length());
         boolean cache = "cache".equalsIgnoreCase(ragResult == null ? "" : ragResult.source());
         String mode = cache ? "rag_cache_" + audience : "rag_" + audience;

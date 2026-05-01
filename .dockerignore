@@ -1,0 +1,7 @@
+# backend-hospital/.dockerignore
+.git
+.gradle
+build/
+*.md
+.env*
+test/

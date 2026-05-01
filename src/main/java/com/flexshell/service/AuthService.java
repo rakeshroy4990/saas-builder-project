@@ -16,17 +16,28 @@ import com.flexshell.auth.api.RefreshTokenRequest;
 import com.flexshell.auth.api.RefreshTokenResponse;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flexshell.observability.ObservabilityLogger;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -41,6 +52,13 @@ public class AuthService implements AuthFacade {
     private final Map<String, PrivilegedRequestAttempt> privilegedRequestAttempts = new ConcurrentHashMap<>();
 
     private record PrivilegedRequestAttempt(int count, Instant windowStart) {
+    }
+
+    /**
+     * Verified Google userinfo used to provision or match a local {@link UserEntity}.
+     * {@code gender} / {@code mobileNumber} may be empty when Google does not return them for the granted scopes.
+     */
+    private record GoogleVerifiedProfile(String email, String givenName, String familyName, String gender, String mobileNumber) {
     }
 
     public AuthService(
@@ -64,9 +82,75 @@ public class AuthService implements AuthFacade {
                 ? userRepository.findByEmail(identity)
                 : userRepository.findByUsername(identity);
         if (user.isEmpty()) {
+            ObservabilityLogger.warn(log, "login_attempt", Map.of(
+                    "domain", "auth",
+                    "status", "fail",
+                    "reason_code", "invalid_credentials",
+                    "identity_hint", identity.contains("@") ? "email" : "username"));
             return Optional.empty();
         }
         UserEntity account = user.get();
+        if (!assertEligibleForSignIn(account)) {
+            return Optional.empty();
+        }
+
+        String hash = account.getPasswordHash();
+        if (hash == null || hash.isBlank()) {
+            ObservabilityLogger.warn(log, "login_attempt", Map.of(
+                    "domain", "auth",
+                    "status", "fail",
+                    "reason_code", "invalid_credentials",
+                    "user_id", account.getId()));
+            return Optional.empty();
+        }
+        if (!passwordEncoder.matches(rawPassword, hash)) {
+            ObservabilityLogger.warn(log, "login_attempt", Map.of(
+                    "domain", "auth",
+                    "status", "fail",
+                    "reason_code", "invalid_credentials",
+                    "user_id", account.getId()));
+            return Optional.empty();
+        }
+
+        return completeLoginWithTokens(account, "login_attempt");
+    }
+
+    @Override
+    public Optional<LoginResponse> loginWithGoogleAccessToken(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) return Optional.empty();
+        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
+        if (userRepository == null) return Optional.empty();
+
+        Optional<GoogleVerifiedProfile> profileOpt = fetchVerifiedGoogleProfile(accessToken.trim());
+        if (profileOpt.isEmpty()) return Optional.empty();
+        GoogleVerifiedProfile profile = profileOpt.get();
+
+        Optional<UserEntity> existing = findUserByEmailCaseInsensitive(userRepository, profile.email());
+        UserEntity account;
+        if (existing.isPresent()) {
+            account = enrichUserFromGoogleProfileIfMissing(userRepository, existing.get(), profile);
+        } else {
+            try {
+                account = provisionPatientFromGoogle(userRepository, profile);
+                log.info("Created patient user from Google sign-in email={}", profile.email());
+            } catch (DataIntegrityViolationException ex) {
+                account = findUserByEmailCaseInsensitive(userRepository, profile.email()).orElse(null);
+                if (account == null) {
+                    log.warn("Google sign-in duplicate key but user not found email={}", profile.email());
+                    return Optional.empty();
+                }
+            }
+        }
+        if (!assertEligibleForSignIn(account)) {
+            return Optional.empty();
+        }
+        return completeLoginWithTokens(account, "google_login_attempt");
+    }
+
+    /**
+     * @return {@code false} when sign-in must fail without throwing (unknown/blocked role).
+     */
+    private boolean assertEligibleForSignIn(UserEntity account) {
         RoleRequestStatus roleStatus = account.getRoleStatus() == null ? RoleRequestStatus.ACTIVE : account.getRoleStatus();
 
         if (!account.isActive() || RoleRequestStatus.INACTIVE.equals(roleStatus)) {
@@ -96,13 +180,12 @@ public class AuthService implements AuthFacade {
                     account.getId(),
                     account.getEmail(),
                     roleStatus);
-            return Optional.empty();
+            return false;
         }
+        return true;
+    }
 
-        String hash = account.getPasswordHash();
-        if (hash == null || hash.isBlank()) return Optional.empty();
-        if (!passwordEncoder.matches(rawPassword, hash)) return Optional.empty();
-
+    private Optional<LoginResponse> completeLoginWithTokens(UserEntity account, String telemetryEvent) {
         String subject = account.getId();
         String audience = "web";
         String deviceId = "browser";
@@ -143,7 +226,292 @@ public class AuthService implements AuthFacade {
         response.setRoleStatus(account.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : account.getRoleStatus().name());
         response.setRequestedRole(account.getRequestedRole() == null ? null : account.getRequestedRole().name());
         response.setRoleRejectedReason(account.getRoleRejectedReason());
+        ObservabilityLogger.info(log, telemetryEvent, Map.of(
+                "domain", "auth",
+                "status", "success",
+                "reason_code", "login_success",
+                "user_id", account.getId(),
+                "role", response.getRole()));
         return Optional.of(response);
+    }
+
+    private Optional<GoogleVerifiedProfile> fetchVerifiedGoogleProfile(String googleAccessToken) {
+        try {
+            Map<String, Object> body = RestClient.create()
+                    .get()
+                    .uri("https://www.googleapis.com/oauth2/v3/userinfo")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + googleAccessToken)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+            if (body == null) return Optional.empty();
+            Object rawEmail = body.get("email");
+            String email = rawEmail == null ? "" : String.valueOf(rawEmail).trim().toLowerCase();
+            if (email.isEmpty()) return Optional.empty();
+            if (!isGoogleEmailClaimVerified(body)) {
+                log.warn("Google login rejected: email not verified by Google (email_verified / verified_email)");
+                return Optional.empty();
+            }
+            String givenName = mapStringField(body, "given_name");
+            String familyName = mapStringField(body, "family_name");
+            String fullName = mapStringField(body, "name");
+            if (givenName.isEmpty() && familyName.isEmpty() && !fullName.isEmpty()) {
+                String[] parts = fullName.trim().split("\\s+", 2);
+                givenName = parts[0].trim();
+                familyName = parts.length > 1 ? parts[1].trim() : "";
+            }
+            Map<String, Object> merged = new HashMap<>(body);
+            mergeOpenIdUserInfo(googleAccessToken, merged);
+            mergePeopleMeIfNeeded(googleAccessToken, merged);
+            String gender = sanitizeGoogleGender(mapStringField(merged, "gender"));
+            String mobileNumber = extractGooglePhone(merged);
+            return Optional.of(new GoogleVerifiedProfile(email, givenName, familyName, gender, mobileNumber));
+        } catch (RestClientException ex) {
+            log.warn("Google userinfo request failed: {}", ex.toString());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Merges optional claims from the OIDC userinfo endpoint when they are absent on the v3 payload
+     * (e.g. {@code phone_number} when the token includes the right scopes).
+     */
+    private void mergeOpenIdUserInfo(String accessToken, Map<String, Object> merged) {
+        try {
+            Map<String, Object> v1 = RestClient.create()
+                    .get()
+                    .uri("https://openidconnect.googleapis.com/v1/userinfo")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+            if (v1 == null) {
+                return;
+            }
+            for (String key : List.of("gender", "phone_number", "phoneNumber", "formatted_phone_number")) {
+                if (!v1.containsKey(key)) {
+                    continue;
+                }
+                Object val = v1.get(key);
+                if (val == null) {
+                    continue;
+                }
+                if (!merged.containsKey(key) || mapStringField(merged, key).isEmpty()) {
+                    merged.put(key, val);
+                }
+            }
+        } catch (RestClientException ex) {
+            log.debug("Optional OpenID userinfo merge skipped: {}", ex.toString());
+        }
+    }
+
+    /**
+     * When granted {@code user.phonenumbers.read} / {@code user.gender.read}, People API can supply
+     * phone and gender not present on standard userinfo.
+     */
+    private void mergePeopleMeIfNeeded(String accessToken, Map<String, Object> merged) {
+        boolean needPhone = extractGooglePhone(merged).isEmpty();
+        boolean needGender = mapStringField(merged, "gender").isBlank();
+        if (!needPhone && !needGender) {
+            return;
+        }
+        try {
+            String json = RestClient.create()
+                    .get()
+                    .uri(
+                            "https://people.googleapis.com/v1/people/me"
+                                    + "?personFields=phoneNumbers,genders&sources=READ_SOURCE_TYPE_ACCOUNT")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                    .retrieve()
+                    .body(String.class);
+            if (json == null || json.isBlank()) {
+                return;
+            }
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(json);
+            if (needGender) {
+                JsonNode genders = root.path("genders");
+                if (genders.isArray() && !genders.isEmpty()) {
+                    JsonNode first = genders.get(0);
+                    String fv = first.path("formattedValue").asText("");
+                    if (fv.isBlank()) {
+                        fv = first.path("value").asText("");
+                    }
+                    if (!fv.isBlank()) {
+                        merged.put("gender", fv.trim());
+                    }
+                }
+            }
+            if (needPhone) {
+                JsonNode phones = root.path("phoneNumbers");
+                if (phones.isArray() && !phones.isEmpty()) {
+                    String val = phones.get(0).path("value").asText("");
+                    if (!val.isBlank()) {
+                        merged.put("phone_number", val.trim());
+                    }
+                }
+            }
+        } catch (RestClientException ex) {
+            log.debug("People API merge skipped: {}", ex.toString());
+        } catch (Exception ex) {
+            log.debug("People API response parse skipped: {}", ex.toString());
+        }
+    }
+
+    private static String extractGooglePhone(Map<String, Object> merged) {
+        String p = mapStringField(merged, "phone_number");
+        if (!p.isEmpty()) {
+            return truncateField(p, 64);
+        }
+        p = mapStringField(merged, "phoneNumber");
+        if (!p.isEmpty()) {
+            return truncateField(p, 64);
+        }
+        p = mapStringField(merged, "formatted_phone_number");
+        return p.isEmpty() ? "" : truncateField(p, 64);
+    }
+
+    private static String sanitizeGoogleGender(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        return truncateField(raw.trim(), 48);
+    }
+
+    private static String truncateField(String value, int maxLen) {
+        if (value.length() <= maxLen) {
+            return value;
+        }
+        return value.substring(0, maxLen);
+    }
+
+    /**
+     * Fills gender / mobile from Google when the stored user row still has no meaningful values.
+     */
+    private UserEntity enrichUserFromGoogleProfileIfMissing(
+            UserRepository userRepository, UserEntity user, GoogleVerifiedProfile profile) {
+        boolean changed = false;
+        if (shouldFillGenderFromGoogle(user.getGender()) && profile.gender() != null && !profile.gender().isBlank()) {
+            user.setGender(profile.gender().trim());
+            changed = true;
+        }
+        if (isBlankMobile(user.getMobileNumber()) && profile.mobileNumber() != null && !profile.mobileNumber().isBlank()) {
+            user.setMobileNumber(profile.mobileNumber().trim());
+            changed = true;
+        }
+        if (!changed) {
+            return user;
+        }
+        user.setUpdatedTimestamp(Instant.now());
+        return userRepository.save(user);
+    }
+
+    private static boolean shouldFillGenderFromGoogle(String current) {
+        if (current == null || current.isBlank()) {
+            return true;
+        }
+        return "unknown".equalsIgnoreCase(current.trim());
+    }
+
+    private static boolean isBlankMobile(String mobile) {
+        return mobile == null || mobile.trim().isEmpty();
+    }
+
+    private static String mapStringField(Map<String, Object> body, String key) {
+        Object v = body.get(key);
+        if (v == null) return "";
+        String s = String.valueOf(v).trim();
+        return s;
+    }
+
+    /**
+     * Google {@code oauth2/v3/userinfo} returns {@code email_verified}; older docs use {@code verified_email}.
+     * If neither claim is present but {@code email} is, treat as verified (token was issued for this account).
+     */
+    private static boolean isGoogleEmailClaimVerified(Map<String, Object> body) {
+        Boolean verified = firstTruthyBoolean(body.get("email_verified"), body.get("verified_email"));
+        if (verified != null) {
+            return verified;
+        }
+        return true;
+    }
+
+    /** @return {@code null} if all inputs are absent or not parseable as boolean */
+    private static Boolean firstTruthyBoolean(Object... rawValues) {
+        for (Object raw : rawValues) {
+            if (raw == null) {
+                continue;
+            }
+            if (raw instanceof Boolean b) {
+                return b;
+            }
+            if (raw instanceof Number n) {
+                return n.intValue() != 0;
+            }
+            String s = String.valueOf(raw).trim();
+            if (s.isEmpty()) {
+                continue;
+            }
+            if ("true".equalsIgnoreCase(s)) {
+                return true;
+            }
+            if ("false".equalsIgnoreCase(s)) {
+                return false;
+            }
+        }
+        return null;
+    }
+
+    private static Optional<UserEntity> findUserByEmailCaseInsensitive(UserRepository repo, String emailNorm) {
+        if (emailNorm == null || emailNorm.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<UserEntity> exact = repo.findByEmail(emailNorm);
+        if (exact.isPresent()) {
+            return exact;
+        }
+        return repo.findByEmailIgnoreCase(emailNorm);
+    }
+
+    /**
+     * Inserts a new active patient account for a first-time Google sign-in. Password login remains
+     * unavailable until the user sets a password through the normal password flow.
+     */
+    private UserEntity provisionPatientFromGoogle(UserRepository userRepository, GoogleVerifiedProfile profile) {
+        String firstName = profile.givenName() == null ? "" : profile.givenName().trim();
+        String lastName = profile.familyName() == null ? "" : profile.familyName().trim();
+        if (firstName.isEmpty() && lastName.isEmpty()) {
+            String derived = deriveDisplayNameFromEmail(profile.email());
+            String[] tokens = derived.split("\\s+", 2);
+            firstName = tokens[0].trim();
+            lastName = tokens.length > 1 ? tokens[1].trim() : "";
+        }
+        if (firstName.isEmpty()) {
+            firstName = "User";
+        }
+
+        UserEntity user = new UserEntity();
+        user.setEmail(profile.email());
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setUsername(buildDisplayName(firstName, lastName));
+        user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setAddress("");
+        String genderVal =
+                profile.gender() == null || profile.gender().isBlank() ? "Unknown" : profile.gender().trim();
+        String mobileVal = profile.mobileNumber() == null ? "" : profile.mobileNumber().trim();
+        user.setGender(genderVal);
+        user.setMobileNumber(mobileVal);
+        user.setDepartment("");
+        user.setQualifications("");
+        user.setSmcName("");
+        user.setSmcRegistrationNumber("");
+        Instant now = Instant.now();
+        user.setCreatedTimestamp(now);
+        user.setUpdatedTimestamp(now);
+        user.setActive(true);
+        user.setTokenVersion(1L);
+        user.setRole(UserRole.PATIENT);
+        user.setRoleStatus(RoleRequestStatus.ACTIVE);
+        return userRepository.save(user);
     }
 
     @Override

@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -19,20 +20,36 @@ public class AiSafetyPolicy {
             RULES — follow all strictly:
             1. Provide GENERAL health guidance only — never a diagnosis.
             2. Always clarify: "I am not a doctor and this is not medical advice."
-            3. For any of the following, ALWAYS recommend seeing a doctor immediately:
+            3. Always stay on the same health topic established in the conversation.
+               If the first user message is about stomach pain or digestion, all follow-up replies
+               must stay in that context, even for vague questions like "what should I do?".
+            4. Never shift to another condition (respiratory, cardiac, etc.) unless the user
+               explicitly introduces new symptoms in that system.
+            5. If a follow-up question is ambiguous, resolve it using the latest established topic
+               from the conversation history.
+            6. For any of the following, ALWAYS recommend seeing a doctor immediately:
                - Chest pain, difficulty breathing, stroke symptoms
                - High fever (>103°F / 39.4°C) in adults, any fever in infants
                - Severe abdominal pain, uncontrolled bleeding
                - Suicidal or self-harm language
-            4. For moderate symptoms, suggest: rest, hydration, OTC remedies where appropriate.
-            5. End every response with the line:
+            7. For moderate symptoms, suggest: rest, hydration, OTC remedies where appropriate.
+            8. End every response with the line:
                "💡 This is general guidance only. If symptoms worsen or persist, please consult a qualified healthcare provider."
-            6. Be warm, clear, and easy to understand. Avoid medical jargon.
-            7. Keep the response practical and concise.
-            8. Respond in this exact structure:
+            9. Be warm, clear, and easy to understand. Avoid medical jargon.
+            10. Keep the response practical and concise.
+            11. Respond in this exact structure:
                1. Possible causes
                2. What you can do
                3. When to see a doctor
+             12. TOPIC LOCK — critical: once a health topic is established in the conversation
+                (e.g. stomach pain, skin rash, headache), you are LOCKED to that topic for all
+                follow-up replies in the same session. Never mention unrelated conditions such as
+                respiratory infections, flu, or viral illness unless the user explicitly says they
+                have those symptoms. Violating this rule causes serious patient confusion.
+            13. FALLBACK RESOLUTION — if a follow-up message has no explicit symptom (e.g.
+                "what should I do?", "is this serious?", "when should I see a doctor?"), look at
+                the last user message that contained a symptom and answer in that context.
+                Never default to generic or respiratory answers for GI/digestive threads.
             """;
     private final String effectiveSystemPrompt;
 
@@ -46,6 +63,35 @@ public class AiSafetyPolicy {
             "accidental ingestion", "took too much", "too many tablets",
             "azithromycin overdose", "azithromycin toxicity"
     );
+    private static final Pattern OVERDOSE_PATTERNS = Pattern.compile(
+            "\\boverdos(e|ed|ing)\\b|\\bpoison(ing)?\\b|toxic\\s*(dose|level|amount)?|"
+                    + "accidental\\s+ingestion|took\\s+too\\s+much|too\\s+many\\s+(tablets|pills|capsules)",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern CARDIAC_PATTERNS = Pattern.compile(
+            "chest\\s*pain|difficulty\\s*breath|short\\s*ness\\s*of\\s*breath|"
+                    + "can'?t\\s*breathe|stroke|face\\s*droop|slurred\\s*speech",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern MENTAL_HEALTH_PATTERNS = Pattern.compile(
+            "suicidal|self[\\s-]?harm|suicide",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern BLEEDING_PATTERNS = Pattern.compile(
+            "uncontrolled\\s+bleeding",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern HIGH_FEVER_PATTERNS = Pattern.compile(
+            "high\\s+fever|39\\.4|103",
+            Pattern.CASE_INSENSITIVE
+    );
+    public enum EscalationType {
+        OVERDOSE_POISONING,
+        CARDIAC_RESPIRATORY,
+        MENTAL_HEALTH,
+        SEVERE_BLEEDING,
+        HIGH_FEVER
+    }
     private static final Pattern NEXT_OPTIONS_BLOCK_PATTERN = Pattern.compile("(?is)\\n\\s*next options\\s*:.*$");
 
     public AiSafetyPolicy(@Value("${app.ai.system-prompt:}") String configuredSystemPrompt) {
@@ -57,37 +103,72 @@ public class AiSafetyPolicy {
         return effectiveSystemPrompt;
     }
 
-    public boolean requiresEscalation(String text) {
-        String normalized = normalize(text);
+    public boolean requiresEscalation(String input) {
+        String normalized = normalize(input);
         if (normalized.isBlank()) {
             return false;
         }
-        return CRITICAL_KEYWORDS.stream().anyMatch(normalized::contains);
+        return CRITICAL_KEYWORDS.stream().anyMatch(normalized::contains) || detectEscalationType(normalized).isPresent();
     }
 
-    public String escalationReply() {
-        return "This may be a possible overdose or poisoning emergency. Call your local emergency number immediately, or contact your poison control center right away for urgent guidance.\n\n"
-                + "If this happened recently, do not take more medicine, and keep the medicine strip/bottle nearby to share exact dose and time taken.\n\n"
-                + NON_DOCTOR_LINE + "\n\n"
-                + DISCLAIMER_LINE;
+    public Optional<EscalationType> detectEscalationType(String input) {
+        String text = input == null ? "" : input.toLowerCase();
+
+        if (OVERDOSE_PATTERNS.matcher(text).find())         return Optional.of(EscalationType.OVERDOSE_POISONING);
+        if (CARDIAC_PATTERNS.matcher(text).find())          return Optional.of(EscalationType.CARDIAC_RESPIRATORY);
+        if (MENTAL_HEALTH_PATTERNS.matcher(text).find())    return Optional.of(EscalationType.MENTAL_HEALTH);
+        if (BLEEDING_PATTERNS.matcher(text).find())         return Optional.of(EscalationType.SEVERE_BLEEDING);
+        if (HIGH_FEVER_PATTERNS.matcher(text).find())       return Optional.of(EscalationType.HIGH_FEVER);
+
+        return Optional.empty();
     }
 
-    public String enforceSafeResponse(String raw) {
+    public String escalationReply(EscalationType type) {
+        String specific = switch (type) {
+        case OVERDOSE_POISONING ->
+            "This may be a possible overdose or poisoning emergency. " +
+            "Call your local emergency number immediately, or contact your poison " +
+            "control center right away for urgent guidance.\n\n" +
+            "Do not take more medicine. Keep the medicine strip/bottle nearby " +
+            "to share the exact dose and time taken.";
+
+        case CARDIAC_RESPIRATORY ->
+            "These symptoms may indicate a serious cardiac or breathing emergency. " +
+            "Call your local emergency number immediately — do not wait.\n\n" +
+            "If chest pain is present: sit down, stay calm, and do not eat or drink anything. " +
+            "Unlock your door if possible so emergency services can reach you.";
+
+        case MENTAL_HEALTH ->
+            "It sounds like you may be going through a very difficult time. " +
+               "Please reach out to a crisis helpline or emergency services right away — " +
+            "you do not have to face this alone.\n\n" +
+            "In India: iCall — 9152987821 | Vandrevala Foundation — 1860-2662-345 (24x7)";
+
+        case SEVERE_BLEEDING ->
+            "Uncontrolled bleeding is a medical emergency. " +
+            "Call your local emergency number immediately.\n\n" +
+            "Apply firm, continuous pressure to the wound with a clean cloth. " +
+            "Do not remove the cloth — add more on top if it soaks through.";
+
+        case HIGH_FEVER ->
+            "A fever this high requires immediate medical attention. " +
+            "Go to the nearest emergency room or call emergency services now.\n\n" +
+            "While waiting: remove heavy clothing, stay hydrated, " +
+            "and use a cool (not cold) compress on the forehead.";
+    };
+
+    return specific + "\n\n" + NON_DOCTOR_LINE + "\n\n" + DISCLAIMER_LINE;
+}
+
+    public String enforceSafeResponse(String raw, String userMessage) {
         String body = normalizeWhitespace(raw);
         body = stripNextOptionsBlock(body);
         if (isRagFallbackMessage(body)) {
-            if (!body.toLowerCase(Locale.ROOT).contains("not a doctor")) {
-                body = body + "\n\n" + NON_DOCTOR_LINE;
-            }
-            if (!body.contains(DISCLAIMER_LINE)) {
-                body = body + "\n\n" + DISCLAIMER_LINE;
-            }
-            return body.trim();
+            body = "";
         }
+        String normalizedUserMessage = normalizeWhitespace(userMessage);
         if (body.isBlank()) {
-            body = fallbackStructuredResponse("");
-        } else if (!hasStructuredSections(body)) {
-            body = fallbackStructuredResponse(body);
+            body = fallbackStructuredResponse();
         }
         if (!body.toLowerCase(Locale.ROOT).contains("not a doctor")) {
             body = body + "\n\n" + NON_DOCTOR_LINE;
@@ -115,13 +196,6 @@ public class AiSafetyPolicy {
         return String.valueOf(value == null ? "" : value).replace("\r\n", "\n").trim();
     }
 
-    private static boolean hasStructuredSections(String body) {
-        String normalized = body.toLowerCase(Locale.ROOT);
-        return normalized.contains("1. possible causes")
-                && normalized.contains("2. what you can do")
-                && normalized.contains("3. when to see a doctor");
-    }
-
     private static String stripNextOptionsBlock(String body) {
         if (body == null || body.isBlank()) {
             return "";
@@ -129,24 +203,25 @@ public class AiSafetyPolicy {
         return NEXT_OPTIONS_BLOCK_PATTERN.matcher(body).replaceFirst("").trim();
     }
 
-    private static String fallbackStructuredResponse(String rawModelText) {
-        String hint = normalizeWhitespace(rawModelText);
-        if (hint.isBlank()) {
-            hint = "Symptoms like fever and cough are often related to mild viral respiratory infections, but only a licensed clinician can evaluate your exact condition.";
-        }
-        return "1. Possible causes\n"
-                + "- Common viral upper respiratory infections can cause these symptoms.\n"
-                + "- Seasonal flu or throat/chest irritation can also present similarly.\n\n"
-                + "2. What you can do\n"
-                + "- Rest well, stay hydrated, and monitor your temperature.\n"
-                + "- You may use simple OTC symptom relief if appropriate for your age and history.\n"
-                + "- Additional guidance: " + hint + "\n\n"
-                + "3. When to see a doctor\n"
-                + "- See a doctor promptly if symptoms persist beyond 2-3 days, worsen, or new symptoms appear.\n"
-                + "- Seek urgent care immediately for breathing difficulty, chest pain, confusion, persistent high fever, or dehydration signs.\n\n"
-                + "Next options:\n"
-                + "- Tell me your other symptoms so I can refine guidance.\n"
-                + "- Do you want likely tests to discuss with your doctor?\n"
-                + "- Show warning signs that need urgent care now.";
-    }
+    private static String fallbackStructuredResponse() {
+    // Pure static fallback — no raw AI text injected.
+    // Called only when the model reply is blank, malformed, or unparseable.
+    return "1. Possible causes\n"
+            + "- Symptoms may come from irritation, infection, inflammation, "
+            + "or food-related triggers depending on your history.\n"
+            + "- A clinician can confirm the exact cause with examination "
+            + "if symptoms continue.\n\n"
+            + "2. What you can do\n"
+            + "- Rest, stay hydrated, and monitor symptom pattern and severity.\n"
+            + "- Use only age-appropriate OTC relief that is safe for your medical history.\n"
+            + "- Note when symptoms started, what makes them better or worse, "
+            + "and any associated symptoms like fever or nausea.\n\n"
+            + "3. When to see a doctor\n"
+            + "- See a doctor promptly if symptoms persist, worsen, "
+            + "or new symptoms appear.\n"
+            + "- Seek urgent care immediately for severe pain, breathing difficulty, "
+            + "confusion, persistent high fever, dehydration, or bleeding.\n\n"
+            + NON_DOCTOR_LINE + "\n\n"
+            + DISCLAIMER_LINE;
+}
 }

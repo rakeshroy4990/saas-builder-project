@@ -37,8 +37,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/setup/**").permitAll()
                         .requestMatchers("/api/logs/**").permitAll()
+                        .requestMatchers("/api/telemetry/**").permitAll()
                         .requestMatchers("/api/uiMetdata/**", "/api/uiMetdata").permitAll()
                         .requestMatchers("/api/medical-department/get", "/api/medical-department/get/**").permitAll()
+                        .requestMatchers("/api/youtube/hero-video").permitAll()
                         .requestMatchers("/api/medical-department/create").authenticated()
                         .requestMatchers("/api/medical-department/createOrUpdate").authenticated()
                         .requestMatchers("/api/medical-department/update/**").authenticated()
@@ -55,8 +57,10 @@ public class SecurityConfig {
                             "/api/auth",
                             "/api/setup",
                             "/api/logs",
+                            "/api/telemetry",
                             "/api/uiMetdata",
                             "/api/medical-department/get",
+                            "/api/youtube/hero-video",
                             "/error",
                             "/actuator"),
                     accessTokenCookieName);

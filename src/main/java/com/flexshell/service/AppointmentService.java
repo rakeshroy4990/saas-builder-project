@@ -7,6 +7,7 @@ import com.flexshell.auth.UserRepository;
 import com.flexshell.auth.UserRole;
 import com.flexshell.email.AppointmentCreatedEmailNotifier;
 import com.flexshell.email.AppointmentEmailNotifyOutcome;
+import com.flexshell.observability.ObservabilityLogger;
 import com.flexshell.controller.dto.AppointmentFileResponse;
 import com.flexshell.controller.dto.AppointmentRequest;
 import com.flexshell.controller.dto.AppointmentResponse;
@@ -89,6 +90,12 @@ public class AppointmentService {
         entity.setAppointmentEmailNotifyDetail(null);
         entity.setAppointmentEmailNotifyAt(null);
         AppointmentEntity saved = repository.save(entity);
+        ObservabilityLogger.info(log, "appointment_create", java.util.Map.of(
+                "domain", "appointment",
+                "status", "success",
+                "reason_code", "create_success",
+                "appointment_id", saved.getId(),
+                "doctor_id", normalize(saved.getDoctorId())));
         AppointmentResponse draftResponse = toResponse(saved);
         AppointmentEmailNotifyOutcome emailOutcome = appointmentCreatedEmailNotifier.notifyAppointmentCreated(
                 draftResponse,
@@ -99,6 +106,11 @@ public class AppointmentService {
         } catch (Exception ex) {
             // Appointment is already persisted; do not fail the create API if only email-status write fails.
             log.warn("Could not persist appointment email notification status: {}", ex.getMessage());
+            ObservabilityLogger.warn(log, "appointment_create", java.util.Map.of(
+                    "domain", "appointment",
+                    "status", "fail",
+                    "reason_code", "notification_failed",
+                    "appointment_id", saved.getId()));
         }
         return toResponse(saved);
     }

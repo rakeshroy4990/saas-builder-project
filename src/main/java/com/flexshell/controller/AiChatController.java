@@ -5,6 +5,7 @@ import com.flexshell.ai.SmartAiQuotaExceededException;
 import com.flexshell.controller.dto.AiChatRequest;
 import com.flexshell.controller.dto.AiChatResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.observability.ObservabilityLogger;
 import com.flexshell.service.AiChatService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -49,6 +50,9 @@ public class AiChatController {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             AiChatResponse data = aiChatService.reply(userId, request, authorizationHeader, userRoles);
+            var successFields = new java.util.LinkedHashMap<>(ObservabilityLogger.fields("chat", "success", "reply_received"));
+            successFields.put("user_id", userId);
+            ObservabilityLogger.info(LOG, "chat_ai_request", successFields);
             return ResponseEntity.ok(StandardApiResponse.success("AI response", data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -60,6 +64,11 @@ public class AiChatController {
             String code = ex.kind() == SmartAiQuotaExceededException.Kind.DAILY
                     ? "AI_SMART_QUOTA_DAILY"
                     : "AI_SMART_QUOTA_TOKEN";
+            var quotaFields = new java.util.LinkedHashMap<>(ObservabilityLogger.fields(
+                    "chat",
+                    "fail",
+                    ex.kind() == SmartAiQuotaExceededException.Kind.DAILY ? "quota_daily" : "quota_token"));
+            ObservabilityLogger.warn(LOG, "chat_ai_request", quotaFields);
             return ResponseEntity.status(status)
                     .body(StandardApiResponse.error(ex.getMessage(), code));
         } catch (SecurityException ex) {
@@ -74,8 +83,14 @@ public class AiChatController {
             HttpStatus status = (providerHttpStatus != null && providerHttpStatus == 429)
                     ? HttpStatus.TOO_MANY_REQUESTS
                     : HttpStatus.SERVICE_UNAVAILABLE;
-            LOG.warn("aiChat provider failure provider={} httpStatus={} providerStatus={} message={}",
-                    ex.provider(), providerHttpStatus, ex.providerStatus(), ex.getMessage());
+            var providerFields = new java.util.LinkedHashMap<>(ObservabilityLogger.fields(
+                    "chat",
+                    "fail",
+                    providerHttpStatus != null && providerHttpStatus == 429 ? "provider_429" : "provider_5xx"));
+            providerFields.put("provider", ex.provider());
+            providerFields.put("provider_http_status", providerHttpStatus);
+            providerFields.put("provider_status", ex.providerStatus());
+            ObservabilityLogger.warn(LOG, "chat_ai_request", providerFields);
             return ResponseEntity.status(status)
                     .body(StandardApiResponse.error(ex.getMessage(), code));
         } catch (IllegalStateException ex) {

@@ -5,7 +5,10 @@ import com.flexshell.controller.dto.AppointmentResponse;
 import com.flexshell.controller.dto.AvailableSlotsResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.appointment.AppointmentEntity;
+import com.flexshell.observability.ObservabilityLogger;
 import com.flexshell.service.AppointmentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,6 +31,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/appointment")
 public class AppointmentController {
+    private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
     private final AppointmentService appointmentService;
 
     public AppointmentController(AppointmentService appointmentService) {
@@ -45,6 +49,10 @@ public class AppointmentController {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(StandardApiResponse.success("Appointment created", data));
         } catch (IllegalArgumentException ex) {
+            ObservabilityLogger.warn(log, "appointment_create", java.util.Map.of(
+                    "domain", "appointment",
+                    "status", "fail",
+                    "reason_code", "validation_error"));
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_CREATE_INVALID"));
         }
