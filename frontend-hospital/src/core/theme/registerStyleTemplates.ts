@@ -275,6 +275,9 @@ export function registerStyleTemplates(): void {
   StyleTemplateRegistry.register('hosp.header.menuButton', {
     utilityClasses: 'max-w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100'
   });
+  StyleTemplateRegistry.register('hosp.header.menuButtonActive', {
+    utilityClasses: 'max-w-full rounded-lg bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700'
+  });
   StyleTemplateRegistry.register('hosp.header.userButton', {
     utilityClasses:
       'hidden md:inline-flex max-w-[min(40vw,18rem)] truncate rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100'
@@ -290,7 +293,7 @@ export function registerStyleTemplates(): void {
   });
   StyleTemplateRegistry.register('hosp.header.ctaButton', {
     utilityClasses:
-      'shrink-0 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700'
+      'shrink-0 rounded-lg bg-emerald-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-emerald-700'
   });
   StyleTemplateRegistry.register('hosp.hero.title', {
     utilityClasses: 'block text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight'

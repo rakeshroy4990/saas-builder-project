@@ -23,3 +23,8 @@ SENTRY_DSN: https://13c8f9a52f54d607d42214e4e936f653@o4511297937539072.ingest.us
 APP_YOUTUBE_CHANNEL_HANDLE: LittleSproutsCare_DrSwati
 # In-process search result cache (ms) to reduce quota usage.
 APP_YOUTUBE_SEARCH_CACHE_TTL_MS: "300000"
+
+# Internal email URLs (maps to app.email.* in application.properties).
+APP_EMAIL_ENABLED: "true"
+APP_EMAIL_INTERNAL_BASE_URL: https://backend-hospital-yspwmymsgq-el.a.run.app
+APP_EMAIL_PORTAL_BASE_URL: https://agastyahealthcare.com

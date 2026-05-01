@@ -55,7 +55,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                     type: 'image',
                     config: {
                       src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/stetho_n1bp0a.jpg',
-                      alt: 'Little Sprouts Care logo',
+                      alt: 'Agastya Healthcare logo',
                       styles: { styleTemplate: 'hosp.header.logo' },
                       click: {
                         actionId: 'set-home-header-active',
@@ -70,7 +70,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                     id: 'hospital-public-header-title',
                     type: 'text',
                     config: {
-                      text: 'Little Sprouts Care',
+                      text: 'Agastya Healthcare',
                       styles: { styleTemplate: 'hosp.header.title' },
                       plainClick: true,
                       click: {
@@ -379,7 +379,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                       textFallback: 'Account',
                       styles: {
                         styleTemplate: 'hosp.header.userMenuTriggerMobile',
-                        utilityClasses: 'shrink-0 max-w-[11ch] truncate'
+                        utilityClasses: 'min-w-0 max-w-[18ch] sm:max-w-[22ch] truncate'
                       },
                       title: 'Open profile menu',
                       click: { actionId: 'toggle-profile-header-menu' }
@@ -477,8 +477,29 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
     styles: { utilityClasses: 'lg:hidden rounded-xl border border-slate-200 bg-white px-3 py-2' },
     children: [
       {
+        id: 'hospital-public-mobile-menu-home-active',
+        type: 'button',
+        condition: {
+          expression: "activeMenu === 'HOME'",
+          mappings: {
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+          }
+        },
+        config: {
+          text: 'Home',
+          styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+          click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+        }
+      },
+      {
         id: 'hospital-public-mobile-menu-home',
         type: 'button',
+        condition: {
+          expression: "activeMenu !== 'HOME'",
+          mappings: {
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+          }
+        },
         config: {
           text: 'Home',
           styles: { styleTemplate: 'hosp.header.menuButton' },
@@ -489,8 +510,29 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
         }
       },
       {
+        id: 'hospital-public-mobile-menu-dashboard-active',
+        type: 'button',
+        condition: {
+          expression: "activeMenu === 'DASHBOARD'",
+          mappings: {
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+          }
+        },
+        config: {
+          text: 'Dashboard',
+          styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+          click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+        }
+      },
+      {
         id: 'hospital-public-mobile-menu-dashboard',
         type: 'button',
+        condition: {
+          expression: "activeMenu !== 'DASHBOARD'",
+          mappings: {
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+          }
+        },
         config: {
           text: 'Dashboard',
           styles: { styleTemplate: 'hosp.header.menuButton' },
@@ -501,12 +543,29 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
         }
       },
       {
+        id: 'hospital-public-mobile-menu-education-active',
+        type: 'button',
+        condition: {
+          expression: "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu === 'EDUCATION'",
+          mappings: {
+            role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+          }
+        },
+        config: {
+          text: 'Education',
+          styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+          click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'doctor-education' } }
+        }
+      },
+      {
         id: 'hospital-public-mobile-menu-education',
         type: 'button',
         condition: {
-          expression: "String(role ?? '').toUpperCase() === 'DOCTOR'",
+          expression: "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu !== 'EDUCATION'",
           mappings: {
-            role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+            role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
           }
         },
         config: {
@@ -519,8 +578,29 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
         }
       },
       {
+        id: 'hospital-public-mobile-menu-contact-active',
+        type: 'button',
+        condition: {
+          expression: "activeMenu === 'CONTACT'",
+          mappings: {
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+          }
+        },
+        config: {
+          text: 'Contact',
+          styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+          click: { actionId: 'scroll-home-contact' }
+        }
+      },
+      {
         id: 'hospital-public-mobile-menu-contact',
         type: 'button',
+        condition: {
+          expression: "activeMenu !== 'CONTACT'",
+          mappings: {
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+          }
+        },
         config: {
           text: 'Contact',
           styles: { styleTemplate: 'hosp.header.menuButton' },

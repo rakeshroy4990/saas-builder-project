@@ -384,7 +384,7 @@ export const hospitalProfilePage: PageConfig = {
           ]
         }
       },
-      hospitalSiteFooter('hospital-profile-footer', 'Little Sprouts Care | Manage your account settings.')
+      hospitalSiteFooter('hospital-profile-footer', 'Agastya Healthcare | Manage your account settings.')
     ]
   }
 };
