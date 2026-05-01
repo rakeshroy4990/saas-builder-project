@@ -4,7 +4,7 @@ import { usePopupStore } from '../../../../store/usePopupStore';
 import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
-import { clearAuthToken } from '../../../auth/authToken';
+import { clearAuthToken, getRefreshToken } from '../../../auth/authToken';
 import { clearPersistedAuthSessionProfile } from '../../../auth/authSessionStore';
 import { ok } from '../shared/response';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
@@ -19,7 +19,13 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       trackEvent('logout');
       emitSessionSummaryAuthLogout({ reason: 'user_initiated' });
       try {
-        await apiClient.post(URLRegistry.paths.logout, { DeviceId: 'browser' });
+        const refreshToken = String(getRefreshToken() ?? '').trim();
+        if (refreshToken) {
+          await apiClient.post(URLRegistry.paths.logout, {
+            DeviceId: 'browser',
+            RefreshToken: refreshToken
+          });
+        }
       } catch {
         // Local logout should still proceed even when server call fails.
       }
@@ -39,6 +45,16 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'fullName', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'role', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
+      // Clear user-scoped hero media so home never shows prior session's YouTube video after logout.
+      const currentHome = (useAppStore(pinia).getData('hospital', 'HomeContent') ?? {}) as Record<string, unknown>;
+      const currentHero =
+        currentHome.hero && typeof currentHome.hero === 'object'
+          ? (currentHome.hero as Record<string, unknown>)
+          : {};
+      useAppStore(pinia).setData('hospital', 'HomeContent', {
+        ...currentHome,
+        hero: { ...currentHero, videoId: null, videoKind: null }
+      });
       clearPersistedAuthSessionProfile();
       useAppStore(pinia).setProperty('hospital', 'AuthForm', 'identity', '');
       useAppStore(pinia).setProperty('hospital', 'AuthForm', 'password', '');

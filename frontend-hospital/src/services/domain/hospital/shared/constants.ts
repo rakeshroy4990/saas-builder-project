@@ -19,6 +19,8 @@ export const hospitalHomeContent = {
     image: CLOUDINARY_YOUR_HEALTH_OUR_PRIORITY,
     /** Set by `resolve-hero-youtube-video` from the latest `query_cache` row for the user (home / login). */
     videoId: null as string | null,
+    /** Optional hint for embed shape: 'shorts' (9:16) vs 'video' (16:9). */
+    videoKind: null as 'shorts' | 'video' | null,
     ctaPrimary: 'Schedule Visit',
     // ctaSecondary: 'Emergency Care'
   },
