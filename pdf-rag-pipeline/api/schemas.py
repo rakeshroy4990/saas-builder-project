@@ -24,6 +24,11 @@ class QueryRequest(BaseModel):
         validation_alias=AliasChoices("History", "history"),
         serialization_alias="History",
     )
+    user_id: Optional[str] = Field(
+        default="",
+        validation_alias=AliasChoices("UserId", "user_id"),
+        serialization_alias="UserId",
+    )
 
 
 class ChatHistoryItem(BaseModel):

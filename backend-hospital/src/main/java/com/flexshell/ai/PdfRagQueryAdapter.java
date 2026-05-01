@@ -37,6 +37,7 @@ public class PdfRagQueryAdapter {
             String message,
             String conversationId,
             List<AiChatMessageDto> history,
+            String actorUserId,
             String authorizationHeader,
             List<String> userRoles
     ) {
@@ -68,7 +69,8 @@ public class PdfRagQueryAdapter {
                                 Map.of(
                                         "Question", message,
                                         "ConversationId", normalizeConversationId(conversationId),
-                                        "History", toHistoryPayload(history)
+                                        "History", toHistoryPayload(history),
+                                        "UserId", String.valueOf(actorUserId == null ? "" : actorUserId).trim()
                                 )
                         )
                         .retrieve()

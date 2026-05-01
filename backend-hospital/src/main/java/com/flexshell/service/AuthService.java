@@ -18,6 +18,7 @@ import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flexshell.email.AppEmailProperties;
 import com.flexshell.observability.ObservabilityLogger;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -26,11 +27,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -50,6 +53,7 @@ public class AuthService implements AuthFacade {
     private final JwtService jwtService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final Map<String, PrivilegedRequestAttempt> privilegedRequestAttempts = new ConcurrentHashMap<>();
+    private final AppEmailProperties appEmailProperties;
 
     private record PrivilegedRequestAttempt(int count, Instant windowStart) {
     }
@@ -64,11 +68,13 @@ public class AuthService implements AuthFacade {
     public AuthService(
             ObjectProvider<UserRepository> userRepositoryProvider,
             ObjectProvider<RefreshTokenRepository> refreshTokenRepositoryProvider,
-            JwtService jwtService
+            JwtService jwtService,
+            AppEmailProperties appEmailProperties
     ) {
         this.userRepositoryProvider = userRepositoryProvider;
         this.refreshTokenRepositoryProvider = refreshTokenRepositoryProvider;
         this.jwtService = jwtService;
+        this.appEmailProperties = appEmailProperties;
     }
 
     public Optional<LoginResponse> login(String usernameOrEmail, String rawPassword) {
@@ -579,6 +585,7 @@ public class AuthService implements AuthFacade {
         }
 
         UserEntity saved = userRepository.save(user);
+        sendWelcomeRegistrationEmail(saved);
         return Optional.of(new RegisterResponse(
                 saved.getId(),
                 saved.getEmail(),
@@ -598,6 +605,50 @@ public class AuthService implements AuthFacade {
                 saved.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : saved.getRoleStatus().name(),
                 saved.getRequestedRole() == null ? null : saved.getRequestedRole().name(),
                 saved.getRoleRejectedReason()));
+    }
+
+    private void sendWelcomeRegistrationEmail(UserEntity user) {
+        if (user == null) {
+            return;
+        }
+        if (!appEmailProperties.isEnabled()) {
+            return;
+        }
+        String baseUrl = appEmailProperties.getInternalBaseUrl() == null ? "" : appEmailProperties.getInternalBaseUrl().trim();
+        if (baseUrl.isEmpty()) {
+            return;
+        }
+        String secret = appEmailProperties.getInternalSecret() == null ? "" : appEmailProperties.getInternalSecret().trim();
+        String email = user.getEmail() == null ? "" : user.getEmail().trim();
+        if (email.isEmpty()) {
+            return;
+        }
+        String fullName = buildDisplayName(user.getFirstName(), user.getLastName());
+        String userName = fullName.isBlank() ? resolveDisplayName(user) : fullName;
+        try {
+            RestClient client = RestClient.create(baseUrl);
+            client.post()
+                    .uri("/hospital/welcome-registration")
+                    .headers(headers -> {
+                        if (!secret.isEmpty()) {
+                            headers.set("X-Email-Internal-Secret", secret);
+                        }
+                    })
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "email", email,
+                            "userName", userName
+                    ))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException ex) {
+            log.warn("Welcome email HTTP error for userId={} status={} message={}",
+                    user.getId(),
+                    ex.getStatusCode().value(),
+                    ex.getStatusText());
+        } catch (RestClientException ex) {
+            log.warn("Welcome email failed for userId={}: {}", user.getId(), ex.getMessage());
+        }
     }
 
     @Override

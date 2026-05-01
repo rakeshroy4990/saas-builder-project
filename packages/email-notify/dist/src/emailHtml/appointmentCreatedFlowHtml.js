@@ -5,6 +5,7 @@ exports.buildAppointmentCreatedHtml = buildAppointmentCreatedHtml;
 exports.buildAppointmentCreatedPlainText = buildAppointmentCreatedPlainText;
 exports.subjectForAppointmentCreated = subjectForAppointmentCreated;
 const appointmentCreatedEmailHtml_constants_1 = require("./appointmentCreatedEmailHtml.constants");
+const brand_shell_1 = require("../templates/brand-shell");
 exports.AppointmentEmailFlow = {
     ToPatient: 'ToPatient',
     ToDoctor: 'ToDoctor',
@@ -108,7 +109,7 @@ function buildAppointmentCreatedHtml(flow, ctx) {
     const shell = flow === exports.AppointmentEmailFlow.ToPatient
         ? appointmentCreatedEmailHtml_constants_1.APPOINTMENT_CREATED_HTML_TO_PATIENT
         : appointmentCreatedEmailHtml_constants_1.APPOINTMENT_CREATED_HTML_TO_DOCTOR;
-    return fillTemplate(shell, vars).trim();
+    return (0, brand_shell_1.withBrandShell)(fillTemplate(shell, vars).trim(), ctx.appBaseUrl);
 }
 function buildAppointmentCreatedPlainText(flow, ctx) {
     const when = formatWhen(ctx);

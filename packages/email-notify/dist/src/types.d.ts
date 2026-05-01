@@ -34,6 +34,10 @@ export interface AppointmentCancelPayload {
     appointmentTitle: string;
     cancellationReason?: string;
 }
+export interface WelcomeRegistrationPayload {
+    toEmail: string;
+    userName: string;
+}
 /** Context for appointment-created emails (patient + doctor flows). */
 export interface AppointmentCreatedEmailContext {
     appointmentId: string;

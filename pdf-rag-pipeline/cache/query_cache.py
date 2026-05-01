@@ -8,10 +8,18 @@ from config.settings import CACHE_TTL_HOURS
 from db.mongo_client import get_db
 
 
-def _cache_key(query: str, audience: str = "") -> str:
+def _cache_key(query: str, audience: str = "", user_id: str = "") -> str:
     normalized = query.lower().strip()
     scope = str(audience or "").strip().lower()
-    payload = f"{scope}::{normalized}" if scope else normalized
+    actor = str(user_id or "").strip().lower()
+    if scope and actor:
+        payload = f"{scope}::{actor}::{normalized}"
+    elif scope:
+        payload = f"{scope}::{normalized}"
+    elif actor:
+        payload = f"{actor}::{normalized}"
+    else:
+        payload = normalized
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -20,8 +28,8 @@ class CachedQueryResult(TypedDict):
     follow_up_questions: list[str]
 
 
-def get_cached(query: str, audience: str = "") -> Optional[CachedQueryResult]:
-    doc = get_db().query_cache.find_one({"_id": _cache_key(query, audience)})
+def get_cached(query: str, audience: str = "", user_id: str = "") -> Optional[CachedQueryResult]:
+    doc = get_db().query_cache.find_one({"_id": _cache_key(query, audience, user_id)})
     if not doc:
         return None
     answer = str(doc.get("answer", "")).strip()
@@ -35,16 +43,25 @@ def get_cached(query: str, audience: str = "") -> Optional[CachedQueryResult]:
     return {"answer": answer, "follow_up_questions": follow_up_questions}
 
 
-def set_cache(query: str, answer: str, audience: str = "", follow_up_questions: Optional[list[str]] = None) -> None:
+def set_cache(
+    query: str,
+    answer: str,
+    audience: str = "",
+    follow_up_questions: Optional[list[str]] = None,
+    user_id: str = "",
+) -> None:
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=CACHE_TTL_HOURS)
     scope = str(audience or "").strip().lower()
+    actor = str(user_id or "").strip()
     get_db().query_cache.update_one(
-        {"_id": _cache_key(query, audience)},
+        {"_id": _cache_key(query, audience, actor)},
         {
             "$set": {
                 "query": query,
                 "audience": scope,
+                "user_id": actor,
+                "logged_in_user_id": actor,
                 "answer": answer,
                 "follow_up_questions": list(follow_up_questions or []),
                 "cached_at": now,

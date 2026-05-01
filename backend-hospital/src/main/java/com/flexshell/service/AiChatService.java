@@ -66,7 +66,7 @@ public class AiChatService {
         LOG.info("aiChat request actor={} messageLength={} historyCount={}", actor, messageLength, history.size());
         String conversationId = resolveConversationId(actor, request.conversationId());
         PdfRagQueryAdapter.RagQueryResult ragResult =
-                pdfRagQueryAdapter.query(message, conversationId, history, authorizationHeader, userRoles);
+                pdfRagQueryAdapter.query(message, conversationId, history, actor, authorizationHeader, userRoles);
         String rawReply = ragResult == null ? "" : Objects.toString(ragResult.answer(), "");
         String safeReply = "expert".equalsIgnoreCase(audience)
                 ? rawReply.trim()

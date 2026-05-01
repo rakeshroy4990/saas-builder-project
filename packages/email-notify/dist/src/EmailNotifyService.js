@@ -6,6 +6,7 @@ const TokenService_1 = require("./token/TokenService");
 const appointment_cancel_1 = require("./templates/appointment-cancel");
 const appointment_save_1 = require("./templates/appointment-save");
 const reset_password_1 = require("./templates/reset-password");
+const welcome_registration_1 = require("./templates/welcome-registration");
 const appointmentCreatedFlowHtml_1 = require("./emailHtml/appointmentCreatedFlowHtml");
 class EmailNotifyService {
     constructor(config, tokenStore, customProvider) {
@@ -44,6 +45,14 @@ class EmailNotifyService {
     }
     async sendAppointmentCancel(payload) {
         const template = (0, appointment_cancel_1.buildAppointmentCancelEmail)(payload);
+        return this.provider.send({
+            from: this.config.fromAddress,
+            to: payload.toEmail,
+            ...template,
+        });
+    }
+    async sendWelcomeRegistration(payload) {
+        const template = (0, welcome_registration_1.buildWelcomeRegistrationEmail)(payload, this.config.appBaseUrl);
         return this.provider.send({
             from: this.config.fromAddress,
             to: payload.toEmail,

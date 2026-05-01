@@ -1,11 +1,12 @@
 import { ResetPasswordPayload } from '../types';
+import { withBrandShell } from './brand-shell';
 
 export function buildResetPasswordEmail(
   payload: ResetPasswordPayload,
   appBaseUrl: string
 ) {
   const resetUrl = `${appBaseUrl}/reset-password?token=${payload.token}`;
-  const html = `
+  const contentHtml = `
     <h2>Reset Your Password</h2>
     <p>Hi ${payload.userName},</p>
     <p>We received a request to reset your password. Click the button below within 1 hour:</p>
@@ -16,6 +17,7 @@ export function buildResetPasswordEmail(
     <hr />
     <small>Link expires in 1 hour. Do not share this link.</small>
   `;
+  const html = withBrandShell(contentHtml, appBaseUrl);
   const text = `Reset your password: ${resetUrl}\nExpires in 1 hour.`;
 
   return {

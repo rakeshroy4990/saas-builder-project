@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildAppointmentSaveEmail = buildAppointmentSaveEmail;
+const brand_shell_1 = require("./brand-shell");
 function buildAppointmentSaveEmail(payload) {
     const formattedDate = new Date(payload.appointmentDate).toLocaleString('en-US', {
         dateStyle: 'full',
         timeStyle: 'short',
     });
-    const html = `
+    const contentHtml = `
     <h2>Appointment Confirmed</h2>
     <p>Hi ${payload.userName},</p>
     <p>Your appointment has been saved.</p>
@@ -22,6 +23,7 @@ function buildAppointmentSaveEmail(payload) {
     </table>
     <p>Appointment ID: <code>${payload.appointmentId}</code></p>
   `;
+    const html = (0, brand_shell_1.withBrandShell)(contentHtml, '');
     return {
         subject: `Appointment Confirmed: ${payload.appointmentTitle}`,
         html,
