@@ -3,6 +3,7 @@ package com.flexshell.auth.controller;
 import com.flexshell.auth.api.AuthApiException;
 import com.flexshell.auth.api.AuthFacade;
 import com.flexshell.auth.api.ApiResponse;
+import com.flexshell.auth.api.GoogleLoginRequest;
 import com.flexshell.auth.api.LoginRequest;
 import com.flexshell.auth.api.LoginResponse;
 import com.flexshell.auth.api.LogoutRequest;
@@ -63,6 +64,26 @@ public class AuthController {
                     })
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                             .body(ApiResponse.error("Invalid email or password", "AUTH_INVALID_CREDENTIALS")));
+        } catch (AuthApiException e) {
+            return ResponseEntity.status(httpStatusForAuthApiException(e))
+                    .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
+        }
+    }
+
+    @PostMapping(value = "/google-login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<LoginResponse>> googleLogin(
+            @Valid @RequestBody GoogleLoginRequest request,
+            HttpServletResponse servletResponse
+    ) {
+        try {
+            Optional<LoginResponse> response = authFacade.loginWithGoogleAccessToken(request.getAccessToken());
+            return response
+                    .map(login -> {
+                        setAuthCookies(servletResponse, login.getAccessToken(), login.getRefreshToken());
+                        return ResponseEntity.ok(ApiResponse.success("Login successful", login));
+                    })
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(ApiResponse.error("Google sign-in failed.", "AUTH_GOOGLE_FAILED")));
         } catch (AuthApiException e) {
             return ResponseEntity.status(httpStatusForAuthApiException(e))
                     .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));

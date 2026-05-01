@@ -18,6 +18,7 @@ export const SERVER_PATHS = {
   logsBatch: '/api/logs/batch',
   logsLevel: '/api/logs/level',
   login: '/api/auth/login',
+  googleLogin: '/api/auth/google-login',
   refresh: '/api/auth/refresh',
   logout: '/api/auth/logout',
   register: '/api/auth/register',

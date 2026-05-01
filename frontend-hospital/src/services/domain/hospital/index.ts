@@ -11,6 +11,7 @@ import { authFormHospitalServices } from './auth/authFormServices';
 import { registerFieldHospitalServices } from './register/registerFieldServices';
 import { appointmentFormHospitalServices } from './appointment/appointmentFormServices';
 import { authLoginHospitalServices } from './auth/authLoginService';
+import { authGoogleLoginHospitalServices } from './auth/authGoogleLoginService';
 import { passwordResetHospitalServices } from './auth/passwordResetServices';
 import { registerUserHospitalServices } from './register/registerUserService';
 import { bookAppointmentHospitalServices } from './appointment/bookAppointmentService';
@@ -39,6 +40,7 @@ export const hospitalServices: ServiceDefinition[] = [
   ...registerFieldHospitalServices,
   ...appointmentFormHospitalServices,
   ...authLoginHospitalServices,
+  ...authGoogleLoginHospitalServices,
   ...passwordResetHospitalServices,
   ...registerUserHospitalServices,
   ...bookAppointmentHospitalServices,

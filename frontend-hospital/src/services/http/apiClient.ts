@@ -201,7 +201,8 @@ apiClient.interceptors.response.use(
     const popupStore = usePopupStore(pinia);
     const toastStore = useToastStore(pinia);
     const requestUrl = String(error.config?.url ?? '');
-    const isLoginRequest = requestUrl.includes(URLRegistry.paths.login);
+    const isLoginRequest =
+      requestUrl.includes(URLRegistry.paths.login) || requestUrl.includes(URLRegistry.paths.googleLogin);
     const isRefreshRequest = requestUrl.includes(URLRegistry.paths.refresh);
     const isDoctorDirectoryRequest = requestUrl.includes(URLRegistry.paths.doctorGet);
     const isSmartAiRequest = requestUrl.includes(URLRegistry.paths.hospitalAiChat);

@@ -11,8 +11,10 @@ export const useAppStore = defineStore('app', {
   actions: {
     setProperty(packageName: string, key: string, property: string, value: unknown) {
       if (!this.data[packageName]) this.data[packageName] = {};
-      if (!this.data[packageName][key]) this.data[packageName][key] = {};
-      (this.data[packageName][key] as Record<string, unknown>)[property] = value;
+      const bucket = this.data[packageName];
+      const prev = (bucket[key] as Record<string, unknown> | undefined) ?? {};
+      // Replace the slice so Vue/Pinia pick up nested changes (e.g. AuthSession after login).
+      bucket[key] = { ...prev, [property]: value };
     },
     setData(packageName: string, key: string, value: unknown) {
       if (!this.data[packageName]) this.data[packageName] = {};

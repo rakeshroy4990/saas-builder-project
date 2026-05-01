@@ -282,7 +282,8 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                styles: { utilityClasses: 'relative hidden lg:block' },
+                // lg hid the name on iPad/tablet (<1024px); md matches tablet portrait/landscape.
+                styles: { utilityClasses: 'relative hidden md:block' },
                 children: [
                   {
                     id: 'hospital-public-header-user-display',
@@ -461,6 +462,45 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           text: 'Contact',
           styles: { styleTemplate: 'hosp.header.menuButton' },
           click: { actionId: 'scroll-home-contact' }
+        }
+      },
+      {
+        id: 'hospital-public-mobile-menu-user-row',
+        type: 'container',
+        condition: {
+          expression: "userId && String(userId).trim().length > 0",
+          mappings: {
+            userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
+          }
+        },
+        config: {
+          layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-2', 'pt-2', 'mt-2', 'border-t', 'border-slate-200'] },
+          children: [
+            {
+              id: 'hospital-public-mobile-menu-user-label',
+              type: 'text',
+              config: {
+                mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
+                styles: { utilityClasses: 'px-1 text-sm font-semibold text-slate-800 truncate' }
+              }
+            },
+            {
+              id: 'hospital-public-mobile-menu-profile',
+              type: 'button',
+              config: {
+                text: 'Profile',
+                styles: { styleTemplate: 'hosp.header.menuButton' },
+                click: {
+                  actionId: 'set-profile-page-section',
+                  data: { section: 'profile' },
+                  onSuccess: {
+                    actionId: 'set-profile-header-active',
+                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                  }
+                }
+              }
+            }
+          ]
         }
       }
     ]
