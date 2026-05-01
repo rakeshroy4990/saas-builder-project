@@ -1,9 +1,9 @@
 import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition';
 import { useAppStore } from '../../../../store/useAppStore';
 import { pinia } from '../../../../store/pinia';
+import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
-import { getOrCreateTraceId } from '../../../logging/traceContext';
 
 function mergeHeroVideoId(videoId: string | null): void {
   const appStore = useAppStore(pinia);
@@ -30,18 +30,11 @@ export async function refreshHeroYoutubeFromUserQueryCache(): Promise<void> {
     return;
   }
 
-  const params = new URLSearchParams({ userId, limit: '10' });
-  const url = `${URLRegistry.resolve('youtubeUserQueries')}?${params}`;
-  const headers = new Headers();
-  headers.set('X-Trace-Id', getOrCreateTraceId());
-
   try {
-    const res = await fetch(url, { credentials: 'include', headers });
-    if (!res.ok) {
-      mergeHeroVideoId(null);
-      return;
-    }
-    const json = (await res.json()) as Record<string, unknown>;
+    const res = await apiClient.get(URLRegistry.paths.youtubeUserQueries, {
+      params: { userId, limit: 10 }
+    });
+    const json = res.data as Record<string, unknown>;
     if (json.Success === false || json.success === false) {
       mergeHeroVideoId(null);
       return;
