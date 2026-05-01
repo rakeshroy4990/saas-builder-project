@@ -5,14 +5,23 @@ import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 
-function mergeHeroVideoId(videoId: string | null): void {
+type HeroVideoKind = 'shorts' | 'video' | null;
+
+function inferVideoKind(row: Record<string, unknown>): HeroVideoKind {
+  const rawTitle = String(row.video_title ?? row.videoTitle ?? '').trim().toLowerCase();
+  if (!rawTitle) return null;
+  // Heuristic: many shorts titles include "#shorts" or "shorts".
+  return /(^|\W)#?shorts?(\W|$)/i.test(rawTitle) ? 'shorts' : 'video';
+}
+
+function mergeHeroVideo(videoId: string | null, videoKind: HeroVideoKind): void {
   const appStore = useAppStore(pinia);
   const raw = appStore.getData('hospital', 'HomeContent') as Record<string, unknown> | undefined;
   const prevHero =
     raw && typeof raw.hero === 'object' && raw.hero !== null ? (raw.hero as Record<string, unknown>) : {};
   appStore.setData('hospital', 'HomeContent', {
     ...raw,
-    hero: { ...prevHero, videoId }
+    hero: { ...prevHero, videoId, videoKind }
   });
 }
 
@@ -26,7 +35,7 @@ export async function refreshHeroYoutubeFromUserQueryCache(): Promise<void> {
   const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
   const userId = String(session.userId ?? '').trim();
   if (!userId) {
-    mergeHeroVideoId(null);
+    mergeHeroVideo(null, null);
     return;
   }
 
@@ -37,20 +46,20 @@ export async function refreshHeroYoutubeFromUserQueryCache(): Promise<void> {
     });
     const json = res.data as Record<string, unknown>;
     if (json.Success === false || json.success === false) {
-      mergeHeroVideoId(null);
+      mergeHeroVideo(null, null);
       return;
     }
     const rows = (json.Data ?? json.data ?? []) as unknown[];
     if (!Array.isArray(rows) || rows.length === 0) {
-      mergeHeroVideoId(null);
+      mergeHeroVideo(null, null);
       return;
     }
     const first = rows[0] as Record<string, unknown>;
     const vid = first.video_id ?? first.videoId;
     const id = vid == null || typeof vid !== 'string' || !vid.trim() ? null : vid.trim();
-    mergeHeroVideoId(id);
+    mergeHeroVideo(id, id ? inferVideoKind(first) : null);
   } catch {
-    mergeHeroVideoId(null);
+    mergeHeroVideo(null, null);
   }
 }
 

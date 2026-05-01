@@ -139,7 +139,14 @@ const resolvedConfig = computed(() => {
 
   if (props.definition.type === 'youtube-embed' && config.mapping) {
     const mapped = resolveMapping(config.mapping as MappingConfig);
-    return { ...config, videoId: mapped == null ? '' : String(mapped).trim() };
+    const aspectMapped = config.aspectModeMapping
+      ? resolveMapping(config.aspectModeMapping as MappingConfig)
+      : config.aspectMode;
+    return {
+      ...config,
+      videoId: mapped == null ? '' : String(mapped).trim(),
+      aspectMode: aspectMapped == null ? 'auto' : String(aspectMapped).trim().toLowerCase()
+    };
   }
 
   if ((props.definition.type === 'input' || props.definition.type === 'medicine-list-editor') && config.mapping) {

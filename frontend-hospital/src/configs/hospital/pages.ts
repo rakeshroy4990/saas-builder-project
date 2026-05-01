@@ -141,6 +141,12 @@ export const hospitalPages: PageConfig[] = [
                       },
                       config: {
                         mapping: { packageName: 'hospital', key: 'HomeContent', path: 'hero', property: 'videoId' },
+                        aspectModeMapping: {
+                          packageName: 'hospital',
+                          key: 'HomeContent',
+                          path: 'hero',
+                          property: 'videoKind'
+                        },
                         styles: { styleTemplate: 'hosp.hero.youtube' },
                         title: 'Featured video from Little Sprouts Care'
                       }
