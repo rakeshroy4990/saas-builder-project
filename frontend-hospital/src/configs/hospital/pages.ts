@@ -150,26 +150,6 @@ export const hospitalPages: PageConfig[] = [
                         styles: { styleTemplate: 'hosp.hero.youtube' },
                         title: 'Featured video from Agastya Healthcare'
                       }
-                    },
-                    {
-                      id: 'hospital-home-hero-image',
-                      type: 'image',
-                      condition: {
-                        expression: "!heroVideoId || String(heroVideoId ?? '').trim().length === 0",
-                        mappings: {
-                          heroVideoId: {
-                            packageName: 'hospital',
-                            key: 'HomeContent',
-                            path: 'hero',
-                            property: 'videoId'
-                          }
-                        }
-                      },
-                      config: {
-                        mapping: { packageName: 'hospital', key: 'HomeContent', path: 'hero', property: 'image' },
-                        styles: { styleTemplate: 'hosp.hero.image' },
-                        alt: 'Hospital hero'
-                      }
                     }
                   ]
                 }

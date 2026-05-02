@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveBrandLogoUrl = resolveBrandLogoUrl;
 exports.withBrandShell = withBrandShell;
-const DEFAULT_LOGO_URL = 'https://res.cloudinary.com/dbke33vfd/image/upload/c_fill,h_80,w_80/v1776158879/Dr_Swati_Pandey_rtmfqj.jpg';
+const DEFAULT_LOGO_URL = 'https://res.cloudinary.com/dbke33vfd/image/upload/c_fill,h_80,w_80/v1776158879/logo_oz0zzd.jpg';
 function escapeHtml(raw) {
     return String(raw ?? '')
         .replace(/&/g, '&amp;')

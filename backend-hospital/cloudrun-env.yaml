@@ -25,6 +25,11 @@ APP_YOUTUBE_CHANNEL_HANDLE: LittleSproutsCare_DrSwati
 APP_YOUTUBE_SEARCH_CACHE_TTL_MS: "300000"
 # Use existing shared query_cache collection in rag_db.
 APP_YOUTUBE_QUERY_CACHE_DATABASE: rag_db
+# Empty hero `q`: list the N newest uploads, then pick one (see APP_YOUTUBE_HERO_RANK_BY).
+APP_YOUTUBE_HERO_RECENT_POOL_SIZE: "30"
+# RANDOM (default) — random slot among the first min(30, N) newest videos (each request / cache refresh).
+# VIEWS — highest view count in the pool. LIKES — highest like count in the pool.
+APP_YOUTUBE_HERO_RANK_BY: RANDOM
 
 # Internal email URLs (maps to app.email.* in application.properties).
 APP_EMAIL_ENABLED: "true"

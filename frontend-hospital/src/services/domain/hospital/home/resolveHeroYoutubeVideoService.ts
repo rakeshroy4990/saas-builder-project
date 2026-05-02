@@ -7,11 +7,14 @@ import { ok } from '../shared/response';
 
 type HeroVideoKind = 'shorts' | 'video' | null;
 
-function inferVideoKind(row: Record<string, unknown>): HeroVideoKind {
-  const rawTitle = String(row.video_title ?? row.videoTitle ?? '').trim().toLowerCase();
+function inferVideoKindFromTitle(title: string): HeroVideoKind {
+  const rawTitle = String(title).trim().toLowerCase();
   if (!rawTitle) return null;
-  // Heuristic: many shorts titles include "#shorts" or "shorts".
   return /(^|\W)#?shorts?(\W|$)/i.test(rawTitle) ? 'shorts' : 'video';
+}
+
+function inferVideoKind(row: Record<string, unknown>): HeroVideoKind {
+  return inferVideoKindFromTitle(String(row.video_title ?? row.videoTitle ?? ''));
 }
 
 function mergeHeroVideo(videoId: string | null, videoKind: HeroVideoKind): void {
@@ -26,40 +29,67 @@ function mergeHeroVideo(videoId: string | null, videoKind: HeroVideoKind): void 
 }
 
 /**
- * Sets `HomeContent.hero.videoId` from the user's most recent row in Mongo `query_cache`
- * (`GET /api/user/youtube-queries`). Does not call YouTube search.
- * Use on home init and after login — not on every Smart AI reply.
+ * When logged in: sets `HomeContent.hero.videoId` from the user's most recent `query_cache` row
+ * (`GET /api/user/youtube-queries`). Returns true if an interest video was applied.
  */
-export async function refreshHeroYoutubeFromUserQueryCache(): Promise<void> {
+export async function refreshHeroYoutubeFromUserQueryCache(): Promise<boolean> {
   const appStore = useAppStore(pinia);
   const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
   const userId = String(session.userId ?? '').trim();
   if (!userId) {
-    mergeHeroVideo(null, null);
-    return;
+    return false;
   }
 
   try {
     const res = await apiClient.get(URLRegistry.paths.youtubeUserQueries, {
-      // Do not send userId: backend resolves actor from JWT principal and enforces self-only access.
       params: { limit: 10 }
     });
     const json = res.data as Record<string, unknown>;
     if (json.Success === false || json.success === false) {
-      mergeHeroVideo(null, null);
-      return;
+      return false;
     }
     const rows = (json.Data ?? json.data ?? []) as unknown[];
     if (!Array.isArray(rows) || rows.length === 0) {
-      mergeHeroVideo(null, null);
-      return;
+      return false;
     }
     const first = rows[0] as Record<string, unknown>;
     const vid = first.video_id ?? first.videoId;
     const id = vid == null || typeof vid !== 'string' || !vid.trim() ? null : vid.trim();
-    mergeHeroVideo(id, id ? inferVideoKind(first) : null);
+    if (!id) {
+      return false;
+    }
+    mergeHeroVideo(id, inferVideoKind(first));
+    return true;
   } catch {
-    mergeHeroVideo(null, null);
+    return false;
+  }
+}
+
+/**
+ * Public hero-video API: empty `q` resolves on the server to a recent channel video ranked by views or likes.
+ */
+async function refreshHeroYoutubeFromChannelDefault(): Promise<void> {
+  try {
+    const res = await apiClient.get(URLRegistry.paths.youtubeHeroVideo, {
+      params: new URLSearchParams({ q: '' })
+    });
+    const json = res.data as Record<string, unknown>;
+    if (json.Success === false || json.success === false) {
+      return;
+    }
+    const data = (json.Data ?? json.data) as Record<string, unknown> | undefined;
+    if (!data || typeof data !== 'object') {
+      return;
+    }
+    const vid = data.videoId;
+    const id = vid == null || typeof vid !== 'string' || !vid.trim() ? null : vid.trim();
+    if (!id) {
+      return;
+    }
+    const title = String(data.videoTitle ?? '').trim();
+    mergeHeroVideo(id, inferVideoKindFromTitle(title));
+  } catch {
+    // leave hero unchanged
   }
 }
 
@@ -68,7 +98,10 @@ export const resolveHeroYoutubeVideoHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'resolve-hero-youtube-video',
     execute: async () => {
-      await refreshHeroYoutubeFromUserQueryCache();
+      const fromInterest = await refreshHeroYoutubeFromUserQueryCache();
+      if (!fromInterest) {
+        await refreshHeroYoutubeFromChannelDefault();
+      }
       return ok();
     }
   }

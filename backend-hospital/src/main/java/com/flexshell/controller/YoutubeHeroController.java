@@ -20,8 +20,9 @@ public class YoutubeHeroController {
     }
 
     /**
-     * Public endpoint: returns a video id within the configured channel for the given query,
-     * or null ids when no match / API disabled.
+     * Public endpoint: returns a video id within the configured channel for the given query.
+     * When {@code q} is omitted or blank, returns a recent upload per {@code app.youtube.hero-rank-by}
+     * ({@code RANDOM}, {@code VIEWS}, or {@code LIKES}).
      */
     @GetMapping(value = "/hero-video", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<YoutubeHeroVideoResponse>> heroVideo(

@@ -1,7 +1,5 @@
 export const CLOUDINARY_SEA_IMAGE =
   'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/sea_xgqlrq.jpg';
-export const CLOUDINARY_YOUR_HEALTH_OUR_PRIORITY =
-  'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/Your_Health_Our_Priority_wcrygd.jpg';
 export const CLOUDINARY_KIDS_WITH_DOC =
   'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/Kids_With_Doc_ef1m5f.jpg';
 
@@ -16,8 +14,7 @@ export const hospitalHomeContent = {
     title: 'Your Health, Our Priority',
     subtitle:
       'Experience compassionate care with state-of-the-art medical facilities. Our team of expert physicians is dedicated to your wellbeing.',
-    image: CLOUDINARY_YOUR_HEALTH_OUR_PRIORITY,
-    /** Set by `resolve-hero-youtube-video` from the latest `query_cache` row for the user (home / login). */
+    /** Set by `resolve-hero-youtube-video` from user interest or server-ranked channel video. */
     videoId: null as string | null,
     /** Optional hint for embed shape: 'shorts' (9:16) vs 'video' (16:9). */
     videoKind: null as 'shorts' | 'video' | null,
