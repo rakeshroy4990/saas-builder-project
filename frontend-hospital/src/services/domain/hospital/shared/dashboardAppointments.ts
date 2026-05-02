@@ -120,11 +120,18 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
     statusU === 'COMPLETED' && (canEditAppointment === 'Y' || isAssignedDoctor || role === 'ADMIN');
   const preferredTimeSlot = pickString(row, ['PreferredTimeSlot', 'preferredTimeSlot']);
   const appointmentStartMs = parseAppointmentStartMs(preferredDate, preferredTimeSlot);
-  const canStartVideoCall =
+  const createdByNorm = pickString(row, ['CreatedBy', 'createdBy']).trim();
+  const baseCanStartVideoCall =
     statusU !== 'CANCELLED'
     && statusU !== 'COMPLETED'
+    && statusU !== 'DELETED'
     && appointmentStartMs != null
     && Date.now() >= appointmentStartMs - 15 * 60 * 1000;
+  const adminCreatedThisAppointment =
+    role === 'ADMIN' &&
+    Boolean(myUserId && createdByNorm && createdByNorm.toLowerCase() === myUserId.toLowerCase());
+  const canStartVideoCall =
+    role === 'ADMIN' ? baseCanStartVideoCall && adminCreatedThisAppointment : baseCanStartVideoCall;
   return {
     id,
     patientName: pickString(row, ['PatientName', 'patientName']) || 'Patient',
@@ -140,7 +147,7 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
     status: pickString(row, ['Status', 'status']) || 'SCHEDULED',
     additionalNotes: pickString(row, ['AdditionalNotes', 'additionalNotes']),
     createdTimestamp,
-    createdBy: pickString(row, ['CreatedBy', 'createdBy']),
+    createdBy: createdByNorm,
     sortTimestamp: preferredDate || createdTimestamp || '',
     statusLabel: pickString(row, ['Status', 'status']) || 'Scheduled',
     hasReceipt:
@@ -193,7 +200,14 @@ export function filterDashboardAppointments(
   const doctorId = String(filters.doctorId ?? '').trim();
   const department = String(filters.department ?? '').trim().toLowerCase();
   const statusFilterApplied = Boolean(status && status !== '__ALL__');
-  const defaultFilterState = !statusSelectedExplicitly && !statusFilterApplied && !preferredDate && !doctorId && !department;
+  const adminFullListing = Boolean(filters.adminFullListing);
+  const defaultFilterState =
+    !adminFullListing &&
+    !statusSelectedExplicitly &&
+    !statusFilterApplied &&
+    !preferredDate &&
+    !doctorId &&
+    !department;
   const todayIso = new Date().toISOString().slice(0, 10);
   const nowMs = Date.now();
   return list.filter((row) => {
@@ -217,6 +231,8 @@ export function filterDashboardAppointments(
 
 export async function loadDashboardAppointmentsPage(requestedPage?: number): Promise<void> {
   const appStore = useAppStore(pinia);
+  const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+  const userRole = String(authSession.role ?? '').trim().toUpperCase();
   const current = (appStore.getData('hospital', 'DashboardAppointments') ?? {}) as Record<string, unknown>;
   const filters = (appStore.getData('hospital', 'DashboardFilters') ?? {}) as Record<string, unknown>;
   const page = requestedPage == null ? Number(current.page ?? 0) : Math.max(0, Number(requestedPage));
@@ -231,7 +247,9 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
     totalLabel: `Total Appointments: ${Number(current.totalElements ?? 0)}`
   });
   try {
-    const response = await apiClient.get(URLRegistry.paths.appointmentGet, { params: { page, size } });
+    const listUrl =
+      userRole === 'ADMIN' ? URLRegistry.paths.adminAppointments : URLRegistry.paths.appointmentGet;
+    const response = await apiClient.get(listUrl, { params: { page, size } });
     const envelope = (response.data ?? {}) as Record<string, unknown>;
     const dataNode = (envelope.Data ?? envelope.data ?? []) as unknown;
     const rows = Array.isArray(dataNode)
@@ -277,6 +295,7 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
     });
     const totalElementsRaw = Number(
       (dataNode as Record<string, unknown>)?.totalElements ??
+        (dataNode as Record<string, unknown>)?.TotalElements ??
         (dataNode as Record<string, unknown>)?.total ??
         filtered.length
     );

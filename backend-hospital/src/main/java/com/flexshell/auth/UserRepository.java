@@ -23,6 +23,8 @@ public interface UserRepository extends MongoRepository<UserEntity, String> {
 
     Page<UserEntity> findByRoleStatus(RoleRequestStatus roleStatus, Pageable pageable);
 
+    Page<UserEntity> findByRole(UserRole role, Pageable pageable);
+
     Page<UserEntity> findByRoleAndRoleStatusAndDepartmentIgnoreCaseAndActiveTrue(
             UserRole role,
             RoleRequestStatus roleStatus,

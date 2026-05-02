@@ -17,10 +17,12 @@ import com.flexshell.doctorschedule.DoctorScheduleEntity;
 import com.flexshell.doctorschedule.DoctorScheduleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.flexshell.controller.dto.PagedAppointmentListDto;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,6 +45,8 @@ public class AppointmentService {
     private static final String EMAIL_NOTIFY_STATUS_PENDING = "PENDING";
     private static final String STATUS_CANCELLED = "CANCELLED";
     private static final String STATUS_COMPLETED = "COMPLETED";
+    /** Admin-only soft removal from operational views; document stays in Mongo. */
+    public static final String STATUS_DELETED = "DELETED";
     private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
     private final ObjectProvider<UserRepository> userRepositoryProvider;
     private final ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider;
@@ -217,6 +221,44 @@ public class AppointmentService {
             result = repository.findByCreatedBy(actorUserId, pageRequest);
         }
         return result.stream().map(this::toResponse).toList();
+    }
+
+    /**
+     * Paginated list of all appointments (admin dashboard). Newest first.
+     */
+    public PagedAppointmentListDto listAllAppointmentsPagedForAdmin(String adminUserId, int page, int size) {
+        UserRepository userRepository = requireUserRepository();
+        AdminAuthorizationSupport.requireAdminUser(userRepository, adminUserId);
+        AppointmentRepository repository = requireAppointmentRepository();
+        int safePage = Math.max(0, page);
+        int safeSize = size <= 0 ? 20 : Math.min(size, 200);
+        PageRequest pageRequest = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdTimestamp"));
+        Page<AppointmentEntity> result = repository.findAll(pageRequest);
+        List<AppointmentResponse> list = result.stream().map(this::toResponse).toList();
+        return new PagedAppointmentListDto(
+                list,
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.getNumber(),
+                result.getSize());
+    }
+
+    /**
+     * Marks an appointment as DELETED (admin-only); does not remove the document.
+     */
+    public AppointmentResponse softDeleteAppointmentAsAdmin(String appointmentId, String adminUserId) {
+        UserRepository userRepository = requireUserRepository();
+        AdminAuthorizationSupport.requireAdminUser(userRepository, adminUserId);
+        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentEntity entity = repository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
+        if (STATUS_DELETED.equalsIgnoreCase(normalize(entity.getStatus()))) {
+            return toResponse(entity);
+        }
+        entity.setStatus(STATUS_DELETED);
+        entity.setUpdatedTimestamp(Instant.now());
+        entity.setUpdatedBy(adminUserId);
+        return toResponse(repository.save(entity));
     }
 
     public List<String> listOccupiedTimeSlots(String doctorId, String preferredDate, String excludeAppointmentId, String actorUserId) {
@@ -483,6 +525,9 @@ public class AppointmentService {
         if (isCancelled(row)) {
             return false;
         }
+        if (STATUS_DELETED.equalsIgnoreCase(normalize(row.getStatus()))) {
+            return false;
+        }
         String s = normalize(row.getStatus());
         return s.isEmpty() || DEFAULT_STATUS_OPEN.equalsIgnoreCase(s);
     }
@@ -515,6 +560,9 @@ public class AppointmentService {
             throw new IllegalArgumentException("Appointment not found");
         }
         UserRole actorRole = resolveUserRole(actorUserId);
+        if (actorRole == UserRole.ADMIN) {
+            return;
+        }
         String doctorId = normalize(entity.getDoctorId());
         if (actorRole == UserRole.DOCTOR && doctorId.equals(actorUserId)) {
             return;

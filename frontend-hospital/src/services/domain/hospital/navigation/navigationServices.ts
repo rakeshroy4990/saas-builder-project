@@ -241,25 +241,45 @@ export const navigationHospitalServices: ServiceDefinition[] = [
   },
   {
     packageName: 'hospital',
+    serviceId: 'set-dashboard-nav-admin',
+    execute: async () => {
+      useAppStore(pinia).setData('hospital', 'DashboardNav', { activeItem: 'admin' });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
     serviceId: 'execute-post-login-action',
     execute: async () => {
       const deferredAction = consumeDeferredPostLoginAction();
-      if (!deferredAction) {
-        return ok({ resumed: false });
+      if (deferredAction) {
+        const deferredService = ServiceRegistry.getInstance().get(
+          deferredAction.packageName,
+          deferredAction.actionId
+        );
+        if (!deferredService) {
+          return ok({ resumed: false });
+        }
+        try {
+          await deferredService.execute({ data: deferredAction.data ?? {} });
+          return ok({ resumed: true });
+        } catch {
+          return ok({ resumed: false });
+        }
       }
-      const deferredService = ServiceRegistry.getInstance().get(
-        deferredAction.packageName,
-        deferredAction.actionId
-      );
-      if (!deferredService) {
-        return ok({ resumed: false });
+      const path = String(router.currentRoute.value?.path ?? '');
+      const onDashboard = path === '/dashboard' || path.endsWith('/dashboard');
+      if (onDashboard) {
+        const init = ServiceRegistry.getInstance().get('hospital', 'init-dashboard');
+        if (init) {
+          try {
+            await init.execute({ data: {} });
+          } catch {
+            /* ignore */
+          }
+        }
       }
-      try {
-        await deferredService.execute({ data: deferredAction.data ?? {} });
-        return ok({ resumed: true });
-      } catch {
-        return ok({ resumed: false });
-      }
+      return ok({ resumed: false });
     }
   }
 ];
