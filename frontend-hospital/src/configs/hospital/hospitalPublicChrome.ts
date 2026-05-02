@@ -8,7 +8,7 @@ export const disabledWhenLoggedInAsDoctor: ConditionConfig = {
   }
 };
 
-/** Shared site header + mobile menu (Home / Dashboard / Contact, auth, Book Now). */
+/** Shared site header + mobile menu (Home / Dashboard / Blog, auth, Book Now). */
 const hospitalPublicHeader: ComponentDefinition = {
   id: 'hospital-public-header',
   type: 'container',
@@ -212,36 +212,42 @@ const hospitalPublicHeader: ComponentDefinition = {
               }
             },
             {
-              id: 'hospital-public-header-nav-contact-active',
+              id: 'hospital-public-header-nav-blog-active',
               type: 'button',
               condition: {
-                expression: "activeMenu === 'CONTACT'",
+                expression: "activeMenu === 'BLOG'",
                 mappings: {
                   activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
                 }
               },
               config: {
-                text: 'Contact',
+                text: 'Blog',
                 styles: {
                   styleTemplate: 'hosp.header.menuButton',
                   utilityClasses: 'bg-emerald-100 text-emerald-700'
                 },
-                click: { actionId: 'scroll-home-contact' }
+                click: {
+                  actionId: 'set-blog-header-active',
+                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+                }
               }
             },
             {
-              id: 'hospital-public-header-nav-contact',
+              id: 'hospital-public-header-nav-blog',
               type: 'button',
               condition: {
-                expression: "activeMenu !== 'CONTACT'",
+                expression: "activeMenu !== 'BLOG'",
                 mappings: {
                   activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
                 }
               },
               config: {
-                text: 'Contact',
+                text: 'Blog',
                 styles: { styleTemplate: 'hosp.header.menuButton' },
-                click: { actionId: 'scroll-home-contact' }
+                click: {
+                  actionId: 'set-blog-header-active',
+                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+                }
               }
             }
           ]
@@ -578,33 +584,39 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
         }
       },
       {
-        id: 'hospital-public-mobile-menu-contact-active',
+        id: 'hospital-public-mobile-menu-blog-active',
         type: 'button',
         condition: {
-          expression: "activeMenu === 'CONTACT'",
+          expression: "activeMenu === 'BLOG'",
           mappings: {
             activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
           }
         },
         config: {
-          text: 'Contact',
+          text: 'Blog',
           styles: { styleTemplate: 'hosp.header.menuButtonActive' },
-          click: { actionId: 'scroll-home-contact' }
+          click: {
+            actionId: 'set-blog-header-active',
+            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+          }
         }
       },
       {
-        id: 'hospital-public-mobile-menu-contact',
+        id: 'hospital-public-mobile-menu-blog',
         type: 'button',
         condition: {
-          expression: "activeMenu !== 'CONTACT'",
+          expression: "activeMenu !== 'BLOG'",
           mappings: {
             activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
           }
         },
         config: {
-          text: 'Contact',
+          text: 'Blog',
           styles: { styleTemplate: 'hosp.header.menuButton' },
-          click: { actionId: 'scroll-home-contact' }
+          click: {
+            actionId: 'set-blog-header-active',
+            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+          }
         }
       }
     ]

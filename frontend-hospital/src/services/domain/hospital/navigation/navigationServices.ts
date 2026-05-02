@@ -96,6 +96,22 @@ export const navigationHospitalServices: ServiceDefinition[] = [
   },
   {
     packageName: 'hospital',
+    serviceId: 'set-blog-header-active',
+    execute: async () => {
+      useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'BLOG', profileMenuOpen: false });
+      const responsive = (useAppStore(pinia).getData('hospital', 'ResponsiveUiState') ?? {}) as Record<
+        string,
+        unknown
+      >;
+      useAppStore(pinia).setData('hospital', 'ResponsiveUiState', {
+        ...responsive,
+        headerMenuOpen: resolveHeaderMenuOpenState(responsive)
+      });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
     serviceId: 'set-education-header-active',
     execute: async () => {
       useAppStore(pinia).setData('hospital', 'HeaderUiState', { activeMenu: 'EDUCATION', profileMenuOpen: false });

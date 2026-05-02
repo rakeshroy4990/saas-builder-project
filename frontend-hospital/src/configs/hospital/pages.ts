@@ -637,43 +637,41 @@ export const hospitalPages: PageConfig[] = [
                       }
                     },
                     {
-                      id: 'hospital-dashboard-header-nav-contact-active',
+                      id: 'hospital-dashboard-header-nav-blog-active',
                       type: 'button',
                       condition: {
-                        expression: "activeMenu === 'CONTACT'",
+                        expression: "activeMenu === 'BLOG'",
                         mappings: {
                           activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
                         }
                       },
                       config: {
-                        text: 'Contact',
+                        text: 'Blog',
                         styles: {
                           styleTemplate: 'hosp.header.menuButton',
                           utilityClasses: 'bg-emerald-100 text-emerald-700'
                         },
                         click: {
-                          actionId: 'set-header-active-menu',
-                          data: { menu: 'CONTACT' },
-                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                          actionId: 'set-blog-header-active',
+                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
                         }
                       }
                     },
                     {
-                      id: 'hospital-dashboard-header-nav-contact',
+                      id: 'hospital-dashboard-header-nav-blog',
                       type: 'button',
                       condition: {
-                        expression: "activeMenu !== 'CONTACT'",
+                        expression: "activeMenu !== 'BLOG'",
                         mappings: {
                           activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
                         }
                       },
                       config: {
-                        text: 'Contact',
+                        text: 'Blog',
                         styles: { styleTemplate: 'hosp.header.menuButton' },
                         click: {
-                          actionId: 'set-header-active-menu',
-                          data: { menu: 'CONTACT' },
-                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                          actionId: 'set-blog-header-active',
+                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
                         }
                       }
                     }
@@ -1007,36 +1005,38 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
-                id: 'hospital-dashboard-mobile-menu-contact-active',
+                id: 'hospital-dashboard-mobile-menu-blog-active',
                 type: 'button',
                 condition: {
-                  expression: "activeMenu === 'CONTACT'",
+                  expression: "activeMenu === 'BLOG'",
                   mappings: {
                     activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
                   }
                 },
                 config: {
-                  text: 'Contact',
+                  text: 'Blog',
                   styles: { styleTemplate: 'hosp.header.menuButtonActive' },
-                  click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                  click: {
+                    actionId: 'set-blog-header-active',
+                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+                  }
                 }
               },
               {
-                id: 'hospital-dashboard-mobile-menu-contact',
+                id: 'hospital-dashboard-mobile-menu-blog',
                 type: 'button',
                 condition: {
-                  expression: "activeMenu !== 'CONTACT'",
+                  expression: "activeMenu !== 'BLOG'",
                   mappings: {
                     activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
                   }
                 },
                 config: {
-                  text: 'Contact',
+                  text: 'Blog',
                   styles: { styleTemplate: 'hosp.header.menuButton' },
                   click: {
-                    actionId: 'set-header-active-menu',
-                    data: { menu: 'CONTACT' },
-                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
+                    actionId: 'set-blog-header-active',
+                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
                   }
                 }
               }
@@ -2432,6 +2432,414 @@ export const hospitalPages: PageConfig[] = [
           'hospital-doctor-education-footer',
           'Agastya Healthcare | Clinical flashcards for continuous medical learning.'
         )
+      ]
+    }
+  },
+  {
+    packageName: 'hospital',
+    pageId: 'blog',
+    title: 'Wellness Blog',
+    initializeActions: [{ actionId: 'set-blog-header-active' }, { actionId: 'load-blog-previews' }],
+    container: {
+      layoutTemplate: 'hosp.page.root',
+      children: [
+        ...hospitalPublicChromeTop,
+        {
+          id: 'hospital-blog-main',
+          type: 'container',
+          config: {
+            styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col gap-6 px-4 py-6 max-w-6xl mx-auto' },
+            children: [
+              {
+                id: 'hospital-blog-heading',
+                type: 'text',
+                config: {
+                  text: 'Wellness & curiosity',
+                  styles: { styleTemplate: 'hosp.section.heading', utilityClasses: 'text-3xl' }
+                }
+              },
+              {
+                id: 'hospital-blog-sub',
+                type: 'text',
+                config: {
+                  text: 'Short reads to spark questions and better habits — not medical advice. For personal decisions, speak with your clinician.',
+                  styles: { utilityClasses: 'text-sm text-slate-600 max-w-3xl' }
+                }
+              },
+              {
+                id: 'hospital-blog-source',
+                type: 'text',
+                condition: {
+                  expression:
+                    '!loading && posts && posts.length > 0 && detail && String(detail ?? "").trim().length > 0',
+                  mappings: {
+                    loading: { packageName: 'hospital', key: 'BlogPreviews', property: 'loading' },
+                    posts: { packageName: 'hospital', key: 'BlogPreviews', property: 'posts' },
+                    detail: { packageName: 'hospital', key: 'BlogPreviews', property: 'contentSourceDetail' }
+                  }
+                },
+                config: {
+                  mapping: { packageName: 'hospital', key: 'BlogPreviews', property: 'contentSourceDetail' },
+                  styles: {
+                    utilityClasses: 'text-xs text-slate-500 max-w-3xl border-l-2 border-emerald-200 pl-3 py-1'
+                  }
+                }
+              },
+              {
+                id: 'hospital-blog-loading',
+                type: 'text',
+                condition: {
+                  expression: 'loading === true',
+                  mappings: {
+                    loading: { packageName: 'hospital', key: 'BlogPreviews', property: 'loading' }
+                  }
+                },
+                config: {
+                  text: 'Loading articles…',
+                  styles: { utilityClasses: 'text-sm text-slate-500' }
+                }
+              },
+              {
+                id: 'hospital-blog-error',
+                type: 'text',
+                condition: {
+                  expression: 'String(err ?? "").trim().length > 0',
+                  mappings: {
+                    err: { packageName: 'hospital', key: 'BlogPreviews', property: 'error' }
+                  }
+                },
+                config: {
+                  mapping: { packageName: 'hospital', key: 'BlogPreviews', property: 'error' },
+                  styles: { utilityClasses: 'text-sm font-medium text-red-600' }
+                }
+              },
+              {
+                id: 'hospital-blog-list',
+                type: 'list',
+                condition: {
+                  expression: '!loading && posts && posts.length > 0',
+                  mappings: {
+                    loading: { packageName: 'hospital', key: 'BlogPreviews', property: 'loading' },
+                    posts: { packageName: 'hospital', key: 'BlogPreviews', property: 'posts' }
+                  }
+                },
+                config: {
+                  listStyleTemplate: 'hosp.blog.previewGrid',
+                  mapping: { packageName: 'hospital', key: 'BlogPreviews', property: 'posts' },
+                  itemTemplate: {
+                    layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-2', 'h-full'] },
+                    styles: {
+                      utilityClasses:
+                        'rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-emerald-200 transition-colors h-full'
+                    },
+                    children: [
+                      {
+                        id: 'hospital-blog-card-title',
+                        type: 'text',
+                        config: {
+                          text: '{{title}}',
+                          styles: { utilityClasses: 'text-lg font-semibold text-slate-900' }
+                        }
+                      },
+                      {
+                        id: 'hospital-blog-card-meta',
+                        type: 'text',
+                        config: {
+                          text: '{{category}} · {{readTimeMinutes}} min read',
+                          styles: { utilityClasses: 'text-xs font-medium uppercase tracking-wide text-emerald-700' }
+                        }
+                      },
+                      {
+                        id: 'hospital-blog-card-teaser',
+                        type: 'text',
+                        config: {
+                          text: '{{teaser}}',
+                          styles: { utilityClasses: 'text-sm text-slate-700 leading-relaxed flex-1' }
+                        }
+                      },
+                      {
+                        id: 'hospital-blog-card-actions',
+                        type: 'container',
+                        config: {
+                          layout: {
+                            type: 'flex',
+                            flex: ['flex', 'flex-row', 'flex-wrap', 'gap-3', 'items-center', 'mt-auto', 'pt-3']
+                          },
+                          children: [
+                            {
+                              id: 'hospital-blog-card-read-more',
+                              type: 'button',
+                              config: {
+                                text: 'Read more',
+                                styles: {
+                                  utilityClasses:
+                                    'inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800 underline underline-offset-2'
+                                },
+                                click: {
+                                  packageName: 'hospital',
+                                  actionId: 'open-blog-read-more-popup',
+                                  data: {
+                                    title: '{{title}}',
+                                    teaser: '{{teaser}}',
+                                    slug: '{{slug}}',
+                                    category: '{{category}}',
+                                    readTimeMinutes: '{{readTimeMinutes}}'
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              id: 'hospital-blog-card-open-page',
+                              type: 'button',
+                              config: {
+                                text: 'Open article page',
+                                styles: {
+                                  utilityClasses:
+                                    'inline-flex text-sm font-semibold text-slate-700 hover:text-slate-900 underline underline-offset-2'
+                                },
+                                click: {
+                                  packageName: 'hospital',
+                                  actionId: 'navigate-blog-article',
+                                  data: { slug: '{{slug}}' }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                id: 'hospital-blog-empty',
+                type: 'text',
+                condition: {
+                  expression: '!loading && (!posts || posts.length === 0) && String(err ?? "").trim().length === 0',
+                  mappings: {
+                    loading: { packageName: 'hospital', key: 'BlogPreviews', property: 'loading' },
+                    posts: { packageName: 'hospital', key: 'BlogPreviews', property: 'posts' },
+                    err: { packageName: 'hospital', key: 'BlogPreviews', property: 'error' }
+                  }
+                },
+                config: {
+                  text: 'No articles to show yet.',
+                  styles: { utilityClasses: 'text-sm text-slate-500' }
+                }
+              }
+            ]
+          }
+        },
+        hospitalSiteFooter('hospital-blog-footer', 'Agastya Healthcare | Wellness stories for curious readers.')
+      ]
+    }
+  },
+  {
+    packageName: 'hospital',
+    pageId: 'blog-article',
+    title: 'Article',
+    initializeActions: [{ actionId: 'set-blog-header-active' }, { actionId: 'load-blog-article-preview' }],
+    container: {
+      layoutTemplate: 'hosp.page.root',
+      children: [
+        ...hospitalPublicChromeTop,
+        {
+          id: 'hospital-blog-article-main',
+          type: 'container',
+          config: {
+            styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col gap-6 px-4 py-6 max-w-3xl mx-auto' },
+            children: [
+              {
+                id: 'hospital-blog-article-back',
+                type: 'button',
+                config: {
+                  text: '← All articles',
+                  styles: { utilityClasses: 'self-start text-sm font-semibold text-emerald-700 hover:text-emerald-800' },
+                  click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+                }
+              },
+              {
+                id: 'hospital-blog-article-loading',
+                type: 'text',
+                condition: {
+                  expression: 'loading === true',
+                  mappings: {
+                    loading: { packageName: 'hospital', key: 'BlogArticleView', property: 'loading' }
+                  }
+                },
+                config: {
+                  text: 'Loading article…',
+                  styles: { utilityClasses: 'text-sm text-slate-500' }
+                }
+              },
+              {
+                id: 'hospital-blog-article-error',
+                type: 'text',
+                condition: {
+                  expression: 'String(err ?? "").trim().length > 0',
+                  mappings: {
+                    err: { packageName: 'hospital', key: 'BlogArticleView', property: 'error' }
+                  }
+                },
+                config: {
+                  mapping: { packageName: 'hospital', key: 'BlogArticleView', property: 'error' },
+                  styles: { utilityClasses: 'text-sm font-medium text-red-600' }
+                }
+              },
+              {
+                id: 'hospital-blog-article-title',
+                type: 'text',
+                condition: {
+                  expression:
+                    '!loading && String(err ?? "").trim().length === 0 && String(title ?? "").trim().length > 0',
+                  mappings: {
+                    loading: { packageName: 'hospital', key: 'BlogArticleView', property: 'loading' },
+                    err: { packageName: 'hospital', key: 'BlogArticleView', property: 'error' },
+                    title: { packageName: 'hospital', key: 'BlogArticleView', property: 'title' }
+                  }
+                },
+                config: {
+                  mapping: { packageName: 'hospital', key: 'BlogArticleView', property: 'title' },
+                  styles: { styleTemplate: 'hosp.section.heading', utilityClasses: 'text-3xl' }
+                }
+              },
+              {
+                id: 'hospital-blog-article-meta',
+                type: 'text',
+                condition: {
+                  expression:
+                    '!loading && String(err ?? "").trim().length === 0 && String(metaLine ?? "").trim().length > 0',
+                  mappings: {
+                    loading: { packageName: 'hospital', key: 'BlogArticleView', property: 'loading' },
+                    err: { packageName: 'hospital', key: 'BlogArticleView', property: 'error' },
+                    metaLine: { packageName: 'hospital', key: 'BlogArticleView', property: 'metaLine' }
+                  }
+                },
+                config: {
+                  mapping: { packageName: 'hospital', key: 'BlogArticleView', property: 'metaLine' },
+                  styles: { utilityClasses: 'text-xs font-medium uppercase tracking-wide text-emerald-700' }
+                }
+              },
+              {
+                id: 'hospital-blog-article-teaser',
+                type: 'text',
+                condition: {
+                  expression:
+                    '!loading && String(err ?? "").trim().length === 0 && String(teaser ?? "").trim().length > 0',
+                  mappings: {
+                    loading: { packageName: 'hospital', key: 'BlogArticleView', property: 'loading' },
+                    err: { packageName: 'hospital', key: 'BlogArticleView', property: 'error' },
+                    teaser: { packageName: 'hospital', key: 'BlogArticleView', property: 'teaser' }
+                  }
+                },
+                config: {
+                  mapping: { packageName: 'hospital', key: 'BlogArticleView', property: 'teaser' },
+                  styles: { utilityClasses: 'text-base text-slate-700 leading-relaxed' }
+                }
+              },
+              {
+                id: 'hospital-blog-article-footnote',
+                type: 'text',
+                condition: {
+                  expression: '!loading && String(err ?? "").trim().length === 0',
+                  mappings: {
+                    loading: { packageName: 'hospital', key: 'BlogArticleView', property: 'loading' },
+                    err: { packageName: 'hospital', key: 'BlogArticleView', property: 'error' }
+                  }
+                },
+                config: {
+                  text:
+                    'This is the same educational teaser shown on the blog list. Long-form articles are not published here yet. Not medical advice—speak with your clinician for personal decisions.',
+                  styles: { utilityClasses: 'text-xs text-slate-500 border-t border-slate-100 pt-4 mt-2' }
+                }
+              }
+            ]
+          }
+        },
+        hospitalSiteFooter(
+          'hospital-blog-article-footer',
+          'Agastya Healthcare | Wellness stories for curious readers.'
+        )
+      ]
+    }
+  },
+  {
+    packageName: 'hospital',
+    pageId: 'blog-read-more-popup',
+    title: 'Article preview',
+    container: {
+      layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-4'] },
+      children: [
+        {
+          id: 'hospital-blog-readmore-header',
+          type: 'container',
+          config: {
+            layoutTemplate: 'hosp.popup.header',
+            children: [
+              {
+                id: 'hospital-blog-readmore-title',
+                type: 'text',
+                config: { text: 'Article preview', styles: { styleTemplate: 'hosp.popup.header.title' } }
+              },
+              {
+                id: 'hospital-blog-readmore-close',
+                type: 'button',
+                config: {
+                  text: 'X',
+                  styles: { styleTemplate: 'hosp.popup.header.closeButton' },
+                  click: { actionType: 'closePopup' }
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'hospital-blog-readmore-article-title',
+          type: 'text',
+          config: {
+            mapping: { packageName: 'hospital', key: 'BlogReadMore', property: 'title' },
+            styles: { utilityClasses: 'text-lg font-semibold text-slate-900' }
+          }
+        },
+        {
+          id: 'hospital-blog-readmore-meta',
+          type: 'text',
+          config: {
+            mapping: { packageName: 'hospital', key: 'BlogReadMore', property: 'metaLine' },
+            styles: { utilityClasses: 'text-xs font-medium uppercase tracking-wide text-emerald-700' }
+          }
+        },
+        {
+          id: 'hospital-blog-readmore-teaser',
+          type: 'text',
+          config: {
+            mapping: { packageName: 'hospital', key: 'BlogReadMore', property: 'teaser' },
+            styles: { utilityClasses: 'text-sm text-slate-700 leading-relaxed' }
+          }
+        },
+        {
+          id: 'hospital-blog-readmore-slug',
+          type: 'text',
+          condition: {
+            expression: 'line && String(line ?? "").trim().length > 0',
+            mappings: {
+              line: { packageName: 'hospital', key: 'BlogReadMore', property: 'slugLine' }
+            }
+          },
+          config: {
+            mapping: { packageName: 'hospital', key: 'BlogReadMore', property: 'slugLine' },
+            styles: { utilityClasses: 'text-xs text-slate-500 font-mono' }
+          }
+        },
+        {
+          id: 'hospital-blog-readmore-note',
+          type: 'text',
+          config: {
+            text:
+              'Full long-form articles are not hosted here yet. Use this preview for general education only; talk to your clinician for personal care.',
+            styles: { utilityClasses: 'text-xs text-slate-500 border-t border-slate-100 pt-3' }
+          }
+        }
       ]
     }
   },

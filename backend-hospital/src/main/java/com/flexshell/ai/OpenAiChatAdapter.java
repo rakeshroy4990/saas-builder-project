@@ -30,6 +30,8 @@ public class OpenAiChatAdapter {
     private final int maxTokens;
     private final double temperature;
     private final int timeoutMs;
+    private final int blogMaxTokens;
+    private final double blogTemperature;
 
     public OpenAiChatAdapter(
             ObjectMapper objectMapper,
@@ -40,7 +42,9 @@ public class OpenAiChatAdapter {
             @Value("${app.ai.openai.chat-path:/v1/chat/completions}") String chatPath,
             @Value("${app.ai.max-tokens:400}") int maxTokens,
             @Value("${app.ai.temperature:0.3}") double temperature,
-            @Value("${app.ai.timeout-ms:12000}") int timeoutMs
+            @Value("${app.ai.timeout-ms:12000}") int timeoutMs,
+            @Value("${app.ai.blog.max-tokens:1200}") int blogMaxTokens,
+            @Value("${app.ai.blog.temperature:0.75}") double blogTemperature
     ) {
         this.objectMapper = objectMapper;
         this.aiSafetyPolicy = aiSafetyPolicy;
@@ -52,7 +56,52 @@ public class OpenAiChatAdapter {
         this.maxTokens = Math.max(maxTokens, 64);
         this.temperature = temperature;
         this.timeoutMs = Math.max(timeoutMs, 2000);
+        this.blogMaxTokens = Math.max(blogMaxTokens, 256);
+        this.blogTemperature = blogTemperature;
     }
+
+    /**
+     * Generates blog teaser JSON using a non-triage system prompt (public marketing content only).
+     */
+    public String completeBlogPreviews(String userPrompt) {
+        if (apiKey.isBlank()) {
+            return "";
+        }
+        try {
+            String requestBody = buildRequestBody(
+                    BLOG_PREVIEW_SYSTEM_PROMPT, List.of(), userPrompt, blogMaxTokens, blogTemperature);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(joinUrl(baseUrl, chatPath)))
+                    .timeout(Duration.ofMillis(timeoutMs))
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                return "";
+            }
+            return parseResponseText(response.body());
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            return "";
+        } catch (IOException ex) {
+            return "";
+        }
+    }
+
+    private static final String BLOG_PREVIEW_SYSTEM_PROMPT = """
+            You are an editorial assistant for a hospital website's public wellness blog.
+            Output ONLY a JSON array. No markdown fences, no commentary before or after.
+            Each element must be an object with keys exactly:
+            "title" (string, compelling question or headline),
+            "slug" (string, lowercase kebab-case, URL-safe),
+            "teaser" (string, 1-2 sentences that spark curiosity; educational tone),
+            "category" (string, short label e.g. Nutrition, Sleep, Heart Health),
+            "readTimeMinutes" (integer, 3-8).
+            Rules: general wellness and health literacy only; no diagnoses; no medication dosing;
+            no emergency instructions; suitable for India/global English readers; varied topics.
+            """;
 
     public String complete(List<AiChatMessageDto> history, String message) {
         if (apiKey.isBlank()) {
@@ -62,7 +111,7 @@ public class OpenAiChatAdapter {
             );
         }
         try {
-            String requestBody = buildRequestBody(history, message);
+            String requestBody = buildRequestBody(aiSafetyPolicy.systemPrompt(), history, message, maxTokens, temperature);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(joinUrl(baseUrl, chatPath)))
                     .timeout(Duration.ofMillis(timeoutMs))
@@ -95,9 +144,15 @@ public class OpenAiChatAdapter {
         }
     }
 
-    private String buildRequestBody(List<AiChatMessageDto> history, String message) throws IOException {
+    private String buildRequestBody(
+            String systemContent,
+            List<AiChatMessageDto> history,
+            String message,
+            int maxTokensParam,
+            double temperatureParam
+    ) throws IOException {
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", aiSafetyPolicy.systemPrompt()));
+        messages.add(Map.of("role", "system", "content", Objects.toString(systemContent, "").trim()));
         if (history != null) {
             for (AiChatMessageDto item : history) {
                 if (item == null) continue;
@@ -113,8 +168,8 @@ public class OpenAiChatAdapter {
         Map<String, Object> payload = new HashMap<>();
         payload.put("model", model);
         payload.put("messages", messages);
-        payload.put("max_tokens", maxTokens);
-        payload.put("temperature", temperature);
+        payload.put("max_tokens", maxTokensParam);
+        payload.put("temperature", temperatureParam);
         return objectMapper.writeValueAsString(payload);
     }
 

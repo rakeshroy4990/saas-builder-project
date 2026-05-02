@@ -1,0 +1,298 @@
+# Agastya Healthcare — Cursor AI Rules
+# Stack: Vue 3 + Spring Boot + FastAPI | DB: PostgreSQL (Supabase) | Healthcare Domain
+
+---
+
+## 🧠 Project Context
+
+You are working on **Agastya Healthcare** — a telemedicine platform for patients and doctors.
+- Frontend: Vue 3 (Composition API, Pinia, Vue Router, Axios)
+- Backend: Spring Boot 3.x (Java 17+, JPA/Hibernate, Spring Security, JWT)
+- AI/Chat Service: FastAPI (Python 3.11+)
+- Database: PostgreSQL (Supabase) — migrating FROM MongoDB
+- Video: Agora RTC SDK
+- Payments: Razorpay
+- Notifications: Email + MSG91 (SMS) + Firebase FCM
+
+This is a **health/medical application**. All code must treat patient data as sensitive PII.
+Never suggest storing plaintext health data, credentials, or tokens insecurely.
+
+---
+
+## 🗂️ Architecture Rules
+
+### General
+- Always separate concerns: controllers → services → repositories. Never put business logic in controllers.
+- Never expose internal IDs (DB auto-increment) in API responses — always use `external_id` (UUID).
+- All timestamps must be in UTC. Store as `TIMESTAMPTZ` in PostgreSQL.
+- All deletions must be **soft deletes** — set `deleted = true`, never `DELETE FROM`.
+- Every entity that stores patient data must have: `created_at`, `updated_at`, `deleted` fields.
+
+### API Design
+- REST endpoints follow: `/api/v1/{resource}/{id}/action`
+- Use `external_id` (UUID) in all URLs, never DB primary key.
+- All list endpoints must support pagination: `?page=0&size=20&sort=createdAt,desc`
+- All API responses follow this envelope:
+```json
+{
+  "success": true,
+  "data": {},
+  "message": "string",
+  "timestamp": "ISO8601"
+}
+```
+- Error responses must include an `errorCode` field (machine-readable), not just HTTP status.
+
+---
+
+## 🌿 Vue 3 Rules
+
+### Auth & Security
+- **NEVER store JWT tokens in `localStorage` or `sessionStorage`** — use `httpOnly` cookies only.
+- Access tokens live in memory (Pinia store). Refresh tokens in `httpOnly` cookie only.
+- All routes requiring auth must have `meta: { requiresAuth: true, role: 'PATIENT' | 'DOCTOR' | 'ADMIN' }`.
+- Router guards must check both `isAuthenticated` AND `role` — redirect to `/unauthorized` on role mismatch, not `/login`.
+- `SameSite=None; Secure=true` on refresh token cookie when frontend and API are on different origins.
+- Scope refresh token cookie path to `/api/v1/auth/refresh` only.
+
+### Composition API Patterns
+- Always use `<script setup>` syntax — never Options API.
+- Use `defineProps` with TypeScript types, never untyped props.
+- Composables go in `src/composables/use{Name}.ts` — one concern per composable.
+- Never call APIs directly in components — always through a composable or Pinia action.
+- All API calls must handle loading, error, and success states explicitly.
+
+```typescript
+// ✅ Correct pattern
+const { data, isLoading, error } = useAppointments()
+
+// ❌ Never do this in a component
+const res = await axios.get('/api/appointments')
+```
+
+### Agora Video Call Rules
+- Agora token must ALWAYS come from Spring Boot backend — never generate client-side.
+- Channel name must always equal `appointmentId` (UUID) — never use doctor/patient IDs.
+- Always implement `token-privilege-will-expire` handler to renew token mid-call.
+- Always clean up tracks on `onUnmounted`:
+```typescript
+onUnmounted(async () => {
+  await localAudioTrack?.close()
+  await localVideoTrack?.close()
+  await client.leave()
+})
+```
+- Always show network quality indicator using `client.on('network-quality', ...)`.
+- Implement fallback to audio-only when video quality degrades below threshold 4.
+
+### Component Rules
+- Components in `src/components/{domain}/{ComponentName}.vue`
+- Pages in `src/pages/{role}/{PageName}.vue` (role = patient | doctor | admin)
+- Never use inline styles — use Tailwind utility classes only.
+- All forms must have client-side validation before API call.
+- All user-facing error messages must be human-readable (never expose raw API error).
+
+---
+
+## ☕ Spring Boot Rules
+
+### Security
+- Every controller endpoint must have `@PreAuthorize` annotation — never rely on route-level security alone.
+- JWT filter must validate: signature, expiry, token type (access vs refresh).
+- Implement refresh token rotation — invalidate old refresh token on each use.
+- Rate limit all auth endpoints using Bucket4j:
+  - `/auth/login`: 5 attempts per minute per IP
+  - `/auth/refresh`: 10 per minute per user
+  - `/auth/reset-password`: 3 per hour per email
+- Never log passwords, tokens, or patient health data — use `@JsonIgnore` and log masking.
+- All CORS allowed origins must be explicit whitelist — never `*` in production.
+
+### Database & JPA
+- **Never use `ddl-auto: create` or `ddl-auto: update` in any environment** — Flyway owns all schema changes.
+- All schema changes go in `src/main/resources/db/migration/V{n}__{description}.sql`.
+- Use `@Version` on any entity subject to concurrent updates (Slot, Appointment).
+- Use soft delete pattern with `@SQLDelete` and `@Where`:
+```java
+@SQLDelete(sql = "UPDATE {table} SET deleted = true WHERE id = ?")
+@Where(clause = "deleted = false")
+```
+- Never use `FetchType.EAGER` — always `LAZY` with explicit joins when needed.
+- Always use `external_id` (UUID) in API DTOs, never expose `id` (Long).
+- Use `TIMESTAMPTZ` for all date columns, store in UTC, convert to user timezone in frontend.
+
+### Appointment & Slot Booking
+- Slot booking must use optimistic locking (`@Version`) to prevent double-booking.
+- `/join-call` endpoint must validate:
+  1. Appointment belongs to authenticated user
+  2. Appointment status is `CONFIRMED`
+  3. Current time is within ±15 minutes of appointment time
+  4. Generate Agora token with `appointmentId` as channel name
+- Appointment must track call state machine:
+  `PENDING → CONFIRMED → CALL_INITIATED → CALL_IN_PROGRESS → CALL_ENDED → COMPLETED`
+- Store `call_start_time` and `call_end_time` on every appointment.
+
+### Prescription Rules
+- Prescriptions are **immutable once issued** — no UPDATE allowed, only new version.
+- Every prescription PDF must include doctor's NMC registration number.
+- Prescription file URLs must be signed/expiring URLs (S3/Supabase Storage) — never public permanent URLs.
+- Soft delete only — never hard delete prescriptions (legal requirement).
+
+### Audit Logging
+- Use Spring AOP to log every: prescription access, appointment status change, user role change.
+- Audit log must capture: `userId`, `action`, `resourceType`, `resourceId`, `timestamp`, `ipAddress`.
+- Audit logs are append-only — no update, no delete ever.
+
+### Service Layer Pattern
+```java
+// ✅ Correct
+@Service
+@Transactional
+public class AppointmentService {
+    public AppointmentResponse bookAppointment(BookingRequest request, Long patientId) {
+        Slot slot = slotRepository.findByIdWithLock(request.getSlotId())
+            .orElseThrow(() -> new SlotNotFoundException(request.getSlotId()));
+        // business logic here
+    }
+}
+
+// ❌ Never put business logic in controller
+@PostMapping("/appointments")
+public ResponseEntity<?> book(@RequestBody BookingRequest req) {
+    slot.setStatus(BOOKED); // NO
+}
+```
+
+---
+
+## 🐍 FastAPI Rules
+
+### Service Boundaries
+- FastAPI is an **internal service only** — it must NOT be directly accessible from the internet.
+- All requests to FastAPI must come from Spring Boot backend only, with an internal service token.
+- FastAPI never accesses the database directly — all data access goes through Spring Boot APIs.
+
+### AI Chat Rules
+- Every AI system prompt must include:
+```python
+MEDICAL_DISCLAIMER = """
+You are a health information assistant for Agastya Healthcare.
+STRICT RULES:
+1. Never diagnose medical conditions.
+2. Never recommend specific medications or dosages.
+3. Never contradict advice from a licensed doctor.
+4. Always recommend consulting a qualified doctor for medical decisions.
+5. End every response with: 'Please consult your doctor for personalized medical advice.'
+"""
+```
+- Rate limit AI endpoints: max 20 requests per user per hour.
+- Log all AI interactions with `userId`, `sessionId`, `timestamp` for DPDP compliance.
+- Never pass raw patient records to the LLM — summarize/anonymize before sending.
+- Implement `confidence_score` — if below threshold, respond with "Please consult your doctor directly."
+
+### FastAPI Patterns
+- Use Pydantic v2 models for all request/response schemas — never raw dicts.
+- All endpoints must validate the internal service token in headers.
+- Use `async def` for all I/O bound endpoints.
+- Structured logging only — use `structlog`, never `print()`.
+
+---
+
+## 🐘 PostgreSQL / Migration Rules
+
+### General
+- All queries on large tables must use indexed columns in WHERE clause.
+- Required indexes: `appointments(patient_id)`, `appointments(doctor_id)`, `appointments(appointment_date)`, `slots(doctor_id, slot_date)`, `users(email)`.
+- Use `BIGSERIAL` for internal PKs, `UUID` for external-facing IDs.
+- Boolean soft-delete column: always named `deleted BOOLEAN DEFAULT false`.
+- Use `NUMERIC(10,2)` for all monetary values — never `FLOAT` or `DOUBLE`.
+
+### Migration from MongoDB
+- Map MongoDB `_id` (ObjectId) to `external_id` UUID column for traceability.
+- All migrated data must preserve original `created_at` timestamps.
+- Run migration in this order to respect FK constraints:
+  1. `users` → 2. `hospitals` → 3. `doctor_profiles` → 4. `slots` → 5. `appointments` → 6. `prescriptions` → 7. `chat_sessions` → 8. `chat_messages`
+- Validate row counts after each collection migration.
+- Keep MongoDB Atlas in read-only mode for 2 weeks post-migration as fallback.
+- Use `ON CONFLICT DO NOTHING` in migration INSERT statements for idempotency.
+
+### Flyway Conventions
+- Migration files: `V{n}__{snake_case_description}.sql` — version is sequential integer.
+- Never modify an existing migration file — always create a new one.
+- Test migrations on a branch database before applying to production.
+
+---
+
+## 🔒 Healthcare Compliance Rules
+
+### Data Protection (DPDP Act 2023 — India)
+- Patient health data is **sensitive personal data** — treat with highest protection level.
+- Collect only minimum required data — no field without a clear purpose.
+- Every patient must be able to: view their data, download their data, request deletion.
+- Data deletion requests must be honored within 72 hours (soft delete + anonymize PII).
+- All data processing activities must be logged for compliance audit.
+
+### Telemedicine Guidelines (India 2020)
+- Doctor's MCI/NMC registration number must appear on every prescription.
+- Prescriptions for Schedule H/H1 drugs require explicit consent logging.
+- Patient consent for video consultation must be captured and stored before call starts.
+- AI chat must never be presented as a substitute for a licensed doctor consultation.
+
+### General Security
+- All API endpoints must be HTTPS only — reject HTTP requests in production.
+- Prescription file URLs must be signed with expiry (max 1 hour).
+- Patient DOB, diagnosis, and phone must be encrypted at rest.
+- No patient data in application logs — mask or exclude before logging.
+- PII must never appear in URL query parameters — use request body or headers.
+
+---
+
+## 📁 Project Structure Convention
+
+```
+frontend/                          # Vue 3
+  src/
+    components/{domain}/           # Reusable components by domain
+    pages/{patient|doctor|admin}/  # Role-specific pages
+    composables/use{Name}.ts       # One composable per concern
+    stores/{name}.store.ts         # Pinia stores
+    services/{name}.service.ts     # API call layer
+    router/index.ts                # Routes with meta guards
+
+backend/                           # Spring Boot
+  src/main/java/com/agastya/
+    controller/                    # HTTP layer only
+    service/                       # Business logic
+    repository/                    # Data access
+    entity/                        # JPA entities
+    dto/{request|response}/        # DTOs only, no entities in API
+    security/                      # JWT, filters, config
+    audit/                         # AOP audit logging
+  src/main/resources/
+    db/migration/                  # Flyway SQL files only
+
+ai-service/                        # FastAPI
+  app/
+    routers/                       # Route handlers
+    services/                      # Business logic
+    schemas/                       # Pydantic models
+    middleware/                    # Auth, rate limiting, logging
+```
+
+---
+
+## 🚫 Never Do These
+
+- Never store JWT in `localStorage`
+- Never use `ddl-auto: create/update` in Spring Boot
+- Never hard delete medical records or prescriptions
+- Never expose DB primary keys (Long) in API responses
+- Never make FastAPI directly internet-accessible
+- Never use `SELECT *` in production queries
+- Never log patient health data or tokens
+- Never use `FetchType.EAGER` in JPA
+- Never generate Agora tokens in frontend
+- Never use `SameSite=None` without `Secure=true`
+- Never skip `@PreAuthorize` on controller methods
+- Never use `float/double` for monetary values
+- Never trust user-supplied role claims in JWT without DB verification
+- Never allow AI chat to diagnose or prescribe medications
