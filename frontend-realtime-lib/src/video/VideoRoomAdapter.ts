@@ -8,6 +8,7 @@ export type VideoRoomHostContext = BuiltinStompWebRtcContext;
 
 export type AgoraVideoRoom = {
   mediaError: Ref<string>;
+  networkQualityWarning: Ref<string>;
   mount: () => void;
   unmount: () => void;
 };
@@ -33,6 +34,7 @@ type AgoraRtcModule = {
     join: (appId: string, channel: string, token: string | null, uid: number | null) => Promise<void>;
     leave: () => Promise<void>;
     publish: (tracks: unknown) => Promise<void>;
+    renewToken: (token: string) => Promise<void>;
     on: (ev: string, fn: (...args: unknown[]) => void | Promise<void>) => void;
     subscribe: (user: unknown, mediaType: unknown) => Promise<void>;
   };
@@ -41,12 +43,14 @@ type AgoraRtcModule = {
 
 function createAgoraVideoRoom(ctx: BuiltinStompWebRtcContext): AgoraVideoRoom {
   const mediaError = ref('');
+  const networkQualityWarning = ref('');
   let stop: WatchStopHandle | undefined;
   let client: ReturnType<AgoraRtcModule['createClient']> | null = null;
   let localTracks: Array<{ close: () => void; play: (el?: HTMLElement) => void }> = [];
   let joinedKey = '';
 
   async function leave() {
+    const hadJoined = joinedKey.length > 0;
     joinedKey = '';
     for (const t of localTracks) {
       try {
@@ -66,6 +70,14 @@ function createAgoraVideoRoom(ctx: BuiltinStompWebRtcContext): AgoraVideoRoom {
     }
     if (ctx.localVideo.value) ctx.localVideo.value.srcObject = null;
     if (ctx.remoteVideo.value) ctx.remoteVideo.value.srcObject = null;
+    networkQualityWarning.value = '';
+    if (hadJoined) {
+      try {
+        await ctx.notifyVideoCallEnded?.();
+      } catch {
+        // best-effort audit / billing hook
+      }
+    }
   }
 
   async function joinFromStore() {
@@ -107,6 +119,30 @@ function createAgoraVideoRoom(ctx: BuiltinStompWebRtcContext): AgoraVideoRoom {
         }
       });
       c.on('user-unpublished', () => undefined);
+      c.on('token-privilege-will-expire', async () => {
+        const fetchToken = ctx.renewAgoraRtcToken;
+        if (!fetchToken) return;
+        try {
+          const next = await fetchToken();
+          if (next && client === c) {
+            await c.renewToken(next);
+          }
+        } catch (e: unknown) {
+          console.error('[Agora] token renew failed', e);
+          mediaError.value =
+            'Call security token could not be renewed. The call may drop soon — try rejoining if disconnected.';
+        }
+      });
+      c.on('network-quality', (stats: unknown) => {
+        const s = stats as { uplinkNetworkQuality?: number; downlinkNetworkQuality?: number };
+        const u = s.uplinkNetworkQuality ?? 0;
+        const d = s.downlinkNetworkQuality ?? 0;
+        if (u > 4 || d > 4) {
+          networkQualityWarning.value = 'Poor network connection — video or audio may be unstable.';
+        } else {
+          networkQualityWarning.value = '';
+        }
+      });
       await c.join(appId, channel, token, uid);
       const mic = (await mod.createMicrophoneAndCameraTracks()) as [
         { close: () => void; play: (el?: HTMLElement) => void },
@@ -144,7 +180,7 @@ function createAgoraVideoRoom(ctx: BuiltinStompWebRtcContext): AgoraVideoRoom {
     void leave();
   }
 
-  return { mediaError, mount, unmount };
+  return { mediaError, networkQualityWarning, mount, unmount };
 }
 
 /**

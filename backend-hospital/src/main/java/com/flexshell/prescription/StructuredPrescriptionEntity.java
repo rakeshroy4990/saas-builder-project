@@ -41,6 +41,16 @@ public class StructuredPrescriptionEntity {
     @Field("PdfBytes")
     private byte[] pdfBytes;
 
+    /** AES-GCM ciphertext when {@code app.patient-data.encryption.key} is set; plaintext {@link #pdfBytes} may be null in DB. */
+    @Field("PdfBytesCipher")
+    private byte[] pdfBytesCipher;
+
+    @Field("DraftPayloadCipher")
+    private byte[] draftPayloadCipher;
+
+    @Field("SignedPayloadCipher")
+    private byte[] signedPayloadCipher;
+
     @Field("PdfSha256")
     private String pdfSha256;
 
@@ -127,6 +137,30 @@ public class StructuredPrescriptionEntity {
 
     public void setPdfBytes(byte[] pdfBytes) {
         this.pdfBytes = pdfBytes;
+    }
+
+    public byte[] getPdfBytesCipher() {
+        return pdfBytesCipher;
+    }
+
+    public void setPdfBytesCipher(byte[] pdfBytesCipher) {
+        this.pdfBytesCipher = pdfBytesCipher;
+    }
+
+    public byte[] getDraftPayloadCipher() {
+        return draftPayloadCipher;
+    }
+
+    public void setDraftPayloadCipher(byte[] draftPayloadCipher) {
+        this.draftPayloadCipher = draftPayloadCipher;
+    }
+
+    public byte[] getSignedPayloadCipher() {
+        return signedPayloadCipher;
+    }
+
+    public void setSignedPayloadCipher(byte[] signedPayloadCipher) {
+        this.signedPayloadCipher = signedPayloadCipher;
     }
 
     public String getPdfSha256() {

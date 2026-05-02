@@ -131,7 +131,7 @@ public class AuthController {
             case "AUTH_ACCOUNT_EXISTS", "AUTH_ACCOUNT_INACTIVE" -> HttpStatus.CONFLICT;
             case "AUTH_USER_NOT_FOUND" -> HttpStatus.NOT_FOUND;
             case "AUTH_INVALID_OLD_PASSWORD" -> HttpStatus.UNAUTHORIZED;
-            case "AUTH_PASSWORD_UNCHANGED", "AUTH_VALIDATION_FAILED", "AUTH_CHANGE_PASSWORD_FAILED" ->
+            case "AUTH_PASSWORD_POLICY", "AUTH_PASSWORD_UNCHANGED", "AUTH_VALIDATION_FAILED", "AUTH_CHANGE_PASSWORD_FAILED" ->
                     HttpStatus.BAD_REQUEST;
             default -> HttpStatus.UNAUTHORIZED;
         };

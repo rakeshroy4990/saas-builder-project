@@ -555,7 +555,10 @@ public class AppointmentService {
                 emptyToNull(normalize(entity.getAppointmentEmailNotifyStatus())),
                 entity.getAppointmentEmailNotifyFailed(),
                 entity.getAppointmentEmailNotifyDetail(),
-                entity.getAppointmentEmailNotifyAt() == null ? null : entity.getAppointmentEmailNotifyAt().toString()
+                entity.getAppointmentEmailNotifyAt() == null ? null : entity.getAppointmentEmailNotifyAt().toString(),
+                emptyToNull(normalize(entity.getCallStatus())),
+                entity.getCallStartTime() == null ? null : entity.getCallStartTime().toString(),
+                entity.getCallEndTime() == null ? null : entity.getCallEndTime().toString()
         );
     }
 

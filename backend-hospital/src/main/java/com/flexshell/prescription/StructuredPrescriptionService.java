@@ -33,6 +33,7 @@ public class StructuredPrescriptionService {
     private final ObjectMapper objectMapper;
     private final ClinicPrescriptionPdfRenderer pdfRenderer;
     private final PrescriptionSignaturePort signaturePort;
+    private final StructuredPrescriptionCrypto structuredPrescriptionCrypto;
 
     public StructuredPrescriptionService(
             StructuredPrescriptionRepository prescriptionRepository,
@@ -40,7 +41,8 @@ public class StructuredPrescriptionService {
             ObjectProvider<UserRepository> userRepositoryProvider,
             ObjectMapper objectMapper,
             ClinicPrescriptionPdfRenderer pdfRenderer,
-            PrescriptionSignaturePort signaturePort
+            PrescriptionSignaturePort signaturePort,
+            StructuredPrescriptionCrypto structuredPrescriptionCrypto
     ) {
         this.prescriptionRepository = prescriptionRepository;
         this.appointmentService = appointmentService;
@@ -48,6 +50,7 @@ public class StructuredPrescriptionService {
         this.objectMapper = objectMapper;
         this.pdfRenderer = pdfRenderer;
         this.signaturePort = signaturePort;
+        this.structuredPrescriptionCrypto = structuredPrescriptionCrypto;
     }
 
     public StructuredPrescriptionResponse getOrCreateDraft(String appointmentId, String actorUserId) {
@@ -57,6 +60,7 @@ public class StructuredPrescriptionService {
         Optional<StructuredPrescriptionEntity> existing = prescriptionRepository.findByAppointmentId(appointmentId);
         if (existing.isPresent()) {
             StructuredPrescriptionEntity e = existing.get();
+            structuredPrescriptionCrypto.normalizeAfterLoad(e);
             if (StructuredPrescriptionEntity.STATUS_DRAFT.equalsIgnoreCase(e.getStatus())) {
                 assertCanViewPrescriptionDraft(actorUserId, appt, e);
             }
@@ -73,7 +77,7 @@ public class StructuredPrescriptionService {
         e.setCreatedAt(now);
         e.setUpdatedAt(now);
         appendAudit(e, actorUserId, AUDIT_CREATE, "draft created");
-        return toResponse(prescriptionRepository.save(e), null);
+        return toResponse(savePrescription(e), null);
     }
 
     public StructuredPrescriptionResponse saveDraft(String appointmentId, Map<String, Object> body, String actorUserId) {
@@ -86,7 +90,7 @@ public class StructuredPrescriptionService {
         e.setDraftPayload(merged);
         e.setUpdatedAt(Instant.now());
         appendAudit(e, actorUserId, AUDIT_UPDATE, "draft saved");
-        return toResponse(prescriptionRepository.save(e), null);
+        return toResponse(savePrescription(e), null);
     }
 
     public StructuredPrescriptionResponse validate(String appointmentId, String actorUserId) {
@@ -99,8 +103,8 @@ public class StructuredPrescriptionService {
         }
         List<String> errors = StructuredPrescriptionValidator.validate(e.getDraftPayload());
         appendAudit(e, actorUserId, AUDIT_VALIDATE, errors.isEmpty() ? "ok" : String.join("; ", errors));
-        prescriptionRepository.save(e);
-        return toResponse(e, errors);
+        StructuredPrescriptionEntity saved = savePrescription(e);
+        return toResponse(saved, errors);
     }
 
     public StructuredPrescriptionResponse finalize(String appointmentId, String actorUserId, String remoteIp) {
@@ -128,7 +132,7 @@ public class StructuredPrescriptionService {
         e.setStatus(StructuredPrescriptionEntity.STATUS_SIGNED);
         e.setUpdatedAt(Instant.now());
         appendAudit(e, actorUserId, AUDIT_FINALIZE, "finalized vendor=" + sig.vendor() + " attestation=" + sig.attestationId());
-        return toResponse(prescriptionRepository.save(e), null);
+        return toResponse(savePrescription(e), null);
     }
 
     public StructuredPrescriptionResponse get(String appointmentId, String actorUserId) {
@@ -164,9 +168,19 @@ public class StructuredPrescriptionService {
         throw new SecurityException("Draft e-prescriptions are only visible to the treating doctor");
     }
 
+    private StructuredPrescriptionEntity savePrescription(StructuredPrescriptionEntity e) {
+        structuredPrescriptionCrypto.prepareForStore(e);
+        StructuredPrescriptionEntity saved = prescriptionRepository.save(e);
+        structuredPrescriptionCrypto.normalizeAfterLoad(saved);
+        return saved;
+    }
+
     private StructuredPrescriptionEntity requireExisting(String appointmentId) {
-        return prescriptionRepository.findByAppointmentId(appointmentId)
+        StructuredPrescriptionEntity e = prescriptionRepository
+                .findByAppointmentId(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Structured prescription not found"));
+        structuredPrescriptionCrypto.normalizeAfterLoad(e);
+        return e;
     }
 
     private StructuredPrescriptionEntity requireDraftEntity(String appointmentId) {

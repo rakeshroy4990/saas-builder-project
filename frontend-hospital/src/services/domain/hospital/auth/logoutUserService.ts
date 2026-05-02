@@ -4,9 +4,10 @@ import { usePopupStore } from '../../../../store/usePopupStore';
 import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
-import { clearAuthToken, getRefreshToken } from '../../../auth/authToken';
+import { clearAuthToken } from '../../../auth/authToken';
 import { clearPersistedAuthSessionProfile } from '../../../auth/authSessionStore';
 import { ok } from '../shared/response';
+import { stompClient } from '../../../realtime/stompClient';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { emitSessionSummaryAuthLogout } from '../../../analytics/sessionSummary';
@@ -19,16 +20,11 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       trackEvent('logout');
       emitSessionSummaryAuthLogout({ reason: 'user_initiated' });
       try {
-        const refreshToken = String(getRefreshToken() ?? '').trim();
-        if (refreshToken) {
-          await apiClient.post(URLRegistry.paths.logout, {
-            DeviceId: 'browser',
-            RefreshToken: refreshToken
-          });
-        }
+        await apiClient.post(URLRegistry.paths.logout, { DeviceId: 'browser' });
       } catch {
         // Local logout should still proceed even when server call fails.
       }
+      stompClient.disconnect();
       clearWebrtcSubscription();
       clearCallHeartbeatTimer();
       clearAuthToken();

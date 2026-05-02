@@ -6,7 +6,10 @@ import com.flexshell.controller.dto.AvailableSlotsResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.appointment.AppointmentEntity;
 import com.flexshell.observability.ObservabilityLogger;
+import com.flexshell.controller.dto.AppointmentJoinCallResponse;
+import com.flexshell.controller.dto.AppointmentRenewTokenResponse;
 import com.flexshell.service.AppointmentService;
+import com.flexshell.video.AppointmentJoinCallService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -33,9 +36,79 @@ import java.util.List;
 public class AppointmentController {
     private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
     private final AppointmentService appointmentService;
+    private final AppointmentJoinCallService appointmentJoinCallService;
 
-    public AppointmentController(AppointmentService appointmentService) {
+    public AppointmentController(
+            AppointmentService appointmentService,
+            AppointmentJoinCallService appointmentJoinCallService
+    ) {
         this.appointmentService = appointmentService;
+        this.appointmentJoinCallService = appointmentJoinCallService;
+    }
+
+    /**
+     * Secure Agora (or builtin) join: validates participant, appointment status, and slot window; returns server-minted token.
+     * Channel name for Agora is the appointment id — do not use guessable strings.
+     */
+    @PostMapping(value = "/{id}/join-call", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AppointmentJoinCallResponse>> joinCall(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        try {
+            AppointmentJoinCallResponse data = appointmentJoinCallService.joinCall(authentication.getName(), id);
+            return ResponseEntity.ok(StandardApiResponse.success("Join call", data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_JOIN_CALL_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_JOIN_CALL_INVALID"));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_JOIN_CALL_CONFIG"));
+        }
+    }
+
+    /**
+     * Renews Agora RTC token before expiry; use from the client {@code token-privilege-will-expire} handler.
+     */
+    @PostMapping(value = "/{id}/renew-token", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AppointmentRenewTokenResponse>> renewToken(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        try {
+            AppointmentRenewTokenResponse data = appointmentJoinCallService.renewToken(authentication.getName(), id);
+            return ResponseEntity.ok(StandardApiResponse.success("Token renewed", data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_RENEW_TOKEN_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_RENEW_TOKEN_INVALID"));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_RENEW_TOKEN_CONFIG"));
+        }
+    }
+
+    /** Ends the video call segment (audit / duration); does not complete the clinical visit. */
+    @PostMapping(value = "/{id}/end-call", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<Void>> endCall(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        try {
+            appointmentJoinCallService.endCall(authentication.getName(), id);
+            return ResponseEntity.ok(StandardApiResponse.success("Call ended", null));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_END_CALL_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_END_CALL_INVALID"));
+        }
     }
 
     @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

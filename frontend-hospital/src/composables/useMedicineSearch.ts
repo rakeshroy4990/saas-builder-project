@@ -1,6 +1,5 @@
 import { ref, watch, type Ref } from 'vue';
 import { URLRegistry } from '../services/http/URLRegistry';
-import { getAuthToken } from '../services/auth/authToken';
 
 export interface MedicineSearchResult {
   id: string;
@@ -36,14 +35,10 @@ export function useMedicineSearch(query: Ref<string>) {
         isLoading.value = true;
         error.value = '';
         try {
-          const token = getAuthToken();
-          const headers: Record<string, string> = { Accept: 'application/json' };
-          if (token) headers.Authorization = `Bearer ${token}`;
           const response = await fetch(`${URLRegistry.resolve('medicinesSearch')}?q=${encodeURIComponent(q)}`, {
             method: 'GET',
-            // Always send cookies (HttpOnly access_token) even if in-memory token was cleared after reload.
             credentials: 'include',
-            headers
+            headers: { Accept: 'application/json' }
           });
           if (!response.ok) {
             // Non-fatal: caller can continue with fallback static suggestions.

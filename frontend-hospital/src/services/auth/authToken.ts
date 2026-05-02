@@ -1,44 +1,119 @@
-type AuthSessionTokens = {
-  accessToken: string;
-  refreshToken: string;
-};
+/**
+ * Auth tokens are issued as **httpOnly, Secure cookies** by the backend (`Set-Cookie` on login/refresh).
+ * We intentionally do **not** persist access or refresh tokens in localStorage/sessionStorage or Pinia
+ * (XSS cannot exfiltrate httpOnly cookies). API calls use `credentials: 'include'`; the browser sends cookies.
+ *
+ * We keep only a **non-secret** approximate access-token expiry time for proactive refresh scheduling,
+ * derived from login/refresh JSON (`expiresInSeconds`) — never from reading the JWT.
+ */
 
-const TOKENS_STORAGE_KEY = 'flexshell_auth_tokens';
-
-let tokens: AuthSessionTokens | null = null;
-let accessTokenExpiresAtMs: number | null = null;
+let accessExpiryApproxMs: number | null = null;
 
 type AuthTokenListener = (state: { accessToken: string | null; expiresAtMs: number | null }) => void;
 const listeners = new Set<AuthTokenListener>();
 
 function notify(): void {
-  const state = { accessToken: tokens?.accessToken ?? null, expiresAtMs: accessTokenExpiresAtMs };
+  const state = { accessToken: null as string | null, expiresAtMs: accessExpiryApproxMs };
   for (const fn of listeners) fn(state);
 }
 
-function base64UrlDecode(input: string): string {
-  const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
-  const pad = normalized.length % 4 === 0 ? '' : '='.repeat(4 - (normalized.length % 4));
-  const str = normalized + pad;
-  // atob is available in browsers; keep logic local to frontend.
-  return atob(str);
+/** @deprecated Tokens live in httpOnly cookies; this always returns null. */
+export function getAuthToken(): string | null {
+  return null;
 }
 
-function parseJwtExpMs(token: string): number | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length < 2) return null;
-    const payloadJson = base64UrlDecode(parts[1]);
-    const payload = JSON.parse(payloadJson) as { exp?: unknown };
-    const expSeconds = typeof payload.exp === 'number' ? payload.exp : Number(payload.exp);
-    if (!Number.isFinite(expSeconds) || expSeconds <= 0) return null;
-    return Math.floor(expSeconds * 1000);
-  } catch {
-    return null;
+/** @deprecated Refresh token is httpOnly; this always returns null. */
+export function getRefreshToken(): string | null {
+  return null;
+}
+
+export function getAuthTokenExpiresAtMs(): number | null {
+  return accessExpiryApproxMs;
+}
+
+/**
+ * Without JWT in JS we approximate expiry from server-reported TTL. If unknown, returns false
+ * so we do not block requests (server still validates cookies).
+ */
+export function isAuthTokenExpired(nowMs: number = Date.now()): boolean {
+  if (!accessExpiryApproxMs) return false;
+  return nowMs >= accessExpiryApproxMs;
+}
+
+function setAccessExpiryApproxFromSeconds(seconds: number | undefined): void {
+  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) {
+    return;
+  }
+  const skewMs = 30_000;
+  accessExpiryApproxMs = Date.now() + Math.floor(seconds * 1000) - skewMs;
+  notify();
+}
+
+/** Call after login/refresh API success when the JSON includes access lifetime (seconds). */
+export function applyAccessExpiryHintFromAuthPayload(payload: Record<string, unknown> | null | undefined): void {
+  if (!payload) return;
+  const direct = pickNumber(payload, [
+    'accessTokenExpiresInSeconds',
+    'AccessTokenExpiresInSeconds',
+    'expiresInSeconds',
+    'ExpiresInSeconds',
+    'expires_in',
+    'expiresIn'
+  ]);
+  if (direct != null) {
+    setAccessExpiryApproxFromSeconds(direct);
+    return;
+  }
+  const data = (payload.data ?? payload.Data) as Record<string, unknown> | undefined;
+  if (data && typeof data === 'object') {
+    const nested =
+      pickNumber(data, ['accessTokenExpiresInSeconds', 'AccessTokenExpiresInSeconds', 'expiresInSeconds']) ??
+      pickNumber(data, ['expiresInSeconds', 'ExpiresInSeconds']);
+    if (nested != null) setAccessExpiryApproxFromSeconds(nested);
   }
 }
 
-/** JWT `sub` — must match Spring WebSocket `Principal.getName()` for `/user/queue/...` routing. */
+function pickNumber(row: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const k of keys) {
+    const v = row[k];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.trim() !== '') {
+      const n = Number(v);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return undefined;
+}
+
+/** @deprecated No-op: cookies are set by the server; do not store tokens in JS. */
+export function setAuthToken(_token: string): void {
+  notify();
+}
+
+/** @deprecated No-op: cookies are set by the server; do not store tokens in JS. */
+export function setAuthTokens(_accessToken: string, _refreshToken: string): void {
+  notify();
+}
+
+export function clearAuthToken(): void {
+  accessExpiryApproxMs = null;
+  notify();
+}
+
+/** @deprecated No sessionStorage tokens; cookies are restored by the browser on reload. */
+export function hydrateAuthTokensFromSessionStorage(): void {
+  // no-op
+}
+
+export function subscribeAuthToken(listener: AuthTokenListener): () => void {
+  listeners.add(listener);
+  listener({ accessToken: null, expiresAtMs: accessExpiryApproxMs });
+  return () => listeners.delete(listener);
+}
+
+/**
+ * JWT `sub` — only available if a legacy caller passes a token string; cookie auth uses profile/user APIs instead.
+ */
 export function parseJwtSubject(token: string): string | null {
   try {
     const parts = token.split('.');
@@ -52,80 +127,9 @@ export function parseJwtSubject(token: string): string | null {
   }
 }
 
-export function subscribeAuthToken(listener: AuthTokenListener): () => void {
-  listeners.add(listener);
-  listener({ accessToken: tokens?.accessToken ?? null, expiresAtMs: accessTokenExpiresAtMs });
-  return () => listeners.delete(listener);
+function base64UrlDecode(input: string): string {
+  const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = normalized.length % 4 === 0 ? '' : '='.repeat(4 - (normalized.length % 4));
+  const str = normalized + pad;
+  return atob(str);
 }
-
-export function getAuthToken(): string | null {
-  return tokens?.accessToken ?? null;
-}
-
-export function getRefreshToken(): string | null {
-  return tokens?.refreshToken ?? null;
-}
-
-export function getAuthTokenExpiresAtMs(): number | null {
-  return accessTokenExpiresAtMs;
-}
-
-export function isAuthTokenExpired(nowMs: number = Date.now()): boolean {
-  if (!tokens?.accessToken) return true;
-  if (!accessTokenExpiresAtMs) return false; // if token isn't a JWT or has no exp, don't force-expire client-side
-  return nowMs >= accessTokenExpiresAtMs;
-}
-
-function applyTokensInMemory(accessToken: string, refreshToken: string): void {
-  tokens = { accessToken, refreshToken };
-  accessTokenExpiresAtMs = parseJwtExpMs(accessToken);
-  notify();
-}
-
-function persistTokensToSession(accessToken: string, refreshToken: string): void {
-  try {
-    sessionStorage.setItem(TOKENS_STORAGE_KEY, JSON.stringify({ accessToken, refreshToken }));
-  } catch {
-    // no-op
-  }
-}
-
-export function setAuthToken(token: string): void {
-  if (!token) return;
-  const refresh = tokens?.refreshToken ?? '';
-  applyTokensInMemory(token, refresh);
-  if (refresh) persistTokensToSession(token, refresh);
-}
-
-export function setAuthTokens(accessToken: string, refreshToken: string): void {
-  if (!accessToken || !refreshToken) return;
-  applyTokensInMemory(accessToken, refreshToken);
-  persistTokensToSession(accessToken, refreshToken);
-}
-
-export function clearAuthToken(): void {
-  tokens = null;
-  accessTokenExpiresAtMs = null;
-  try {
-    sessionStorage.removeItem(TOKENS_STORAGE_KEY);
-  } catch {
-    // no-op
-  }
-  notify();
-}
-
-/** Restore JWT pair after a full page reload (used from `main.js`). */
-export function hydrateAuthTokensFromSessionStorage(): void {
-  try {
-    const raw = sessionStorage.getItem(TOKENS_STORAGE_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as { accessToken?: unknown; refreshToken?: unknown };
-    const accessToken = String(parsed.accessToken ?? '').trim();
-    const refreshToken = String(parsed.refreshToken ?? '').trim();
-    if (!accessToken || !refreshToken) return;
-    applyTokensInMemory(accessToken, refreshToken);
-  } catch {
-    // no-op
-  }
-}
-

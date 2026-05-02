@@ -3,6 +3,7 @@ import { hospitalBookAppointmentPage, hospitalBookAppointmentPopupPage } from '.
 import { hospitalEprescriptionPopupPage } from './eprescriptionPopupPage';
 import { hospitalProfilePage } from './profilePage';
 import { hospitalTermsPage } from './termsPage';
+import { hospitalPrivacyPage } from './privacyPage';
 import {
   disabledWhenLoggedInAsDoctor,
   hospitalPublicChromeTop,
@@ -2778,6 +2779,26 @@ export const hospitalPages: PageConfig[] = [
                       }
                     },
                     {
+                      id: 'hospital-register-popup-terms-mid',
+                      type: 'text',
+                      config: {
+                        text: 'and',
+                        styles: { utilityClasses: 'text-sm text-slate-700' }
+                      }
+                    },
+                    {
+                      id: 'hospital-register-popup-privacy-link',
+                      type: 'button',
+                      config: {
+                        text: 'Privacy Notice (India)',
+                        styles: { styleTemplate: 'hosp.popup.linkButton' },
+                        click: {
+                          actionType: 'navigate',
+                          navigate: { packageName: 'hospital', pageId: 'privacy' }
+                        }
+                      }
+                    },
+                    {
                       id: 'hospital-register-popup-terms-trail',
                       type: 'text',
                       config: {
@@ -3746,6 +3767,7 @@ export const hospitalPages: PageConfig[] = [
   hospitalEprescriptionPopupPage,
   hospitalProfilePage,
   hospitalTermsPage,
+  hospitalPrivacyPage,
   {
     packageName: 'hospital',
     pageId: 'appointment-receipts-popup',

@@ -11,6 +11,8 @@ import com.flexshell.auth.api.AuthApiException;
 import com.flexshell.auth.api.ChangePasswordRequest;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
+import com.flexshell.email.AppEmailProperties;
+import com.flexshell.security.PasswordPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -22,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,7 +53,11 @@ class AuthServiceRolePolicyTest {
         when(jwtService.getRefreshExpirationSeconds()).thenReturn(3600L);
         when(refreshTokenRepository.save(any(RefreshTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        authService = new AuthService(userProvider, refreshProvider, jwtService);
+        AppEmailProperties emailProperties = mock(AppEmailProperties.class);
+        PasswordPolicy passwordPolicy = mock(PasswordPolicy.class);
+        doNothing().when(passwordPolicy).validateOrThrow(anyString());
+
+        authService = new AuthService(userProvider, refreshProvider, jwtService, emailProperties, passwordPolicy);
     }
 
     @Test

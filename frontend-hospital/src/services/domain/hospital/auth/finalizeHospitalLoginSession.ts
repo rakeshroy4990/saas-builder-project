@@ -1,7 +1,11 @@
 import { useAppStore } from '../../../../store/useAppStore';
 import { pinia } from '../../../../store/pinia';
-import { parseJwtSubject, setAuthToken, setAuthTokens } from '../../../auth/authToken';
-import { persistAuthSessionProfile, syncHospitalUserIdFromAccessToken } from '../../../auth/authSessionStore';
+import {
+  applyAccessExpiryHintFromAuthPayload,
+  getAuthTokenExpiresAtMs,
+  parseJwtSubject
+} from '../../../auth/authToken';
+import { persistAuthSessionProfile } from '../../../auth/authSessionStore';
 import { pickString } from '../shared/strings';
 import { buildFriendlyDisplayName } from '../shared/displayName';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
@@ -21,15 +25,14 @@ export async function finalizeHospitalLoginSession(
 ): Promise<void> {
   const accessToken =
     pickString(userData, ['accessToken', 'AccessToken', 'token', 'Token']) || '';
-  const refreshToken = pickString(userData, ['refreshToken', 'RefreshToken']) || '';
-  if (accessToken && refreshToken) {
-    setAuthTokens(accessToken, refreshToken);
-  } else if (accessToken) {
-    // Google/login gateways may omit refresh token in edge cases; keep access token usable.
-    setAuthToken(accessToken);
+  applyAccessExpiryHintFromAuthPayload(userData as Record<string, unknown>);
+  if (getAuthTokenExpiresAtMs() == null) {
+    applyAccessExpiryHintFromAuthPayload({ expiresInSeconds: 900 });
   }
   const canonicalUserId =
-    parseJwtSubject(accessToken) || pickString(userData, ['UserId', 'userId']) || identityFallback;
+    pickString(userData, ['UserId', 'userId']) ||
+    (accessToken ? parseJwtSubject(accessToken) : '') ||
+    identityFallback;
   const resolvedEmail = pickString(userData, ['Email', 'email']) || String(identityFallback ?? '').trim();
   let displayName = buildFriendlyDisplayName(userData, identityFallback).trim();
   if (!displayName) {
@@ -111,6 +114,5 @@ export async function finalizeHospitalLoginSession(
     trace_id: loginSessionTraceId
   });
   emitSessionSummaryAuthLogin(options?.authMethod === 'google' ? 'google' : 'password');
-  syncHospitalUserIdFromAccessToken();
   void refreshHeroYoutubeFromUserQueryCache();
 }

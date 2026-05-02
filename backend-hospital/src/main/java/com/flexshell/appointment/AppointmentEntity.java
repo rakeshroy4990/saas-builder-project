@@ -77,6 +77,16 @@ public class AppointmentEntity {
     @Field("AppointmentEmailNotifyAt")
     private Instant appointmentEmailNotifyAt;
 
+    /** Video call state: CALL_INITIATED, CALL_IN_PROGRESS, CALL_ENDED, … (see {@link AppointmentCallStates}). */
+    @Field("CallStatus")
+    private String callStatus;
+
+    @Field("CallStartTime")
+    private Instant callStartTime;
+
+    @Field("CallEndTime")
+    private Instant callEndTime;
+
     public String getId() {
         return id;
     }
@@ -243,6 +253,30 @@ public class AppointmentEntity {
 
     public void setAppointmentEmailNotifyAt(Instant appointmentEmailNotifyAt) {
         this.appointmentEmailNotifyAt = appointmentEmailNotifyAt;
+    }
+
+    public String getCallStatus() {
+        return callStatus;
+    }
+
+    public void setCallStatus(String callStatus) {
+        this.callStatus = callStatus;
+    }
+
+    public Instant getCallStartTime() {
+        return callStartTime;
+    }
+
+    public void setCallStartTime(Instant callStartTime) {
+        this.callStartTime = callStartTime;
+    }
+
+    public Instant getCallEndTime() {
+        return callEndTime;
+    }
+
+    public void setCallEndTime(Instant callEndTime) {
+        this.callEndTime = callEndTime;
     }
 
     public static class AppointmentFile {
