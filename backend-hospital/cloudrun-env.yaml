@@ -30,7 +30,10 @@ APP_AUTH_LOGIN_RATE_LIMIT_WINDOW_SECONDS: "900"
 
 # --- app.auth.cookie.* (production: APP_AUTH_COOKIE_SECURE=true behind HTTPS) ---
 APP_AUTH_COOKIE_SECURE: "true"
-APP_AUTH_COOKIE_SAME_SITE: Lax
+# Cross-origin SPA (separate site from API): Lax cookies are not sent on cross-site POST; use None + Secure.
+# AuthResponseCookies forces Secure whenever SameSite=None. Optional: APP_AUTH_COOKIE_CROSS_SITE_DEPLOYMENT=true
+# to pin None+Lax without relying on this env alone.
+APP_AUTH_COOKIE_SAME_SITE: None
 APP_AUTH_COOKIE_DOMAIN: ""
 APP_AUTH_COOKIE_ACCESS_TOKEN_NAME: access_token
 

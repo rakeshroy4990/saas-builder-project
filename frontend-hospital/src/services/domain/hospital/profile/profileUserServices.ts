@@ -12,6 +12,8 @@ import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
 import { clearChatSubscription, clearSupportSubscription } from '../shared/chatState';
+import { buildLogoutRequestBody } from '../../../auth/logoutRequestBody';
+import { flushSessionTelemetryQueue } from '../../../analytics/sessionTelemetry';
 import { emitSessionSummaryAuthLogout } from '../../../analytics/sessionSummary';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { getOrCreateTraceId } from '../../../logging/traceContext';
@@ -283,11 +285,12 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         return { responseCode: 'USER_DEACTIVATE_FAILED', message: msg };
       }
       try {
-        await apiClient.post(URLRegistry.paths.logout, { DeviceId: 'browser' });
+        await apiClient.post(URLRegistry.paths.logout, buildLogoutRequestBody());
       } catch {
         // ignore
       }
       emitSessionSummaryAuthLogout({ reason: 'account_deactivated' });
+      await flushSessionTelemetryQueue();
       clearWebrtcSubscription();
       clearChatSubscription();
       clearSupportSubscription();

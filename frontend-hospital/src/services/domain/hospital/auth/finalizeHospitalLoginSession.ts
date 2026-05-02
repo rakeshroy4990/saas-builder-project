@@ -5,6 +5,7 @@ import {
   getAuthTokenExpiresAtMs,
   parseJwtSubject
 } from '../../../auth/authToken';
+import { setEphemeralRefreshToken } from '../../../auth/refreshTokenEphemeral';
 import { persistAuthSessionProfile } from '../../../auth/authSessionStore';
 import { pickString } from '../shared/strings';
 import { buildFriendlyDisplayName } from '../shared/displayName';
@@ -25,6 +26,8 @@ export async function finalizeHospitalLoginSession(
 ): Promise<void> {
   const accessToken =
     pickString(userData, ['accessToken', 'AccessToken', 'token', 'Token']) || '';
+  const refreshFromBody = pickString(userData, ['refreshToken', 'RefreshToken']);
+  setEphemeralRefreshToken(refreshFromBody || null);
   applyAccessExpiryHintFromAuthPayload(userData as Record<string, unknown>);
   if (getAuthTokenExpiresAtMs() == null) {
     applyAccessExpiryHintFromAuthPayload({ expiresInSeconds: 900 });
