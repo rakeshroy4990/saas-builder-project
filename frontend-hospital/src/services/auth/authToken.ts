@@ -1,3 +1,5 @@
+import { clearEphemeralRefreshToken } from './refreshTokenEphemeral';
+
 /**
  * Auth tokens are issued as **httpOnly, Secure cookies** by the backend (`Set-Cookie` on login/refresh).
  * We intentionally do **not** persist access or refresh tokens in localStorage/sessionStorage or Pinia
@@ -97,6 +99,7 @@ export function setAuthTokens(_accessToken: string, _refreshToken: string): void
 
 export function clearAuthToken(): void {
   accessExpiryApproxMs = null;
+  clearEphemeralRefreshToken();
   notify();
 }
 

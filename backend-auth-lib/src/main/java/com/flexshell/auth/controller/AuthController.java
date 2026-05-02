@@ -12,6 +12,8 @@ import com.flexshell.auth.api.RefreshTokenResponse;
 import com.flexshell.auth.api.ChangePasswordRequest;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
+import com.flexshell.auth.cookie.AuthResponseCookies;
+import com.flexshell.auth.cookie.AuthResponseCookies.EffectiveCookiePolicy;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,17 +39,26 @@ public class AuthController {
     private final boolean cookieSecure;
     private final String cookieSameSite;
     private final String cookieDomain;
+    private final boolean crossSiteCookieDeployment;
+    private final long refreshCookieMaxAgeSeconds;
+    private final long accessCookieMaxAgeSeconds;
 
     public AuthController(
             AuthFacade authFacade,
             @Value("${app.auth.cookie.secure:false}") boolean cookieSecure,
             @Value("${app.auth.cookie.same-site:Lax}") String cookieSameSite,
-            @Value("${app.auth.cookie.domain:}") String cookieDomain
+            @Value("${app.auth.cookie.domain:}") String cookieDomain,
+            @Value("${app.auth.cookie.cross-site-deployment:false}") boolean crossSiteCookieDeployment,
+            @Value("${app.auth.cookie.refresh-max-age-seconds:2592000}") long refreshCookieMaxAgeSeconds,
+            @Value("${app.auth.cookie.access-max-age-seconds:900}") long accessCookieMaxAgeSeconds
     ) {
         this.authFacade = authFacade;
         this.cookieSecure = cookieSecure;
         this.cookieSameSite = cookieSameSite;
         this.cookieDomain = cookieDomain;
+        this.crossSiteCookieDeployment = crossSiteCookieDeployment;
+        this.refreshCookieMaxAgeSeconds = refreshCookieMaxAgeSeconds;
+        this.accessCookieMaxAgeSeconds = accessCookieMaxAgeSeconds;
     }
 
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -177,29 +188,53 @@ public class AuthController {
     }
 
     private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        ResponseCookie accessCookie = buildCookie(ACCESS_TOKEN_COOKIE, accessToken, "/").build();
-        ResponseCookie refreshCookie = buildCookie(REFRESH_TOKEN_COOKIE, refreshToken, "/api/auth").build();
+        EffectiveCookiePolicy policy = AuthResponseCookies.resolvePolicy(
+                crossSiteCookieDeployment,
+                cookieSecure,
+                cookieSameSite
+        );
+        ResponseCookie accessCookie = AuthResponseCookies.buildAccessCookie(
+                ACCESS_TOKEN_COOKIE,
+                accessToken,
+                policy,
+                cookieDomain,
+                "/",
+                accessCookieMaxAgeSeconds
+        );
+        ResponseCookie refreshCookie = AuthResponseCookies.buildRefreshCookie(
+                REFRESH_TOKEN_COOKIE,
+                refreshToken,
+                policy,
+                cookieDomain,
+                refreshCookieMaxAgeSeconds
+        );
         response.addHeader("Set-Cookie", accessCookie.toString());
         response.addHeader("Set-Cookie", refreshCookie.toString());
     }
 
     private void clearAuthCookies(HttpServletResponse response) {
-        ResponseCookie clearAccessCookie = buildCookie(ACCESS_TOKEN_COOKIE, "", "/").maxAge(0).build();
-        ResponseCookie clearRefreshCookie = buildCookie(REFRESH_TOKEN_COOKIE, "", "/api/auth").maxAge(0).build();
+        EffectiveCookiePolicy policy = AuthResponseCookies.resolvePolicy(
+                crossSiteCookieDeployment,
+                cookieSecure,
+                cookieSameSite
+        );
+        ResponseCookie clearAccessCookie = AuthResponseCookies.buildAccessCookie(
+                ACCESS_TOKEN_COOKIE,
+                "",
+                policy,
+                cookieDomain,
+                "/",
+                0
+        );
+        ResponseCookie clearRefreshCookie = AuthResponseCookies.buildRefreshCookie(
+                REFRESH_TOKEN_COOKIE,
+                "",
+                policy,
+                cookieDomain,
+                0
+        );
         response.addHeader("Set-Cookie", clearAccessCookie.toString());
         response.addHeader("Set-Cookie", clearRefreshCookie.toString());
-    }
-
-    private ResponseCookie.ResponseCookieBuilder buildCookie(String name, String value, String path) {
-        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value == null ? "" : value)
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .sameSite(cookieSameSite)
-                .path(path);
-        if (cookieDomain != null && !cookieDomain.isBlank()) {
-            builder.domain(cookieDomain);
-        }
-        return builder;
     }
 
     private String readCookieValue(HttpServletRequest request, String cookieName) {

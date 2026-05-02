@@ -14,9 +14,10 @@ import {
   isAuthTokenExpired,
   subscribeAuthToken
 } from '../auth/authToken';
+import { getEphemeralRefreshToken, setEphemeralRefreshToken } from '../auth/refreshTokenEphemeral';
 import { clearPersistedAuthSessionProfile } from '../auth/authSessionStore';
 import { useAppStore } from '../../store/useAppStore';
-import { ingestSessionTelemetry } from '../analytics/sessionTelemetry';
+import { flushSessionTelemetryQueue, ingestSessionTelemetry } from '../analytics/sessionTelemetry';
 import { emitLoggedInSessionSummary, SessionSummaryKind } from '../analytics/sessionSummary';
 
 let appRouter: Router | null = null;
@@ -102,16 +103,19 @@ function performLocalLogoutAndRedirect(message = DEFAULT_AUTH_UNAUTHORIZED_MESSA
   navigateToLogin();
 }
 
-function emitSessionExpiredTelemetryOnce(httpStatus?: number): void {
+async function emitSessionExpiredTelemetryAndFlush(httpStatus?: number): Promise<void> {
   const traceId = getOrCreateTraceId();
   const dedupeKey = `flexshell-auth-expired-telemetry:${traceId}`;
   try {
-    if (sessionStorage.getItem(dedupeKey) === '1') return;
+    if (sessionStorage.getItem(dedupeKey) === '1') {
+      await flushSessionTelemetryQueue();
+      return;
+    }
     sessionStorage.setItem(dedupeKey, '1');
   } catch {
     // continue without dedupe if storage unavailable
   }
-  void ingestSessionTelemetry({
+  await ingestSessionTelemetry({
     event_name: 'auth_session_expired',
     flow: 'auth',
     status: 'fail',
@@ -119,6 +123,7 @@ function emitSessionExpiredTelemetryOnce(httpStatus?: number): void {
     http_status: httpStatus,
     trace_id: traceId
   });
+  await flushSessionTelemetryQueue();
 }
 
 function readUnauthorizedPayload(payload: unknown): { isUnauthorized: boolean; message: string } {
@@ -138,11 +143,20 @@ async function refreshAccessToken(): Promise<boolean> {
 
   refreshInFlight = (async () => {
     try {
-      const response = await apiClient.post(URLRegistry.paths.refresh, { DeviceId: 'browser' });
+      const body: Record<string, string> = { DeviceId: 'browser' };
+      const rt = getEphemeralRefreshToken();
+      if (rt) {
+        body.RefreshToken = rt;
+      }
+      const response = await apiClient.post(URLRegistry.paths.refresh, body);
       const root = response.data as Record<string, unknown> | undefined;
       const dataNode = (root?.data ?? root?.Data ?? root ?? {}) as Record<string, unknown>;
       applyAccessExpiryHintFromAuthPayload(dataNode);
       applyAccessExpiryHintFromAuthPayload(root);
+      const newRt = String(dataNode.refreshToken ?? dataNode.RefreshToken ?? '').trim();
+      if (newRt) {
+        setEphemeralRefreshToken(newRt);
+      }
       return response.status >= 200 && response.status < 300;
     } catch {
       return false;
@@ -234,8 +248,7 @@ apiClient.interceptors.response.use(
     }
     const authPayload = readUnauthorizedPayload(response.data);
     if (authPayload.isUnauthorized) {
-      emitSessionExpiredTelemetryOnce(401);
-      performLocalLogoutAndRedirect(authPayload.message);
+      void emitSessionExpiredTelemetryAndFlush(401).finally(() => performLocalLogoutAndRedirect(authPayload.message));
       return Promise.reject(new Error(authPayload.message));
     }
     return response;
@@ -276,8 +289,9 @@ apiClient.interceptors.response.use(
     const status = error.response?.status as number | undefined;
 
     if (authPayload.isUnauthorized) {
-      emitSessionExpiredTelemetryOnce(error.response?.status);
-      performLocalLogoutAndRedirect(authPayload.message);
+      void emitSessionExpiredTelemetryAndFlush(error.response?.status).finally(() =>
+        performLocalLogoutAndRedirect(authPayload.message)
+      );
       return Promise.reject(error);
     }
 
@@ -319,13 +333,14 @@ apiClient.interceptors.response.use(
         }
       }
       if (error.response?.status === 401) {
-        emitSessionExpiredTelemetryOnce(401);
         const message =
           normalizeAuthUserMessage(
             String(error.response?.data?.message ?? error.response?.data?.Message ?? '').trim()
           ) || DEFAULT_AUTH_UNAUTHORIZED_MESSAGE;
-        popupStore.openError(new Error(message));
-        performLocalLogoutAndRedirect(message);
+        void emitSessionExpiredTelemetryAndFlush(401).finally(() => {
+          popupStore.openError(new Error(message));
+          performLocalLogoutAndRedirect(message);
+        });
       } else {
         popupStore.openError(new Error('You do not have permission to perform this action.'));
       }

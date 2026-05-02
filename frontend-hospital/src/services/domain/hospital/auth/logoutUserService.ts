@@ -5,11 +5,13 @@ import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { clearAuthToken } from '../../../auth/authToken';
+import { buildLogoutRequestBody } from '../../../auth/logoutRequestBody';
 import { clearPersistedAuthSessionProfile } from '../../../auth/authSessionStore';
 import { ok } from '../shared/response';
 import { stompClient } from '../../../realtime/stompClient';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
+import { flushSessionTelemetryQueue } from '../../../analytics/sessionTelemetry';
 import { emitSessionSummaryAuthLogout } from '../../../analytics/sessionSummary';
 
 export const logoutUserHospitalServices: ServiceDefinition[] = [
@@ -19,8 +21,9 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
     execute: async () => {
       trackEvent('logout');
       emitSessionSummaryAuthLogout({ reason: 'user_initiated' });
+      await flushSessionTelemetryQueue();
       try {
-        await apiClient.post(URLRegistry.paths.logout, { DeviceId: 'browser' });
+        await apiClient.post(URLRegistry.paths.logout, buildLogoutRequestBody());
       } catch {
         // Local logout should still proceed even when server call fails.
       }

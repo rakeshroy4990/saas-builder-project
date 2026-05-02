@@ -1,4 +1,6 @@
 import { URLRegistry } from '../http/URLRegistry';
+import { getOrCreateTraceId } from '../logging/traceContext';
+import { enqueueTelemetryBody, flushTelemetryOutbox } from './sessionTelemetryQueue';
 
 export type SessionSummaryEntryPayload = {
   entry_id: string;
@@ -49,20 +51,39 @@ function readPersistedUserId(): string {
   }
 }
 
+function postSessionEventBody(body: string): Promise<Response> {
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    'X-Trace-Id': getOrCreateTraceId()
+  });
+  return fetch(URLRegistry.resolve('telemetrySessionEvent'), {
+    method: 'POST',
+    credentials: 'omit',
+    headers,
+    body
+  });
+}
+
+/**
+ * Buffers one telemetry payload for later {@link flushSessionTelemetryQueue} (logout / session expiry).
+ * Does not hit the network immediately.
+ */
 export async function ingestSessionTelemetry(payload: SessionTelemetryPayload): Promise<void> {
   try {
     const { user_id: explicitUserId, ...rest } = payload;
     const userId = (explicitUserId ?? readPersistedUserId()).trim() || undefined;
-    await URLRegistry.request('telemetrySessionEvent', {
-      method: 'POST',
-      credentials: 'omit',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        ...rest,
-        ...(userId ? { user_id: userId } : {})
-      })
+    const body = JSON.stringify({
+      ...rest,
+      ...(userId ? { user_id: userId } : {})
     });
+    await enqueueTelemetryBody(body);
   } catch {
     // Keep analytics non-blocking; failures here must never affect UX flows.
   }
+}
+
+/** Sends all queued session-event rows (FIFO). Safe to call multiple times; work is serialized. */
+export function flushSessionTelemetryQueue(): Promise<void> {
+  return flushTelemetryOutbox(postSessionEventBody);
 }
