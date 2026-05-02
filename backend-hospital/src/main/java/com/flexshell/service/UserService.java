@@ -116,11 +116,39 @@ public class UserService {
             throw new IllegalArgumentException("Missing user");
         }
         UserEntity user = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        applyDeactivation(user);
+        repo.save(user);
+    }
+
+    /**
+     * Admin-only: soft-deactivate another user (e.g. doctor offboarding). Cannot target own account.
+     */
+    public void deactivateUserAsAdmin(String targetUserId, String adminUserId) {
+        UserRepository repo = userRepositoryProvider.getIfAvailable();
+        if (repo == null) {
+            throw new IllegalStateException("User repository unavailable");
+        }
+        AdminAuthorizationSupport.requireAdminUser(repo, adminUserId);
+        String targetId = targetUserId == null ? "" : targetUserId.trim();
+        if (targetId.isEmpty()) {
+            throw new IllegalArgumentException("Missing user");
+        }
+        if (targetId.equalsIgnoreCase(adminUserId.trim())) {
+            throw new IllegalArgumentException("You cannot deactivate your own account from the admin console.");
+        }
+        UserEntity target = repo.findById(targetId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (target.getRole() != UserRole.DOCTOR) {
+            throw new IllegalArgumentException("Only doctor accounts can be deactivated through this admin action.");
+        }
+        applyDeactivation(target);
+        repo.save(target);
+    }
+
+    private static void applyDeactivation(UserEntity user) {
         user.setActive(false);
         user.setRoleStatus(RoleRequestStatus.INACTIVE);
         user.setTokenVersion(user.getTokenVersion() + 1L);
         user.setUpdatedTimestamp(Instant.now());
-        repo.save(user);
     }
 
     private RegisterResponse toRegisterResponse(UserEntity saved) {

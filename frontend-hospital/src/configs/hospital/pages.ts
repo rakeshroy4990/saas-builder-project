@@ -1075,9 +1075,13 @@ export const hospitalPages: PageConfig[] = [
                             'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
                         },
                         click: {
-                          actionId: 'set-dashboard-nav-appointments',
+                          actionId: 'require-hospital-dashboard-session',
+                          data: { tab: 'appointments' },
                           onSuccess: {
-                            actionId: 'set-dashboard-header-active'
+                            actionId: 'set-dashboard-nav-appointments',
+                            onSuccess: {
+                              actionId: 'set-dashboard-header-active'
+                            }
                           }
                         }
                       }
@@ -1098,9 +1102,13 @@ export const hospitalPages: PageConfig[] = [
                             'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
                         },
                         click: {
-                          actionId: 'set-dashboard-nav-appointments',
+                          actionId: 'require-hospital-dashboard-session',
+                          data: { tab: 'appointments' },
                           onSuccess: {
-                            actionId: 'set-dashboard-header-active'
+                            actionId: 'set-dashboard-nav-appointments',
+                            onSuccess: {
+                              actionId: 'set-dashboard-header-active'
+                            }
                           }
                         }
                       }
@@ -1123,11 +1131,15 @@ export const hospitalPages: PageConfig[] = [
                             'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
                         },
                         click: {
-                          actionId: 'set-dashboard-nav-working-slots',
+                          actionId: 'require-hospital-dashboard-session',
+                          data: { tab: 'working-slots' },
                           onSuccess: {
-                            actionId: 'set-dashboard-header-active',
+                            actionId: 'set-dashboard-nav-working-slots',
                             onSuccess: {
-                              actionId: 'init-doctor-working-slots'
+                              actionId: 'set-dashboard-header-active',
+                              onSuccess: {
+                                actionId: 'init-doctor-working-slots'
+                              }
                             }
                           }
                         }
@@ -1151,11 +1163,75 @@ export const hospitalPages: PageConfig[] = [
                             'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
                         },
                         click: {
-                          actionId: 'set-dashboard-nav-working-slots',
+                          actionId: 'require-hospital-dashboard-session',
+                          data: { tab: 'working-slots' },
                           onSuccess: {
-                            actionId: 'set-dashboard-header-active',
+                            actionId: 'set-dashboard-nav-working-slots',
                             onSuccess: {
-                              actionId: 'init-doctor-working-slots'
+                              actionId: 'set-dashboard-header-active',
+                              onSuccess: {
+                                actionId: 'init-doctor-working-slots'
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-menu-admin-active',
+                      type: 'button',
+                      condition: {
+                        expression:
+                          "String(role ?? '').toUpperCase() === 'ADMIN' && String(activeItem ?? '') === 'admin'",
+                        mappings: {
+                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+                          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+                        }
+                      },
+                      config: {
+                        text: 'Administration',
+                        styles: {
+                          utilityClasses:
+                            'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
+                        },
+                        click: {
+                          actionId: 'require-hospital-dashboard-session',
+                          data: { tab: 'admin' },
+                          onSuccess: {
+                            actionId: 'set-dashboard-nav-admin',
+                            onSuccess: {
+                              actionId: 'init-admin-dashboard',
+                              onSuccess: { actionId: 'set-dashboard-header-active' }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-menu-admin-inactive',
+                      type: 'button',
+                      condition: {
+                        expression:
+                          "String(role ?? '').toUpperCase() === 'ADMIN' && String(activeItem ?? '') !== 'admin'",
+                        mappings: {
+                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+                          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+                        }
+                      },
+                      config: {
+                        text: 'Administration',
+                        styles: {
+                          utilityClasses:
+                            'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                        },
+                        click: {
+                          actionId: 'require-hospital-dashboard-session',
+                          data: { tab: 'admin' },
+                          onSuccess: {
+                            actionId: 'set-dashboard-nav-admin',
+                            onSuccess: {
+                              actionId: 'init-admin-dashboard',
+                              onSuccess: { actionId: 'set-dashboard-header-active' }
                             }
                           }
                         }
@@ -1605,7 +1681,8 @@ export const hospitalPages: PageConfig[] = [
                                     id: 'hospital-dashboard-appointment-cancel',
                                     type: 'button',
                                     condition: {
-                                      expression: 'String(status ?? "").toUpperCase() !== "CANCELLED"'
+                                      expression:
+                                        'String(status ?? "").toUpperCase() !== "CANCELLED" && String(status ?? "").toUpperCase() !== "DELETED"'
                                     },
                                     config: {
                                       text: '🗑️',
@@ -1698,6 +1775,341 @@ export const hospitalPages: PageConfig[] = [
                         ]
                       }
                     }
+                        ]
+                      }
+                    },
+                    {
+                      id: 'hospital-dashboard-panel-admin',
+                      type: 'container',
+                      condition: {
+                        expression:
+                          "String(role ?? '').toUpperCase() === 'ADMIN' && String(activeItem ?? '') === 'admin'",
+                        mappings: {
+                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+                          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+                        }
+                      },
+                      config: {
+                        styles: { utilityClasses: 'space-y-6' },
+                        children: [
+                          {
+                            id: 'hospital-dashboard-admin-title-row',
+                            type: 'container',
+                            config: {
+                              layout: { type: 'flex', flex: ['flex', 'flex-wrap', 'items-center', 'justify-between', 'gap-3'] },
+                              children: [
+                                {
+                                  id: 'hospital-dashboard-admin-title',
+                                  type: 'text',
+                                  config: {
+                                    text: 'Administration',
+                                    styles: { styleTemplate: 'hosp.section.heading', utilityClasses: 'text-2xl' }
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-refresh',
+                                  type: 'button',
+                                  config: {
+                                    text: '🔄',
+                                    title: 'Refresh',
+                                    styles: {
+                                      utilityClasses:
+                                        'rounded-md border border-slate-300 px-2.5 py-1.5 text-base leading-none text-slate-700 hover:bg-slate-50'
+                                    },
+                                    click: {
+                                      actionId: 'require-hospital-dashboard-session',
+                                      data: { tab: 'admin' },
+                                      onSuccess: { actionId: 'init-admin-dashboard' }
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-admin-error',
+                            type: 'text',
+                            condition: {
+                              expression: 'String(adminErr ?? "").trim().length > 0',
+                              mappings: {
+                                adminErr: { packageName: 'hospital', key: 'AdminDashboard', property: 'error' }
+                              }
+                            },
+                            config: {
+                              mapping: { packageName: 'hospital', key: 'AdminDashboard', property: 'error' },
+                              styles: { utilityClasses: 'text-sm font-medium text-red-600' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-admin-pending-heading',
+                            type: 'text',
+                            config: {
+                              text: 'Pending doctor registrations',
+                              styles: { styleTemplate: 'hosp.section.subheading' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-admin-pending-empty',
+                            type: 'text',
+                            condition: {
+                              expression: '!loading && (!pendingRequests || pendingRequests.length === 0)',
+                              mappings: {
+                                loading: { packageName: 'hospital', key: 'AdminDashboard', property: 'loading' },
+                                pendingRequests: {
+                                  packageName: 'hospital',
+                                  key: 'AdminDashboard',
+                                  property: 'pendingRequests'
+                                }
+                              }
+                            },
+                            config: {
+                              text: 'No pending requests.',
+                              styles: { utilityClasses: 'text-sm text-slate-500' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-admin-pending-list',
+                            type: 'list',
+                            condition: {
+                              expression: '!loading && pendingRequests && pendingRequests.length > 0',
+                              mappings: {
+                                loading: { packageName: 'hospital', key: 'AdminDashboard', property: 'loading' },
+                                pendingRequests: {
+                                  packageName: 'hospital',
+                                  key: 'AdminDashboard',
+                                  property: 'pendingRequests'
+                                }
+                              }
+                            },
+                            config: {
+                              listStyleTemplate: 'hosp.section.stack',
+                              mapping: { packageName: 'hospital', key: 'AdminDashboard', property: 'pendingRequests' },
+                              itemTemplate: {
+                                layout: { type: 'flex', flex: ['flex', 'items-center', 'justify-between', 'gap-2', 'flex-wrap'] },
+                                styles: { utilityClasses: 'rounded-lg border border-slate-200 bg-slate-50 px-3 py-2' },
+                                children: [
+                                  {
+                                    id: 'hospital-dashboard-admin-pending-line',
+                                    type: 'text',
+                                    config: {
+                                      text: '{{email}} · {{requestedRole}} · {{name}}',
+                                      styles: { utilityClasses: 'text-sm text-slate-800' }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-admin-pending-approve',
+                                    type: 'button',
+                                    config: {
+                                      text: '✅',
+                                      title: 'Approve',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-emerald-600 px-2.5 py-1.5 text-base leading-none text-emerald-800 hover:bg-emerald-50'
+                                      },
+                                      click: {
+                                        actionId: 'approve-admin-role-request',
+                                        data: { userId: '{{userId}}' }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-admin-doctors-heading',
+                            type: 'text',
+                            config: {
+                              text: 'Doctors',
+                              styles: { styleTemplate: 'hosp.section.subheading' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-admin-doctors-list',
+                            type: 'list',
+                            condition: {
+                              expression: '!loading && doctors && doctors.length > 0',
+                              mappings: {
+                                loading: { packageName: 'hospital', key: 'AdminDashboard', property: 'loading' },
+                                doctors: { packageName: 'hospital', key: 'AdminDashboard', property: 'doctors' }
+                              }
+                            },
+                            config: {
+                              listStyleTemplate: 'hosp.section.stack',
+                              mapping: { packageName: 'hospital', key: 'AdminDashboard', property: 'doctors' },
+                              itemTemplate: {
+                                layout: { type: 'flex', flex: ['flex', 'items-center', 'justify-between', 'gap-2', 'flex-wrap'] },
+                                styles: { utilityClasses: 'rounded-lg border border-slate-200 bg-white px-3 py-2' },
+                                children: [
+                                  {
+                                    id: 'hospital-dashboard-admin-doctor-line',
+                                    type: 'text',
+                                    config: {
+                                      text: '{{name}} · {{email}} · {{department}} · {{roleStatus}} · Active: {{active}}',
+                                      styles: { utilityClasses: 'text-sm text-slate-800' }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-admin-doctor-deactivate',
+                                    type: 'button',
+                                    condition: {
+                                      expression: 'active === true || active === "true" || active === "Y"'
+                                    },
+                                    config: {
+                                      text: '🚫',
+                                      title: 'Deactivate',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-rose-400 px-2.5 py-1.5 text-base leading-none text-rose-700 hover:bg-rose-50'
+                                      },
+                                      click: {
+                                        actionId: 'deactivate-admin-doctor',
+                                        data: { userId: '{{id}}' }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-admin-register-heading',
+                            type: 'text',
+                            config: {
+                              text: 'Register a new doctor',
+                              styles: { styleTemplate: 'hosp.section.subheading' }
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-admin-register-grid',
+                            type: 'container',
+                            config: {
+                              layout: { type: 'grid', grid: ['grid', 'grid-cols-1', 'md:grid-cols-2', 'gap-3'] },
+                              children: [
+                                {
+                                  id: 'hospital-dashboard-admin-reg-email',
+                                  type: 'input',
+                                  config: {
+                                    label: 'Email',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'emailId' }
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-password',
+                                  type: 'input',
+                                  config: {
+                                    label: 'Password',
+                                    inputType: 'password',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'password' },
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-first',
+                                  type: 'input',
+                                  config: {
+                                    label: 'First name',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'firstName' },
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-last',
+                                  type: 'input',
+                                  config: {
+                                    label: 'Last name',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'lastName' },
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-address',
+                                  type: 'input',
+                                  config: {
+                                    label: 'Address',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'address' },
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-gender',
+                                  type: 'input',
+                                  config: {
+                                    label: 'Gender',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'gender' },
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-mobile',
+                                  type: 'input',
+                                  config: {
+                                    label: 'Mobile',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'mobileNumber' },
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-dept',
+                                  type: 'input',
+                                  config: {
+                                    label: 'Department',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'department' },
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-qual',
+                                  type: 'input',
+                                  config: {
+                                    label: 'Qualifications',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: {
+                                      packageName: 'hospital',
+                                      key: 'AdminDoctorRegisterForm',
+                                      property: 'qualifications'
+                                    },
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-smc',
+                                  type: 'input',
+                                  config: {
+                                    label: 'State Medical Council',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'smcName' },
+                                  }
+                                },
+                                {
+                                  id: 'hospital-dashboard-admin-reg-regno',
+                                  type: 'input',
+                                  config: {
+                                    label: 'SMC registration #',
+                                    styles: { styleTemplate: 'hosp.form.input' },
+                                    mapping: {
+                                      packageName: 'hospital',
+                                      key: 'AdminDoctorRegisterForm',
+                                      property: 'smcRegistrationNumber'
+                                    },
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            id: 'hospital-dashboard-admin-register-submit',
+                            type: 'button',
+                            config: {
+                              text: '➕',
+                              title: 'Create doctor account',
+                              styles: {
+                                utilityClasses:
+                                  'rounded-md border border-emerald-600 px-2.5 py-1.5 text-base leading-none text-emerald-800 hover:bg-emerald-50'
+                              },
+                              click: { actionId: 'submit-admin-register-doctor' }
+                            }
+                          }
                         ]
                       }
                     },
@@ -2612,7 +3024,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
-                  styles: { utilityClasses: 'md:col-start-2' },
+                  styles: { utilityClasses: 'min-w-0' },
                   children: [
                     {
                       id: 'hospital-register-popup-department-label',
@@ -2657,6 +3069,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  styles: { utilityClasses: 'min-w-0' },
                   children: [
                     {
                       id: 'hospital-register-popup-qualifications-label',
@@ -2691,6 +3104,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
+                  styles: { utilityClasses: 'min-w-0' },
                   children: [
                     {
                       id: 'hospital-register-popup-smc-name-label',
@@ -2725,7 +3139,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   layout: { type: 'flex', flex: ['flex', 'items-center', 'gap-3'] },
-                  styles: { utilityClasses: 'md:col-span-2' },
+                  styles: { utilityClasses: 'min-w-0' },
                   children: [
                     {
                       id: 'hospital-register-popup-smc-registration-number-label',

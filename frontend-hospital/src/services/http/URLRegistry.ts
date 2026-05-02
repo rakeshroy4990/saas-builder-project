@@ -66,7 +66,10 @@ export const SERVER_PATHS = {
   /** GET `?q=` — YouTube channel hero video (public; API key on server). Empty `q` = top recent upload by views/likes (server config). Optional `user_id` scopes query_cache. */
   youtubeHeroVideo: '/api/youtube/hero-video',
   /** GET `?userId=&limit=` — recent YouTube hero queries from `query_cache` (authenticated; self only). */
-  youtubeUserQueries: '/api/user/youtube-queries'
+  youtubeUserQueries: '/api/user/youtube-queries',
+  adminRoleRequests: '/api/admin/role-requests',
+  adminDoctors: '/api/admin/doctors',
+  adminAppointments: '/api/admin/appointments'
 } as const;
 
 export type ServerPathKey = keyof typeof SERVER_PATHS;

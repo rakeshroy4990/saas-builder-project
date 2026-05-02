@@ -13,6 +13,8 @@ export type HospitalRouteManifestEntry = {
 
 export const hospitalRouteManifest: HospitalRouteManifestEntry[] = [
   { packageName: 'hospital', pageId: 'home' },
+  { packageName: 'hospital', pageId: 'doctor-education' },
+  { packageName: 'hospital', pageId: 'privacy' },
   { packageName: 'hospital', pageId: 'terms' },
   { packageName: 'hospital', pageId: 'dashboard' },
   { packageName: 'hospital', pageId: 'patient-dashboard' },

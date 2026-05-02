@@ -4,8 +4,11 @@ import { useAppStore } from '../../../../store/useAppStore';
 import { usePopupStore } from '../../../../store/usePopupStore';
 import { useToastStore } from '../../../../store/useToastStore';
 import { pinia } from '../../../../store/pinia';
+import { ServiceRegistry } from '../../../../core/registry/ServiceRegistry';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
+import { isAuthTokenExpired } from '../../../auth/authToken';
+import { setDeferredPostLoginAction } from '../auth/postLoginAction';
 import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
@@ -25,6 +28,53 @@ function appointmentPreferredDateToInput(raw: unknown): string {
   if (!s) return '';
   const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
   return m ? m[1] : '';
+}
+
+const DASHBOARD_GUARD_TABS = new Set(['appointments', 'working-slots', 'admin']);
+
+function openLoginRecoverDashboardSession(tab: string): void {
+  setDeferredPostLoginAction({
+    packageName: 'hospital',
+    actionId: 'resume-dashboard-nav-after-login',
+    data: { tab }
+  });
+  const appStore = useAppStore(pinia);
+  appStore.setProperty('hospital', 'AuthForm', 'identity', '');
+  appStore.setProperty('hospital', 'AuthForm', 'password', '');
+  appStore.setProperty('hospital', 'AuthForm', 'emailError', '');
+  appStore.setProperty('hospital', 'AuthForm', 'authError', '');
+  appStore.setProperty(
+    'hospital',
+    'AuthForm',
+    'loginInfoMessage',
+    'Your session has expired. Please sign in again to continue.'
+  );
+  usePopupStore(pinia).open({ packageName: 'hospital', pageId: 'login-popup', title: 'login' });
+}
+
+async function serverSessionPing(userId: string): Promise<boolean> {
+  try {
+    const url = `${URLRegistry.getBaseUrl()}/api/user?userId=${encodeURIComponent(userId)}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        'X-Trace-Id': getOrCreateTraceId()
+      }
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function runHospitalService(serviceId: string): Promise<void> {
+  const svc = ServiceRegistry.getInstance().get('hospital', serviceId);
+  if (!svc) {
+    throw new Error(`Service not registered: hospital::${serviceId}`);
+  }
+  await svc.execute({ data: {} });
 }
 
 async function loadActiveDoctorFilterOptions(userRole: string): Promise<Array<{ id: string; value: string; label: string }>> {
@@ -55,6 +105,73 @@ async function loadActiveDoctorFilterOptions(userRole: string): Promise<Array<{ 
 export const dashboardHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
+    serviceId: 'require-hospital-dashboard-session',
+    responseCodes: { failure: ['DASHBOARD_SESSION_REQUIRED'] },
+    execute: async (request) => {
+      const tab = String(request.data.tab ?? '').trim().toLowerCase();
+      if (!DASHBOARD_GUARD_TABS.has(tab)) {
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Invalid dashboard tab',
+          suppressPopupInlineError: true
+        };
+      }
+      const appStore = useAppStore(pinia);
+      const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+      const userId = String(authSession.userId ?? '').trim();
+      if (!userId) {
+        openLoginRecoverDashboardSession(tab);
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Sign in required',
+          suppressPopupInlineError: true
+        };
+      }
+      if (isAuthTokenExpired()) {
+        openLoginRecoverDashboardSession(tab);
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Session expired',
+          suppressPopupInlineError: true
+        };
+      }
+      const alive = await serverSessionPing(userId);
+      if (!alive) {
+        openLoginRecoverDashboardSession(tab);
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Session expired',
+          suppressPopupInlineError: true
+        };
+      }
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'resume-dashboard-nav-after-login',
+    execute: async (request) => {
+      const tab = String(request.data.tab ?? 'appointments').trim().toLowerCase();
+      if (tab === 'admin') {
+        await runHospitalService('set-dashboard-nav-admin');
+        await runHospitalService('init-admin-dashboard');
+        await runHospitalService('set-dashboard-header-active');
+        return ok();
+      }
+      if (tab === 'working-slots') {
+        await runHospitalService('set-dashboard-nav-working-slots');
+        await runHospitalService('set-dashboard-header-active');
+        await runHospitalService('init-doctor-working-slots');
+        return ok();
+      }
+      await runHospitalService('set-dashboard-nav-appointments');
+      await runHospitalService('init-dashboard');
+      await runHospitalService('set-dashboard-header-active');
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
     serviceId: 'init-dashboard',
     execute: async () => {
       const appStore = useAppStore(pinia);
@@ -63,8 +180,9 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const prevNav = (appStore.getData('hospital', 'DashboardNav') ?? {}) as { activeItem?: string };
       const previousActiveItem = String(prevNav.activeItem ?? '').trim();
       const keepWorkingSlots = previousActiveItem === 'working-slots';
+      const keepAdmin = previousActiveItem === 'admin';
       appStore.setData('hospital', 'DashboardNav', {
-        activeItem: keepWorkingSlots ? 'working-slots' : 'appointments'
+        activeItem: keepAdmin ? 'admin' : keepWorkingSlots ? 'working-slots' : 'appointments'
       });
       await ensureMedicalDepartmentOptionsLoaded();
       const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
@@ -87,10 +205,18 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         preferredDate: '',
         doctorId: '',
         department: '',
+        adminFullListing: role === 'ADMIN',
         statusOptions: [
           { id: 'allAppointments', value: 'All Appointments', label: 'All Appointments' },
           { id: 'completed', value: 'COMPLETED', label: 'Completed' },
-          { id: 'cancelled', value: 'CANCELLED', label: 'Cancelled' }
+          { id: 'cancelled', value: 'CANCELLED', label: 'Cancelled' },
+          ...(role === 'ADMIN'
+            ? ([{ id: 'deleted', value: 'DELETED', label: 'Removed (admin)' }] as Array<{
+                id: string;
+                value: string;
+                label: string;
+              }>)
+            : [])
         ],
         doctorOptions: [...uniqueDoctors],
         departmentOptions: [
@@ -116,6 +242,19 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         hasNext: false,
         pageLabel: 'Page 1 of 1',
         totalLabel: 'Total Appointments: 0'
+      });
+      appStore.setData('hospital', 'AdminDoctorRegisterForm', {
+        emailId: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        address: '',
+        gender: '',
+        mobileNumber: '',
+        department: '',
+        qualifications: '',
+        smcName: '',
+        smcRegistrationNumber: ''
       });
       await loadDashboardAppointmentsPage(0);
       if (String(authSession.userId ?? '').trim()) {
@@ -227,13 +366,16 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const responsive = (appStore.getData('hospital', 'ResponsiveUiState') ?? {}) as Record<string, unknown>;
       appStore.setData('hospital', 'ResponsiveUiState', { ...responsive, dashboardFiltersOpen: false });
       const filters = (appStore.getData('hospital', 'DashboardFilters') ?? {}) as Record<string, unknown>;
+      const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+      const role = String(authSession.role ?? '').trim().toUpperCase();
       appStore.setData('hospital', 'DashboardFilters', {
         ...filters,
         status: '',
         statusSelectedExplicitly: false,
         preferredDate: '',
         doctorId: '',
-        department: ''
+        department: '',
+        adminFullListing: role === 'ADMIN'
       });
       await loadDashboardAppointmentsPage(0);
       return ok();

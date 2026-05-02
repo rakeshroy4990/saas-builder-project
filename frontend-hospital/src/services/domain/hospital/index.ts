@@ -16,6 +16,7 @@ import { authGoogleLoginHospitalServices } from './auth/authGoogleLoginService';
 import { passwordResetHospitalServices } from './auth/passwordResetServices';
 import { registerUserHospitalServices } from './register/registerUserService';
 import { bookAppointmentHospitalServices } from './appointment/bookAppointmentService';
+import { adminDashboardHospitalServices } from './admin/adminDashboardServices';
 import { dashboardHospitalServices } from './dashboard/dashboardServices';
 import { chatHospitalServices } from './chat/chatServices';
 import { callHospitalServices } from './call/callServices';
@@ -47,6 +48,7 @@ export const hospitalServices: ServiceDefinition[] = [
   ...registerUserHospitalServices,
   ...bookAppointmentHospitalServices,
   ...dashboardHospitalServices,
+  ...adminDashboardHospitalServices,
   ...chatHospitalServices,
   ...callHospitalServices,
   ...doctorScheduleHospitalServices,
