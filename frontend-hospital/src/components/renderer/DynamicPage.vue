@@ -7,6 +7,8 @@ import { resolveStyle } from '../../core/engine/StyleResolver';
 import DynamicContainer from './DynamicContainer.vue';
 import { resolvePageRootDomId } from '../../core/utils/domId';
 import { pageRegistryRevision } from '../../core/registry/pageRegistryRevision';
+import { useAppStore } from '../../store/useAppStore';
+import { pinia } from '../../store/pinia';
 
 const route = useRoute();
 const router = useRouter();
@@ -14,7 +16,13 @@ const defaultPackageName =
   import.meta.env.VITE_DEFAULT_PACKAGE_NAME ?? import.meta.env.VITE_DEFAULT_NAMESPACE ?? 'hospital';
 
 const packageName = computed(() => String(route.params.packageName ?? defaultPackageName));
-const pageId = computed(() => String(route.params.pageId ?? ''));
+const pageId = computed(() => {
+  const slugParam = route.params.slug;
+  if (typeof slugParam === 'string' && slugParam.trim().length > 0) {
+    return 'blog-article';
+  }
+  return String(route.params.pageId ?? '');
+});
 const pageConfig = computed(() => {
   void pageRegistryRevision.value;
   return PageRegistry.getInstance().get(packageName.value, pageId.value);
@@ -37,10 +45,14 @@ const notFoundBox = computed(() => resolveStyle({ styleTemplate: 'system.error.p
 let initGeneration = 0;
 let lastInitializedKey = '';
 watch(
-  () => [packageName.value, pageId.value, pageConfig.value] as const,
-  async ([pkg, pid, cfg]) => {
+  () => [packageName.value, pageId.value, pageConfig.value, route.params.slug] as const,
+  async ([pkg, pid, cfg, slugParam]) => {
+    if (typeof slugParam === 'string' && slugParam.trim().length > 0 && pid === 'blog-article') {
+      useAppStore(pinia).setData('hospital', 'BlogArticleRoute', { slug: slugParam.trim() });
+    }
     if (!cfg?.initializeActions?.length) return;
-    const key = `${pkg}:${pid}`;
+    const slugKey = typeof slugParam === 'string' && slugParam.trim().length > 0 ? slugParam.trim() : '';
+    const key = slugKey ? `${pkg}:${pid}:${slugKey}` : `${pkg}:${pid}`;
     if (key === lastInitializedKey) return;
     lastInitializedKey = key;
     const generation = ++initGeneration;

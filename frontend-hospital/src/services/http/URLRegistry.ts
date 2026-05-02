@@ -58,6 +58,8 @@ export const SERVER_PATHS = {
   /** Mint RTC / vendor session after hospital call permission checks. */
   hospitalVideoSession: '/api/hospital/video/session',
   hospitalAiChat: '/api/hospital/ai/chat',
+  /** GET `?limit=` — public LLM-generated wellness blog teasers (cached on server). */
+  hospitalBlogPreviews: '/api/hospital/blog/previews',
   /** GET/PUT user by id: pass `userId` query param; PUT profile update uses registration-shaped JSON; PUT `inactive=true` deactivates. */
   user: '/api/user',
   /** PUT save profile: same body as `PUT /api/user`; optional `userId` query (else JWT principal). */
@@ -71,6 +73,11 @@ export const SERVER_PATHS = {
   adminDoctors: '/api/admin/doctors',
   adminAppointments: '/api/admin/appointments'
 } as const;
+
+/** GET single teaser by URL slug (same pool as {@link SERVER_PATHS.hospitalBlogPreviews}). */
+export function hospitalBlogPreviewBySlugPath(slug: string): string {
+  return `${SERVER_PATHS.hospitalBlogPreviews}/slug/${encodeURIComponent(slug)}`;
+}
 
 export type ServerPathKey = keyof typeof SERVER_PATHS;
 

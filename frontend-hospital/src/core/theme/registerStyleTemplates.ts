@@ -403,6 +403,14 @@ export function registerStyleTemplates(): void {
   StyleTemplateRegistry.register('hosp.highlights.grid', {
     utilityClasses: 'grid grid-cols-1 md:grid-cols-2 gap-4'
   });
+  /** Blog list: single column on narrow viewports, two columns from `sm` up. */
+  StyleTemplateRegistry.register('hosp.blog.previewGrid', {
+    utilityClasses: 'grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch'
+  });
+  /** Vertical stack for list layouts (used when a grid is not desired). */
+  StyleTemplateRegistry.register('hosp.section.stack', {
+    utilityClasses: 'flex flex-col gap-4'
+  });
   StyleTemplateRegistry.register('hosp.form.input', {
     utilityClasses: 'w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800'
   });

@@ -38,6 +38,10 @@ export const router = createRouter({
       component: SessionTelemetryDebug
     },
     {
+      path: '/blog/:slug',
+      component: DynamicPage
+    },
+    {
       path: '/:pageId',
       component: DynamicPage
     },
