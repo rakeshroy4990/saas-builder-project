@@ -6,14 +6,13 @@ vi.mock('../../../../http/apiClient', () => ({
   apiClient: { post: vi.fn() }
 }));
 
-vi.mock('../../../../auth/authToken', () => ({
-  parseJwtSubject: vi.fn(() => 'user-1'),
-  setAuthTokens: vi.fn()
-}));
+vi.mock('../../../../auth/authToken', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../auth/authToken')>();
+  return { ...actual };
+});
 
 vi.mock('../../../../auth/authSessionStore', () => ({
-  persistAuthSessionProfile: vi.fn(),
-  syncHospitalUserIdFromAccessToken: vi.fn()
+  persistAuthSessionProfile: vi.fn()
 }));
 
 vi.mock('../../shared/hospitalWebRtcInbound', () => ({
@@ -46,6 +45,7 @@ describe('auth-login service', () => {
         data: {
           accessToken: 'header.payload.sig',
           refreshToken: 'refresh',
+          expiresInSeconds: 900,
           Email: 'a@b.com',
           UserId: 'user-1',
           FirstName: 'Ann',

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import DynamicPage from '../components/renderer/DynamicPage.vue';
 import NotFound from '../components/system/NotFound.vue';
 import SessionTelemetryDebug from '../components/system/SessionTelemetryDebug.vue';
+import { registerHospitalRouteGuards } from './authGuards';
 
 const defaultPageId = import.meta.env.VITE_DEFAULT_PAGE_ID ?? 'home';
 const routePackageName = 'hospital';
@@ -46,3 +47,5 @@ export const router = createRouter({
     }
   ]
 });
+
+registerHospitalRouteGuards(router);

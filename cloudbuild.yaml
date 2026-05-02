@@ -119,6 +119,7 @@ steps:
       - --allow-unauthenticated
       - --env-vars-file
       - backend-hospital/cloudrun-env.yaml
+      # When APP_VIDEO_PROVIDER=agora (cloudrun-env), backend-hospital fails fast at startup if this secret is missing/empty.
       - --set-secrets
       - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest,YOUTUBE_API_KEY=backend-hospital-youtube-api-key:latest,APP_EMAIL_INTERNAL_SECRET=backend-hospital-app-email-internal-secret:latest
       - --quiet

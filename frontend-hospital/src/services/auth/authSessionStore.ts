@@ -23,6 +23,11 @@ const AUTH_SESSION_KEY = 'flexshell_auth_session_profile';
 
 const toStringSafe = (value: unknown): string => String(value ?? '').trim();
 
+/** True when this tab previously persisted a signed-in profile (not a secret; used for UI bootstrap). */
+export function hasPersistedAuthSessionProfile(): boolean {
+  return readPersistedAuthSession() != null;
+}
+
 export function persistAuthSessionProfile(partial: Partial<PersistedAuthSession>): void {
   try {
     const existing = readPersistedAuthSession();
@@ -56,8 +61,7 @@ export function clearPersistedAuthSessionProfile(): void {
 }
 
 /**
- * Overwrites `AuthSession.userId` with the access token `sub` when present so it matches
- * STOMP user destinations (server uses JWT subject as principal name).
+ * Legacy: JWT `sub` sync when tokens lived in JS. With httpOnly cookies, user id comes from login payload / profile.
  */
 export function syncHospitalUserIdFromAccessToken(): void {
   const token = getAuthToken();

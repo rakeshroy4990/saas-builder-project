@@ -8,8 +8,8 @@ import { router } from './router'
 import { bindHttpRouter } from './services/http/apiClient'
 import { logClient, startLogSyncScheduler } from './services/logging/clientLogger'
 import { pinia } from './store/pinia'
-import { hydrateAuthSessionProfile, syncHospitalUserIdFromAccessToken } from './services/auth/authSessionStore'
-import { hydrateAuthTokensFromSessionStorage } from './services/auth/authToken'
+import { hasPersistedAuthSessionProfile, hydrateAuthSessionProfile } from './services/auth/authSessionStore'
+import { bootstrapSessionCookiesFromRefresh } from './services/auth/sessionCookieBootstrap'
 import { initFirebaseAnalytics } from './services/analytics/firebaseAnalytics'
 import { initSessionSummaryNavigation } from './services/analytics/sessionSummary'
 import { initSentry } from './services/observability/sentry'
@@ -19,9 +19,10 @@ async function start() {
   startLogSyncScheduler()
   registerDefaultBusyIndicators()
   bootstrap()
-  hydrateAuthTokensFromSessionStorage()
   hydrateAuthSessionProfile()
-  syncHospitalUserIdFromAccessToken()
+  if (hasPersistedAuthSessionProfile()) {
+    await bootstrapSessionCookiesFromRefresh()
+  }
   bindHttpRouter(router)
   initSessionSummaryNavigation(router)
   await initFirebaseAnalytics(router).catch(async (err) => {

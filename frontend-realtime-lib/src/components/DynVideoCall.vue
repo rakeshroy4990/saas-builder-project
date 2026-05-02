@@ -4,6 +4,7 @@ import type { ActionConfig } from '@/core/types/ActionConfig';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveStyle } from '@/core/engine/StyleResolver';
 import { stompClient } from '@/services/realtime/stompClient';
+import { apiClient } from '@/services/http/apiClient';
 import { createVideoRoomAdapter, resolveVideoProviderFromEnv } from '../video/VideoRoomAdapter';
 
 type DynVideoCallConfig = {
@@ -91,6 +92,30 @@ function publishSignal(type: string, id: string, payload: Record<string, unknown
 }
 
 const videoProvider = resolveVideoProviderFromEnv(import.meta.env as Record<string, unknown>);
+
+async function renewAgoraRtcToken(): Promise<string | null> {
+  const ap = String(call.value.inviteAppointmentId ?? '').trim();
+  if (!ap || videoProvider !== 'agora') return null;
+  try {
+    const res = await apiClient.post(`/api/appointment/${encodeURIComponent(ap)}/renew-token`);
+    const data = (res.data?.Data ?? res.data?.data) as Record<string, unknown> | undefined;
+    const token = String(data?.Token ?? data?.token ?? '').trim();
+    return token.length > 0 ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+async function notifyVideoCallEnded(): Promise<void> {
+  const ap = String(call.value.inviteAppointmentId ?? '').trim();
+  if (!ap || videoProvider !== 'agora') return;
+  try {
+    await apiClient.post(`/api/appointment/${encodeURIComponent(ap)}/end-call`);
+  } catch {
+    // best-effort: server may already have ended the call
+  }
+}
+
 const room = createVideoRoomAdapter(videoProvider, {
   call,
   callId,
@@ -102,9 +127,12 @@ const room = createVideoRoomAdapter(videoProvider, {
   appStore,
   publishSignal,
   getEnv: () => import.meta.env as Record<string, unknown>,
-  isDev: () => import.meta.env.DEV
+  isDev: () => import.meta.env.DEV,
+  renewAgoraRtcToken,
+  notifyVideoCallEnded
 });
 const mediaError = room.mediaError;
+const networkQualityWarning = room.networkQualityWarning;
 
 onMounted(() => {
   sessionActive.value = true;
@@ -150,6 +178,7 @@ onBeforeUnmount(() => {
           {{ lastSignalType || '—' }}
         </div>
         <p v-if="mediaError" class="mt-2 text-sm text-rose-600">{{ mediaError }}</p>
+        <p v-if="networkQualityWarning" class="mt-2 text-sm text-amber-700">{{ networkQualityWarning }}</p>
       </div>
 
       <div v-if="!isVideosFullscreen" class="mt-4 flex flex-wrap items-center gap-2">

@@ -8,6 +8,7 @@ import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.HospitalVideoSessionRequest;
 import com.flexshell.controller.dto.HospitalVideoSessionResponse;
 import com.flexshell.realtime.webrtc.HospitalCallPermissionEvaluator;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -18,23 +19,32 @@ public class HospitalVideoSessionService {
     private final UserRepository userRepository;
     private final HospitalCallPermissionEvaluator permissionEvaluator;
     private final VideoSessionPort videoSessionPort;
+    private final String videoProvider;
 
     public HospitalVideoSessionService(
             AppointmentRepository appointmentRepository,
             UserRepository userRepository,
             HospitalCallPermissionEvaluator permissionEvaluator,
-            VideoSessionPort videoSessionPort
+            VideoSessionPort videoSessionPort,
+            @Value("${app.video.provider:builtin}") String videoProvider
     ) {
         this.appointmentRepository = appointmentRepository;
         this.userRepository = userRepository;
         this.permissionEvaluator = permissionEvaluator;
         this.videoSessionPort = videoSessionPort;
+        this.videoProvider = Objects.toString(videoProvider, "builtin").trim();
     }
 
     public HospitalVideoSessionResponse create(String initiatorUserId, HospitalVideoSessionRequest request) {
         String me = normalize(initiatorUserId);
         if (me.isEmpty()) {
             throw new SecurityException("Not authenticated");
+        }
+        String apId = normalize(request.appointmentId());
+        if ("agora".equalsIgnoreCase(videoProvider) && apId.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Agora RTC requires an appointment-bound channel. Use POST /api/appointment/{id}/join-call "
+                            + "or pass appointmentId when creating a session.");
         }
         String peer = resolvePeerUserId(me, request);
         if (peer.isEmpty()) {
@@ -43,7 +53,6 @@ public class HospitalVideoSessionService {
         if (!permissionEvaluator.canInitiate(me, peer)) {
             throw new SecurityException("Video session not permitted for this peer");
         }
-        String apId = normalize(request.appointmentId());
         return videoSessionPort.createSession(me, peer, apId.isEmpty() ? null : apId);
     }
 

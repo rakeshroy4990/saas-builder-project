@@ -36,6 +36,7 @@ steps:
       - --allow-unauthenticated
       - --env-vars-file
       - backend-hospital/cloudrun-env.yaml
+      # Required when APP_VIDEO_PROVIDER=agora: JVM startup fails if certificate secret is missing (see AgoraVideoSessionAdapter).
       - --set-secrets
       - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest
       - --quiet

@@ -46,6 +46,12 @@ public record AppointmentResponse(
         @JsonProperty("AppointmentEmailNotifyDetail")
         String appointmentEmailNotifyDetail,
         @JsonProperty("AppointmentEmailNotifyAt")
-        String appointmentEmailNotifyAt
+        String appointmentEmailNotifyAt,
+        @JsonProperty("CallStatus")
+        String callStatus,
+        @JsonProperty("CallStartTime")
+        String callStartTime,
+        @JsonProperty("CallEndTime")
+        String callEndTime
 ) {
 }

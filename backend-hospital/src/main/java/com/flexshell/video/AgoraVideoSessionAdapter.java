@@ -23,17 +23,24 @@ public class AgoraVideoSessionAdapter implements VideoSessionPort {
     ) {
         this.appId = Objects.toString(appId, "").trim();
         this.appCertificate = Objects.toString(appCertificate, "").trim();
-        this.tokenTtlSeconds = Math.max(60, tokenTtlSeconds);
+        int ttl = Math.max(60, tokenTtlSeconds);
+        this.tokenTtlSeconds = Math.min(ttl, 3600);
+        if (this.appId.isEmpty()) {
+            throw new IllegalStateException(
+                    "app.video.provider=agora requires APP_VIDEO_AGORA_APP_ID (or app.video.agora.app-id). "
+                            + "Without an App ID the backend cannot start in Agora mode.");
+        }
+        if (this.appCertificate.isEmpty()) {
+            throw new IllegalStateException(
+                    "app.video.provider=agora requires APP_VIDEO_AGORA_APP_CERTIFICATE. "
+                            + "Map Secret Manager secret backend-hospital-app-video-agora-certificate to that env var "
+                            + "(see root cloudbuild.yaml deploy-backend --set-secrets). "
+                            + "RTC tokens cannot be minted without the App Certificate; Agora calls are disabled until it is set.");
+        }
     }
 
     @Override
     public HospitalVideoSessionResponse createSession(String initiatorUserId, String peerUserId, String appointmentIdOrNull) {
-        if (appId.isEmpty()) {
-            throw new IllegalStateException("Agora app id missing: set APP_VIDEO_AGORA_APP_ID or app.video.agora.app-id");
-        }
-        if (appCertificate.isEmpty()) {
-            throw new IllegalStateException("Agora app certificate missing: set APP_VIDEO_AGORA_APP_CERTIFICATE");
-        }
         String channel = buildChannelName(appointmentIdOrNull, peerUserId, initiatorUserId);
         int uid = rtcUid(initiatorUserId);
         RtcTokenBuilder2 builder = new RtcTokenBuilder2();
@@ -53,10 +60,15 @@ public class AgoraVideoSessionAdapter implements VideoSessionPort {
         return new HospitalVideoSessionResponse("agora", channel, token, expiresAt, appId, (long) uid);
     }
 
+    /**
+     * Production: channel must be the appointment id (opaque UUID) so tokens are not usable on guessable names.
+     * Fallback (non-appointment) is only for dev / non-Agora paths — {@link com.flexshell.video.HospitalVideoSessionService}
+     * rejects Agora without an appointment id.
+     */
     static String buildChannelName(String appointmentId, String peerUserId, String initiatorUserId) {
         String base;
         if (appointmentId != null && !appointmentId.isBlank()) {
-            base = "hosp-appt-" + sanitize(appointmentId);
+            base = sanitize(appointmentId.trim());
         } else {
             String a = sanitize(initiatorUserId);
             String b = sanitize(peerUserId);

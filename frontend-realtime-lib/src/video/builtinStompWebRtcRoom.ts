@@ -18,10 +18,15 @@ export type BuiltinStompWebRtcContext = {
   publishSignal: (type: string, callId: string, payload: Record<string, unknown>) => void;
   getEnv: () => Record<string, unknown>;
   isDev: () => boolean;
+  /** Agora: fetch a fresh RTC token before expiry (optional). */
+  renewAgoraRtcToken?: () => Promise<string | null>;
+  /** Agora: notify backend that the call segment ended (e.g. on leave / unmount). */
+  notifyVideoCallEnded?: () => void | Promise<void>;
 };
 
 export type BuiltinStompWebRtcRoom = {
   mediaError: Ref<string>;
+  networkQualityWarning: Ref<string>;
   mount: () => void;
   unmount: () => void;
 };
@@ -62,6 +67,7 @@ export function createBuiltinStompWebRtcRoom(ctx: BuiltinStompWebRtcContext): Bu
   const appliedRemoteAnswer = ref(false);
   const lastIceProcessedLength = ref(0);
   const mediaError = ref('');
+  const networkQualityWarning = ref('');
 
   type ReleasePeerOptions = { clearStoredRemoteDescription?: boolean };
 
@@ -743,5 +749,5 @@ export function createBuiltinStompWebRtcRoom(ctx: BuiltinStompWebRtcContext): Bu
     void releasePeer({ clearStoredRemoteDescription: true });
   }
 
-  return { mediaError, mount, unmount };
+  return { mediaError, networkQualityWarning, mount, unmount };
 }

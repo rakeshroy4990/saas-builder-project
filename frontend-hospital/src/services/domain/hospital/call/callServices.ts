@@ -99,7 +99,11 @@ export const callHospitalServices: ServiceDefinition[] = [
         return ok({ skipped: true });
       }
       try {
-        const response = await apiClient.post(URLRegistry.paths.hospitalVideoSession, body);
+        /** Prefer secure join-call when we have an appointment id (server validates status + slot; Agora channel = appointment id). */
+        const useJoinCall = Boolean(appointmentId);
+        const response = useJoinCall
+          ? await apiClient.post(`/api/appointment/${encodeURIComponent(appointmentId)}/join-call`)
+          : await apiClient.post(URLRegistry.paths.hospitalVideoSession, body);
         const data = (response.data?.Data ?? response.data?.data ?? {}) as Record<string, unknown>;
         const provider = pickString(data, ['Provider', 'provider']) || getHospitalVideoProviderFromEnv();
         const after = (appStore.getData('hospital', 'VideoCall') ?? {}) as Record<string, unknown>;
@@ -114,7 +118,7 @@ export const callHospitalServices: ServiceDefinition[] = [
             : Number.parseInt(String(uidRaw ?? ''), 10) || 0;
         const videoSession = {
           provider,
-          roomId: pickString(data, ['RoomId', 'roomId']),
+          roomId: pickString(data, ['RoomId', 'roomId', 'ChannelName', 'channelName']),
           token: pickString(data, ['Token', 'token']),
           appId: pickString(data, ['AppId', 'appId']),
           expiresAt: pickString(data, ['ExpiresAt', 'expiresAt']),

@@ -620,6 +620,8 @@ export type HospitalSiteFooterOptions = {
    * (e.g. on the Terms page itself).
    */
   termsPageId?: string;
+  /** DPDP / health-data privacy notice. Pass empty string to hide. Default `privacy` when omitted. */
+  privacyPageId?: string;
 };
 
 export function hospitalSiteFooter(
@@ -628,7 +630,9 @@ export function hospitalSiteFooter(
   options?: HospitalSiteFooterOptions
 ): ComponentDefinition {
   const termsPageId = options?.termsPageId !== undefined ? options.termsPageId.trim() : 'terms';
+  const privacyPageId = options?.privacyPageId !== undefined ? options.privacyPageId.trim() : 'privacy';
   const showTermsLink = termsPageId.length > 0;
+  const showPrivacyLink = privacyPageId.length > 0;
 
   const children: ComponentDefinition[] = [
     {
@@ -641,26 +645,42 @@ export function hospitalSiteFooter(
     }
   ];
 
-  if (showTermsLink) {
+  if (showTermsLink || showPrivacyLink) {
+    const legalChildren: ComponentDefinition[] = [];
+    if (showTermsLink) {
+      legalChildren.push({
+        id: `${footerRootId}-terms-link`,
+        type: 'button',
+        config: {
+          text: 'Terms & Conditions',
+          styles: { styleTemplate: 'hosp.popup.linkButton' },
+          click: {
+            actionType: 'navigate',
+            navigate: { packageName: 'hospital', pageId: termsPageId }
+          }
+        }
+      });
+    }
+    if (showPrivacyLink) {
+      legalChildren.push({
+        id: `${footerRootId}-privacy-link`,
+        type: 'button',
+        config: {
+          text: 'Privacy Notice (India)',
+          styles: { styleTemplate: 'hosp.popup.linkButton' },
+          click: {
+            actionType: 'navigate',
+            navigate: { packageName: 'hospital', pageId: privacyPageId }
+          }
+        }
+      });
+    }
     children.push({
       id: `${footerRootId}-legal-row`,
       type: 'container',
       config: {
-        layout: { type: 'flex', flex: ['flex', 'justify-center', 'items-center', 'pt-2'] },
-        children: [
-          {
-            id: `${footerRootId}-terms-link`,
-            type: 'button',
-            config: {
-              text: 'Terms & Conditions',
-              styles: { styleTemplate: 'hosp.popup.linkButton' },
-              click: {
-                actionType: 'navigate',
-                navigate: { packageName: 'hospital', pageId: termsPageId }
-              }
-            }
-          }
-        ]
+        layout: { type: 'flex', flex: ['flex', 'justify-center', 'items-center', 'flex-wrap', 'gap-3', 'pt-2'] },
+        children: legalChildren
       }
     });
   }

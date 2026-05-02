@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Objects;
 
+/**
+ * Legacy session mint for peer-only flows. For Agora production, prefer
+ * {@code POST /api/appointment/{id}/join-call} so the channel is the appointment id and status/slot are validated.
+ */
 @RestController
 @RequestMapping("/api/hospital/video")
 public class HospitalVideoSessionController {

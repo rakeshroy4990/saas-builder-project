@@ -8,12 +8,13 @@ import { getApiBaseUrl } from './URLRegistry';
 import { URLRegistry } from './URLRegistry';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { logClient } from '../logging/clientLogger';
-import { clearAuthToken } from '../auth/authToken';
-import { getAuthToken } from '../auth/authToken';
-import { getRefreshToken } from '../auth/authToken';
-import { setAuthTokens } from '../auth/authToken';
-import { isAuthTokenExpired, subscribeAuthToken } from '../auth/authToken';
-import { clearPersistedAuthSessionProfile, syncHospitalUserIdFromAccessToken } from '../auth/authSessionStore';
+import {
+  applyAccessExpiryHintFromAuthPayload,
+  clearAuthToken,
+  isAuthTokenExpired,
+  subscribeAuthToken
+} from '../auth/authToken';
+import { clearPersistedAuthSessionProfile } from '../auth/authSessionStore';
 import { useAppStore } from '../../store/useAppStore';
 import { ingestSessionTelemetry } from '../analytics/sessionTelemetry';
 import { emitLoggedInSessionSummary, SessionSummaryKind } from '../analytics/sessionSummary';
@@ -45,7 +46,10 @@ export const apiClient = axios.create({
 });
 
 let refreshInFlight: Promise<boolean> | null = null;
-let tokenExpiryTimer: ReturnType<typeof setTimeout> | null = null;
+/** Proactively refresh this long before access JWT `exp` so long consultations are not interrupted. */
+let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+/** Refresh session cookies ~2 minutes before approximate access expiry (httpOnly tokens). */
+const PROACTIVE_REFRESH_BEFORE_EXPIRY_MS = 120_000;
 const AUTH_UNAUTHORIZED_CODE = 'AUTH_UNAUTHORIZED';
 const DEFAULT_AUTH_UNAUTHORIZED_MESSAGE = 'Invalid or expired token, Please login again.';
 const PLEASE_LOGIN_MESSAGE = 'You are not logged in. Please login.';
@@ -129,21 +133,42 @@ function readUnauthorizedPayload(payload: unknown): { isUnauthorized: boolean; m
   return { isUnauthorized: code === AUTH_UNAUTHORIZED_CODE && isTokenExpiryMessage, message };
 }
 
-subscribeAuthToken(({ accessToken, expiresAtMs }) => {
-  if (tokenExpiryTimer) {
-    clearTimeout(tokenExpiryTimer);
-    tokenExpiryTimer = null;
+async function refreshAccessToken(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    try {
+      const response = await apiClient.post(URLRegistry.paths.refresh, { DeviceId: 'browser' });
+      const root = response.data as Record<string, unknown> | undefined;
+      const dataNode = (root?.data ?? root?.Data ?? root ?? {}) as Record<string, unknown>;
+      applyAccessExpiryHintFromAuthPayload(dataNode);
+      applyAccessExpiryHintFromAuthPayload(root);
+      return response.status >= 200 && response.status < 300;
+    } catch {
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
+}
+
+function isRefreshRequestUrl(url: string): boolean {
+  return url.includes(URLRegistry.paths.refresh);
+}
+
+subscribeAuthToken(({ expiresAtMs }) => {
+  if (proactiveRefreshTimer) {
+    clearTimeout(proactiveRefreshTimer);
+    proactiveRefreshTimer = null;
   }
-  if (!accessToken) return;
   if (!expiresAtMs) return;
 
   const now = Date.now();
-  const delayMs = Math.max(0, expiresAtMs - now + 250);
-  tokenExpiryTimer = setTimeout(() => {
-    if (isAuthTokenExpired()) {
-      emitSessionExpiredTelemetryOnce(401);
-      performLocalLogoutAndRedirect();
-    }
+  const delayMs = Math.max(0, expiresAtMs - now - PROACTIVE_REFRESH_BEFORE_EXPIRY_MS);
+  proactiveRefreshTimer = setTimeout(() => {
+    void refreshAccessToken();
   }, delayMs);
 });
 
@@ -153,16 +178,6 @@ function setHeader(headers: unknown, key: string, value: string): void {
     return;
   }
   (headers as Record<string, string>)[key] = value;
-}
-
-function getHeader(headers: unknown, key: string): string | undefined {
-  if (headers && typeof headers === 'object' && 'get' in headers && typeof (headers as { get: unknown }).get === 'function') {
-    const value = (headers as { get: (k: string) => string | null }).get(key);
-    return value == null ? undefined : String(value);
-  }
-  const record = headers as Record<string, unknown>;
-  const value = record?.[key] ?? record?.[key.toLowerCase()] ?? record?.[key.toUpperCase()];
-  return value == null ? undefined : String(value);
 }
 
 function deleteHeader(headers: unknown, key: string): void {
@@ -176,9 +191,15 @@ function deleteHeader(headers: unknown, key: string): void {
   delete record[key.toUpperCase()];
 }
 
-apiClient.interceptors.request.use((config) => {
+apiClient.interceptors.request.use(async (config) => {
   config.headers = config.headers ?? {};
   setHeader(config.headers, 'X-Trace-Id', getOrCreateTraceId());
+  const requestUrl = String(config.url ?? '');
+  const isRefresh = isRefreshRequestUrl(requestUrl);
+  if (isRefresh) {
+    deleteHeader(config.headers, 'Authorization');
+  }
+
   const isMultipartUpload = typeof FormData !== 'undefined' && config.data instanceof FormData;
   if (isMultipartUpload) {
     // Let the browser set multipart boundary automatically.
@@ -186,14 +207,10 @@ apiClient.interceptors.request.use((config) => {
     // Upload requests may take longer than default API calls.
     config.timeout = Math.max(config.timeout ?? 0, 120000);
   }
-  const accessToken = getAuthToken();
-  if (accessToken && isAuthTokenExpired()) {
-    emitSessionExpiredTelemetryOnce(401);
-    performLocalLogoutAndRedirect();
-    return Promise.reject(new Error('Session expired. Please log in again.'));
-  }
-  if (accessToken && !getHeader(config.headers, 'Authorization')) {
-    setHeader(config.headers, 'Authorization', `Bearer ${accessToken}`);
+
+  // Access + refresh tokens are httpOnly cookies — no Authorization header. Refresh cookies when our TTL hint says we're close.
+  if (!isRefresh && isAuthTokenExpired()) {
+    await refreshAccessToken();
   }
   if (!shouldSkipSessionSummaryForAxios(config)) {
     (config as FlexshellTelemetryConfig).__flexshellTelemetryT0 = performance.now();
@@ -327,28 +344,3 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-async function refreshAccessToken(): Promise<boolean> {
-  if (refreshInFlight) return refreshInFlight;
-  if (!getRefreshToken()) return false;
-
-  refreshInFlight = (async () => {
-    try {
-      const response = await apiClient.post(URLRegistry.paths.refresh, { DeviceId: 'browser' });
-      const dataNode = (response.data?.data ?? response.data?.Data ?? response.data ?? {}) as Record<string, unknown>;
-      const accessToken = String(dataNode.accessToken ?? dataNode.AccessToken ?? '').trim();
-      const refreshToken = String(dataNode.refreshToken ?? dataNode.RefreshToken ?? '').trim();
-      if (accessToken && refreshToken) {
-        setAuthTokens(accessToken, refreshToken);
-        syncHospitalUserIdFromAccessToken();
-      }
-      return response.status >= 200 && response.status < 300;
-    } catch {
-      return false;
-    } finally {
-      refreshInFlight = null;
-    }
-  })();
-
-  return refreshInFlight;
-}

@@ -61,6 +61,9 @@ function injectLinkPreviewMeta() {
 }
 
 export default defineConfig({
+  define: {
+    __VUE_PROD_DEVTOOLS__: false
+  },
   plugins: [tailwindcss(), vue(), injectLinkPreviewMeta(), forceReloadOnUiChanges(), copyIndexTo404()],
   build: {
     /** `agora-rtc-sdk-ng` is ~1.5MB minified; lazy-loaded with video-call UI but still one vendor chunk. */

@@ -8,7 +8,13 @@ import { getOrCreateTraceId } from '../logging/traceContext';
 
 export function getApiBaseUrl(): string {
   const raw = import.meta.env.VITE_SPRING_API_BASE_URL ?? 'http://localhost:8080';
-  return String(raw).replace(/\/$/, '');
+  const base = String(raw).replace(/\/$/, '');
+  if (import.meta.env.PROD && base.startsWith('http://')) {
+    console.warn(
+      '[Flexshell] VITE_SPRING_API_BASE_URL should use https in production to avoid mixed content and protect health data in transit.'
+    );
+  }
+  return base;
 }
 
 export const SERVER_PATHS = {

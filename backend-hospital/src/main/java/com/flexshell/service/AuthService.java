@@ -19,6 +19,7 @@ import com.flexshell.auth.api.RegisterResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.email.AppEmailProperties;
+import com.flexshell.security.PasswordPolicy;
 import com.flexshell.observability.ObservabilityLogger;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -54,6 +55,7 @@ public class AuthService implements AuthFacade {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final Map<String, PrivilegedRequestAttempt> privilegedRequestAttempts = new ConcurrentHashMap<>();
     private final AppEmailProperties appEmailProperties;
+    private final PasswordPolicy passwordPolicy;
 
     private record PrivilegedRequestAttempt(int count, Instant windowStart) {
     }
@@ -69,12 +71,14 @@ public class AuthService implements AuthFacade {
             ObjectProvider<UserRepository> userRepositoryProvider,
             ObjectProvider<RefreshTokenRepository> refreshTokenRepositoryProvider,
             JwtService jwtService,
-            AppEmailProperties appEmailProperties
+            AppEmailProperties appEmailProperties,
+            PasswordPolicy passwordPolicy
     ) {
         this.userRepositoryProvider = userRepositoryProvider;
         this.refreshTokenRepositoryProvider = refreshTokenRepositoryProvider;
         this.jwtService = jwtService;
         this.appEmailProperties = appEmailProperties;
+        this.passwordPolicy = passwordPolicy;
     }
 
     public Optional<LoginResponse> login(String usernameOrEmail, String rawPassword) {
@@ -538,6 +542,8 @@ public class AuthService implements AuthFacade {
             return Optional.empty();
         }
 
+        passwordPolicy.validateOrThrow(rawPassword);
+
         Optional<UserEntity> existingOpt = userRepository.findByEmail(email);
         if (existingOpt.isPresent()) {
             UserEntity existing = existingOpt.get();
@@ -668,6 +674,8 @@ public class AuthService implements AuthFacade {
                     "New password must be different from your current password.",
                     "AUTH_PASSWORD_UNCHANGED");
         }
+
+        passwordPolicy.validateOrThrow(newPassword);
 
         Optional<UserEntity> userOpt =
                 emailRaw.contains("@")
