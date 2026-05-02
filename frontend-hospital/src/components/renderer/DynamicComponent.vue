@@ -11,6 +11,7 @@ import { resolveStyle } from '../../core/engine/StyleResolver';
 import type { ActionConfig, ActionRunTelemetryContext } from '../../core/types/ActionConfig';
 import type { MappingConfig } from '../../core/types/MappingConfig';
 import { resolveComponentDomId } from '../../core/utils/domId';
+import { useAppStore } from '../../store/useAppStore';
 
 /** `text` from `mapping`, optional truncation via `mappingMaxLength`, `textFallback` when empty; `truncatedTitle` = full string when truncated. */
 function resolveMappedDisplayFields(
@@ -53,10 +54,13 @@ const elementHtmlId = computed(() =>
 
 const { execute } = useActionEngine(props.pageConfig);
 const asyncBusy = useAsyncBusy();
+const appStore = useAppStore();
 const component = computed(() => ComponentRegistry.get(props.definition.type));
-const isVisible = computed(() =>
-  props.definition.condition ? evaluateCondition(props.definition.condition, props.context) : true
-);
+const isVisible = computed(() => {
+  // Nested keys (e.g. HomeContent.hero.videoId) are not always tracked through getData() alone.
+  void appStore.dataRevision;
+  return props.definition.condition ? evaluateCondition(props.definition.condition, props.context) : true;
+});
 
 const templateTokenRegex = /\{\{\s*([^}]+)\s*\}\}/g;
 
@@ -87,6 +91,7 @@ const resolveTemplateObject = (value: unknown): unknown => {
 };
 
 const resolvedConfig = computed(() => {
+  void appStore.dataRevision;
   const config = resolveTemplateObject(props.definition.config ?? {}) as Record<string, unknown>;
 
   if (props.definition.type === 'text' && config.mapping) {

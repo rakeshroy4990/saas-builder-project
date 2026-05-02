@@ -57,7 +57,7 @@ export const SERVER_PATHS = {
   /** PUT save profile: same body as `PUT /api/user`; optional `userId` query (else JWT principal). */
   userProfile: '/api/user/profile',
   test: '/api/test',
-  /** GET `?q=` — YouTube channel hero video (public; API key on server). Optional `user_id` scopes query_cache. */
+  /** GET `?q=` — YouTube channel hero video (public; API key on server). Empty `q` = top recent upload by views/likes (server config). Optional `user_id` scopes query_cache. */
   youtubeHeroVideo: '/api/youtube/hero-video',
   /** GET `?userId=&limit=` — recent YouTube hero queries from `query_cache` (authenticated; self only). */
   youtubeUserQueries: '/api/user/youtube-queries'
