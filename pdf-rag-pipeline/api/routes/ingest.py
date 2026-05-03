@@ -5,8 +5,14 @@ from api.schemas import IngestHealthResponse, IngestResponse, IngestStatusRespon
 from auth.dependencies import require_admin
 from auth.models import TokenPayload
 from config.settings import PDF_DIR
-from db.mongo_client import get_db
-from ingestion.pdf_tracker import get_unprocessed_pdfs, list_pdfs
+from ingestion.pdf_tracker import (
+    get_unprocessed_pdfs,
+    list_pdfs,
+    registry_count_status,
+    registry_count_total,
+    registry_find_failed,
+    registry_find_recent,
+)
 from workers.async_ingest_worker import process_all_pending
 
 router = APIRouter()
@@ -38,15 +44,10 @@ async def ingest_status(
     recent_limit: int = 10,
     _: TokenPayload = Depends(require_admin),
 ):
-    db = get_db()
     safe_limit = max(1, min(failed_limit, 100))
     safe_recent_limit = max(1, min(recent_limit, 100))
 
-    failed_rows = list(
-        db.pdf_registry.find({"status": "failed"}, {"_id": 1, "filename": 1, "filepath": 1, "error": 1})
-        .sort("ingested_at", -1)
-        .limit(safe_limit)
-    )
+    failed_rows = registry_find_failed(safe_limit)
     failures = [
         {
             "file_hash": str(row.get("_id", "")),
@@ -57,23 +58,7 @@ async def ingest_status(
         for row in failed_rows
     ]
 
-    recent_rows = list(
-        db.pdf_registry.find(
-            {},
-            {
-                "_id": 1,
-                "filename": 1,
-                "filepath": 1,
-                "status": 1,
-                "chunks_count": 1,
-                "error": 1,
-                "prefilter_stats": 1,
-                "ingested_at": 1,
-            },
-        )
-        .sort("ingested_at", -1)
-        .limit(safe_recent_limit)
-    )
+    recent_rows = registry_find_recent(safe_recent_limit)
     recent_files = [
         {
             "file_hash": str(row.get("_id", "")),
@@ -88,10 +73,10 @@ async def ingest_status(
     ]
 
     return IngestStatusResponse(
-        total_registry_records=db.pdf_registry.count_documents({}),
-        processed=db.pdf_registry.count_documents({"status": "processed"}),
-        processing=db.pdf_registry.count_documents({"status": "processing"}),
-        failed=db.pdf_registry.count_documents({"status": "failed"}),
+        total_registry_records=registry_count_total(),
+        processed=registry_count_status("processed"),
+        processing=registry_count_status("processing"),
+        failed=registry_count_status("failed"),
         pending_files=len(get_unprocessed_pdfs(pdf_dir)),
         recent_failures=failures,
         recent_files=recent_files,
@@ -103,11 +88,10 @@ async def ingest_health(
     pdf_dir: str = PDF_DIR,
     _: TokenPayload = Depends(require_admin),
 ):
-    db = get_db()
     return IngestHealthResponse(
-        total_registry_records=db.pdf_registry.count_documents({}),
-        processed=db.pdf_registry.count_documents({"status": "processed"}),
-        processing=db.pdf_registry.count_documents({"status": "processing"}),
-        failed=db.pdf_registry.count_documents({"status": "failed"}),
+        total_registry_records=registry_count_total(),
+        processed=registry_count_status("processed"),
+        processing=registry_count_status("processing"),
+        failed=registry_count_status("failed"),
         pending_files=len(get_unprocessed_pdfs(pdf_dir)),
     )

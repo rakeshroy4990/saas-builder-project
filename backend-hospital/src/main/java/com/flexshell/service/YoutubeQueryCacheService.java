@@ -10,6 +10,7 @@ import com.mongodb.client.model.Sorts;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -18,6 +19,7 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -25,20 +27,26 @@ public class YoutubeQueryCacheService {
     private static final String COLLECTION = "query_cache";
 
     private final ObjectProvider<MongoTemplate> mongoTemplateProvider;
+    private final ObjectProvider<JdbcTemplate> jdbcTemplateProvider;
     private final String queryCacheDatabase;
 
     public YoutubeQueryCacheService(
             ObjectProvider<MongoTemplate> mongoTemplateProvider,
+            ObjectProvider<JdbcTemplate> jdbcTemplateProvider,
             @Value("${app.youtube.query-cache.database:${APP_YOUTUBE_QUERY_CACHE_DATABASE:rag_db}}") String queryCacheDatabase
     ) {
         this.mongoTemplateProvider = mongoTemplateProvider;
+        this.jdbcTemplateProvider = jdbcTemplateProvider;
         this.queryCacheDatabase = queryCacheDatabase == null ? "rag_db" : queryCacheDatabase.trim();
     }
 
     public List<YoutubeQueryCacheEntryDto> listRecentForUser(String userId, int limit) {
         MongoTemplate template = mongoTemplateProvider.getIfAvailable();
-        if (template == null || userId == null || userId.isBlank()) {
+        if (userId == null || userId.isBlank()) {
             return List.of();
+        }
+        if (template == null) {
+            return listRecentForUserPostgres(userId, limit);
         }
         int cap = Math.min(Math.max(limit, 1), 200);
         String uid = userId.trim();
@@ -64,8 +72,11 @@ public class YoutubeQueryCacheService {
             long ttlMs
     ) {
         MongoTemplate template = mongoTemplateProvider.getIfAvailable();
-        if (template == null || userId == null || userId.isBlank() || normalizedQuery.isEmpty()) {
+        if (userId == null || userId.isBlank() || normalizedQuery.isEmpty()) {
             return Optional.empty();
+        }
+        if (template == null) {
+            return findFreshCachedVideoPostgres(userId, normalizedQuery, ttlMs);
         }
         String uid = userId.trim();
         MongoCollection<Document> collection = queryCacheCollection(template);
@@ -101,7 +112,11 @@ public class YoutubeQueryCacheService {
 
     public void saveUserQueryResult(String userId, String normalizedQuery, YoutubeHeroVideoResponse result) {
         MongoTemplate template = mongoTemplateProvider.getIfAvailable();
-        if (template == null || userId == null || userId.isBlank() || normalizedQuery.isEmpty()) {
+        if (userId == null || userId.isBlank() || normalizedQuery.isEmpty()) {
+            return;
+        }
+        if (template == null) {
+            saveUserQueryResultPostgres(userId, normalizedQuery, result);
             return;
         }
         if (result == null || result.getVideoId() == null || result.getVideoId().isBlank()) {
@@ -130,6 +145,96 @@ public class YoutubeQueryCacheService {
 
     public static String buildDocumentId(String userId, String normalizedQuery) {
         return "youtube::" + userId.trim() + "::" + normalizedQuery;
+    }
+
+    private List<YoutubeQueryCacheEntryDto> listRecentForUserPostgres(String userId, int limit) {
+        JdbcTemplate jdbc = jdbcTemplateProvider.getIfAvailable();
+        if (jdbc == null) {
+            return List.of();
+        }
+        int cap = Math.min(Math.max(limit, 1), 200);
+        String uid = userId.trim();
+        return jdbc.query(
+                """
+                        SELECT user_id, normalized_query, video_id, video_title, updated_at
+                        FROM youtube_query_cache
+                        WHERE deleted = false AND user_id = ?
+                        ORDER BY updated_at DESC
+                        LIMIT ?
+                        """,
+                (rs, rowNum) -> new YoutubeQueryCacheEntryDto(
+                        rs.getString("user_id"),
+                        rs.getString("normalized_query"),
+                        rs.getString("video_id"),
+                        rs.getString("video_title"),
+                        rs.getTimestamp("updated_at") == null ? "" : rs.getTimestamp("updated_at").toInstant().toString()
+                ),
+                uid,
+                cap
+        );
+    }
+
+    private Optional<YoutubeHeroVideoResponse> findFreshCachedVideoPostgres(
+            String userId,
+            String normalizedQuery,
+            long ttlMs
+    ) {
+        JdbcTemplate jdbc = jdbcTemplateProvider.getIfAvailable();
+        if (jdbc == null) {
+            return Optional.empty();
+        }
+        String uid = userId.trim();
+        return jdbc.query(
+                """
+                        SELECT video_id, video_title, updated_at
+                        FROM youtube_query_cache
+                        WHERE deleted = false AND user_id = ? AND normalized_query = ?
+                        LIMIT 1
+                        """,
+                (rs, rowNum) -> {
+                    String vid = rs.getString("video_id");
+                    String title = rs.getString("video_title");
+                    java.sql.Timestamp ts = rs.getTimestamp("updated_at");
+                    Instant updatedAt = ts == null ? null : ts.toInstant();
+                    if (vid == null || vid.isBlank() || updatedAt == null) {
+                        return null;
+                    }
+                    long ageMs = Instant.now().toEpochMilli() - updatedAt.toEpochMilli();
+                    if (ageMs > ttlMs) {
+                        return null;
+                    }
+                    return new YoutubeHeroVideoResponse(vid, title);
+                },
+                uid,
+                normalizedQuery
+        ).stream().filter(Objects::nonNull).findFirst();
+    }
+
+    private void saveUserQueryResultPostgres(String userId, String normalizedQuery, YoutubeHeroVideoResponse result) {
+        JdbcTemplate jdbc = jdbcTemplateProvider.getIfAvailable();
+        if (jdbc == null || result == null || result.getVideoId() == null || result.getVideoId().isBlank()) {
+            return;
+        }
+        String id = buildDocumentId(userId, normalizedQuery);
+        Instant now = Instant.now();
+        jdbc.update(
+                """
+                        INSERT INTO youtube_query_cache (id, user_id, normalized_query, video_id, video_title, updated_at, deleted)
+                        VALUES (?, ?, ?, ?, ?, ?, false)
+                        ON CONFLICT (user_id, normalized_query) DO UPDATE SET
+                            id = EXCLUDED.id,
+                            video_id = EXCLUDED.video_id,
+                            video_title = EXCLUDED.video_title,
+                            updated_at = EXCLUDED.updated_at,
+                            deleted = false
+                        """,
+                id,
+                userId.trim(),
+                normalizedQuery,
+                result.getVideoId(),
+                result.getVideoTitle(),
+                java.sql.Timestamp.from(now)
+        );
     }
 
     private YoutubeQueryCacheEntryDto toDto(Document doc) {

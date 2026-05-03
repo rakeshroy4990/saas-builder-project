@@ -1,6 +1,19 @@
 # Non-secret env vars for Cloud Run (gcloud run deploy --env-vars-file).
 # Format matches Spring Boot relaxed binding for keys in application.properties (${ENV_NAME} placeholders).
 # Sensitive values: use Secret Manager + --set-secrets (see ../cloudbuild.yaml); do not commit secrets here.
+# Same pattern as pdf-rag-pipeline/cloudrun-env.yaml: DB URIs and passwords never appear here—only in secrets.
+
+# --- app.persistence.provider + JDBC (postgres mode) ---
+# mongo = default (MongoDB Atlas; see spring.data.mongodb.* secrets below).
+# postgres = Flyway + JPA to PostgreSQL (e.g. Supabase); requires JDBC secrets from Secret Manager.
+# Local: export APP_PERSISTENCE_PROVIDER=postgres or use -Dapp.persistence.provider=postgres (FlexShellApplication).
+APP_PERSISTENCE_PROVIDER: postgres
+# Pool tuning only (non-secret). JDBC URL and password belong in secrets, e.g.:
+#   --set-secrets=SPRING_DATASOURCE_URL=backend-hospital-spring-datasource-url:latest
+# If your JDBC URL does NOT embed user:password, also mount:
+#   SPRING_DATASOURCE_USERNAME=..., SPRING_DATASOURCE_PASSWORD=...
+# (If the URL already contains credentials, separate username/password env vars are optional.)
+SPRING_DATASOURCE_MAX_POOL_SIZE: "10"
 
 # --- server.* ---
 # PORT is set automatically by Cloud Run; omit or override only for local parity.

@@ -15,7 +15,7 @@ class AiSafetyPolicyTest {
 
     @Test
     void appendsRequiredDisclaimerWhenMissing() {
-        String safe = policy.enforceSafeResponse("Try rest and hydration.");
+        String safe = policy.enforceSafeResponse("Try rest and hydration.", "What should I do?");
         assertTrue(safe.contains("not a doctor"));
         assertTrue(safe.contains(AiSafetyPolicy.DISCLAIMER_LINE));
     }

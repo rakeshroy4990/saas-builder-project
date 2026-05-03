@@ -18,54 +18,70 @@ export const adminDashboardHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
     serviceId: 'init-admin-dashboard',
-    execute: async () => {
+    execute: async (_request) => {
       const appStore = useAppStore(pinia);
       appStore.setData('hospital', 'AdminDashboard', { loading: true, error: '', pendingRequests: [], doctors: [] });
+      const loadErrors: string[] = [];
+
+      let pendingList: unknown[] = [];
       try {
-        const [pendingRes, doctorsRes] = await Promise.all([
-          apiClient.get(URLRegistry.paths.adminRoleRequests, { params: { page: 0, size: 50 } }),
-          apiClient.get(URLRegistry.paths.adminDoctors, { params: { page: 0, size: 100 } })
-        ]);
+        const pendingRes = await apiClient.get(URLRegistry.paths.adminRoleRequests, { params: { page: 0, size: 50 } });
         const pendingRaw = envelopeData(pendingRes.data);
-        const pendingList = Array.isArray(pendingRaw) ? pendingRaw : [];
-        const doctorsRaw = envelopeData(doctorsRes.data);
-        const doctorsList = Array.isArray(doctorsRaw) ? doctorsRaw : [];
-        appStore.setData('hospital', 'AdminDashboard', {
-          loading: false,
-          error: '',
-          pendingRequests: pendingList.map((row, i) => {
-            const r = (row ?? {}) as Record<string, unknown>;
-            const uid = pickString(r, ['userId', 'UserId', 'id', 'Id']).trim() || `pr-${i}`;
-            return {
-              id: uid,
-              userId: uid,
-              email: pickString(r, ['email', 'Email', 'emailId', 'EmailId']),
-              requestedRole: pickString(r, ['requestedRole', 'RequestedRole']),
-              roleStatus: pickString(r, ['roleStatus', 'RoleStatus']),
-              name: `${pickString(r, ['firstName', 'FirstName'])} ${pickString(r, ['lastName', 'LastName'])}`.trim()
-            };
-          }),
-          doctors: doctorsList.map((row, i) => {
-            const r = (row ?? {}) as Record<string, unknown>;
-            return {
-              id: pickString(r, ['Id', 'id']).trim() || `doc-${i}`,
-              name: pickString(r, ['Name', 'name']),
-              email: pickString(r, ['Email', 'email']),
-              department: pickString(r, ['Department', 'department']),
-              roleStatus: pickString(r, ['RoleStatus', 'roleStatus']),
-              active: String(r.Active ?? r.active ?? 'true').toLowerCase() === 'true'
-            };
-          })
-        });
-        return ok();
+        pendingList = Array.isArray(pendingRaw) ? pendingRaw : [];
       } catch (error) {
         const message = isAxiosError(error)
           ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||
-            'Unable to load admin data.'
-          : 'Unable to load admin data.';
-        appStore.setData('hospital', 'AdminDashboard', { loading: false, error: message, pendingRequests: [], doctors: [] });
-        return { responseCode: 'ADMIN_DASH_INIT_FAILED', message };
+            'Unable to load pending role requests.'
+          : 'Unable to load pending role requests.';
+        loadErrors.push(message);
       }
+
+      let doctorsList: unknown[] = [];
+      try {
+        const doctorsRes = await apiClient.get(URLRegistry.paths.adminDoctors, { params: { page: 0, size: 100 } });
+        const doctorsRaw = envelopeData(doctorsRes.data);
+        doctorsList = Array.isArray(doctorsRaw) ? doctorsRaw : [];
+      } catch (error) {
+        const message = isAxiosError(error)
+          ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||
+            'Unable to load doctors.'
+          : 'Unable to load doctors.';
+        loadErrors.push(message);
+      }
+
+      const errorSummary = loadErrors.join(' ');
+      appStore.setData('hospital', 'AdminDashboard', {
+        loading: false,
+        error: errorSummary,
+        pendingRequests: pendingList.map((row, i) => {
+          const r = (row ?? {}) as Record<string, unknown>;
+          const uid = pickString(r, ['userId', 'UserId', 'id', 'Id']).trim() || `pr-${i}`;
+          return {
+            id: uid,
+            userId: uid,
+            email: pickString(r, ['email', 'Email', 'emailId', 'EmailId']),
+            requestedRole: pickString(r, ['requestedRole', 'RequestedRole']),
+            roleStatus: pickString(r, ['roleStatus', 'RoleStatus']),
+            name: `${pickString(r, ['firstName', 'FirstName'])} ${pickString(r, ['lastName', 'LastName'])}`.trim()
+          };
+        }),
+        doctors: doctorsList.map((row, i) => {
+          const r = (row ?? {}) as Record<string, unknown>;
+          return {
+            id: pickString(r, ['Id', 'id']).trim() || `doc-${i}`,
+            name: pickString(r, ['Name', 'name']),
+            email: pickString(r, ['Email', 'email']),
+            department: pickString(r, ['Department', 'department']),
+            roleStatus: pickString(r, ['RoleStatus', 'roleStatus']),
+            active: String(r.Active ?? r.active ?? 'true').toLowerCase() === 'true'
+          };
+        })
+      });
+
+      if (loadErrors.length === 2) {
+        return { responseCode: 'ADMIN_DASH_INIT_FAILED', message: errorSummary };
+      }
+      return ok();
     }
   },
   {
@@ -78,7 +94,7 @@ export const adminDashboardHospitalServices: ServiceDefinition[] = [
         await apiClient.post(`${URLRegistry.paths.adminRoleRequests}/${encodeURIComponent(userId)}/approve`);
         useToastStore(pinia).show('Request approved.', 'success');
         const svc = adminDashboardHospitalServices.find((s) => s.serviceId === 'init-admin-dashboard');
-        if (svc) await svc.execute();
+        if (svc) await svc.execute({ data: {} });
         return ok();
       } catch (error) {
         const message = isAxiosError(error)
@@ -98,7 +114,7 @@ export const adminDashboardHospitalServices: ServiceDefinition[] = [
         await apiClient.post(`${URLRegistry.paths.adminDoctors}/${encodeURIComponent(userId)}/deactivate`);
         useToastStore(pinia).show('Doctor account deactivated.', 'success');
         const svc = adminDashboardHospitalServices.find((s) => s.serviceId === 'init-admin-dashboard');
-        if (svc) await svc.execute();
+        if (svc) await svc.execute({ data: {} });
         await loadDashboardAppointmentsPage(0);
         return ok();
       } catch (error) {
@@ -113,7 +129,7 @@ export const adminDashboardHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
     serviceId: 'submit-admin-register-doctor',
-    execute: async () => {
+    execute: async (_request) => {
       const appStore = useAppStore(pinia);
       const form = (appStore.getData('hospital', 'AdminDoctorRegisterForm') ?? {}) as Record<string, unknown>;
       const body = {
@@ -151,7 +167,7 @@ export const adminDashboardHospitalServices: ServiceDefinition[] = [
           smcRegistrationNumber: ''
         });
         const svc = adminDashboardHospitalServices.find((s) => s.serviceId === 'init-admin-dashboard');
-        if (svc) await svc.execute();
+        if (svc) await svc.execute({ data: {} });
         return ok();
       } catch (error) {
         const message = isAxiosError(error)

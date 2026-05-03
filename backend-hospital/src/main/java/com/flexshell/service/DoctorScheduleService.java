@@ -1,7 +1,7 @@
 package com.flexshell.service;
 
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.DoctorScheduleDayDto;
 import com.flexshell.controller.dto.DoctorScheduleResponse;
@@ -11,6 +11,7 @@ import com.flexshell.doctorschedule.DoctorScheduleDay;
 import com.flexshell.doctorschedule.DoctorScheduleEntity;
 import com.flexshell.doctorschedule.DoctorScheduleRepository;
 import com.flexshell.doctorschedule.DoctorScheduleWindow;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -28,12 +29,14 @@ import java.util.Set;
 public class DoctorScheduleService {
     public static final Set<String> DAY_KEYS = Set.of("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN");
 
-    private final DoctorScheduleRepository doctorScheduleRepository;
-    private final UserRepository userRepository;
+    private final ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
 
-    public DoctorScheduleService(DoctorScheduleRepository doctorScheduleRepository, UserRepository userRepository) {
-        this.doctorScheduleRepository = doctorScheduleRepository;
-        this.userRepository = userRepository;
+    public DoctorScheduleService(
+            ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider,
+            ObjectProvider<UserAccess> userAccessProvider) {
+        this.doctorScheduleRepositoryProvider = doctorScheduleRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
     }
 
     public Optional<DoctorScheduleResponse> getSchedule(String doctorId, String actorUserId) {
@@ -42,7 +45,7 @@ public class DoctorScheduleService {
             throw new IllegalArgumentException("DoctorId is required");
         }
         ensureCanReadSchedule(actorUserId, docId);
-        return doctorScheduleRepository.findByDoctorId(docId).map(this::toResponse);
+        return requireScheduleRepository().findByDoctorId(docId).map(this::toResponse);
     }
 
     /** Default shape when no Mongo document exists yet (not persisted until PUT). */
@@ -78,6 +81,7 @@ public class DoctorScheduleService {
             throw new IllegalArgumentException("Weekly schedule is required");
         }
         validateWeekly(weeklyDto);
+        DoctorScheduleRepository doctorScheduleRepository = requireScheduleRepository();
         DoctorScheduleEntity entity = doctorScheduleRepository.findByDoctorId(doctorId).orElseGet(() -> {
             DoctorScheduleEntity e = new DoctorScheduleEntity();
             e.setDoctorId(doctorId);
@@ -219,8 +223,20 @@ public class DoctorScheduleService {
         return r;
     }
 
+    private DoctorScheduleRepository requireScheduleRepository() {
+        DoctorScheduleRepository repository = doctorScheduleRepositoryProvider.getIfAvailable();
+        if (repository == null) {
+            throw new IllegalStateException("Doctor schedule persistence is unavailable");
+        }
+        return repository;
+    }
+
     private UserRole resolveRole(String actorUserId) {
-        UserEntity user = userRepository.findById(normalize(actorUserId))
+        UserAccess ua = userAccessProvider.getIfAvailable();
+        if (ua == null) {
+            throw new IllegalStateException("User persistence unavailable");
+        }
+        UserEntity user = ua.findById(normalize(actorUserId))
                 .orElseThrow(() -> new SecurityException("User not found"));
         return user.getRole();
     }

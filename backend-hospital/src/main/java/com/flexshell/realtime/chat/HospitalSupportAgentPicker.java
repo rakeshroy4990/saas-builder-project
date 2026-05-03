@@ -1,10 +1,11 @@
 package com.flexshell.realtime.chat;
 
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.realtime.chat.support.SupportAgentPicker;
 import com.flexshell.realtime.ws.auth.WsSessionAuthRegistry;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -13,11 +14,13 @@ import java.util.Objects;
 @Component
 public class HospitalSupportAgentPicker implements SupportAgentPicker {
     private final WsSessionAuthRegistry wsSessionAuthRegistry;
-    private final UserRepository userRepository;
+    private final ObjectProvider<UserAccess> userAccessProvider;
 
-    public HospitalSupportAgentPicker(WsSessionAuthRegistry wsSessionAuthRegistry, UserRepository userRepository) {
+    public HospitalSupportAgentPicker(
+            WsSessionAuthRegistry wsSessionAuthRegistry,
+            ObjectProvider<UserAccess> userAccessProvider) {
         this.wsSessionAuthRegistry = wsSessionAuthRegistry;
-        this.userRepository = userRepository;
+        this.userAccessProvider = userAccessProvider;
     }
 
     @Override
@@ -32,7 +35,11 @@ public class HospitalSupportAgentPicker implements SupportAgentPicker {
     }
 
     private boolean isAdmin(String userId) {
-        UserEntity user = userRepository.findById(userId).orElse(null);
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) {
+            return false;
+        }
+        UserEntity user = users.findById(userId).orElse(null);
         return user != null && user.getRole() == UserRole.ADMIN;
     }
 

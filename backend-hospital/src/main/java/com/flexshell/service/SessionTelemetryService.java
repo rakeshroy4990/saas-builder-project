@@ -35,7 +35,10 @@ public class SessionTelemetryService {
             userId = "anonymous";
         }
         String traceId = normalize(request.getTraceId());
-        String sessionKey = userId + "::" + traceId;
+        String loginSessionId = normalize(request.getLoginSessionId());
+        String sessionKey = loginSessionId.isBlank()
+                ? userId + "::" + traceId
+                : userId + "::login::" + loginSessionId;
         Instant now = Instant.now();
 
         SessionTelemetryEntity entity = repository.findTop1BySessionKeyOrderByUpdatedAtDesc(sessionKey)

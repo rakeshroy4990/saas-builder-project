@@ -771,7 +771,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
 
         if (department) {
           try {
-            const doctors = await ensureDoctorOptionsLoadedByDepartment(department);
+            const doctors = await ensureDoctorOptionsLoadedByDepartment(department, { force: true });
             appStore.setData('hospital', 'AppointmentDoctors', { list: doctors });
           } catch {
             appStore.setData('hospital', 'AppointmentDoctors', { list: [] });

@@ -2,6 +2,10 @@
 #
 # backend-hospital — create secrets (never commit values):
 #   printf %s 'mongodb+srv://...' | gcloud secrets create backend-hospital-spring-data-mongodb-uri --data-file=-
+#   Postgres (APP_PERSISTENCE_PROVIDER=postgres): JDBC URL must start with jdbc:postgresql://
+#   printf %s 'jdbc:postgresql://...pooler...:5432/postgres?sslmode=require' | gcloud secrets create backend-hospital-spring-datasource-url --data-file=-
+#   printf %s 'your-db-password' | gcloud secrets create backend-hospital-spring-datasource-password --data-file=-
+#   (Omit the password secret if the JDBC URL already embeds user:password.)
 #   printf %s 'your-jwt-secret' | gcloud secrets create backend-hospital-app-auth-jwt-secret --data-file=-
 #   printf %s 'agora-cert' | gcloud secrets create backend-hospital-app-video-agora-certificate --data-file=-
 #   printf %s 'AIza...' | gcloud secrets create backend-hospital-app-ai-gemini-api-key --data-file=-
@@ -13,15 +17,18 @@
 #   printf %s 'mongodb+srv://...' | gcloud secrets create pdf-rag-pipeline-mongo-uri --data-file=-
 #   printf %s 'jwt-signing-secret' | gcloud secrets create pdf-rag-pipeline-jwt-secret --data-file=-
 #   printf %s 'sk-...' | gcloud secrets create pdf-rag-pipeline-openai-api-key --data-file=-
+#   Postgres (cloudrun-env APP_PERSISTENCE_PROVIDER=postgres): libpq URL, e.g. postgresql://user:pass@host:5432/db?sslmode=require
+#   printf %s 'postgresql://postgres.PROJECT:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres?sslmode=require' | gcloud secrets create pdf-rag-pipeline-database-url --data-file=-
 #
 # Grant Cloud Run runtime SA secretAccessor (replace PROJECT_NUMBER):
 #   RUNTIME_SA="PROJECT_NUMBER-compute@developer.gserviceaccount.com"
 #   for s in \
-#     backend-hospital-spring-data-mongodb-uri backend-hospital-app-auth-jwt-secret \
+#     backend-hospital-spring-data-mongodb-uri backend-hospital-spring-datasource-url \
+#     backend-hospital-app-auth-jwt-secret \
 #     backend-hospital-app-video-agora-certificate backend-hospital-app-ai-gemini-api-key \
 #     backend-hospital-youtube-api-key backend-hospital-app-email-internal-secret \
 #     email-notify-resend-api-key \
-#     pdf-rag-pipeline-mongo-uri pdf-rag-pipeline-jwt-secret \
+#     pdf-rag-pipeline-mongo-uri pdf-rag-pipeline-database-url pdf-rag-pipeline-jwt-secret \
 #     pdf-rag-pipeline-openai-api-key pdf-rag-pipeline-gemini-api-key; do
 #     gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:${RUNTIME_SA}" --role="roles/secretmanager.secretAccessor"
 #   done
@@ -121,7 +128,7 @@ steps:
       - backend-hospital/cloudrun-env.yaml
       # When APP_VIDEO_PROVIDER=agora (cloudrun-env), backend-hospital fails fast at startup if this secret is missing/empty.
       - --set-secrets
-      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest,YOUTUBE_API_KEY=backend-hospital-youtube-api-key:latest,APP_EMAIL_INTERNAL_SECRET=backend-hospital-app-email-internal-secret:latest
+      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,SPRING_DATASOURCE_URL=backend-hospital-spring-datasource-url:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest,YOUTUBE_API_KEY=backend-hospital-youtube-api-key:latest,APP_EMAIL_INTERNAL_SECRET=backend-hospital-app-email-internal-secret:latest
       - --quiet
 
   # ── pdf-rag-pipeline: deploy ──────────────────────────────────
@@ -143,7 +150,7 @@ steps:
       - --env-vars-file
       - pdf-rag-pipeline/cloudrun-env.yaml
       - --set-secrets
-      - MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest
+      - MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,DATABASE_URL=pdf-rag-pipeline-database-url:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest
       - --quiet
 
   # ── email-notify: deploy ──────────────────────────────────────

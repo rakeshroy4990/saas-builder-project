@@ -32,18 +32,22 @@ public interface UserRepository extends MongoRepository<UserEntity, String> {
             Pageable pageable
     );
 
+    /**
+     * {@code ?2} is a BSON array of department strings compared case-insensitively to {@code Department}
+     * (e.g. UI may send a department code while users store the full name, or casing may differ).
+     */
     @Query("{ " +
             "'Role': ?0, " +
-            "'Department': { $in: ?2 }, " +
             "'$and': [" +
             "  { '$or': [ { 'RoleStatus': ?1 }, { 'RoleStatus': null }, { 'RoleStatus': { '$exists': false } } ] }, " +
-            "  { '$or': [ { 'Active': true }, { 'Active': null }, { 'Active': { '$exists': false } } ] }" +
+            "  { '$or': [ { 'Active': true }, { 'Active': null }, { 'Active': { '$exists': false } } ] }," +
+            "  { $expr: { $in: [ { $toLower: { $ifNull: [ '$Department', '' ] } }, ?2 ] } }" +
             "]" +
             "}")
     Page<UserEntity> findActiveDoctorsByDepartments(
             UserRole role,
             RoleRequestStatus roleStatus,
-            List<String> departments,
+            List<String> departmentKeysLower,
             Pageable pageable
     );
 

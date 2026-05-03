@@ -3,7 +3,7 @@ package com.flexshell.service;
 import com.flexshell.appointment.AppointmentEntity;
 import com.flexshell.appointment.AppointmentRepository;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.email.AppointmentCreatedEmailNotifier;
 import com.flexshell.email.AppointmentEmailNotifyOutcome;
@@ -48,20 +48,20 @@ public class AppointmentService {
     /** Admin-only soft removal from operational views; document stays in Mongo. */
     public static final String STATUS_DELETED = "DELETED";
     private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
-    private final ObjectProvider<UserRepository> userRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
     private final ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider;
     private final ZoneId hospitalZoneId;
     private final AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier;
 
     public AppointmentService(
             ObjectProvider<AppointmentRepository> appointmentRepositoryProvider,
-            ObjectProvider<UserRepository> userRepositoryProvider,
+            ObjectProvider<UserAccess> userAccessProvider,
             ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider,
             @Qualifier("hospitalZoneId") ZoneId hospitalZoneId,
             AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier
     ) {
         this.appointmentRepositoryProvider = appointmentRepositoryProvider;
-        this.userRepositoryProvider = userRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
         this.doctorScheduleRepositoryProvider = doctorScheduleRepositoryProvider;
         this.hospitalZoneId = hospitalZoneId;
         this.appointmentCreatedEmailNotifier = appointmentCreatedEmailNotifier;
@@ -227,8 +227,8 @@ public class AppointmentService {
      * Paginated list of all appointments (admin dashboard). Newest first.
      */
     public PagedAppointmentListDto listAllAppointmentsPagedForAdmin(String adminUserId, int page, int size) {
-        UserRepository userRepository = requireUserRepository();
-        AdminAuthorizationSupport.requireAdminUser(userRepository, adminUserId);
+        UserAccess users = requireUserAccess();
+        AdminAuthorizationSupport.requireAdminUser(users, adminUserId);
         AppointmentRepository repository = requireAppointmentRepository();
         int safePage = Math.max(0, page);
         int safeSize = size <= 0 ? 20 : Math.min(size, 200);
@@ -247,8 +247,8 @@ public class AppointmentService {
      * Marks an appointment as DELETED (admin-only); does not remove the document.
      */
     public AppointmentResponse softDeleteAppointmentAsAdmin(String appointmentId, String adminUserId) {
-        UserRepository userRepository = requireUserRepository();
-        AdminAuthorizationSupport.requireAdminUser(userRepository, adminUserId);
+        UserAccess users = requireUserAccess();
+        AdminAuthorizationSupport.requireAdminUser(users, adminUserId);
         AppointmentRepository repository = requireAppointmentRepository();
         AppointmentEntity entity = repository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
@@ -428,21 +428,21 @@ public class AppointmentService {
     }
 
     private String resolveDoctorName(String doctorId) {
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null || doctorId == null || doctorId.isBlank()) {
+        UserAccess ua = userAccessProvider.getIfAvailable();
+        if (ua == null || doctorId == null || doctorId.isBlank()) {
             return "";
         }
-        return userRepository.findById(doctorId)
+        return ua.findById(doctorId)
                 .map(this::displayName)
                 .orElse("");
     }
 
     private String resolveDoctorEmail(String doctorId) {
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null || doctorId == null || doctorId.isBlank()) {
+        UserAccess ua = userAccessProvider.getIfAvailable();
+        if (ua == null || doctorId == null || doctorId.isBlank()) {
             return "";
         }
-        return userRepository.findById(doctorId)
+        return ua.findById(doctorId)
                 .map(UserEntity::getEmail)
                 .map(this::normalize)
                 .orElse("");
@@ -574,8 +574,8 @@ public class AppointmentService {
     }
 
     private UserRole resolveUserRole(String actorUserId) {
-        UserRepository userRepository = requireUserRepository();
-        UserEntity user = userRepository.findById(actorUserId)
+        UserAccess users = requireUserAccess();
+        UserEntity user = users.findById(actorUserId)
                 .orElseThrow(() -> new SecurityException("User not found"));
         return user.getRole();
     }
@@ -667,11 +667,11 @@ public class AppointmentService {
         return repository;
     }
 
-    private UserRepository requireUserRepository() {
-        UserRepository repository = userRepositoryProvider.getIfAvailable();
-        if (repository == null) {
-            throw new IllegalStateException("User repository is unavailable");
+    private UserAccess requireUserAccess() {
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) {
+            throw new IllegalStateException("User persistence is unavailable");
         }
-        return repository;
+        return users;
     }
 }

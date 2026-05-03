@@ -13,7 +13,8 @@ import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcIn
 import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { emitSessionSummaryAuthLogin } from '../../../analytics/sessionSummary';
-import { startNewTraceId } from '../../../logging/traceContext';
+import { mintLoginSessionId } from '../../../logging/loginSessionContext';
+import { getOrCreateTraceId, startNewTraceId } from '../../../logging/traceContext';
 import { refreshHeroYoutubeFromUserQueryCache } from '../home/resolveHeroYoutubeVideoService';
 
 /**
@@ -94,6 +95,8 @@ export async function finalizeHospitalLoginSession(
     smcRegistrationNumber: resolvedSmcRegistrationNumber,
     role: resolvedRole
   });
+  mintLoginSessionId();
+  startNewTraceId();
   useAppStore(pinia).setProperty('hospital', 'AuthForm', 'emailError', '');
   useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', '');
   useAppStore(pinia).setProperty('hospital', 'AuthForm', 'loginInfoMessage', '');
@@ -109,12 +112,11 @@ export async function finalizeHospitalLoginSession(
       // Non-fatal: badge/chat still work after opening the chat popup.
     }
   }
-  const loginSessionTraceId = startNewTraceId();
   trackEvent('login_success', {
     role: resolvedRole,
     domain: 'auth',
     status: 'success',
-    trace_id: loginSessionTraceId
+    trace_id: getOrCreateTraceId()
   });
   emitSessionSummaryAuthLogin(options?.authMethod === 'google' ? 'google' : 'password');
   void refreshHeroYoutubeFromUserQueryCache();

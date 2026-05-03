@@ -2,7 +2,7 @@ package com.flexshell.service;
 
 import com.flexshell.auth.RoleRequestStatus;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.CreateInitialAdminRequest;
 import com.flexshell.controller.dto.CreateInitialAdminResponse;
@@ -17,20 +17,20 @@ import java.time.Instant;
 @Service
 public class InitialAdminService {
     private static final Logger log = LoggerFactory.getLogger(InitialAdminService.class);
-    private final ObjectProvider<UserRepository> userRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public InitialAdminService(ObjectProvider<UserRepository> userRepositoryProvider) {
-        this.userRepositoryProvider = userRepositoryProvider;
+    public InitialAdminService(ObjectProvider<UserAccess> userAccessProvider) {
+        this.userAccessProvider = userAccessProvider;
     }
 
     public CreateInitialAdminResponse createInitialAdmin(CreateInitialAdminRequest request) {
-        UserRepository userRepository = requireRepository();
-        if (userRepository.countByRole(UserRole.ADMIN) > 0) {
+        UserAccess users = requireRepository();
+        if (users.countByRole(UserRole.ADMIN) > 0) {
             throw new IllegalStateException("Admin already exists");
         }
         String email = request.getEmail().trim().toLowerCase();
-        if (userRepository.findByEmail(email).isPresent()) {
+        if (users.findByEmail(email).isPresent()) {
             throw new IllegalStateException("User with this email already exists");
         }
         Instant now = Instant.now();
@@ -51,7 +51,7 @@ public class InitialAdminService {
         admin.setRoleStatus(RoleRequestStatus.ACTIVE);
         admin.setRequestedRole(null);
         admin.setRoleRejectedReason(null);
-        UserEntity saved = userRepository.save(admin);
+        UserEntity saved = users.save(admin);
         log.info("Initial admin created userId={} email={}", saved.getId(), saved.getEmail());
         return new CreateInitialAdminResponse(
                 saved.getId(),
@@ -60,11 +60,11 @@ public class InitialAdminService {
                 saved.getRoleStatus().name());
     }
 
-    private UserRepository requireRepository() {
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null) {
-            throw new IllegalStateException("User repository is unavailable");
+    private UserAccess requireRepository() {
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) {
+            throw new IllegalStateException("User persistence is unavailable");
         }
-        return userRepository;
+        return users;
     }
 }

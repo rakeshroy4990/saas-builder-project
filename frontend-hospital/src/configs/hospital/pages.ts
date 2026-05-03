@@ -1844,7 +1844,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-admin-pending-heading',
                             type: 'text',
                             config: {
-                              text: 'Pending doctor registrations',
+                              text: 'Pending registrations (doctor or admin)',
                               styles: { styleTemplate: 'hosp.section.subheading' }
                             }
                           },
@@ -2566,28 +2566,6 @@ export const hospitalPages: PageConfig[] = [
                             flex: ['flex', 'flex-row', 'flex-wrap', 'gap-3', 'items-center', 'mt-auto', 'pt-3']
                           },
                           children: [
-                            {
-                              id: 'hospital-blog-card-read-more',
-                              type: 'button',
-                              config: {
-                                text: 'Read more',
-                                styles: {
-                                  utilityClasses:
-                                    'inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800 underline underline-offset-2'
-                                },
-                                click: {
-                                  packageName: 'hospital',
-                                  actionId: 'open-blog-read-more-popup',
-                                  data: {
-                                    title: '{{title}}',
-                                    teaser: '{{teaser}}',
-                                    slug: '{{slug}}',
-                                    category: '{{category}}',
-                                    readTimeMinutes: '{{readTimeMinutes}}'
-                                  }
-                                }
-                              }
-                            },
                             {
                               id: 'hospital-blog-card-open-page',
                               type: 'button',

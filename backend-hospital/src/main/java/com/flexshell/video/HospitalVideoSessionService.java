@@ -3,11 +3,12 @@ package com.flexshell.video;
 import com.flexshell.appointment.AppointmentEntity;
 import com.flexshell.appointment.AppointmentRepository;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.HospitalVideoSessionRequest;
 import com.flexshell.controller.dto.HospitalVideoSessionResponse;
 import com.flexshell.realtime.webrtc.HospitalCallPermissionEvaluator;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,21 +16,21 @@ import java.util.Objects;
 
 @Service
 public class HospitalVideoSessionService {
-    private final AppointmentRepository appointmentRepository;
-    private final UserRepository userRepository;
+    private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
     private final HospitalCallPermissionEvaluator permissionEvaluator;
     private final VideoSessionPort videoSessionPort;
     private final String videoProvider;
 
     public HospitalVideoSessionService(
-            AppointmentRepository appointmentRepository,
-            UserRepository userRepository,
+            ObjectProvider<AppointmentRepository> appointmentRepositoryProvider,
+            ObjectProvider<UserAccess> userAccessProvider,
             HospitalCallPermissionEvaluator permissionEvaluator,
             VideoSessionPort videoSessionPort,
             @Value("${app.video.provider:builtin}") String videoProvider
     ) {
-        this.appointmentRepository = appointmentRepository;
-        this.userRepository = userRepository;
+        this.appointmentRepositoryProvider = appointmentRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
         this.permissionEvaluator = permissionEvaluator;
         this.videoSessionPort = videoSessionPort;
         this.videoProvider = Objects.toString(videoProvider, "builtin").trim();
@@ -60,6 +61,10 @@ public class HospitalVideoSessionService {
         String apId = normalize(request.appointmentId());
         String explicitPeer = normalize(request.peerUserId());
         if (!apId.isEmpty()) {
+            AppointmentRepository appointmentRepository = appointmentRepositoryProvider.getIfAvailable();
+            if (appointmentRepository == null) {
+                throw new IllegalStateException("Appointment persistence is unavailable");
+            }
             AppointmentEntity ap = appointmentRepository.findById(apId)
                     .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
             String doctor = normalize(ap.getDoctorId());
@@ -70,7 +75,8 @@ public class HospitalVideoSessionService {
             if (me.equals(doctor)) {
                 return patient;
             }
-            UserEntity self = userRepository.findById(me).orElse(null);
+            UserAccess users = userAccessProvider.getIfAvailable();
+            UserEntity self = users == null ? null : users.findById(me).orElse(null);
             if (self != null && self.getRole() == UserRole.ADMIN) {
                 if (!explicitPeer.isEmpty()) {
                     return explicitPeer;

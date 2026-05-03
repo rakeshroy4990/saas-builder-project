@@ -2,7 +2,7 @@ package com.flexshell.config;
 
 import com.flexshell.auth.RoleRequestStatus;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,20 +17,20 @@ import java.time.Instant;
 import java.util.Optional;
 
 @Component
-@ConditionalOnBean(UserRepository.class)
+@ConditionalOnBean(UserAccess.class)
 public class UserSeedInitializer {
     private static final Logger log = LoggerFactory.getLogger(UserSeedInitializer.class);
-    private final UserRepository userRepository;
+    private final UserAccess userAccess;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final boolean enabled;
     private final String seedPassword;
 
     public UserSeedInitializer(
-            UserRepository userRepository,
+            UserAccess userAccess,
             @Value("${app.seed.users.enabled:false}") boolean enabled,
             @Value("${app.seed.users.default-password:ChangeMe123!}") String seedPassword
     ) {
-        this.userRepository = userRepository;
+        this.userAccess = userAccess;
         this.enabled = enabled;
         this.seedPassword = seedPassword;
     }
@@ -48,19 +48,19 @@ public class UserSeedInitializer {
     }
 
     private void seedAdmin(String email, String firstName, String lastName) {
-        Optional<UserEntity> existing = userRepository.findByEmail(email);
+        Optional<UserEntity> existing = userAccess.findByEmail(email);
         if (existing.isPresent()) {
             return;
         }
         UserEntity admin = buildBaseUser(email, firstName, lastName);
         admin.setRole(UserRole.ADMIN);
         admin.setRoleStatus(RoleRequestStatus.ACTIVE);
-        userRepository.save(admin);
+        userAccess.save(admin);
         log.info("Seeded admin user email={}", email);
     }
 
     private void seedPatientWithPendingDoctorRequest(String email, String firstName, String lastName) {
-        Optional<UserEntity> existing = userRepository.findByEmail(email);
+        Optional<UserEntity> existing = userAccess.findByEmail(email);
         if (existing.isPresent()) {
             return;
         }
@@ -69,19 +69,19 @@ public class UserSeedInitializer {
         user.setRoleStatus(RoleRequestStatus.PENDING_APPROVAL);
         user.setRequestedRole(UserRole.DOCTOR);
         user.setRoleRequestedAt(Instant.now());
-        userRepository.save(user);
+        userAccess.save(user);
         log.info("Seeded pending doctor role request email={}", email);
     }
 
     private void seedPatient(String email, String firstName, String lastName) {
-        Optional<UserEntity> existing = userRepository.findByEmail(email);
+        Optional<UserEntity> existing = userAccess.findByEmail(email);
         if (existing.isPresent()) {
             return;
         }
         UserEntity user = buildBaseUser(email, firstName, lastName);
         user.setRole(UserRole.PATIENT);
         user.setRoleStatus(RoleRequestStatus.ACTIVE);
-        userRepository.save(user);
+        userAccess.save(user);
         log.info("Seeded patient user email={}", email);
     }
 

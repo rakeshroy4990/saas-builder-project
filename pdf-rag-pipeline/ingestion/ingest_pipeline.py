@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from db.mongo_client import get_db
+from config.settings import is_postgres_persistence
 from ingestion.chunker import chunk_text
 from ingestion.page_topic_classifier import classify_chapter_topic
 from ingestion.pdf_extractor import extract_pages
@@ -36,10 +36,17 @@ def process_pdf(filepath: str) -> None:
                     }
                 )
 
-        db = get_db()
-        db.chunks.delete_many({"file_hash": file_hash})
-        if all_chunks:
-            db.chunks.insert_many(all_chunks)
+        if is_postgres_persistence():
+            from db import postgres_backend as pg
+
+            pg.chunks_replace_for_file_hash(file_hash, all_chunks)
+        else:
+            from db.mongo_client import get_db
+
+            db = get_db()
+            db.chunks.delete_many({"file_hash": file_hash})
+            if all_chunks:
+                db.chunks.insert_many(all_chunks)
 
         mark_status(
             file_hash,

@@ -3,6 +3,7 @@ package com.flexshell.service;
 import com.flexshell.ai.AiSafetyPolicy;
 import com.flexshell.ai.PdfRagQueryAdapter;
 import com.flexshell.ai.SmartAiQuotaService;
+import com.flexshell.testsupport.QuotaTestDoubles;
 import com.flexshell.controller.dto.AiChatRequest;
 import com.flexshell.controller.dto.AiChatResponse;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,7 @@ import static org.mockito.Mockito.when;
 class AiChatServiceTest {
 
     private static SmartAiQuotaService unlimitedQuota() {
-        return new SmartAiQuotaService(10_000, Integer.MAX_VALUE, null);
+        return new SmartAiQuotaService(10_000, Integer.MAX_VALUE, null, QuotaTestDoubles.emptyPgDailyUsage());
     }
 
     @Test
@@ -36,8 +37,8 @@ class AiChatServiceTest {
     @Test
     void enforcesDisclaimerOnProviderReply() {
         PdfRagQueryAdapter ragAdapter = mock(PdfRagQueryAdapter.class);
-        when(ragAdapter.query(anyString(), anyString(), anyList(), anyString(), anyList()))
-                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Paracetamol may help fever and body ache.", "rag"));
+        when(ragAdapter.query(anyString(), anyString(), anyList(), anyString(), anyString(), anyList()))
+                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Paracetamol may help fever and body ache.", "rag", List.of()));
         AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota());
 
         AiChatResponse response = service.reply("user-1", new AiChatRequest("Can I take paracetamol?", "conv-1", List.of()), "Bearer token", List.of("ROLE_USER"));
@@ -49,8 +50,8 @@ class AiChatServiceTest {
     @Test
     void marksModeAsRagCacheWhenSourceIsCache() {
         PdfRagQueryAdapter ragAdapter = mock(PdfRagQueryAdapter.class);
-        when(ragAdapter.query(anyString(), anyString(), anyList(), anyString(), anyList()))
-                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Not enough information in knowledge base.", "cache"));
+        when(ragAdapter.query(anyString(), anyString(), anyList(), anyString(), anyString(), anyList()))
+                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Not enough information in knowledge base.", "cache", List.of()));
         AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota());
 
         AiChatResponse response = service.reply("user-1", new AiChatRequest("I have dengue", null, List.of()), "Bearer token", List.of("ROLE_DOCTOR"));

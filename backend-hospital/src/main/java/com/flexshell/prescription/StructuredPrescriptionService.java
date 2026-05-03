@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.appointment.AppointmentEntity;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.StructuredPrescriptionResponse;
 import com.flexshell.service.AppointmentService;
@@ -27,37 +27,45 @@ public class StructuredPrescriptionService {
     private static final String AUDIT_VALIDATE = "VALIDATE";
     private static final String AUDIT_FINALIZE = "FINALIZE";
 
-    private final StructuredPrescriptionRepository prescriptionRepository;
+    private final ObjectProvider<StructuredPrescriptionRepository> prescriptionRepositoryProvider;
     private final AppointmentService appointmentService;
-    private final ObjectProvider<UserRepository> userRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
     private final ObjectMapper objectMapper;
     private final ClinicPrescriptionPdfRenderer pdfRenderer;
     private final PrescriptionSignaturePort signaturePort;
     private final StructuredPrescriptionCrypto structuredPrescriptionCrypto;
 
     public StructuredPrescriptionService(
-            StructuredPrescriptionRepository prescriptionRepository,
+            ObjectProvider<StructuredPrescriptionRepository> prescriptionRepositoryProvider,
             AppointmentService appointmentService,
-            ObjectProvider<UserRepository> userRepositoryProvider,
+            ObjectProvider<UserAccess> userAccessProvider,
             ObjectMapper objectMapper,
             ClinicPrescriptionPdfRenderer pdfRenderer,
             PrescriptionSignaturePort signaturePort,
             StructuredPrescriptionCrypto structuredPrescriptionCrypto
     ) {
-        this.prescriptionRepository = prescriptionRepository;
+        this.prescriptionRepositoryProvider = prescriptionRepositoryProvider;
         this.appointmentService = appointmentService;
-        this.userRepositoryProvider = userRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
         this.objectMapper = objectMapper;
         this.pdfRenderer = pdfRenderer;
         this.signaturePort = signaturePort;
         this.structuredPrescriptionCrypto = structuredPrescriptionCrypto;
     }
 
+    private StructuredPrescriptionRepository requirePrescriptionRepository() {
+        StructuredPrescriptionRepository repository = prescriptionRepositoryProvider.getIfAvailable();
+        if (repository == null) {
+            throw new IllegalStateException("Structured prescription persistence is unavailable");
+        }
+        return repository;
+    }
+
     public StructuredPrescriptionResponse getOrCreateDraft(String appointmentId, String actorUserId) {
         AppointmentEntity appt = appointmentService.requireAppointmentEntity(appointmentId, actorUserId);
         assertAssignedDoctor(appt, actorUserId);
         assertAppointmentCompletedForPrescribing(appt);
-        Optional<StructuredPrescriptionEntity> existing = prescriptionRepository.findByAppointmentId(appointmentId);
+        Optional<StructuredPrescriptionEntity> existing = requirePrescriptionRepository().findByAppointmentId(appointmentId);
         if (existing.isPresent()) {
             StructuredPrescriptionEntity e = existing.get();
             structuredPrescriptionCrypto.normalizeAfterLoad(e);
@@ -170,13 +178,13 @@ public class StructuredPrescriptionService {
 
     private StructuredPrescriptionEntity savePrescription(StructuredPrescriptionEntity e) {
         structuredPrescriptionCrypto.prepareForStore(e);
-        StructuredPrescriptionEntity saved = prescriptionRepository.save(e);
+        StructuredPrescriptionEntity saved = requirePrescriptionRepository().save(e);
         structuredPrescriptionCrypto.normalizeAfterLoad(saved);
         return saved;
     }
 
     private StructuredPrescriptionEntity requireExisting(String appointmentId) {
-        StructuredPrescriptionEntity e = prescriptionRepository
+        StructuredPrescriptionEntity e = requirePrescriptionRepository()
                 .findByAppointmentId(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Structured prescription not found"));
         structuredPrescriptionCrypto.normalizeAfterLoad(e);
@@ -208,7 +216,7 @@ public class StructuredPrescriptionService {
     }
 
     private UserEntity loadUser(String userId) {
-        UserRepository repo = userRepositoryProvider.getIfAvailable();
+        UserAccess repo = userAccessProvider.getIfAvailable();
         if (repo == null) {
             return null;
         }
@@ -216,7 +224,7 @@ public class StructuredPrescriptionService {
     }
 
     private UserRole resolveUserRole(String actorUserId) {
-        UserRepository repo = userRepositoryProvider.getIfAvailable();
+        UserAccess repo = userAccessProvider.getIfAvailable();
         if (repo == null) {
             throw new IllegalStateException("User repository is unavailable");
         }

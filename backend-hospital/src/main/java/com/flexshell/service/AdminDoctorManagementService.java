@@ -2,7 +2,7 @@ package com.flexshell.service;
 
 import com.flexshell.auth.RoleRequestStatus;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.auth.api.AuthApiException;
 import com.flexshell.auth.api.RegisterRequest;
@@ -21,20 +21,20 @@ import java.util.Optional;
 
 @Service
 public class AdminDoctorManagementService {
-    private final ObjectProvider<UserRepository> userRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
     private final PasswordPolicy passwordPolicy;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AdminDoctorManagementService(
-            ObjectProvider<UserRepository> userRepositoryProvider,
+            ObjectProvider<UserAccess> userAccessProvider,
             PasswordPolicy passwordPolicy
     ) {
-        this.userRepositoryProvider = userRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
         this.passwordPolicy = passwordPolicy;
     }
 
     public List<DoctorAdminRow> listDoctors(String adminUserId, int page, int size) {
-        UserRepository repo = requireRepository();
+        UserAccess repo = requireRepository();
         AdminAuthorizationSupport.requireAdminUser(repo, adminUserId);
         int safePage = Math.max(0, page);
         int safeSize = size <= 0 ? 50 : Math.min(size, 500);
@@ -46,8 +46,8 @@ public class AdminDoctorManagementService {
      * Creates an active doctor account (admin onboarding). Password policy applies.
      */
     public RegisterResponse registerDoctor(RegisterRequest request, String adminUserId) {
-        UserRepository userRepository = requireRepository();
-        AdminAuthorizationSupport.requireAdminUser(userRepository, adminUserId);
+        UserAccess users = requireRepository();
+        AdminAuthorizationSupport.requireAdminUser(users, adminUserId);
 
         if (request == null) {
             throw new IllegalArgumentException("Request body is required");
@@ -71,7 +71,7 @@ public class AdminDoctorManagementService {
             throw new IllegalArgumentException(ex.getMessage());
         }
 
-        Optional<UserEntity> existingOpt = userRepository.findByEmail(email);
+        Optional<UserEntity> existingOpt = users.findByEmail(email);
         if (existingOpt.isPresent()) {
             throw new IllegalArgumentException("An account already exists for this email address.");
         }
@@ -110,7 +110,7 @@ public class AdminDoctorManagementService {
             throw new IllegalArgumentException("Doctor qualifications, State Medical Council (SmcName), and SMC registration number are required.");
         }
 
-        UserEntity saved = userRepository.save(user);
+        UserEntity saved = users.save(user);
         return new RegisterResponse(
                 saved.getId(),
                 saved.getEmail(),
@@ -157,10 +157,10 @@ public class AdminDoctorManagementService {
         return joined.isEmpty() ? "User" : joined;
     }
 
-    private UserRepository requireRepository() {
-        UserRepository r = userRepositoryProvider.getIfAvailable();
+    private UserAccess requireRepository() {
+        UserAccess r = userAccessProvider.getIfAvailable();
         if (r == null) {
-            throw new IllegalStateException("User repository unavailable");
+            throw new IllegalStateException("User persistence unavailable");
         }
         return r;
     }

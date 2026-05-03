@@ -16,6 +16,7 @@ import {
 } from '../auth/authToken';
 import { getEphemeralRefreshToken, setEphemeralRefreshToken } from '../auth/refreshTokenEphemeral';
 import { clearPersistedAuthSessionProfile } from '../auth/authSessionStore';
+import { clearLoginSessionId } from '../logging/loginSessionContext';
 import { useAppStore } from '../../store/useAppStore';
 import { flushSessionTelemetryQueue, ingestSessionTelemetry } from '../analytics/sessionTelemetry';
 import { emitLoggedInSessionSummary, SessionSummaryKind } from '../analytics/sessionSummary';
@@ -78,6 +79,7 @@ function clearAuthSessionUi(): void {
   appStore.setProperty('hospital', 'AuthSession', 'fullName', '');
   appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
   clearPersistedAuthSessionProfile();
+  clearLoginSessionId();
 }
 
 function navigateToLogin(): void {

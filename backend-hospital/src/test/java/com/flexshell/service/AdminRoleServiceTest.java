@@ -2,7 +2,7 @@ package com.flexshell.service;
 
 import com.flexshell.auth.RoleRequestStatus;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.RoleRequestSummary;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,15 +18,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class AdminRoleServiceTest {
-    private UserRepository userRepository;
+    private UserAccess users;
     private AdminRoleService adminRoleService;
 
     @BeforeEach
     void setUp() {
-        userRepository = mock(UserRepository.class);
+        users = mock(UserAccess.class);
         @SuppressWarnings("unchecked")
-        ObjectProvider<UserRepository> userProvider = mock(ObjectProvider.class);
-        when(userProvider.getIfAvailable()).thenReturn(userRepository);
+        ObjectProvider<UserAccess> userProvider = mock(ObjectProvider.class);
+        when(userProvider.getIfAvailable()).thenReturn(users);
         adminRoleService = new AdminRoleService(userProvider);
     }
 
@@ -35,7 +35,7 @@ class AdminRoleServiceTest {
         UserEntity patient = new UserEntity();
         patient.setId("u-1");
         patient.setRole(UserRole.PATIENT);
-        when(userRepository.findById("u-1")).thenReturn(Optional.of(patient));
+        when(users.findById("u-1")).thenReturn(Optional.of(patient));
 
         assertThrows(SecurityException.class, () -> adminRoleService.approveRoleRequest("target", "u-1"));
     }
@@ -45,7 +45,7 @@ class AdminRoleServiceTest {
         UserEntity admin = new UserEntity();
         admin.setId("admin-1");
         admin.setRole(UserRole.ADMIN);
-        when(userRepository.findById("admin-1")).thenReturn(Optional.of(admin));
+        when(users.findById("admin-1")).thenReturn(Optional.of(admin));
 
         UserEntity target = new UserEntity();
         target.setId("target-1");
@@ -53,8 +53,8 @@ class AdminRoleServiceTest {
         target.setRole(UserRole.PATIENT);
         target.setRoleStatus(RoleRequestStatus.PENDING_APPROVAL);
         target.setRequestedRole(UserRole.DOCTOR);
-        when(userRepository.findById("target-1")).thenReturn(Optional.of(target));
-        when(userRepository.save(any(UserEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(users.findById("target-1")).thenReturn(Optional.of(target));
+        when(users.save(any(UserEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RoleRequestSummary summary = adminRoleService.approveRoleRequest("target-1", "admin-1");
 

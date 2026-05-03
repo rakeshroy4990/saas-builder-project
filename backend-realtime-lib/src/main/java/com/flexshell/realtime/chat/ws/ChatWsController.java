@@ -5,6 +5,7 @@ import com.flexshell.realtime.chat.ChatMessageEntity;
 import com.flexshell.realtime.chat.ChatRoomEntity;
 import com.flexshell.realtime.chat.ChatRoomRepository;
 import com.flexshell.realtime.chat.ChatService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
@@ -16,18 +17,18 @@ import java.util.Map;
 @Controller
 public class ChatWsController {
     private final ChatService chatService;
-    private final ChatRoomRepository roomRepository;
+    private final ObjectProvider<ChatRoomRepository> roomRepositoryProvider;
     private final SimpMessagingTemplate messagingTemplate;
     private final AuditLogService auditLogService;
 
     public ChatWsController(
             ChatService chatService,
-            ChatRoomRepository roomRepository,
+            ObjectProvider<ChatRoomRepository> roomRepositoryProvider,
             SimpMessagingTemplate messagingTemplate,
             AuditLogService auditLogService
     ) {
         this.chatService = chatService;
-        this.roomRepository = roomRepository;
+        this.roomRepositoryProvider = roomRepositoryProvider;
         this.messagingTemplate = messagingTemplate;
         this.auditLogService = auditLogService;
     }
@@ -38,7 +39,9 @@ public class ChatWsController {
         ChatMessageEntity saved = chatService.sendMessage(request.getRoomId(), userId, request.getBody(), request.getClientMessageId());
         auditLogService.log(userId, "CHAT_MESSAGE_SENT", "ChatRoom", saved.getRoomId(), Map.of("sequence", saved.getSequenceNumber()));
 
-        ChatRoomEntity room = roomRepository.findById(saved.getRoomId()).orElse(null);
+        ChatRoomRepository roomRepository = roomRepositoryProvider.getIfAvailable();
+        ChatRoomEntity room = roomRepository == null ? null
+                : roomRepository.findById(saved.getRoomId()).orElse(null);
         List<String> participants = room == null ? List.of() : (room.getParticipants() == null ? List.of() : room.getParticipants());
         ChatMessageEvent event = toEvent(saved);
 

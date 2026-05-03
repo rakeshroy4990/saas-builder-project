@@ -70,7 +70,7 @@ export const appointmentFormHospitalServices: ServiceDefinition[] = [
         return ok();
       }
       try {
-        const doctors = await ensureDoctorOptionsLoadedByDepartment(department);
+        const doctors = await ensureDoctorOptionsLoadedByDepartment(department, { force: true });
         useAppStore(pinia).setData('hospital', 'AppointmentDoctors', { list: doctors });
       } catch {
         useAppStore(pinia).setData('hospital', 'AppointmentDoctors', { list: [] });

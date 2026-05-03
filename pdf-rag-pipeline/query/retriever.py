@@ -4,9 +4,8 @@ import re
 import logging
 from typing import Optional
 
-from config.settings import RAG_LOG_FULL_PROMPT, RAG_LOG_PROMPT_PREVIEW_CHARS
+from config.settings import RAG_LOG_FULL_PROMPT, RAG_LOG_PROMPT_PREVIEW_CHARS, is_postgres_persistence
 from config.domain_points import query_aliases
-from db.mongo_client import get_db
 from query.keyword_extractor import SHORT_MEDICAL_TERMS, extract_keywords
 
 LOG = logging.getLogger(__name__)
@@ -255,7 +254,31 @@ def score_chunk(chunk: dict, query: str, anchor_terms: Optional[list[str]] = Non
     return score, alias_body_hit
 
 
-def _run_text_pipeline(db, match: dict, candidate_limit: int, min_score: float) -> list[dict]:
+def _run_text_pipeline_backend(
+    db,
+    match: dict,
+    candidate_limit: int,
+    min_score: float,
+    apply_score_filter: bool,
+) -> list[dict]:
+    if is_postgres_persistence():
+        from db import postgres_backend as pg
+
+        return pg.chunks_text_search(match, candidate_limit, min_score, apply_score_filter)
+
+    assert db is not None
+    mongo_db = db
+    if apply_score_filter:
+        base_pipeline = [
+            {"$match": match},
+            {"$addFields": {"score": {"$meta": "textScore"}}},
+            {"$sort": {"score": -1}},
+            {"$limit": candidate_limit},
+            {"$project": {"text": 1, "source_file": 1, "page_num": 1, "tags": 1, "metadata": 1, "score": 1, "_id": 0}},
+        ]
+        pipeline = [base_pipeline[0], base_pipeline[1], {"$match": {"score": {"$gte": min_score}}}] + base_pipeline[2:]
+        return list(mongo_db.chunks.aggregate(pipeline))
+
     base_pipeline = [
         {"$match": match},
         {"$addFields": {"score": {"$meta": "textScore"}}},
@@ -263,8 +286,7 @@ def _run_text_pipeline(db, match: dict, candidate_limit: int, min_score: float) 
         {"$limit": candidate_limit},
         {"$project": {"text": 1, "source_file": 1, "page_num": 1, "tags": 1, "metadata": 1, "score": 1, "_id": 0}},
     ]
-    pipeline = [base_pipeline[0], base_pipeline[1], {"$match": {"score": {"$gte": min_score}}}] + base_pipeline[2:]
-    return list(db.chunks.aggregate(pipeline))
+    return list(mongo_db.chunks.aggregate(base_pipeline))
 
 
 def retrieve_top_chunks(
@@ -275,7 +297,9 @@ def retrieve_top_chunks(
     chapter_topics: Optional[list[str]] = None,
     audience: Optional[str] = None,
 ) -> list[dict]:
-    db = get_db()
+    from db.mongo_client import get_db
+
+    db = None if is_postgres_persistence() else get_db()
     keywords = extract_keywords(query)
     expanded_terms = _expanded_terms(query, keywords)
     normalized_terms = [re.sub(r"[^a-zA-Z0-9\s]", " ", t).strip() for t in expanded_terms]
@@ -305,7 +329,7 @@ def retrieve_top_chunks(
             m["metadata.audience"] = audience
         return m
 
-    results = _run_text_pipeline(db, build_match(retrieval_query), candidate_limit, min_score)
+    results = _run_text_pipeline_backend(db, build_match(retrieval_query), candidate_limit, min_score, True)
     LOG.info(
         "[RAG][RETRIEVER] query=%s retrieval_query=%s keywords=%s min_score=%s chapter_topics=%s audience=%s candidates_with_score_filter=%s",
         query,
@@ -323,29 +347,25 @@ def retrieve_top_chunks(
         and anchor_retrieval_query.strip() != broad_retrieval_query.strip()
     ):
         LOG.info("[RAG][RETRIEVER] anchor_search_empty_retrying_broad")
-        results = _run_text_pipeline(db, build_match(broad_retrieval_query), candidate_limit, min_score)
+        results = _run_text_pipeline_backend(db, build_match(broad_retrieval_query), candidate_limit, min_score, True)
         LOG.info("[RAG][RETRIEVER] after_broad_retry candidates=%s", len(results))
     if not results and (chapter_topics or audience in {"layman", "expert"}):
         # Fallback for old chunks without metadata filters.
         relaxed_match: dict = {"$text": {"$search": retrieval_query}}
         if source_filter:
             relaxed_match["source_file"] = source_filter
-        results = _run_text_pipeline(db, relaxed_match, candidate_limit, min_score)
+        results = _run_text_pipeline_backend(db, relaxed_match, candidate_limit, min_score, True)
         LOG.info(
             "[RAG][RETRIEVER] relaxed_topic_filter candidates_with_score_filter=%s",
             len(results),
         )
     if not results:
-        base_pipeline = [
-            {"$match": {"$text": {"$search": retrieval_query}}},
-            {"$addFields": {"score": {"$meta": "textScore"}}},
-            {"$sort": {"score": -1}},
-            {"$limit": candidate_limit},
-            {"$project": {"text": 1, "source_file": 1, "page_num": 1, "tags": 1, "metadata": 1, "score": 1, "_id": 0}},
-        ]
+        relaxed_no_meta: dict = {"$text": {"$search": retrieval_query}}
         if source_filter:
-            base_pipeline[0]["$match"]["source_file"] = source_filter
-        results = list(db.chunks.aggregate(base_pipeline))
+            relaxed_no_meta["source_file"] = source_filter
+        results = _run_text_pipeline_backend(
+            db, relaxed_no_meta, candidate_limit, min_score, apply_score_filter=False
+        )
         LOG.info("[RAG][RETRIEVER] fallback_without_score_filter candidates=%s", len(results))
     if not results:
         LOG.info("[RAG][RETRIEVER] no candidates after text search; regex fallback disabled")

@@ -133,7 +133,7 @@ public class AiSafetyPolicy {
             "to share the exact dose and time taken.";
 
         case CARDIAC_RESPIRATORY ->
-            "These symptoms may indicate a serious cardiac or breathing emergency. " +
+            "These symptoms may indicate a serious cardiac or breathing emergency — seek urgent medical attention now. " +
             "Call your local emergency number immediately — do not wait.\n\n" +
             "If chest pain is present: sit down, stay calm, and do not eat or drink anything. " +
             "Unlock your door if possible so emergency services can reach you.";

@@ -1,8 +1,15 @@
 # Non-secret env vars for Cloud Run (gcloud --env-vars-file).
-# See ../cloudbuild.yaml --set-secrets for pdf-rag-pipeline (MONGO_URI, JWT, LLM keys).
+# See ../cloudbuild.yaml --set-secrets for pdf-rag-pipeline (MONGO_URI, DATABASE_URL for postgres, JWT, LLM keys).
 # To enable Sentry: set SENTRY_ENABLED true, create secret pdf-rag-pipeline-sentry-dsn,
 # then add SENTRY_DSN to --set-secrets or use Cloud Run UI.
+#
+# --- persistence (mongo default | postgres / Supabase) ---
+# APP_PERSISTENCE_PROVIDER: mongo — uses MONGO_URI secret + MONGO_DB below.
+# APP_PERSISTENCE_PROVIDER: postgres — uses DATABASE_URL secret (postgresql://...); MONGO_URI not required.
+# Optional tuning when provider=postgres (full-text rank threshold; differs from Mongo textScore scale):
+# PG_TEXT_SEARCH_MIN_SCORE: "0.02"
 
+APP_PERSISTENCE_PROVIDER: postgres
 MONGO_DB: rag_db
 JWT_ALGORITHM: HS256
 JWT_ISSUER: flexshell-hospital

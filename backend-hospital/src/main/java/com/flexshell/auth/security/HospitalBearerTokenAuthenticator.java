@@ -2,7 +2,7 @@ package com.flexshell.auth.security;
 
 import com.flexshell.auth.JwtService;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -19,11 +19,11 @@ import java.util.Optional;
 @Component
 public class HospitalBearerTokenAuthenticator implements BearerTokenAuthenticator {
     private final JwtService jwtService;
-    private final ObjectProvider<UserRepository> userRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
 
-    public HospitalBearerTokenAuthenticator(JwtService jwtService, ObjectProvider<UserRepository> userRepositoryProvider) {
+    public HospitalBearerTokenAuthenticator(JwtService jwtService, ObjectProvider<UserAccess> userAccessProvider) {
         this.jwtService = jwtService;
-        this.userRepositoryProvider = userRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
     }
 
     @Override
@@ -47,12 +47,12 @@ public class HospitalBearerTokenAuthenticator implements BearerTokenAuthenticato
             throw new AuthTokenException("Invalid token audience");
         }
 
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null) {
-            throw new AuthTokenException("User repository unavailable");
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) {
+            throw new AuthTokenException("User persistence unavailable");
         }
 
-        UserEntity user = resolveUser(userRepository, subject)
+        UserEntity user = resolveUser(users, subject)
                 .orElseThrow(() -> new AuthTokenException("User not found"));
         if (!user.isActive()) {
             throw new AuthTokenException("Account is inactive");
@@ -77,21 +77,21 @@ public class HospitalBearerTokenAuthenticator implements BearerTokenAuthenticato
                         new SimpleGrantedAuthority("ROLE_" + dbRole)));
     }
 
-    private Optional<UserEntity> resolveUser(UserRepository userRepository, String subject) {
+    private Optional<UserEntity> resolveUser(UserAccess users, String subject) {
         String normalizedSubject = subject == null ? "" : subject.trim();
         if (normalizedSubject.isEmpty()) {
             return Optional.empty();
         }
-        Optional<UserEntity> byId = userRepository.findById(normalizedSubject);
+        Optional<UserEntity> byId = users.findById(normalizedSubject);
         if (byId.isPresent()) {
             return byId;
         }
         if (ObjectId.isValid(normalizedSubject)) {
-            Optional<UserEntity> byObjectId = userRepository.findByObjectId(new ObjectId(normalizedSubject));
+            Optional<UserEntity> byObjectId = users.findByObjectId(new ObjectId(normalizedSubject));
             if (byObjectId.isPresent()) {
                 return byObjectId;
             }
         }
-        return userRepository.findByEmail(normalizedSubject);
+        return users.findByEmail(normalizedSubject);
     }
 }
