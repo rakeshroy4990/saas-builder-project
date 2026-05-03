@@ -1,1 +1,0 @@
-import{n as e}from"./rolldown-runtime-Dw2cE7zH.js";var t=e({SessionSummaryKind:()=>n}),n={AUTH_LOGIN:`auth_login`,AUTH_LOGOUT:`auth_logout`,NAVIGATE:`navigate`,POPUP_OPEN:`popup_open`,BUTTON_CLICK:`button_click`,API_CALL:`api_call`,API_ERROR:`api_error`};export{t as n,n as t};
