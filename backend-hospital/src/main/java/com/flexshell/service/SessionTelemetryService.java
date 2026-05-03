@@ -3,12 +3,13 @@ package com.flexshell.service;
 import com.flexshell.controller.dto.SessionSummaryEntryDto;
 import com.flexshell.controller.dto.SessionTelemetryEventRequest;
 import com.flexshell.telemetry.SessionSummaryEntryDocument;
+import com.flexshell.persistence.api.SessionTelemetryAccess;
 import com.flexshell.telemetry.SessionTelemetryEntity;
-import com.flexshell.telemetry.SessionTelemetryRepository;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -19,14 +20,14 @@ import java.util.Map;
 public class SessionTelemetryService {
     private static final int MAX_SESSION_SUMMARY = 2000;
 
-    private final ObjectProvider<SessionTelemetryRepository> sessionTelemetryRepositoryProvider;
+    private final ObjectProvider<SessionTelemetryAccess> sessionTelemetryAccessProvider;
 
-    public SessionTelemetryService(ObjectProvider<SessionTelemetryRepository> sessionTelemetryRepositoryProvider) {
-        this.sessionTelemetryRepositoryProvider = sessionTelemetryRepositoryProvider;
+    public SessionTelemetryService(ObjectProvider<SessionTelemetryAccess> sessionTelemetryAccessProvider) {
+        this.sessionTelemetryAccessProvider = sessionTelemetryAccessProvider;
     }
 
     public Map<String, Object> ingestSessionEvent(String actorUserId, SessionTelemetryEventRequest request) {
-        SessionTelemetryRepository repository = requireSessionTelemetryRepository();
+        SessionTelemetryAccess repository = requireSessionTelemetryAccess();
         String userId = normalize(actorUserId);
         if (userId.isBlank()) {
             userId = normalize(request.getUserId());
@@ -41,7 +42,7 @@ public class SessionTelemetryService {
                 : userId + "::login::" + loginSessionId;
         Instant now = Instant.now();
 
-        SessionTelemetryEntity entity = repository.findTop1BySessionKeyOrderByUpdatedAtDesc(sessionKey)
+        SessionTelemetryEntity entity = repository.findTopBySessionKeyOrderByUpdatedAtDesc(sessionKey)
                 .orElseGet(SessionTelemetryEntity::new);
         if (entity.getSessionKey() == null || entity.getSessionKey().isBlank()) {
             entity.setSessionKey(sessionKey);
@@ -85,12 +86,12 @@ public class SessionTelemetryService {
      * When nothing is stored yet, returns a non-throwing map with zeros / empty summary (not 404).
      */
     public Map<String, Object> findSnapshotByTraceId(String traceId) {
-        SessionTelemetryRepository repository = requireSessionTelemetryRepository();
+        SessionTelemetryAccess repository = requireSessionTelemetryAccess();
         String normalized = normalize(traceId);
         if (normalized.isBlank()) {
             return emptySnapshotMap(normalized);
         }
-        return repository.findTop1ByTraceIdOrderByUpdatedAtDesc(normalized)
+        return repository.findTopByTraceIdOrderByUpdatedAtDesc(normalized)
                 .map(this::toSnapshotMap)
                 .orElseGet(() -> emptySnapshotMap(normalized));
     }
@@ -192,11 +193,26 @@ public class SessionTelemetryService {
         return value == null ? "" : value.trim();
     }
 
-    private SessionTelemetryRepository requireSessionTelemetryRepository() {
-        SessionTelemetryRepository repository = sessionTelemetryRepositoryProvider.getIfAvailable();
-        if (repository == null) {
-            throw new IllegalStateException("Session telemetry repository is unavailable");
+    /**
+     * Applies queued client events in order (same semantics as repeated {@link #ingestSessionEvent} calls,
+     * one HTTP round-trip from the browser).
+     */
+    public Map<String, Object> ingestSessionEventBatch(String actorUserId, List<SessionTelemetryEventRequest> events) {
+        int processed = 0;
+        for (SessionTelemetryEventRequest request : events) {
+            ingestSessionEvent(actorUserId, request);
+            processed++;
         }
-        return repository;
+        Map<String, Object> out = new HashMap<>();
+        out.put("processed", processed);
+        return out;
+    }
+
+    private SessionTelemetryAccess requireSessionTelemetryAccess() {
+        SessionTelemetryAccess access = sessionTelemetryAccessProvider.getIfAvailable();
+        if (access == null) {
+            throw new IllegalStateException("Session telemetry persistence is unavailable");
+        }
+        return access;
     }
 }

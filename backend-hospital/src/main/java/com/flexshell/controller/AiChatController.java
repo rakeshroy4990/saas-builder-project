@@ -7,9 +7,12 @@ import com.flexshell.controller.dto.AiChatResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.observability.ObservabilityLogger;
 import com.flexshell.service.AiChatService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -30,16 +33,24 @@ import java.util.stream.Collectors;
 public class AiChatController {
     private static final Logger LOG = LoggerFactory.getLogger(AiChatController.class);
     private final AiChatService aiChatService;
+    private final String accessTokenCookieName;
 
-    public AiChatController(AiChatService aiChatService) {
+    public AiChatController(
+            AiChatService aiChatService,
+            @Value("${app.auth.cookie.access-token-name:access_token}") String accessTokenCookieName
+    ) {
         this.aiChatService = aiChatService;
+        this.accessTokenCookieName = accessTokenCookieName == null || accessTokenCookieName.isBlank()
+                ? "access_token"
+                : accessTokenCookieName.trim();
     }
 
     @PostMapping(value = "/chat", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<AiChatResponse>> chat(
             @Valid @RequestBody AiChatRequest request,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
-            Authentication authentication
+            Authentication authentication,
+            HttpServletRequest httpRequest
     ) {
         try {
             String userId = authentication == null ? "" : Objects.toString(authentication.getName(), "").trim();
@@ -49,7 +60,8 @@ public class AiChatController {
                     .map(GrantedAuthority::getAuthority)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            AiChatResponse data = aiChatService.reply(userId, request, authorizationHeader, userRoles);
+            String authForRag = authorizationForRagProxy(authorizationHeader, httpRequest);
+            AiChatResponse data = aiChatService.reply(userId, request, authForRag, userRoles);
             var successFields = new java.util.LinkedHashMap<>(ObservabilityLogger.fields("chat", "success", "reply_received"));
             successFields.put("user_id", userId);
             ObservabilityLogger.info(LOG, "chat_ai_request", successFields);
@@ -97,5 +109,33 @@ public class AiChatController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(StandardApiResponse.error(ex.getMessage(), "AI_CHAT_UNAVAILABLE"));
         }
+    }
+
+    /**
+     * Pdf-rag is called with an {@code Authorization} header. Browsers often send only the access JWT cookie
+     * (same as {@link com.flexshell.auth.security.JwtAuthenticationFilter}); synthesize {@code Bearer ...} for the proxy.
+     */
+    private String authorizationForRagProxy(String authorizationHeader, HttpServletRequest request) {
+        if (authorizationHeader != null && !authorizationHeader.isBlank()) {
+            return authorizationHeader.trim();
+        }
+        String fromCookie = readAccessTokenCookie(request, accessTokenCookieName);
+        if (fromCookie == null || fromCookie.isBlank()) {
+            return null;
+        }
+        return "Bearer " + fromCookie.trim();
+    }
+
+    private static String readAccessTokenCookie(HttpServletRequest request, String cookieName) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        for (Cookie c : cookies) {
+            if (cookieName.equals(c.getName())) {
+                return c.getValue();
+            }
+        }
+        return null;
     }
 }

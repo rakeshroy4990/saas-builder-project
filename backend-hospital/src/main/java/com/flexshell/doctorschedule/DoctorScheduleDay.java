@@ -1,5 +1,7 @@
 package com.flexshell.doctorschedule;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.util.ArrayList;
@@ -7,12 +9,18 @@ import java.util.List;
 
 public class DoctorScheduleDay {
     @Field("Enabled")
+    @JsonProperty("Enabled")
+    @JsonAlias({"enabled"})
     private boolean enabled;
 
     @Field("SlotMinutes")
+    @JsonProperty("SlotMinutes")
+    @JsonAlias({"slotMinutes"})
     private int slotMinutes = 15;
 
     @Field("Windows")
+    @JsonProperty("Windows")
+    @JsonAlias({"windows"})
     private List<DoctorScheduleWindow> windows = new ArrayList<>();
 
     public boolean isEnabled() {

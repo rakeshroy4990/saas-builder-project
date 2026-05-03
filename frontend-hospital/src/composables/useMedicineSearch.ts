@@ -35,11 +35,13 @@ export function useMedicineSearch(query: Ref<string>) {
         isLoading.value = true;
         error.value = '';
         try {
-          const response = await fetch(`${URLRegistry.resolve('medicinesSearch')}?q=${encodeURIComponent(q)}`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: { Accept: 'application/json' }
-          });
+          const response = await URLRegistry.requestResolvedUrl(
+            `${URLRegistry.resolve('medicinesSearch')}?q=${encodeURIComponent(q)}`,
+            {
+              method: 'GET',
+              headers: { Accept: 'application/json' }
+            }
+          );
           if (!response.ok) {
             // Non-fatal: caller can continue with fallback static suggestions.
             results.value = [];

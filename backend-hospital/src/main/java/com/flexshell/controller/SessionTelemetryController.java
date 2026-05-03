@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.controller.dto.SessionTelemetryBatchRequest;
 import com.flexshell.controller.dto.SessionTelemetryEventRequest;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.service.SessionTelemetryService;
@@ -35,6 +36,21 @@ public class SessionTelemetryController {
             String actorUserId = authentication == null ? "" : authentication.getName();
             Map<String, Object> data = sessionTelemetryService.ingestSessionEvent(actorUserId, request);
             return ResponseEntity.ok(StandardApiResponse.success("Telemetry session updated", data));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "TELEMETRY_INVALID"));
+        }
+    }
+
+    @PostMapping(value = "/session-events", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<Map<String, Object>>> ingestSessionEvents(
+            @Valid @RequestBody SessionTelemetryBatchRequest batch,
+            Authentication authentication
+    ) {
+        try {
+            String actorUserId = authentication == null ? "" : authentication.getName();
+            Map<String, Object> data = sessionTelemetryService.ingestSessionEventBatch(actorUserId, batch.getEvents());
+            return ResponseEntity.ok(StandardApiResponse.success("Telemetry batch applied", data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(StandardApiResponse.error(ex.getMessage(), "TELEMETRY_INVALID"));

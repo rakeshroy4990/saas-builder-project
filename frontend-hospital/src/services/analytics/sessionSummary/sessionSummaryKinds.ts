@@ -19,9 +19,9 @@ export const SessionSummaryKind = {
   POPUP_OPEN: 'popup_open',
   /** User-triggered action from a component (button/container) with config ids. */
   BUTTON_CLICK: 'button_click',
-  /** Axios request completed successfully (duration, status). */
+  /** HTTP request completed (axios or {@code URLRegistry.request} / {@code requestResolvedUrl}); includes {@code duration_ms}. */
   API_CALL: 'api_call',
-  /** Axios request failed (network / HTTP error). */
+  /** HTTP request failed (network error or thrown fetch; axios errors use the same kind). */
   API_ERROR: 'api_error'
 } as const;
 

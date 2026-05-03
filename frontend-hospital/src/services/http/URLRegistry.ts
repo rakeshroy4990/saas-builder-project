@@ -1,9 +1,10 @@
 import { getOrCreateTraceId } from '../logging/traceContext';
+import { shouldSkipTelemetrySessionSummaryForApiUrl } from './telemetryUrlSkip';
 
 /**
  * Single entry for Spring API base URL, path constants, and low-level HTTP to the server.
- * Do not call `fetch()` against the API elsewhere—use {@link URLRegistry.request} or axios
- * {@link apiClient} with {@link URLRegistry.paths}.
+ * Do not call `fetch()` against the API elsewhere—use {@link URLRegistry.request},
+ * {@link URLRegistry.requestResolvedUrl}, or axios {@link apiClient} with {@link URLRegistry.paths}.
  */
 
 export function getApiBaseUrl(): string {
@@ -53,6 +54,8 @@ export const SERVER_PATHS = {
   chatSupportReject: '/api/chat/support/reject',
   chatSupportOpen: '/api/chat/support/open',
   telemetrySessionEvent: '/api/telemetry/session-event',
+  /** Ordered apply of multiple session events (logout flush); max 100 per request. */
+  telemetrySessionEvents: '/api/telemetry/session-events',
   /** GET `?trace_id=` — current tab session row including `sessionSummary` (public). */
   telemetrySessionSnapshot: '/api/telemetry/session-snapshot',
   /** Mint RTC / vendor session after hospital call permission checks. */
@@ -76,10 +79,83 @@ export const SERVER_PATHS = {
 
 /** GET single teaser by URL slug (same pool as {@link SERVER_PATHS.hospitalBlogPreviews}). */
 export function hospitalBlogPreviewBySlugPath(slug: string): string {
-  return `${SERVER_PATHS.hospitalBlogPreviews}/slug/${encodeURIComponent(slug)}`;
+  return `${getApiBaseUrl()}${SERVER_PATHS.hospitalBlogPreviews}/slug/${encodeURIComponent(slug)}`;
 }
 
 export type ServerPathKey = keyof typeof SERVER_PATHS;
+
+async function emitFetchSessionSummary(
+  apiPath: string,
+  method: string,
+  startedAt: number,
+  outcome: { type: 'response'; response: Response } | { type: 'network'; error: unknown }
+): Promise<void> {
+  if (shouldSkipTelemetrySessionSummaryForApiUrl(apiPath)) {
+    return;
+  }
+  const durationMs = Math.round(performance.now() - startedAt);
+  try {
+    const { emitLoggedInSessionSummary } = await import('../analytics/sessionSummary');
+    const { SessionSummaryKind } = await import('../analytics/sessionSummary/sessionSummaryKinds');
+    if (outcome.type === 'response') {
+      emitLoggedInSessionSummary({
+        kind: SessionSummaryKind.API_CALL,
+        api_path: apiPath,
+        http_method: method,
+        http_status: outcome.response.status,
+        duration_ms: durationMs
+      });
+    } else {
+      const err = outcome.error;
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'string'
+            ? err
+            : err == null
+              ? 'Network error'
+              : String(err);
+      emitLoggedInSessionSummary({
+        kind: SessionSummaryKind.API_ERROR,
+        api_path: apiPath,
+        http_method: method,
+        duration_ms: durationMs,
+        error_message: msg.slice(0, 2000)
+      });
+    }
+  } catch {
+    // Session summary must never affect fetch
+  }
+}
+
+function assertUnderApiBase(resolvedUrl: string): void {
+  const base = getApiBaseUrl();
+  if (!resolvedUrl.startsWith(base)) {
+    throw new Error(`requestResolvedUrl: URL must start with API base (${base})`);
+  }
+}
+
+/**
+ * `fetch` to the hospital API with the same credentials/headers as {@link URLRegistry.request},
+ * plus a {@link SessionSummaryKind.API_CALL} / {@link SessionSummaryKind.API_ERROR} row (when logged in)
+ * with {@code duration_ms} matching axios-backed calls.
+ */
+async function trackedFetch(resolvedUrl: string, init?: RequestInit): Promise<Response> {
+  const headers = new Headers(init?.headers ?? {});
+  if (!headers.has('X-Trace-Id')) {
+    headers.set('X-Trace-Id', getOrCreateTraceId());
+  }
+  const method = String(init?.method ?? 'GET').toUpperCase();
+  const t0 = performance.now();
+  try {
+    const response = await fetch(resolvedUrl, { ...init, headers, credentials: init?.credentials ?? 'include' });
+    void emitFetchSessionSummary(resolvedUrl, method, t0, { type: 'response', response });
+    return response;
+  } catch (error) {
+    void emitFetchSessionSummary(resolvedUrl, method, t0, { type: 'network', error });
+    throw error;
+  }
+}
 
 export const URLRegistry = {
   paths: SERVER_PATHS,
@@ -90,13 +166,17 @@ export const URLRegistry = {
   },
 
   /**
-   * All direct `fetch` calls to this backend must go through here.
+   * Registered path keys only (no query string). Records session_summary for the round trip.
    */
   request(pathKey: ServerPathKey, init?: RequestInit): Promise<Response> {
-    const headers = new Headers(init?.headers ?? {});
-    if (!headers.has('X-Trace-Id')) {
-      headers.set('X-Trace-Id', getOrCreateTraceId());
-    }
-    return fetch(URLRegistry.resolve(pathKey), { ...init, headers, credentials: init?.credentials ?? 'include' });
+    return trackedFetch(`${getApiBaseUrl()}${SERVER_PATHS[pathKey]}`, init);
+  },
+
+  /**
+   * Full URL under {@link getApiBaseUrl} (e.g. path + `?query=`), for callers that need query params.
+   */
+  requestResolvedUrl(resolvedUrl: string, init?: RequestInit): Promise<Response> {
+    assertUnderApiBase(resolvedUrl);
+    return trackedFetch(resolvedUrl, init);
   }
 } as const;

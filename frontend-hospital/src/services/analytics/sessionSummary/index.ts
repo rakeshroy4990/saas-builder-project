@@ -6,6 +6,7 @@ export {
   emitLoggedInSessionSummary,
   emitSessionSummaryAuthLogin,
   emitSessionSummaryAuthLogout,
+  flushPendingSessionSummaryNavigate,
   initSessionSummaryNavigation,
   isLoggedInForSessionSummary,
   newSessionSummaryEntryId,
