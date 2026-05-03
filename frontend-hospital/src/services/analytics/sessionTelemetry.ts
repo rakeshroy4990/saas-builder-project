@@ -1,4 +1,4 @@
-import { URLRegistry } from '../http/URLRegistry';
+import { getApiBaseUrl, SERVER_PATHS } from '../http/apiPaths';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { readLoginSessionId } from '../logging/loginSessionContext';
 import { enqueueTelemetryBody, flushTelemetryOutbox } from './sessionTelemetryQueue';
@@ -58,13 +58,15 @@ function readPersistedUserId(): string {
 }
 
 function postSessionEventBody(body: string): Promise<Response> {
-  return URLRegistry.request('telemetrySessionEvent', {
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    'X-Trace-Id': getOrCreateTraceId()
+  });
+  return fetch(`${getApiBaseUrl()}${SERVER_PATHS.telemetrySessionEvent}`, {
     method: 'POST',
     credentials: 'omit',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json'
-    },
+    headers,
     body
   });
 }

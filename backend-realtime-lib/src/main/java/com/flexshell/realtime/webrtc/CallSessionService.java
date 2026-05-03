@@ -12,26 +12,26 @@ import java.util.Objects;
 @Service
 public class CallSessionService {
     private static final Logger log = LoggerFactory.getLogger(CallSessionService.class);
-    private final ObjectProvider<CallSessionRepository> repositoryProvider;
+    private final ObjectProvider<CallSessionPersistence> persistenceProvider;
     private final CallPermissionEvaluator permissionEvaluator;
     private final PhiRetentionPolicy retentionPolicy;
 
     public CallSessionService(
-            ObjectProvider<CallSessionRepository> repositoryProvider,
+            ObjectProvider<CallSessionPersistence> persistenceProvider,
             CallPermissionEvaluator permissionEvaluator,
             PhiRetentionPolicy retentionPolicy
     ) {
-        this.repositoryProvider = repositoryProvider;
+        this.persistenceProvider = persistenceProvider;
         this.permissionEvaluator = permissionEvaluator;
         this.retentionPolicy = retentionPolicy;
     }
 
-    private CallSessionRepository repo() {
-        CallSessionRepository r = repositoryProvider.getIfAvailable();
-        if (r == null) {
+    private CallSessionPersistence repo() {
+        CallSessionPersistence p = persistenceProvider.getIfAvailable();
+        if (p == null) {
             throw new IllegalStateException("Call session persistence is unavailable");
         }
-        return r;
+        return p;
     }
 
     public CallSessionEntity invite(String initiatorId, String receiverId) {
