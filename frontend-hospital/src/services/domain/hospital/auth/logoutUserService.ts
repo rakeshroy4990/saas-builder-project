@@ -13,13 +13,17 @@ import { stompClient } from '../../../realtime/stompClient';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { flushSessionTelemetryQueue } from '../../../analytics/sessionTelemetry';
-import { emitSessionSummaryAuthLogout } from '../../../analytics/sessionSummary';
+import {
+  emitSessionSummaryAuthLogout,
+  flushPendingSessionSummaryNavigate
+} from '../../../analytics/sessionSummary';
 
 export const logoutUserHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
     serviceId: 'logout-user',
     execute: async () => {
+      flushPendingSessionSummaryNavigate();
       trackEvent('logout');
       emitSessionSummaryAuthLogout({ reason: 'user_initiated' });
       await flushSessionTelemetryQueue();

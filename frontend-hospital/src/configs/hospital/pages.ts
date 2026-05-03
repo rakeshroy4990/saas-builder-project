@@ -722,7 +722,8 @@ export const hospitalPages: PageConfig[] = [
                             config: {
                               mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
                               styles: { styleTemplate: 'hosp.header.userButton' },
-                              title: 'Open profile menu',
+                              trailingVisual: 'chevron-down',
+                              title: 'Account menu — profile, account status, sign out',
                               click: { actionId: 'toggle-profile-header-menu' }
                             }
                           },
@@ -777,7 +778,8 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-header-user-menu-logout',
                                   type: 'button',
                                   config: {
-                                    text: 'Logout',
+                                    text: 'Sign out',
+                                    pendingLabel: 'Signing out…',
                                     styles: { styleTemplate: 'hosp.header.menuButton' },
                                     click: { actionId: 'logout-user' }
                                   }
@@ -808,11 +810,12 @@ export const hospitalPages: PageConfig[] = [
                               mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
                               mappingMaxLength: 50,
                               textFallback: 'Account',
+                              trailingVisual: 'chevron-down',
                               styles: {
                                 styleTemplate: 'hosp.header.userMenuTriggerMobile',
                                 utilityClasses: 'min-w-0 max-w-[18ch] sm:max-w-[22ch] truncate'
                               },
-                              title: 'Open profile menu',
+                              title: 'Account menu — profile, account status, sign out',
                               click: { actionId: 'toggle-profile-header-menu' }
                             }
                           },
@@ -867,7 +870,8 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-header-user-menu-logout-mobile',
                                   type: 'button',
                                   config: {
-                                    text: 'Logout',
+                                    text: 'Sign out',
+                                    pendingLabel: 'Signing out…',
                                     styles: { styleTemplate: 'hosp.header.menuButton' },
                                     click: { actionId: 'logout-user' }
                                   }

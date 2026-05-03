@@ -1,8 +1,8 @@
 package com.flexshell.service;
 
 import com.flexshell.appointment.AppointmentEntity;
-import com.flexshell.appointment.AppointmentRepository;
 import com.flexshell.auth.UserEntity;
+import com.flexshell.persistence.api.AppointmentAccess;
 import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.email.AppointmentCreatedEmailNotifier;
@@ -14,7 +14,7 @@ import com.flexshell.controller.dto.AppointmentResponse;
 import com.flexshell.controller.dto.AvailableSlotDto;
 import com.flexshell.controller.dto.AvailableSlotsResponse;
 import com.flexshell.doctorschedule.DoctorScheduleEntity;
-import com.flexshell.doctorschedule.DoctorScheduleRepository;
+import com.flexshell.persistence.api.DoctorScheduleAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.flexshell.controller.dto.PagedAppointmentListDto;
@@ -47,28 +47,28 @@ public class AppointmentService {
     private static final String STATUS_COMPLETED = "COMPLETED";
     /** Admin-only soft removal from operational views; document stays in Mongo. */
     public static final String STATUS_DELETED = "DELETED";
-    private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
+    private final ObjectProvider<AppointmentAccess> appointmentAccessProvider;
     private final ObjectProvider<UserAccess> userAccessProvider;
-    private final ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider;
+    private final ObjectProvider<DoctorScheduleAccess> doctorScheduleAccessProvider;
     private final ZoneId hospitalZoneId;
     private final AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier;
 
     public AppointmentService(
-            ObjectProvider<AppointmentRepository> appointmentRepositoryProvider,
+            ObjectProvider<AppointmentAccess> appointmentAccessProvider,
             ObjectProvider<UserAccess> userAccessProvider,
-            ObjectProvider<DoctorScheduleRepository> doctorScheduleRepositoryProvider,
+            ObjectProvider<DoctorScheduleAccess> doctorScheduleAccessProvider,
             @Qualifier("hospitalZoneId") ZoneId hospitalZoneId,
             AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier
     ) {
-        this.appointmentRepositoryProvider = appointmentRepositoryProvider;
+        this.appointmentAccessProvider = appointmentAccessProvider;
         this.userAccessProvider = userAccessProvider;
-        this.doctorScheduleRepositoryProvider = doctorScheduleRepositoryProvider;
+        this.doctorScheduleAccessProvider = doctorScheduleAccessProvider;
         this.hospitalZoneId = hospitalZoneId;
         this.appointmentCreatedEmailNotifier = appointmentCreatedEmailNotifier;
     }
 
     public AppointmentResponse create(AppointmentRequest request, List<MultipartFile> prescriptionFiles, String actorUserId) {
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = new AppointmentEntity();
         applyRequest(entity, request, prescriptionFiles);
         assertPreferredSlotAllowed(
@@ -120,7 +120,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponse update(String id, AppointmentRequest request, List<MultipartFile> prescriptionFiles, String actorUserId) {
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
         ensureCanAccessAppointment(entity, actorUserId);
@@ -141,7 +141,7 @@ public class AppointmentService {
     }
 
     public boolean delete(String id, String actorUserId) {
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
         ensureCanAccessAppointment(entity, actorUserId);
@@ -151,7 +151,7 @@ public class AppointmentService {
 
     /** Soft cancel: sets status to CANCELLED instead of removing the document. */
     public AppointmentResponse cancel(String id, String actorUserId) {
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
         ensureCanAccessAppointment(entity, actorUserId);
@@ -169,7 +169,7 @@ public class AppointmentService {
      * Only the assigned doctor may complete (patients and admins use other flows).
      */
     public AppointmentResponse completeVisit(String id, String actorUserId) {
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
         UserRole role = resolveUserRole(actorUserId);
@@ -193,7 +193,7 @@ public class AppointmentService {
     }
 
     public AppointmentEntity requireAppointmentEntity(String id, String actorUserId) {
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
         ensureCanAccessAppointment(entity, actorUserId);
@@ -201,7 +201,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponse getById(String id, String actorUserId) {
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
         ensureCanAccessAppointment(entity, actorUserId);
@@ -209,7 +209,7 @@ public class AppointmentService {
     }
 
     public List<AppointmentResponse> getAll(String actorUserId, int page, int size) {
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         int safePage = Math.max(0, page);
         int safeSize = size <= 0 ? 20 : Math.min(size, 100);
         PageRequest pageRequest = PageRequest.of(safePage, safeSize);
@@ -229,7 +229,7 @@ public class AppointmentService {
     public PagedAppointmentListDto listAllAppointmentsPagedForAdmin(String adminUserId, int page, int size) {
         UserAccess users = requireUserAccess();
         AdminAuthorizationSupport.requireAdminUser(users, adminUserId);
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         int safePage = Math.max(0, page);
         int safeSize = size <= 0 ? 20 : Math.min(size, 200);
         PageRequest pageRequest = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdTimestamp"));
@@ -249,7 +249,7 @@ public class AppointmentService {
     public AppointmentResponse softDeleteAppointmentAsAdmin(String appointmentId, String adminUserId) {
         UserAccess users = requireUserAccess();
         AdminAuthorizationSupport.requireAdminUser(users, adminUserId);
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = repository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
         if (STATUS_DELETED.equalsIgnoreCase(normalize(entity.getStatus()))) {
@@ -272,7 +272,7 @@ public class AppointmentService {
             return List.of();
         }
         String exclude = normalize(excludeAppointmentId);
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         List<AppointmentEntity> rows = repository.findByDoctorIdAndPreferredDate(docId, date);
         Set<String> slots = new LinkedHashSet<>();
         for (AppointmentEntity row : rows) {
@@ -324,9 +324,9 @@ public class AppointmentService {
         }
         List<String> base;
         boolean usesSchedule = false;
-        DoctorScheduleRepository scheduleRepository = doctorScheduleRepositoryProvider.getIfAvailable();
-        if (scheduleRepository != null) {
-            Optional<DoctorScheduleEntity> schOpt = scheduleRepository.findByDoctorId(docId);
+        DoctorScheduleAccess scheduleAccess = doctorScheduleAccessProvider.getIfAvailable();
+        if (scheduleAccess != null) {
+            Optional<DoctorScheduleEntity> schOpt = scheduleAccess.findByDoctorId(docId);
             if (schOpt.isPresent() && DoctorSlotGenerator.scheduleHasEnabledWorkingDay(schOpt.get())) {
                 usesSchedule = true;
                 base = DoctorSlotGenerator.generateSlotValues(d, hospitalZoneId, schOpt.get());
@@ -357,9 +357,9 @@ public class AppointmentService {
         }
         List<String> allowed;
         boolean usesSchedule = false;
-        DoctorScheduleRepository scheduleRepository = doctorScheduleRepositoryProvider.getIfAvailable();
-        if (scheduleRepository != null) {
-            Optional<DoctorScheduleEntity> schOpt = scheduleRepository.findByDoctorId(doctorId);
+        DoctorScheduleAccess scheduleAccess = doctorScheduleAccessProvider.getIfAvailable();
+        if (scheduleAccess != null) {
+            Optional<DoctorScheduleEntity> schOpt = scheduleAccess.findByDoctorId(doctorId);
             if (schOpt.isPresent() && DoctorSlotGenerator.scheduleHasEnabledWorkingDay(schOpt.get())) {
                 usesSchedule = true;
                 allowed = DoctorSlotGenerator.generateSlotValues(d, hospitalZoneId, schOpt.get());
@@ -377,7 +377,7 @@ public class AppointmentService {
     }
 
     public AppointmentEntity.AppointmentFile getFile(String appointmentId, String fileId, String actorUserId) {
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = repository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
         ensureCanAccessAppointment(entity, actorUserId);
@@ -487,7 +487,7 @@ public class AppointmentService {
         if (doctorId.isBlank() || preferredDate.isBlank() || preferredTimeSlot.isBlank()) {
             return;
         }
-        AppointmentRepository repository = requireAppointmentRepository();
+        AppointmentAccess repository = requireAppointmentAccess();
         List<AppointmentEntity> rows = repository.findByDoctorIdAndPreferredDate(doctorId, preferredDate);
         String exclude = normalize(excludeAppointmentId);
         for (AppointmentEntity row : rows) {
@@ -659,12 +659,12 @@ public class AppointmentService {
         return value == null ? "" : value.trim();
     }
 
-    private AppointmentRepository requireAppointmentRepository() {
-        AppointmentRepository repository = appointmentRepositoryProvider.getIfAvailable();
-        if (repository == null) {
-            throw new IllegalStateException("Appointment repository is unavailable");
+    private AppointmentAccess requireAppointmentAccess() {
+        AppointmentAccess access = appointmentAccessProvider.getIfAvailable();
+        if (access == null) {
+            throw new IllegalStateException("Appointment persistence is unavailable");
         }
-        return repository;
+        return access;
     }
 
     private UserAccess requireUserAccess() {

@@ -58,15 +58,13 @@ function readPersistedUserId(): string {
 }
 
 function postSessionEventBody(body: string): Promise<Response> {
-  const headers = new Headers({
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    'X-Trace-Id': getOrCreateTraceId()
-  });
-  return fetch(URLRegistry.resolve('telemetrySessionEvent'), {
+  return URLRegistry.request('telemetrySessionEvent', {
     method: 'POST',
     credentials: 'omit',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
     body
   });
 }

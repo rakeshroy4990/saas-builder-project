@@ -1,7 +1,7 @@
 package com.flexshell.service;
 
 import com.flexshell.logging.CommonLogger;
-import com.flexshell.uimetadata.UiMetadataPersistenceService;
+import com.flexshell.uimetadata.UiMetadataPersistencePort;
 import com.flexshell.uimetadata.api.UiMetadataFacade;
 import com.flexshell.uimetadata.api.UiMetadataGetResponse;
 import com.flexshell.uimetadata.api.UiMetadataSaveRequest;
@@ -22,9 +22,9 @@ public class UiMetadataService implements UiMetadataFacade {
     private static final Logger LOG = LoggerFactory.getLogger(UiMetadataService.class);
     private static final CommonLogger COMMON_LOGGER = new CommonLogger(LOG);
 
-    private final ObjectProvider<UiMetadataPersistenceService> persistenceServiceProvider;
+    private final ObjectProvider<UiMetadataPersistencePort> persistenceServiceProvider;
 
-    public UiMetadataService(ObjectProvider<UiMetadataPersistenceService> persistenceServiceProvider) {
+    public UiMetadataService(ObjectProvider<UiMetadataPersistencePort> persistenceServiceProvider) {
         this.persistenceServiceProvider = persistenceServiceProvider;
     }
 
@@ -37,7 +37,7 @@ public class UiMetadataService implements UiMetadataFacade {
 
     public boolean save(UiMetadataSaveRequest body) throws JsonProcessingException {
         COMMON_LOGGER.methodEntry("save", "packageCount=" + (body.getPackages() == null ? 0 : body.getPackages().size()));
-        UiMetadataPersistenceService persistenceService = persistenceServiceProvider.getIfAvailable();
+        UiMetadataPersistencePort persistenceService = persistenceServiceProvider.getIfAvailable();
         if (persistenceService == null) {
             LOG.warn("ui-metadata service save aborted persistenceUnavailable=true");
             COMMON_LOGGER.methodExit("save", "result=false");
@@ -52,7 +52,7 @@ public class UiMetadataService implements UiMetadataFacade {
 
     public Optional<UiMetadataGetResponse> loadStored() throws JsonProcessingException {
         COMMON_LOGGER.methodEntry("loadStored", "read=default");
-        UiMetadataPersistenceService persistenceService = persistenceServiceProvider.getIfAvailable();
+        UiMetadataPersistencePort persistenceService = persistenceServiceProvider.getIfAvailable();
         if (persistenceService == null) {
             LOG.warn("ui-metadata service load aborted persistenceUnavailable=true");
             COMMON_LOGGER.methodExit("loadStored", "result=empty");
@@ -72,7 +72,7 @@ public class UiMetadataService implements UiMetadataFacade {
 
     public boolean deleteStoredById(String id) {
         COMMON_LOGGER.methodEntry("deleteStoredById", "requestedId=" + id);
-        UiMetadataPersistenceService persistenceService = persistenceServiceProvider.getIfAvailable();
+        UiMetadataPersistencePort persistenceService = persistenceServiceProvider.getIfAvailable();
         if (persistenceService == null) {
             LOG.warn("ui-metadata service delete aborted persistenceUnavailable=true requestedId={}", id);
             COMMON_LOGGER.methodExit("deleteStoredById", "result=false");

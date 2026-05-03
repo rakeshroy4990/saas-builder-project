@@ -1,6 +1,6 @@
 package com.flexshell.realtime.webrtc;
 
-import com.flexshell.appointment.AppointmentRepository;
+import com.flexshell.persistence.api.AppointmentAccess;
 import com.flexshell.auth.UserEntity;
 import com.flexshell.auth.UserRole;
 import com.flexshell.persistence.api.UserAccess;
@@ -12,13 +12,13 @@ import java.util.Objects;
 
 @Component
 public class HospitalCallPermissionEvaluator implements CallPermissionEvaluator {
-    private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
+    private final ObjectProvider<AppointmentAccess> appointmentAccessProvider;
     private final ObjectProvider<UserAccess> userAccessProvider;
 
     public HospitalCallPermissionEvaluator(
-            ObjectProvider<AppointmentRepository> appointmentRepositoryProvider,
+            ObjectProvider<AppointmentAccess> appointmentAccessProvider,
             ObjectProvider<UserAccess> userAccessProvider) {
-        this.appointmentRepositoryProvider = appointmentRepositoryProvider;
+        this.appointmentAccessProvider = appointmentAccessProvider;
         this.userAccessProvider = userAccessProvider;
     }
 
@@ -55,7 +55,7 @@ public class HospitalCallPermissionEvaluator implements CallPermissionEvaluator 
     }
 
     private boolean patientHasAppointmentWithDoctor(String patientId, String doctorId) {
-        AppointmentRepository appointmentRepository = appointmentRepositoryProvider.getIfAvailable();
+        AppointmentAccess appointmentRepository = appointmentAccessProvider.getIfAvailable();
         if (appointmentRepository == null) {
             return false;
         }

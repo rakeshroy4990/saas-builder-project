@@ -6,6 +6,7 @@ import { useToastStore } from '../../store/useToastStore';
 import { pinia } from '../../store/pinia';
 import { getApiBaseUrl } from './URLRegistry';
 import { URLRegistry } from './URLRegistry';
+import { shouldSkipTelemetrySessionSummaryForApiUrl } from './telemetryUrlSkip';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { logClient } from '../logging/clientLogger';
 import {
@@ -37,7 +38,7 @@ function axiosResolvedUrl(config: { baseURL?: string; url?: string }): string {
 }
 
 function shouldSkipSessionSummaryForAxios(config: { baseURL?: string; url?: string }): boolean {
-  return axiosResolvedUrl(config).includes('/api/telemetry/session-event');
+  return shouldSkipTelemetrySessionSummaryForApiUrl(axiosResolvedUrl(config));
 }
 
 export const apiClient = axios.create({

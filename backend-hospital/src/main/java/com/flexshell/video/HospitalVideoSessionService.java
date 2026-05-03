@@ -1,7 +1,7 @@
 package com.flexshell.video;
 
 import com.flexshell.appointment.AppointmentEntity;
-import com.flexshell.appointment.AppointmentRepository;
+import com.flexshell.persistence.api.AppointmentAccess;
 import com.flexshell.auth.UserEntity;
 import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
@@ -16,20 +16,20 @@ import java.util.Objects;
 
 @Service
 public class HospitalVideoSessionService {
-    private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
+    private final ObjectProvider<AppointmentAccess> appointmentAccessProvider;
     private final ObjectProvider<UserAccess> userAccessProvider;
     private final HospitalCallPermissionEvaluator permissionEvaluator;
     private final VideoSessionPort videoSessionPort;
     private final String videoProvider;
 
     public HospitalVideoSessionService(
-            ObjectProvider<AppointmentRepository> appointmentRepositoryProvider,
+            ObjectProvider<AppointmentAccess> appointmentAccessProvider,
             ObjectProvider<UserAccess> userAccessProvider,
             HospitalCallPermissionEvaluator permissionEvaluator,
             VideoSessionPort videoSessionPort,
             @Value("${app.video.provider:builtin}") String videoProvider
     ) {
-        this.appointmentRepositoryProvider = appointmentRepositoryProvider;
+        this.appointmentAccessProvider = appointmentAccessProvider;
         this.userAccessProvider = userAccessProvider;
         this.permissionEvaluator = permissionEvaluator;
         this.videoSessionPort = videoSessionPort;
@@ -61,7 +61,7 @@ public class HospitalVideoSessionService {
         String apId = normalize(request.appointmentId());
         String explicitPeer = normalize(request.peerUserId());
         if (!apId.isEmpty()) {
-            AppointmentRepository appointmentRepository = appointmentRepositoryProvider.getIfAvailable();
+            AppointmentAccess appointmentRepository = appointmentAccessProvider.getIfAvailable();
             if (appointmentRepository == null) {
                 throw new IllegalStateException("Appointment persistence is unavailable");
             }

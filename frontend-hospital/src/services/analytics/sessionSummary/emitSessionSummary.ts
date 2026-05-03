@@ -76,15 +76,45 @@ export function emitSessionSummaryAuthLogout(attributes?: Record<string, unknown
   });
 }
 
+/** Coalesce rapid `afterEach` navigations into one queued summary row (fewer rows / faster logout flush). */
+const NAVIGATE_DEBOUNCE_MS = 400;
+let navigateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingNavigateRow: SessionSummaryRowInput | null = null;
+
+/**
+ * Flushes a debounced navigation summary immediately (call before logout / deactivate so the last route is captured).
+ */
+export function flushPendingSessionSummaryNavigate(): void {
+  if (navigateDebounceTimer != null) {
+    clearTimeout(navigateDebounceTimer);
+    navigateDebounceTimer = null;
+  }
+  if (pendingNavigateRow) {
+    emitLoggedInSessionSummary(pendingNavigateRow);
+    pendingNavigateRow = null;
+  }
+}
+
 /** Router hook: record page navigations for the logged-in session. */
 export function initSessionSummaryNavigation(router: Router): void {
   router.afterEach((to) => {
-    const pageId = String(to.params.pageId ?? '').trim() || String(to.path.replace(/^\//, '').split('/')[0] ?? '').trim();
-    emitLoggedInSessionSummary({
+    const pageId =
+      String(to.params.pageId ?? '').trim() || String(to.path.replace(/^\//, '').split('/')[0] ?? '').trim();
+    pendingNavigateRow = {
       kind: SessionSummaryKind.NAVIGATE,
       page_id: pageId || undefined,
       package_name: 'hospital',
       route_path: to.fullPath
-    });
+    };
+    if (navigateDebounceTimer != null) {
+      clearTimeout(navigateDebounceTimer);
+    }
+    navigateDebounceTimer = setTimeout(() => {
+      navigateDebounceTimer = null;
+      if (pendingNavigateRow) {
+        emitLoggedInSessionSummary(pendingNavigateRow);
+        pendingNavigateRow = null;
+      }
+    }, NAVIGATE_DEBOUNCE_MS);
   });
 }

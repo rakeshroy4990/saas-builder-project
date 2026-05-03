@@ -3,6 +3,8 @@
  * (logout / session expiry) instead of one HTTP request per UI/API event.
  */
 
+import { URLRegistry } from '../http/URLRegistry';
+
 const DB_NAME = 'flexshell_session_telemetry_v1';
 const STORE = 'outbox';
 const DB_VERSION = 1;
@@ -93,28 +95,77 @@ type PostTelemetry = (body: string) => Promise<Response>;
 
 let flushChain: Promise<void> = Promise.resolve();
 
-async function readFirstRecord(db: IDBDatabase): Promise<TelemetryOutboxRecord | null> {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).openCursor();
-    req.onerror = () => reject(req.error);
-    req.onsuccess = () => {
-      const c = req.result;
-      if (!c) {
-        resolve(null);
-        return;
-      }
-      resolve(c.value as TelemetryOutboxRecord);
-    };
-  });
-}
-
 async function deleteById(db: IDBDatabase, id: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
     const req = tx.objectStore(STORE).delete(id);
     req.onerror = () => reject(req.error);
     req.onsuccess = () => resolve();
+  });
+}
+
+const BATCH_FLUSH_MAX = 100;
+
+async function readOrderedRecords(db: IDBDatabase, limit: number): Promise<TelemetryOutboxRecord[]> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).openCursor();
+    const out: TelemetryOutboxRecord[] = [];
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (!cursor) {
+        resolve(out);
+        return;
+      }
+      if (out.length >= limit) {
+        resolve(out);
+        return;
+      }
+      out.push(cursor.value as TelemetryOutboxRecord);
+      cursor.continue();
+    };
+  });
+}
+
+async function deleteByIds(db: IDBDatabase, ids: number[]): Promise<void> {
+  if (ids.length === 0) return;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const os = tx.objectStore(STORE);
+    let i = 0;
+    const step = () => {
+      if (i >= ids.length) {
+        resolve();
+        return;
+      }
+      const req = os.delete(ids[i]!);
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        i += 1;
+        step();
+      };
+    };
+    step();
+  });
+}
+
+async function postSessionEventsBatch(bodies: string[]): Promise<Response> {
+  let events: unknown[];
+  try {
+    events = bodies.map((b) => JSON.parse(b) as unknown);
+  } catch {
+    return new Response(null, { status: 400 });
+  }
+  const wrapped = JSON.stringify({ events });
+  return URLRegistry.request('telemetrySessionEvents', {
+    method: 'POST',
+    credentials: 'omit',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: wrapped
   });
 }
 
@@ -127,7 +178,24 @@ async function runFlush(postTelemetry: PostTelemetry): Promise<void> {
       return;
     }
     for (;;) {
-      const first = await readFirstRecord(db);
+      const batch = await readOrderedRecords(db, BATCH_FLUSH_MAX);
+      if (batch.length === 0) break;
+      const ids = batch.map((r) => r.id).filter((id): id is number => typeof id === 'number');
+      if (ids.length === 0) break;
+
+      if (batch.length >= 2) {
+        try {
+          const res = await postSessionEventsBatch(batch.map((r) => r.body));
+          if (res.ok) {
+            await deleteByIds(db, ids);
+            continue;
+          }
+        } catch {
+          // fall through to single-event drain
+        }
+      }
+
+      const first = batch[0];
       if (!first || first.id == null) break;
       try {
         const res = await postTelemetry(first.body);

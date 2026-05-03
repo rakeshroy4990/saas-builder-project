@@ -1,12 +1,18 @@
 package com.flexshell.doctorschedule;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 public class DoctorScheduleWindow {
     @Field("Start")
+    @JsonProperty("Start")
+    @JsonAlias({"start"})
     private String start = "";
 
     @Field("End")
+    @JsonProperty("End")
+    @JsonAlias({"end"})
     private String end = "";
 
     public String getStart() {

@@ -5,7 +5,7 @@ import com.flexshell.auth.UserEntity;
 import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.DoctorOptionResponse;
-import com.flexshell.medicaldepartment.MedicalDepartmentRepository;
+import com.flexshell.persistence.api.MedicalDepartmentAccess;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -17,14 +17,14 @@ import java.util.Locale;
 @Service
 public class DoctorDirectoryService {
     private final ObjectProvider<UserAccess> userAccessProvider;
-    private final ObjectProvider<MedicalDepartmentRepository> medicalDepartmentRepositoryProvider;
+    private final ObjectProvider<MedicalDepartmentAccess> medicalDepartmentAccessProvider;
 
     public DoctorDirectoryService(
             ObjectProvider<UserAccess> userAccessProvider,
-            ObjectProvider<MedicalDepartmentRepository> medicalDepartmentRepositoryProvider
+            ObjectProvider<MedicalDepartmentAccess> medicalDepartmentAccessProvider
     ) {
         this.userAccessProvider = userAccessProvider;
-        this.medicalDepartmentRepositoryProvider = medicalDepartmentRepositoryProvider;
+        this.medicalDepartmentAccessProvider = medicalDepartmentAccessProvider;
     }
 
     public List<DoctorOptionResponse> getDoctorsByDepartment(String department, int page, int size) {
@@ -90,9 +90,9 @@ public class DoctorDirectoryService {
     private List<String> resolveCandidateDepartments(String requestedDepartment) {
         List<String> candidates = new ArrayList<>();
         addIfMissing(candidates, requestedDepartment);
-        MedicalDepartmentRepository medicalDepartmentRepository = medicalDepartmentRepositoryProvider.getIfAvailable();
-        if (medicalDepartmentRepository != null) {
-            medicalDepartmentRepository.findByCodeIgnoreCase(requestedDepartment)
+        MedicalDepartmentAccess medicalDepartmentAccess = medicalDepartmentAccessProvider.getIfAvailable();
+        if (medicalDepartmentAccess != null) {
+            medicalDepartmentAccess.findByCodeIgnoreCase(requestedDepartment)
                     .map(entity -> entity.getName() == null ? "" : entity.getName().trim())
                     .ifPresent(name -> addIfMissing(candidates, name));
         }

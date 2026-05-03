@@ -3,7 +3,7 @@ package com.flexshell.service;
 import com.flexshell.controller.dto.MedicalDepartmentRequest;
 import com.flexshell.controller.dto.MedicalDepartmentResponse;
 import com.flexshell.medicaldepartment.MedicalDepartmentEntity;
-import com.flexshell.medicaldepartment.MedicalDepartmentRepository;
+import com.flexshell.persistence.api.MedicalDepartmentAccess;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -13,14 +13,14 @@ import java.util.List;
 
 @Service
 public class MedicalDepartmentService {
-    private final ObjectProvider<MedicalDepartmentRepository> repositoryProvider;
+    private final ObjectProvider<MedicalDepartmentAccess> departmentAccessProvider;
 
-    public MedicalDepartmentService(ObjectProvider<MedicalDepartmentRepository> repositoryProvider) {
-        this.repositoryProvider = repositoryProvider;
+    public MedicalDepartmentService(ObjectProvider<MedicalDepartmentAccess> departmentAccessProvider) {
+        this.departmentAccessProvider = departmentAccessProvider;
     }
 
     public MedicalDepartmentResponse create(MedicalDepartmentRequest request) {
-        MedicalDepartmentRepository repository = requireRepository();
+        MedicalDepartmentAccess repository = requireDepartmentAccess();
         String code = normalizeCode(request.getCode());
         if (code.isBlank()) {
             throw new IllegalArgumentException("Code is required");
@@ -37,7 +37,7 @@ public class MedicalDepartmentService {
     }
 
     public MedicalDepartmentResponse update(String id, MedicalDepartmentRequest request) {
-        MedicalDepartmentRepository repository = requireRepository();
+        MedicalDepartmentAccess repository = requireDepartmentAccess();
         MedicalDepartmentEntity entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
         String code = normalizeCode(request.getCode());
@@ -54,7 +54,7 @@ public class MedicalDepartmentService {
     }
 
     public MedicalDepartmentResponse createOrUpdate(MedicalDepartmentRequest request) {
-        MedicalDepartmentRepository repository = requireRepository();
+        MedicalDepartmentAccess repository = requireDepartmentAccess();
         String id = request.getId() == null ? "" : request.getId().trim();
         if (!id.isBlank()) {
             return update(id, request);
@@ -72,7 +72,7 @@ public class MedicalDepartmentService {
     }
 
     public boolean delete(String id) {
-        MedicalDepartmentRepository repository = requireRepository();
+        MedicalDepartmentAccess repository = requireDepartmentAccess();
         if (!repository.existsById(id)) {
             return false;
         }
@@ -81,14 +81,14 @@ public class MedicalDepartmentService {
     }
 
     public MedicalDepartmentResponse getById(String id) {
-        MedicalDepartmentRepository repository = requireRepository();
+        MedicalDepartmentAccess repository = requireDepartmentAccess();
         return repository.findById(id)
                 .map(this::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
     }
 
     public List<MedicalDepartmentResponse> getAll(int page, int size) {
-        MedicalDepartmentRepository repository = requireRepository();
+        MedicalDepartmentAccess repository = requireDepartmentAccess();
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, size);
         return repository.findAll(PageRequest.of(safePage, safeSize))
@@ -132,11 +132,11 @@ public class MedicalDepartmentService {
                 entity.getUpdatedTimestamp() == null ? null : entity.getUpdatedTimestamp().toString());
     }
 
-    private MedicalDepartmentRepository requireRepository() {
-        MedicalDepartmentRepository repository = repositoryProvider.getIfAvailable();
-        if (repository == null) {
-            throw new IllegalStateException("Medical department repository is unavailable");
+    private MedicalDepartmentAccess requireDepartmentAccess() {
+        MedicalDepartmentAccess access = departmentAccessProvider.getIfAvailable();
+        if (access == null) {
+            throw new IllegalStateException("Medical department persistence is unavailable");
         }
-        return repository;
+        return access;
     }
 }

@@ -8,8 +8,12 @@ import type { StyleConfig } from '../../core/types/StyleConfig';
 
 interface ButtonConfig {
   text?: string;
+  /** Shown next to the busy spinner while `actionPending` (defaults to `text` so controls stay readable). */
+  pendingLabel?: string;
   /** Renders the Google “G” icon before optional `text` (icon-only if `text` is empty). */
   iconPreset?: 'google';
+  /** Small affordance after label (e.g. account menu trigger). */
+  trailingVisual?: 'chevron-down';
   disabled?: boolean;
   hiddenWhenEmptyText?: boolean;
   title?: string;
@@ -76,9 +80,12 @@ const onClick = () => {
   >
     <span
       v-if="config?.actionPending && busyIndicator"
-      class="inline-flex min-h-[1.25em] min-w-[2em] items-center justify-center"
+      class="inline-flex min-h-[1.25em] min-w-0 max-w-full items-center justify-center gap-2"
     >
-      <component :is="busyIndicator" />
+      <component :is="busyIndicator" class="shrink-0" aria-hidden="true" />
+      <span class="min-w-0 truncate text-left">{{
+        String(config?.pendingLabel ?? config?.text ?? 'Please wait…').trim() || 'Please wait…'
+      }}</span>
     </span>
     <span
       v-else-if="config?.iconPreset === 'google'"
@@ -106,6 +113,21 @@ const onClick = () => {
       </span>
       <span v-if="String(config?.text ?? '').trim().length > 0">{{ config?.text }}</span>
     </span>
-    <span v-else>{{ config?.text ?? '' }}</span>
+    <span v-else class="inline-flex min-w-0 max-w-full items-center gap-1">
+      <span class="min-w-0 truncate">{{ config?.text ?? '' }}</span>
+      <svg
+        v-if="config?.trailingVisual === 'chevron-down'"
+        class="h-4 w-4 shrink-0 text-slate-500 opacity-80"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01.02-1.06z"
+          clip-rule="evenodd"
+        />
+      </svg>
+    </span>
   </button>
 </template>

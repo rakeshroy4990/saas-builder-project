@@ -14,7 +14,10 @@ import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/call
 import { clearChatSubscription, clearSupportSubscription } from '../shared/chatState';
 import { buildLogoutRequestBody } from '../../../auth/logoutRequestBody';
 import { flushSessionTelemetryQueue } from '../../../analytics/sessionTelemetry';
-import { emitSessionSummaryAuthLogout } from '../../../analytics/sessionSummary';
+import {
+  emitSessionSummaryAuthLogout,
+  flushPendingSessionSummaryNavigate
+} from '../../../analytics/sessionSummary';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { getOrCreateTraceId } from '../../../logging/traceContext';
 import { clearLoginSessionId } from '../../../logging/loginSessionContext';
@@ -290,7 +293,14 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       } catch {
         // ignore
       }
+      flushPendingSessionSummaryNavigate();
       emitSessionSummaryAuthLogout({ reason: 'account_deactivated' });
+      trackEvent('profile_deactivated', {
+        domain: 'profile',
+        status: 'success',
+        reason_code: telemetryReasonCodes.profile.deactivateSuccess,
+        trace_id: getOrCreateTraceId()
+      });
       await flushSessionTelemetryQueue();
       clearWebrtcSubscription();
       clearChatSubscription();
@@ -312,12 +322,6 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
       clearPersistedAuthSessionProfile();
       clearLoginSessionId();
-      trackEvent('profile_deactivated', {
-        domain: 'profile',
-        status: 'success',
-        reason_code: telemetryReasonCodes.profile.deactivateSuccess,
-        trace_id: getOrCreateTraceId()
-      });
       toast.show('Your account has been deactivated.', 'info');
       window.location.assign('/home');
       return ok();
