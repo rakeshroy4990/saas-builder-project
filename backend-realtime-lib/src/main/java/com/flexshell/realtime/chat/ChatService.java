@@ -1,6 +1,7 @@
 package com.flexshell.realtime.chat;
 
 import com.flexshell.compliance.PhiRetentionPolicy;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -15,24 +16,56 @@ import java.util.Objects;
 
 @Service
 public class ChatService {
-    private final ChatRoomRepository roomRepository;
-    private final ChatMessageRepository messageRepository;
-    private final ChatAckRepository ackRepository;
-    private final MongoTemplate mongoTemplate;
+    private final ObjectProvider<ChatRoomRepository> roomRepositoryProvider;
+    private final ObjectProvider<ChatMessageRepository> messageRepositoryProvider;
+    private final ObjectProvider<ChatAckRepository> ackRepositoryProvider;
+    private final ObjectProvider<MongoTemplate> mongoTemplateProvider;
     private final PhiRetentionPolicy retentionPolicy;
 
     public ChatService(
-            ChatRoomRepository roomRepository,
-            ChatMessageRepository messageRepository,
-            ChatAckRepository ackRepository,
-            MongoTemplate mongoTemplate,
+            ObjectProvider<ChatRoomRepository> roomRepositoryProvider,
+            ObjectProvider<ChatMessageRepository> messageRepositoryProvider,
+            ObjectProvider<ChatAckRepository> ackRepositoryProvider,
+            ObjectProvider<MongoTemplate> mongoTemplateProvider,
             PhiRetentionPolicy retentionPolicy
     ) {
-        this.roomRepository = roomRepository;
-        this.messageRepository = messageRepository;
-        this.ackRepository = ackRepository;
-        this.mongoTemplate = mongoTemplate;
+        this.roomRepositoryProvider = roomRepositoryProvider;
+        this.messageRepositoryProvider = messageRepositoryProvider;
+        this.ackRepositoryProvider = ackRepositoryProvider;
+        this.mongoTemplateProvider = mongoTemplateProvider;
         this.retentionPolicy = retentionPolicy;
+    }
+
+    private ChatRoomRepository rooms() {
+        ChatRoomRepository r = roomRepositoryProvider.getIfAvailable();
+        if (r == null) {
+            throw new IllegalStateException("Chat persistence is unavailable");
+        }
+        return r;
+    }
+
+    private ChatMessageRepository messages() {
+        ChatMessageRepository r = messageRepositoryProvider.getIfAvailable();
+        if (r == null) {
+            throw new IllegalStateException("Chat persistence is unavailable");
+        }
+        return r;
+    }
+
+    private ChatAckRepository acks() {
+        ChatAckRepository r = ackRepositoryProvider.getIfAvailable();
+        if (r == null) {
+            throw new IllegalStateException("Chat persistence is unavailable");
+        }
+        return r;
+    }
+
+    private MongoTemplate mongo() {
+        MongoTemplate t = mongoTemplateProvider.getIfAvailable();
+        if (t == null) {
+            throw new IllegalStateException("MongoDB template is unavailable");
+        }
+        return t;
     }
 
     public ChatRoomEntity ensureDirectRoom(String userA, String userB) {
@@ -42,6 +75,7 @@ public class ChatService {
         List<String> participants = List.of(a, b).stream().distinct().sorted().toList();
         if (participants.size() != 2) throw new IllegalArgumentException("Invalid participants");
 
+        ChatRoomRepository roomRepository = rooms();
         List<ChatRoomEntity> rooms = roomRepository.findByParticipantsContaining(a).stream()
                 .filter(r -> r.getParticipants() != null && r.getParticipants().size() == 2
                         && r.getParticipants().containsAll(participants))
@@ -57,19 +91,19 @@ public class ChatService {
         room.setNextSequence(0L);
         room.setCreatedTimestamp(Instant.now());
         room.setUpdatedTimestamp(Instant.now());
-        return roomRepository.save(room);
+        return rooms().save(room);
     }
 
     public List<ChatRoomEntity> listRoomsForUser(String userId) {
         String u = normalize(userId);
         if (u.isEmpty()) return List.of();
-        return roomRepository.findByParticipantsContaining(u);
+        return rooms().findByParticipantsContaining(u);
     }
 
     public List<ChatMessageEntity> loadRecentMessages(String roomId) {
         String rid = normalize(roomId);
         if (rid.isEmpty()) return List.of();
-        List<ChatMessageEntity> recent = messageRepository.findTop50ByRoomIdOrderBySequenceNumberDesc(rid);
+        List<ChatMessageEntity> recent = messages().findTop50ByRoomIdOrderBySequenceNumberDesc(rid);
         recent.sort(Comparator.comparingLong(ChatMessageEntity::getSequenceNumber));
         return recent;
     }
@@ -80,7 +114,7 @@ public class ChatService {
         String text = body == null ? "" : body.trim();
         if (rid.isEmpty() || sid.isEmpty() || text.isEmpty()) throw new IllegalArgumentException("Invalid message");
 
-        ChatRoomEntity room = roomRepository.findById(rid).orElseThrow(() -> new IllegalArgumentException("Room not found"));
+        ChatRoomEntity room = rooms().findById(rid).orElseThrow(() -> new IllegalArgumentException("Room not found"));
         if (room.getParticipants() == null || !room.getParticipants().contains(sid)) {
             throw new IllegalStateException("Not a participant in this room");
         }
@@ -94,7 +128,7 @@ public class ChatService {
         msg.setSequenceNumber(seq);
         msg.setCreatedTimestamp(Instant.now());
         msg.setExpiresAt(retentionPolicy.expiresAtFromNow());
-        return messageRepository.save(msg);
+        return messages().save(msg);
     }
 
     public void ack(String roomId, String userId, long upToSequenceNumber) {
@@ -103,12 +137,12 @@ public class ChatService {
         if (rid.isEmpty() || uid.isEmpty()) return;
         if (upToSequenceNumber <= 0) return;
 
-        ChatAckEntity ack = ackRepository.findByRoomIdAndUserId(rid, uid).orElseGet(ChatAckEntity::new);
+        ChatAckEntity ack = acks().findByRoomIdAndUserId(rid, uid).orElseGet(ChatAckEntity::new);
         ack.setRoomId(rid);
         ack.setUserId(uid);
         ack.setUpToSequenceNumber(Math.max(ack.getUpToSequenceNumber(), upToSequenceNumber));
         ack.setUpdatedTimestamp(Instant.now());
-        ackRepository.save(ack);
+        acks().save(ack);
     }
 
     private long nextSequence(String roomId) {
@@ -116,7 +150,7 @@ public class ChatService {
         Update u = new Update()
                 .inc("NextSequence", 1)
                 .set("UpdatedTimestamp", Instant.now());
-        ChatRoomEntity updated = mongoTemplate.findAndModify(
+        ChatRoomEntity updated = mongo().findAndModify(
                 q,
                 u,
                 FindAndModifyOptions.options().returnNew(true),

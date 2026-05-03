@@ -2,6 +2,7 @@ package com.flexshell.realtime.chat.support;
 
 import com.flexshell.realtime.chat.ChatRoomEntity;
 import com.flexshell.realtime.chat.ChatService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -16,27 +17,43 @@ import java.util.Objects;
 
 @Service
 public class SupportChatService {
-    private final SupportRequestRepository supportRequestRepository;
+    private final ObjectProvider<SupportRequestRepository> supportRequestRepositoryProvider;
     private final SupportAgentPicker agentPicker;
     private final SupportRequesterProfileResolver requesterProfileResolver;
     private final SimpMessagingTemplate messagingTemplate;
-    private final MongoTemplate mongoTemplate;
+    private final ObjectProvider<MongoTemplate> mongoTemplateProvider;
     private final ChatService chatService;
 
     public SupportChatService(
-            SupportRequestRepository supportRequestRepository,
+            ObjectProvider<SupportRequestRepository> supportRequestRepositoryProvider,
             SupportAgentPicker agentPicker,
             SupportRequesterProfileResolver requesterProfileResolver,
             SimpMessagingTemplate messagingTemplate,
-            MongoTemplate mongoTemplate,
+            ObjectProvider<MongoTemplate> mongoTemplateProvider,
             ChatService chatService
     ) {
-        this.supportRequestRepository = supportRequestRepository;
+        this.supportRequestRepositoryProvider = supportRequestRepositoryProvider;
         this.agentPicker = agentPicker;
         this.requesterProfileResolver = requesterProfileResolver;
         this.messagingTemplate = messagingTemplate;
-        this.mongoTemplate = mongoTemplate;
+        this.mongoTemplateProvider = mongoTemplateProvider;
         this.chatService = chatService;
+    }
+
+    private SupportRequestRepository requests() {
+        SupportRequestRepository r = supportRequestRepositoryProvider.getIfAvailable();
+        if (r == null) {
+            throw new IllegalStateException("Support chat persistence is unavailable");
+        }
+        return r;
+    }
+
+    private MongoTemplate mongo() {
+        MongoTemplate t = mongoTemplateProvider.getIfAvailable();
+        if (t == null) {
+            throw new IllegalStateException("MongoDB template is unavailable");
+        }
+        return t;
     }
 
     public SupportRequestEntity createRequest(String requesterUserId) {
@@ -48,7 +65,7 @@ public class SupportChatService {
         req.setStatus(SupportRequestStatus.OPEN);
         req.setCreatedTimestamp(Instant.now());
         req.setUpdatedTimestamp(Instant.now());
-        SupportRequestEntity saved = supportRequestRepository.save(req);
+        SupportRequestEntity saved = requests().save(req);
 
         List<String> onlineAgents = agentPicker.listOnlineAgentUserIds();
         String requesterDisplayName = requesterProfileResolver.resolveDisplayName(requester);
@@ -73,7 +90,7 @@ public class SupportChatService {
                 .set("Status", SupportRequestStatus.ASSIGNED)
                 .set("AssignedAgentUserId", agent)
                 .set("UpdatedTimestamp", Instant.now());
-        SupportRequestEntity claimed = mongoTemplate.findAndModify(
+        SupportRequestEntity claimed = mongo().findAndModify(
                 q,
                 u,
                 FindAndModifyOptions.options().returnNew(true),
@@ -109,7 +126,7 @@ public class SupportChatService {
                 .set("Status", SupportRequestStatus.CLOSED)
                 .set("AssignedAgentUserId", agent)
                 .set("UpdatedTimestamp", Instant.now());
-        SupportRequestEntity closed = mongoTemplate.findAndModify(
+        SupportRequestEntity closed = mongo().findAndModify(
                 q,
                 u,
                 FindAndModifyOptions.options().returnNew(true),
@@ -131,7 +148,7 @@ public class SupportChatService {
     }
 
     public List<SupportRequestView> listOpenRequests() {
-        return supportRequestRepository.findTop20ByStatusOrderByCreatedTimestampDesc(SupportRequestStatus.OPEN)
+        return requests().findTop20ByStatusOrderByCreatedTimestampDesc(SupportRequestStatus.OPEN)
                 .stream()
                 .map(req -> new SupportRequestView(
                         req.getId(),

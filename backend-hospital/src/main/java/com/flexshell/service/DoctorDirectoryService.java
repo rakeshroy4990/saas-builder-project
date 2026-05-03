@@ -2,7 +2,7 @@ package com.flexshell.service;
 
 import com.flexshell.auth.RoleRequestStatus;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.DoctorOptionResponse;
 import com.flexshell.medicaldepartment.MedicalDepartmentRepository;
@@ -12,23 +12,24 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class DoctorDirectoryService {
-    private final ObjectProvider<UserRepository> userRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
     private final ObjectProvider<MedicalDepartmentRepository> medicalDepartmentRepositoryProvider;
 
     public DoctorDirectoryService(
-            ObjectProvider<UserRepository> userRepositoryProvider,
+            ObjectProvider<UserAccess> userAccessProvider,
             ObjectProvider<MedicalDepartmentRepository> medicalDepartmentRepositoryProvider
     ) {
-        this.userRepositoryProvider = userRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
         this.medicalDepartmentRepositoryProvider = medicalDepartmentRepositoryProvider;
     }
 
     public List<DoctorOptionResponse> getDoctorsByDepartment(String department, int page, int size) {
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null) {
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) {
             throw new IllegalStateException("Doctor directory service is unavailable");
         }
         String normalizedDepartment = department == null ? "" : department.trim();
@@ -38,10 +39,19 @@ public class DoctorDirectoryService {
         int safePage = Math.max(page, 0);
         int safeSize = size <= 0 ? 20 : Math.min(size, 100);
         List<String> candidateDepartments = resolveCandidateDepartments(normalizedDepartment);
-        return userRepository.findActiveDoctorsByDepartments(
+        List<String> departmentKeysLower = candidateDepartments.stream()
+                .map(value -> value.toLowerCase(Locale.ROOT))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
+        if (departmentKeysLower.isEmpty()) {
+            throw new IllegalArgumentException("Department is required");
+        }
+        return users.findActiveDoctorsByDepartments(
                         UserRole.DOCTOR,
                         RoleRequestStatus.ACTIVE,
-                        candidateDepartments,
+                        departmentKeysLower,
                         PageRequest.of(safePage, safeSize))
                 .map(this::toDoctorOption)
                 .getContent();
@@ -51,14 +61,14 @@ public class DoctorDirectoryService {
      * Active doctors across all departments (admin scheduling UI).
      */
     public List<DoctorOptionResponse> listActiveDoctorsForAdmin(String actorUserId, int page, int size) {
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null) {
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) {
             throw new IllegalStateException("Doctor directory service is unavailable");
         }
-        requireAdmin(actorUserId, userRepository);
+        requireAdmin(actorUserId, users);
         int safePage = Math.max(page, 0);
         int safeSize = size <= 0 ? 100 : Math.min(size, 500);
-        return userRepository.findActiveDoctorsAllRoles(
+        return users.findActiveDoctorsAllRoles(
                         UserRole.DOCTOR,
                         RoleRequestStatus.ACTIVE,
                         PageRequest.of(safePage, safeSize))
@@ -66,12 +76,12 @@ public class DoctorDirectoryService {
                 .getContent();
     }
 
-    private void requireAdmin(String actorUserId, UserRepository userRepository) {
+    private void requireAdmin(String actorUserId, UserAccess users) {
         String id = actorUserId == null ? "" : actorUserId.trim();
         if (id.isBlank()) {
             throw new SecurityException("Authentication required");
         }
-        UserEntity actor = userRepository.findById(id).orElseThrow(() -> new SecurityException("User not found"));
+        UserEntity actor = users.findById(id).orElseThrow(() -> new SecurityException("User not found"));
         if (actor.getRole() != UserRole.ADMIN) {
             throw new SecurityException("Admin access required");
         }

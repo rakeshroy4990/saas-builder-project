@@ -9,7 +9,7 @@
  * 5. For one-off or experimental payloads, use `attributes` instead of new top-level fields.
  */
 export const SessionSummaryKind = {
-  /** Issued after successful login (new trace id is minted in {@link finalizeHospitalLoginSession}). */
+  /** Issued after successful login (new {@code login_session_id} + trace id are minted in {@link finalizeHospitalLoginSession}). */
   AUTH_LOGIN: 'auth_login',
   /** User logout or session end (before local profile is cleared). */
   AUTH_LOGOUT: 'auth_logout',

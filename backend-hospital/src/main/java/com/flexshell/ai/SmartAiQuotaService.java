@@ -2,6 +2,8 @@ package com.flexshell.ai;
 
 import com.flexshell.controller.dto.AiChatMessageDto;
 import com.flexshell.controller.dto.AiChatRequest;
+import com.flexshell.persistence.postgres.SmartAiDailyUsagePgRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
@@ -29,16 +31,19 @@ public class SmartAiQuotaService {
     private final int maxRequestsPerDay;
     private final int maxInputTokensPerRequest;
     private final MongoTemplate mongoTemplate;
+    private final SmartAiDailyUsagePgRepository pgDailyUsage;
     private final ConcurrentHashMap<String, AtomicInteger> memoryDailyCounts = new ConcurrentHashMap<>();
 
     public SmartAiQuotaService(
             @Value("${app.ai.smart.max-requests-per-day:15}") int maxRequestsPerDay,
             @Value("${app.ai.smart.max-input-tokens-per-request:1200}") int maxInputTokensPerRequest,
-            @Autowired(required = false) MongoTemplate mongoTemplate
+            @Autowired(required = false) MongoTemplate mongoTemplate,
+            ObjectProvider<SmartAiDailyUsagePgRepository> pgDailyUsageProvider
     ) {
         this.maxRequestsPerDay = Math.max(1, maxRequestsPerDay);
         this.maxInputTokensPerRequest = Math.max(1, maxInputTokensPerRequest);
         this.mongoTemplate = mongoTemplate;
+        this.pgDailyUsage = pgDailyUsageProvider.getIfAvailable();
     }
 
     public void assertWithinTokenBudget(AiChatRequest request) {
@@ -60,6 +65,8 @@ public class SmartAiQuotaService {
         String compositeId = actor + "|" + utcDay;
         if (this.mongoTemplate != null) {
             consumeDailyMongo(compositeId, actor, utcDay);
+        } else if (this.pgDailyUsage != null) {
+            consumeDailyPostgres(compositeId, actor, utcDay);
         } else {
             consumeDailyMemory(compositeId);
         }
@@ -86,6 +93,15 @@ public class SmartAiQuotaService {
             sum += estimateTokensForText(m.content());
         }
         return sum;
+    }
+
+    private void consumeDailyPostgres(String compositeId, String userId, String utcDay) {
+        Instant now = Instant.now();
+        int newCount = pgDailyUsage.incrementAndGetCount(compositeId, userId, utcDay, now);
+        if (newCount > maxRequestsPerDay) {
+            pgDailyUsage.decrementCount(compositeId);
+            throw new SmartAiQuotaExceededException(SmartAiQuotaExceededException.Kind.DAILY);
+        }
     }
 
     private void consumeDailyMongo(String compositeId, String userId, String utcDay) {

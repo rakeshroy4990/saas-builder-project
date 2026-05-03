@@ -28,6 +28,13 @@ public class SessionTelemetryEventRequest {
     @JsonProperty("user_id")
     private String userId;
 
+    /**
+     * Client-minted UUID per successful login; when set, groups {@code session_summary} rows into a
+     * dedicated {@code session_telemetry} document independent of {@link #traceId} reuse in the tab.
+     */
+    @JsonProperty("login_session_id")
+    private String loginSessionId;
+
     @JsonProperty("session_summary_entry")
     private SessionSummaryEntryDto sessionSummaryEntry;
 
@@ -85,6 +92,14 @@ public class SessionTelemetryEventRequest {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public String getLoginSessionId() {
+        return loginSessionId;
+    }
+
+    public void setLoginSessionId(String loginSessionId) {
+        this.loginSessionId = loginSessionId;
     }
 
     public SessionSummaryEntryDto getSessionSummaryEntry() {

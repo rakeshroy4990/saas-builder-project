@@ -2,8 +2,9 @@ package com.flexshell.realtime.webrtc;
 
 import com.flexshell.appointment.AppointmentRepository;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
 import com.flexshell.auth.UserRole;
+import com.flexshell.persistence.api.UserAccess;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
@@ -11,12 +12,14 @@ import java.util.Objects;
 
 @Component
 public class HospitalCallPermissionEvaluator implements CallPermissionEvaluator {
-    private final AppointmentRepository appointmentRepository;
-    private final UserRepository userRepository;
+    private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
 
-    public HospitalCallPermissionEvaluator(AppointmentRepository appointmentRepository, UserRepository userRepository) {
-        this.appointmentRepository = appointmentRepository;
-        this.userRepository = userRepository;
+    public HospitalCallPermissionEvaluator(
+            ObjectProvider<AppointmentRepository> appointmentRepositoryProvider,
+            ObjectProvider<UserAccess> userAccessProvider) {
+        this.appointmentRepositoryProvider = appointmentRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
     }
 
     /**
@@ -31,8 +34,11 @@ public class HospitalCallPermissionEvaluator implements CallPermissionEvaluator 
         String to = normalize(receiverId);
         if (from.isEmpty() || to.isEmpty()) return false;
 
-        UserEntity initiator = userRepository.findById(from).orElse(null);
-        UserEntity receiver = userRepository.findById(to).orElse(null);
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) return false;
+
+        UserEntity initiator = users.findById(from).orElse(null);
+        UserEntity receiver = users.findById(to).orElse(null);
         if (initiator == null || receiver == null) return false;
 
         if (initiator.getRole() == UserRole.ADMIN || receiver.getRole() == UserRole.ADMIN) {
@@ -49,6 +55,10 @@ public class HospitalCallPermissionEvaluator implements CallPermissionEvaluator 
     }
 
     private boolean patientHasAppointmentWithDoctor(String patientId, String doctorId) {
+        AppointmentRepository appointmentRepository = appointmentRepositoryProvider.getIfAvailable();
+        if (appointmentRepository == null) {
+            return false;
+        }
         var page = appointmentRepository.findByCreatedBy(patientId, PageRequest.of(0, 50));
         return page.stream().anyMatch(a -> doctorId.equals(normalize(a.getDoctorId())));
     }

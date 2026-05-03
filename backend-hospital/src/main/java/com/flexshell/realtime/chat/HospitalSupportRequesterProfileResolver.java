@@ -1,25 +1,28 @@
 package com.flexshell.realtime.chat;
 
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.realtime.chat.support.SupportRequesterProfileResolver;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
 @Component
 public class HospitalSupportRequesterProfileResolver implements SupportRequesterProfileResolver {
-    private final UserRepository userRepository;
+    private final ObjectProvider<UserAccess> userAccessProvider;
 
-    public HospitalSupportRequesterProfileResolver(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public HospitalSupportRequesterProfileResolver(ObjectProvider<UserAccess> userAccessProvider) {
+        this.userAccessProvider = userAccessProvider;
     }
 
     @Override
     public String resolveDisplayName(String requesterUserId) {
         String userId = normalize(requesterUserId);
         if (userId.isEmpty()) return "Patient";
-        UserEntity user = userRepository.findById(userId).orElse(null);
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) return userId;
+        UserEntity user = users.findById(userId).orElse(null);
         if (user == null) return userId;
 
         String firstName = normalize(user.getFirstName());

@@ -3,10 +3,10 @@ package com.flexshell.service;
 import com.flexshell.auth.JwtService;
 import com.flexshell.auth.RoleRequestStatus;
 import com.flexshell.auth.RefreshTokenEntity;
-import com.flexshell.auth.RefreshTokenRepository;
 import com.flexshell.auth.UserEntity;
 import com.flexshell.auth.UserRole;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.RefreshTokenAccess;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.api.AuthFacade;
 import com.flexshell.auth.api.AuthApiException;
 import com.flexshell.auth.api.ChangePasswordRequest;
@@ -49,8 +49,8 @@ public class AuthService implements AuthFacade {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final int PRIVILEGED_REQUEST_LIMIT = 5;
     private static final long PRIVILEGED_REQUEST_WINDOW_SECONDS = 600L;
-    private final ObjectProvider<UserRepository> userRepositoryProvider;
-    private final ObjectProvider<RefreshTokenRepository> refreshTokenRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
+    private final ObjectProvider<RefreshTokenAccess> refreshTokenAccessProvider;
     private final JwtService jwtService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final Map<String, PrivilegedRequestAttempt> privilegedRequestAttempts = new ConcurrentHashMap<>();
@@ -68,14 +68,14 @@ public class AuthService implements AuthFacade {
     }
 
     public AuthService(
-            ObjectProvider<UserRepository> userRepositoryProvider,
-            ObjectProvider<RefreshTokenRepository> refreshTokenRepositoryProvider,
+            ObjectProvider<UserAccess> userAccessProvider,
+            ObjectProvider<RefreshTokenAccess> refreshTokenAccessProvider,
             JwtService jwtService,
             AppEmailProperties appEmailProperties,
             PasswordPolicy passwordPolicy
     ) {
-        this.userRepositoryProvider = userRepositoryProvider;
-        this.refreshTokenRepositoryProvider = refreshTokenRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
+        this.refreshTokenAccessProvider = refreshTokenAccessProvider;
         this.jwtService = jwtService;
         this.appEmailProperties = appEmailProperties;
         this.passwordPolicy = passwordPolicy;
@@ -85,12 +85,12 @@ public class AuthService implements AuthFacade {
         String identity = usernameOrEmail == null ? "" : usernameOrEmail.trim();
         if (identity.isEmpty() || rawPassword == null || rawPassword.isBlank()) return Optional.empty();
 
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null) return Optional.empty();
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) return Optional.empty();
 
         Optional<UserEntity> user = identity.contains("@")
-                ? userRepository.findByEmail(identity)
-                : userRepository.findByUsername(identity);
+                ? users.findByEmail(identity)
+                : users.findByUsername(identity);
         if (user.isEmpty()) {
             ObservabilityLogger.warn(log, "login_attempt", Map.of(
                     "domain", "auth",
@@ -128,23 +128,23 @@ public class AuthService implements AuthFacade {
     @Override
     public Optional<LoginResponse> loginWithGoogleAccessToken(String accessToken) {
         if (accessToken == null || accessToken.isBlank()) return Optional.empty();
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null) return Optional.empty();
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) return Optional.empty();
 
         Optional<GoogleVerifiedProfile> profileOpt = fetchVerifiedGoogleProfile(accessToken.trim());
         if (profileOpt.isEmpty()) return Optional.empty();
         GoogleVerifiedProfile profile = profileOpt.get();
 
-        Optional<UserEntity> existing = findUserByEmailCaseInsensitive(userRepository, profile.email());
+        Optional<UserEntity> existing = findUserByEmailCaseInsensitive(users, profile.email());
         UserEntity account;
         if (existing.isPresent()) {
-            account = enrichUserFromGoogleProfileIfMissing(userRepository, existing.get(), profile);
+            account = enrichUserFromGoogleProfileIfMissing(users, existing.get(), profile);
         } else {
             try {
-                account = provisionPatientFromGoogle(userRepository, profile);
+                account = provisionPatientFromGoogle(users, profile);
                 log.info("Created patient user from Google sign-in email={}", profile.email());
             } catch (DataIntegrityViolationException ex) {
-                account = findUserByEmailCaseInsensitive(userRepository, profile.email()).orElse(null);
+                account = findUserByEmailCaseInsensitive(users, profile.email()).orElse(null);
                 if (account == null) {
                     log.warn("Google sign-in duplicate key but user not found email={}", profile.email());
                     return Optional.empty();
@@ -206,9 +206,9 @@ public class AuthService implements AuthFacade {
                 account.getRole() == null ? UserRole.PATIENT.name() : account.getRole().name());
         String refreshToken = jwtService.generateRefreshToken(subject, audience, deviceId, account.getTokenVersion());
 
-        RefreshTokenRepository refreshTokenRepository = refreshTokenRepositoryProvider.getIfAvailable();
-        if (refreshTokenRepository == null) return Optional.empty();
-        persistRefreshToken(refreshTokenRepository, account.getId(), refreshToken, deviceId);
+        RefreshTokenAccess refreshTokens = refreshTokenAccessProvider.getIfAvailable();
+        if (refreshTokens == null) return Optional.empty();
+        persistRefreshToken(refreshTokens, account.getId(), refreshToken, deviceId);
 
         LoginResponse response = new LoginResponse(accessToken, jwtService.getAccessExpirationSeconds());
         response.setAccessToken(accessToken);
@@ -397,7 +397,7 @@ public class AuthService implements AuthFacade {
      * Fills gender / mobile from Google when the stored user row still has no meaningful values.
      */
     private UserEntity enrichUserFromGoogleProfileIfMissing(
-            UserRepository userRepository, UserEntity user, GoogleVerifiedProfile profile) {
+            UserAccess users, UserEntity user, GoogleVerifiedProfile profile) {
         boolean changed = false;
         if (shouldFillGenderFromGoogle(user.getGender()) && profile.gender() != null && !profile.gender().isBlank()) {
             user.setGender(profile.gender().trim());
@@ -411,7 +411,7 @@ public class AuthService implements AuthFacade {
             return user;
         }
         user.setUpdatedTimestamp(Instant.now());
-        return userRepository.save(user);
+        return users.save(user);
     }
 
     private static boolean shouldFillGenderFromGoogle(String current) {
@@ -470,7 +470,7 @@ public class AuthService implements AuthFacade {
         return null;
     }
 
-    private static Optional<UserEntity> findUserByEmailCaseInsensitive(UserRepository repo, String emailNorm) {
+    private static Optional<UserEntity> findUserByEmailCaseInsensitive(UserAccess repo, String emailNorm) {
         if (emailNorm == null || emailNorm.isBlank()) {
             return Optional.empty();
         }
@@ -485,7 +485,7 @@ public class AuthService implements AuthFacade {
      * Inserts a new active patient account for a first-time Google sign-in. Password login remains
      * unavailable until the user sets a password through the normal password flow.
      */
-    private UserEntity provisionPatientFromGoogle(UserRepository userRepository, GoogleVerifiedProfile profile) {
+    private UserEntity provisionPatientFromGoogle(UserAccess users, GoogleVerifiedProfile profile) {
         String firstName = profile.givenName() == null ? "" : profile.givenName().trim();
         String lastName = profile.familyName() == null ? "" : profile.familyName().trim();
         if (firstName.isEmpty() && lastName.isEmpty()) {
@@ -521,13 +521,13 @@ public class AuthService implements AuthFacade {
         user.setTokenVersion(1L);
         user.setRole(UserRole.PATIENT);
         user.setRoleStatus(RoleRequestStatus.ACTIVE);
-        return userRepository.save(user);
+        return users.save(user);
     }
 
     @Override
     public Optional<RegisterResponse> register(RegisterRequest request) {
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null || request == null) return Optional.empty();
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null || request == null) return Optional.empty();
 
         String email = request.getEmailId() == null ? "" : request.getEmailId().trim().toLowerCase();
         String firstName = request.getFirstName() == null ? "" : request.getFirstName().trim();
@@ -544,7 +544,7 @@ public class AuthService implements AuthFacade {
 
         passwordPolicy.validateOrThrow(rawPassword);
 
-        Optional<UserEntity> existingOpt = userRepository.findByEmail(email);
+        Optional<UserEntity> existingOpt = users.findByEmail(email);
         if (existingOpt.isPresent()) {
             UserEntity existing = existingOpt.get();
             if (!existing.isActive() || RoleRequestStatus.INACTIVE.equals(existing.getRoleStatus())) {
@@ -590,7 +590,7 @@ public class AuthService implements AuthFacade {
             log.info("Privileged role request created email={} requestedRole={}", email, requestedRole);
         }
 
-        UserEntity saved = userRepository.save(user);
+        UserEntity saved = users.save(user);
         sendWelcomeRegistrationEmail(saved);
         return Optional.of(new RegisterResponse(
                 saved.getId(),
@@ -659,8 +659,8 @@ public class AuthService implements AuthFacade {
 
     @Override
     public void changePassword(ChangePasswordRequest request) {
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        if (userRepository == null || request == null) {
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null || request == null) {
             throw new AuthApiException("Unable to change password right now.", "AUTH_CHANGE_PASSWORD_FAILED");
         }
         String emailRaw = request.getEmailId() == null ? "" : request.getEmailId().trim();
@@ -679,8 +679,8 @@ public class AuthService implements AuthFacade {
 
         Optional<UserEntity> userOpt =
                 emailRaw.contains("@")
-                        ? userRepository.findByEmail(emailRaw.toLowerCase())
-                        : userRepository.findByUsername(emailRaw);
+                        ? users.findByEmail(emailRaw.toLowerCase())
+                        : users.findByUsername(emailRaw);
         if (userOpt.isEmpty()) {
             throw new AuthApiException("No account found for this email address.", "AUTH_USER_NOT_FOUND");
         }
@@ -711,27 +711,27 @@ public class AuthService implements AuthFacade {
         account.setPasswordHash(passwordEncoder.encode(newPassword));
         account.setUpdatedTimestamp(Instant.now());
         account.setTokenVersion(account.getTokenVersion() + 1L);
-        userRepository.save(account);
+        users.save(account);
         log.info("Password changed userId={}", account.getId());
     }
 
     @Override
     public Optional<RefreshTokenResponse> refresh(RefreshTokenRequest request) {
-        UserRepository userRepository = userRepositoryProvider.getIfAvailable();
-        RefreshTokenRepository refreshTokenRepository = refreshTokenRepositoryProvider.getIfAvailable();
-        if (userRepository == null || refreshTokenRepository == null || request == null) return Optional.empty();
+        UserAccess users = userAccessProvider.getIfAvailable();
+        RefreshTokenAccess refreshTokens = refreshTokenAccessProvider.getIfAvailable();
+        if (users == null || refreshTokens == null || request == null) return Optional.empty();
 
         String suppliedRefreshToken = request.getRefreshToken() == null ? "" : request.getRefreshToken().trim();
         if (suppliedRefreshToken.isEmpty()) return Optional.empty();
 
-        Optional<RefreshTokenEntity> tokenEntityOptional = refreshTokenRepository.findByToken(suppliedRefreshToken);
+        Optional<RefreshTokenEntity> tokenEntityOptional = refreshTokens.findByToken(suppliedRefreshToken);
         if (tokenEntityOptional.isEmpty()) {
             log.warn("Refresh token replay or invalid token attempt");
             return Optional.empty();
         }
         RefreshTokenEntity tokenEntity = tokenEntityOptional.get();
         if (tokenEntity.getExpiry() == null || tokenEntity.getExpiry().isBefore(Instant.now())) {
-            refreshTokenRepository.delete(tokenEntity);
+            refreshTokens.delete(tokenEntity);
             log.warn("Expired refresh token usage for userId={}", tokenEntity.getUserId());
             return Optional.empty();
         }
@@ -748,7 +748,7 @@ public class AuthService implements AuthFacade {
             refreshClaims = jwtService.parseAndValidate(suppliedRefreshToken);
         } catch (JwtException | IllegalArgumentException ex) {
             log.warn("Invalid refresh token signature/issuer");
-            refreshTokenRepository.delete(tokenEntity);
+            refreshTokens.delete(tokenEntity);
             return Optional.empty();
         }
         if (!"refresh".equalsIgnoreCase(refreshClaims.get("tokenType", String.class))) {
@@ -765,7 +765,7 @@ public class AuthService implements AuthFacade {
             return Optional.empty();
         }
 
-        Optional<UserEntity> userOptional = userRepository.findById(tokenEntity.getUserId());
+        Optional<UserEntity> userOptional = users.findById(tokenEntity.getUserId());
         if (userOptional.isEmpty() || !userOptional.get().isActive()) return Optional.empty();
         UserEntity user = userOptional.get();
         Number tokenVersionClaim = refreshClaims.get("tokenVersion", Number.class);
@@ -788,8 +788,8 @@ public class AuthService implements AuthFacade {
                 user.getTokenVersion());
 
         // Rotation: old refresh token is removed before the new one is inserted.
-        refreshTokenRepository.delete(tokenEntity);
-        persistRefreshToken(refreshTokenRepository, user.getId(), newRefreshToken, tokenEntity.getDeviceId());
+        refreshTokens.delete(tokenEntity);
+        persistRefreshToken(refreshTokens, user.getId(), newRefreshToken, tokenEntity.getDeviceId());
         log.info("Refresh token rotated for userId={}", user.getId());
 
         return Optional.of(new RefreshTokenResponse(
@@ -801,13 +801,13 @@ public class AuthService implements AuthFacade {
 
     @Override
     public boolean logout(LogoutRequest request) {
-        RefreshTokenRepository refreshTokenRepository = refreshTokenRepositoryProvider.getIfAvailable();
-        if (refreshTokenRepository == null || request == null) return false;
+        RefreshTokenAccess refreshTokens = refreshTokenAccessProvider.getIfAvailable();
+        if (refreshTokens == null || request == null) return false;
 
         String suppliedRefreshToken = request.getRefreshToken() == null ? "" : request.getRefreshToken().trim();
         if (suppliedRefreshToken.isEmpty()) return false;
 
-        Optional<RefreshTokenEntity> tokenEntityOptional = refreshTokenRepository.findByToken(suppliedRefreshToken);
+        Optional<RefreshTokenEntity> tokenEntityOptional = refreshTokens.findByToken(suppliedRefreshToken);
         if (tokenEntityOptional.isEmpty()) return false;
         RefreshTokenEntity tokenEntity = tokenEntityOptional.get();
 
@@ -818,12 +818,12 @@ public class AuthService implements AuthFacade {
             return false;
         }
 
-        refreshTokenRepository.delete(tokenEntity);
+        refreshTokens.delete(tokenEntity);
         return true;
     }
 
     private void persistRefreshToken(
-            RefreshTokenRepository refreshTokenRepository,
+            RefreshTokenAccess refreshTokens,
             String userId,
             String token,
             String deviceId
@@ -834,7 +834,7 @@ public class AuthService implements AuthFacade {
         tokenEntity.setDeviceId(deviceId);
         tokenEntity.setCreatedAt(Instant.now());
         tokenEntity.setExpiry(Instant.now().plusSeconds(jwtService.getRefreshExpirationSeconds()));
-        refreshTokenRepository.save(tokenEntity);
+        refreshTokens.save(tokenEntity);
     }
 
     private UserRole normalizeRequestedRole(String rawRole) {

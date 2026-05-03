@@ -2,7 +2,7 @@ package com.flexshell.service;
 
 import com.flexshell.auth.RoleRequestStatus;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
@@ -16,14 +16,14 @@ import java.util.Optional;
 
 @Service
 public class UserService {
-    private final ObjectProvider<UserRepository> userRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
 
-    public UserService(ObjectProvider<UserRepository> userRepositoryProvider) {
-        this.userRepositoryProvider = userRepositoryProvider;
+    public UserService(ObjectProvider<UserAccess> userAccessProvider) {
+        this.userAccessProvider = userAccessProvider;
     }
 
     public Optional<RegisterResponse> getByUserId(String actorUserId) {
-        UserRepository repo = userRepositoryProvider.getIfAvailable();
+        UserAccess repo = userAccessProvider.getIfAvailable();
         if (repo == null || actorUserId == null || actorUserId.isBlank()) {
             return Optional.empty();
         }
@@ -31,9 +31,9 @@ public class UserService {
     }
 
     public RegisterResponse updateProfile(String actorUserId, RegisterRequest request) {
-        UserRepository repo = userRepositoryProvider.getIfAvailable();
+        UserAccess repo = userAccessProvider.getIfAvailable();
         if (repo == null) {
-            throw new IllegalStateException("User repository unavailable");
+            throw new IllegalStateException("User persistence unavailable");
         }
         String id = actorUserId == null ? "" : actorUserId.trim();
         if (id.isEmpty()) {
@@ -107,9 +107,9 @@ public class UserService {
     }
 
     public void deactivateAccount(String actorUserId) {
-        UserRepository repo = userRepositoryProvider.getIfAvailable();
+        UserAccess repo = userAccessProvider.getIfAvailable();
         if (repo == null) {
-            throw new IllegalStateException("User repository unavailable");
+            throw new IllegalStateException("User persistence unavailable");
         }
         String id = actorUserId == null ? "" : actorUserId.trim();
         if (id.isEmpty()) {
@@ -124,9 +124,9 @@ public class UserService {
      * Admin-only: soft-deactivate another user (e.g. doctor offboarding). Cannot target own account.
      */
     public void deactivateUserAsAdmin(String targetUserId, String adminUserId) {
-        UserRepository repo = userRepositoryProvider.getIfAvailable();
+        UserAccess repo = userAccessProvider.getIfAvailable();
         if (repo == null) {
-            throw new IllegalStateException("User repository unavailable");
+            throw new IllegalStateException("User persistence unavailable");
         }
         AdminAuthorizationSupport.requireAdminUser(repo, adminUserId);
         String targetId = targetUserId == null ? "" : targetUserId.trim();

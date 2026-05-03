@@ -39,9 +39,44 @@ export async function loadDoctorOptionsByDepartment(
   }
 }
 
+export type EnsureDoctorOptionsByDepartmentOptions = {
+  /**
+   * When true, skips Pinia/sessionStorage hits and refetches so new doctors or DB fixes appear
+   * after a department is (re)selected.
+   */
+  force?: boolean;
+};
+
+function removeAppointmentDoctorCacheEntry(normalizedKey: string): void {
+  const appStore = useAppStore(pinia);
+  const existingCatalog = (appStore.getData('hospital', 'AppointmentDoctorCatalog') ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const byDepartment = { ...((existingCatalog.byDepartment as Record<string, unknown>) ?? {}) };
+  delete byDepartment[normalizedKey];
+  appStore.setData('hospital', 'AppointmentDoctorCatalog', { byDepartment });
+
+  const cachedRaw = sessionStorage.getItem(APPOINTMENT_DOCTOR_CACHE_KEY);
+  if (!cachedRaw) {
+    return;
+  }
+  try {
+    const cachedCatalog = JSON.parse(cachedRaw) as Record<string, unknown>;
+    if (cachedCatalog[normalizedKey] !== undefined) {
+      delete cachedCatalog[normalizedKey];
+      sessionStorage.setItem(APPOINTMENT_DOCTOR_CACHE_KEY, JSON.stringify(cachedCatalog));
+    }
+  } catch {
+    sessionStorage.removeItem(APPOINTMENT_DOCTOR_CACHE_KEY);
+  }
+}
+
 export async function ensureDoctorOptionsLoadedByDepartment(
-  department: string
+  department: string,
+  options?: EnsureDoctorOptionsByDepartmentOptions
 ): Promise<Array<{ id: string; label: string; value: string }>> {
+  const force = Boolean(options?.force);
   const normalizedKey = normalizeDepartmentKey(department);
   if (!normalizedKey) {
     return [];
@@ -54,32 +89,42 @@ export async function ensureDoctorOptionsLoadedByDepartment(
     string,
     unknown
   >;
-  const existingOptions = byDepartment[normalizedKey];
-  if (Array.isArray(existingOptions) && existingOptions.length > 0) {
-    return existingOptions as Array<{ id: string; label: string; value: string }>;
-  }
 
-  const cachedRaw = sessionStorage.getItem(APPOINTMENT_DOCTOR_CACHE_KEY);
-  if (cachedRaw) {
-    try {
-      const cachedCatalog = JSON.parse(cachedRaw) as Record<
-        string,
-        Array<{ id: string; label: string; value: string }>
-      >;
-      const cachedOptions = cachedCatalog[normalizedKey];
-      if (Array.isArray(cachedOptions) && cachedOptions.length > 0) {
-        useAppStore(pinia).setData('hospital', 'AppointmentDoctorCatalog', {
-          byDepartment: { ...byDepartment, [normalizedKey]: cachedOptions }
-        });
-        return cachedOptions;
+  if (force) {
+    removeAppointmentDoctorCacheEntry(normalizedKey);
+  } else {
+    const existingOptions = byDepartment[normalizedKey];
+    if (Array.isArray(existingOptions) && existingOptions.length > 0) {
+      return existingOptions as Array<{ id: string; label: string; value: string }>;
+    }
+
+    const cachedRaw = sessionStorage.getItem(APPOINTMENT_DOCTOR_CACHE_KEY);
+    if (cachedRaw) {
+      try {
+        const cachedCatalog = JSON.parse(cachedRaw) as Record<
+          string,
+          Array<{ id: string; label: string; value: string }>
+        >;
+        const cachedOptions = cachedCatalog[normalizedKey];
+        if (Array.isArray(cachedOptions) && cachedOptions.length > 0) {
+          useAppStore(pinia).setData('hospital', 'AppointmentDoctorCatalog', {
+            byDepartment: { ...byDepartment, [normalizedKey]: cachedOptions }
+          });
+          return cachedOptions;
+        }
+      } catch {
+        // Ignore cache parse errors and fetch fresh values.
       }
-    } catch {
-      // Ignore cache parse errors and fetch fresh values.
     }
   }
 
+  const refreshedByDepartment = (
+    (useAppStore(pinia).getData('hospital', 'AppointmentDoctorCatalog') ?? {}) as Record<string, unknown>
+  ).byDepartment as Record<string, unknown> | undefined;
+  const byDeptAfter = { ...(refreshedByDepartment ?? {}) };
+
   const fetchedOptions = await loadDoctorOptionsByDepartment(department);
-  const merged = { ...byDepartment, [normalizedKey]: fetchedOptions };
+  const merged = { ...byDeptAfter, [normalizedKey]: fetchedOptions };
   useAppStore(pinia).setData('hospital', 'AppointmentDoctorCatalog', { byDepartment: merged });
   sessionStorage.setItem(APPOINTMENT_DOCTOR_CACHE_KEY, JSON.stringify(merged));
   return fetchedOptions;

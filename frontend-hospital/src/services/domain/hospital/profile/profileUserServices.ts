@@ -17,6 +17,7 @@ import { flushSessionTelemetryQueue } from '../../../analytics/sessionTelemetry'
 import { emitSessionSummaryAuthLogout } from '../../../analytics/sessionSummary';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { getOrCreateTraceId } from '../../../logging/traceContext';
+import { clearLoginSessionId } from '../../../logging/loginSessionContext';
 import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
 
 function mapMeToProfileForm(row: Record<string, unknown>): void {
@@ -310,6 +311,7 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       appStore.setProperty('hospital', 'AuthSession', 'role', '');
       appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
       clearPersistedAuthSessionProfile();
+      clearLoginSessionId();
       trackEvent('profile_deactivated', {
         domain: 'profile',
         status: 'success',

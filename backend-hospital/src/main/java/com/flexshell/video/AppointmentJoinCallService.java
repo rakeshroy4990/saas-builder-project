@@ -4,7 +4,7 @@ import com.flexshell.appointment.AppointmentCallStates;
 import com.flexshell.appointment.AppointmentEntity;
 import com.flexshell.appointment.AppointmentRepository;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.AppointmentJoinCallResponse;
 import com.flexshell.controller.dto.AppointmentRenewTokenResponse;
@@ -12,6 +12,7 @@ import com.flexshell.controller.dto.HospitalVideoSessionResponse;
 import com.flexshell.observability.ObservabilityLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,8 +38,8 @@ public class AppointmentJoinCallService {
     private static final String STATUS_CANCELLED = "CANCELLED";
     private static final String STATUS_COMPLETED = "COMPLETED";
 
-    private final AppointmentRepository appointmentRepository;
-    private final UserRepository userRepository;
+    private final ObjectProvider<AppointmentRepository> appointmentRepositoryProvider;
+    private final ObjectProvider<UserAccess> userAccessProvider;
     private final VideoSessionPort videoSessionPort;
     private final java.time.ZoneId hospitalZoneId;
     private final int graceMinutes;
@@ -46,21 +47,29 @@ public class AppointmentJoinCallService {
     private final int maxCallDurationHours;
 
     public AppointmentJoinCallService(
-            AppointmentRepository appointmentRepository,
-            UserRepository userRepository,
+            ObjectProvider<AppointmentRepository> appointmentRepositoryProvider,
+            ObjectProvider<UserAccess> userAccessProvider,
             VideoSessionPort videoSessionPort,
             @Qualifier("hospitalZoneId") java.time.ZoneId hospitalZoneId,
             @Value("${app.video.join-call-grace-minutes:10}") int graceMinutes,
             @Value("${app.video.join-call-allowed-statuses:CONFIRMED,Open}") String allowedStatusesCsv,
             @Value("${app.video.call-max-duration-hours:4}") int maxCallDurationHours
     ) {
-        this.appointmentRepository = appointmentRepository;
-        this.userRepository = userRepository;
+        this.appointmentRepositoryProvider = appointmentRepositoryProvider;
+        this.userAccessProvider = userAccessProvider;
         this.videoSessionPort = videoSessionPort;
         this.hospitalZoneId = hospitalZoneId;
         this.graceMinutes = Math.max(0, graceMinutes);
         this.allowedStatusesLower = parseAllowedStatuses(allowedStatusesCsv);
         this.maxCallDurationHours = Math.max(1, maxCallDurationHours);
+    }
+
+    private AppointmentRepository requireAppointmentRepository() {
+        AppointmentRepository repository = appointmentRepositoryProvider.getIfAvailable();
+        if (repository == null) {
+            throw new IllegalStateException("Appointment persistence is unavailable");
+        }
+        return repository;
     }
 
     private static Set<String> parseAllowedStatuses(String csv) {
@@ -84,6 +93,7 @@ public class AppointmentJoinCallService {
             throw new IllegalArgumentException("Appointment id is required");
         }
 
+        AppointmentRepository appointmentRepository = requireAppointmentRepository();
         AppointmentEntity ap = appointmentRepository.findById(apId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
 
@@ -99,7 +109,7 @@ public class AppointmentJoinCallService {
         HospitalVideoSessionResponse session = videoSessionPort.createSession(me, peer, apId);
         String channel = session.roomId() != null ? session.roomId() : apId;
 
-        applyJoinCallTransition(ap, me);
+        applyJoinCallTransition(appointmentRepository, ap, me);
 
         ObservabilityLogger.info(log, "appointment_join_call", java.util.Map.of(
                 "domain", "appointment",
@@ -125,6 +135,7 @@ public class AppointmentJoinCallService {
             throw new IllegalArgumentException("Appointment id is required");
         }
 
+        AppointmentRepository appointmentRepository = requireAppointmentRepository();
         AppointmentEntity ap = appointmentRepository.findById(apId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
 
@@ -165,6 +176,7 @@ public class AppointmentJoinCallService {
             throw new IllegalArgumentException("Appointment id is required");
         }
 
+        AppointmentRepository appointmentRepository = requireAppointmentRepository();
         AppointmentEntity ap = appointmentRepository.findById(apId)
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
 
@@ -189,7 +201,7 @@ public class AppointmentJoinCallService {
                 "user_id", me));
     }
 
-    private void applyJoinCallTransition(AppointmentEntity ap, String actorId) {
+    private void applyJoinCallTransition(AppointmentRepository appointmentRepository, AppointmentEntity ap, String actorId) {
         if (AppointmentCallStates.isTerminal(ap.getCallStatus())) {
             return;
         }
@@ -243,7 +255,11 @@ public class AppointmentJoinCallService {
             }
             return patient;
         }
-        UserEntity u = userRepository.findById(actorId).orElseThrow(() -> new SecurityException("User not found"));
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) {
+            throw new SecurityException("User persistence unavailable");
+        }
+        UserEntity u = users.findById(actorId).orElseThrow(() -> new SecurityException("User not found"));
         if (u.getRole() == UserRole.ADMIN) {
             if (!doctor.isEmpty()) {
                 return doctor;

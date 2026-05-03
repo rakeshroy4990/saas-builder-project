@@ -1,5 +1,6 @@
 package com.flexshell.compliance;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -8,15 +9,19 @@ import java.util.Objects;
 
 @Service
 public class AuditLogService {
-    private final AuditEventRepository repository;
+    private final ObjectProvider<AuditEventRepository> repositoryProvider;
     private final PhiRetentionPolicy retentionPolicy;
 
-    public AuditLogService(AuditEventRepository repository, PhiRetentionPolicy retentionPolicy) {
-        this.repository = repository;
+    public AuditLogService(ObjectProvider<AuditEventRepository> repositoryProvider, PhiRetentionPolicy retentionPolicy) {
+        this.repositoryProvider = repositoryProvider;
         this.retentionPolicy = retentionPolicy;
     }
 
     public void log(String actorUserId, String action, String resourceType, String resourceId, Map<String, Object> metadata) {
+        AuditEventRepository repository = repositoryProvider.getIfAvailable();
+        if (repository == null) {
+            return;
+        }
         AuditEventEntity event = new AuditEventEntity();
         event.setActorUserId(normalize(actorUserId));
         event.setAction(normalize(action));

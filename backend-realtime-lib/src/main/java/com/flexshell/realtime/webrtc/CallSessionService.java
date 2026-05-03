@@ -3,6 +3,7 @@ package com.flexshell.realtime.webrtc;
 import com.flexshell.compliance.PhiRetentionPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -11,18 +12,26 @@ import java.util.Objects;
 @Service
 public class CallSessionService {
     private static final Logger log = LoggerFactory.getLogger(CallSessionService.class);
-    private final CallSessionRepository repository;
+    private final ObjectProvider<CallSessionRepository> repositoryProvider;
     private final CallPermissionEvaluator permissionEvaluator;
     private final PhiRetentionPolicy retentionPolicy;
 
     public CallSessionService(
-            CallSessionRepository repository,
+            ObjectProvider<CallSessionRepository> repositoryProvider,
             CallPermissionEvaluator permissionEvaluator,
             PhiRetentionPolicy retentionPolicy
     ) {
-        this.repository = repository;
+        this.repositoryProvider = repositoryProvider;
         this.permissionEvaluator = permissionEvaluator;
         this.retentionPolicy = retentionPolicy;
+    }
+
+    private CallSessionRepository repo() {
+        CallSessionRepository r = repositoryProvider.getIfAvailable();
+        if (r == null) {
+            throw new IllegalStateException("Call session persistence is unavailable");
+        }
+        return r;
     }
 
     public CallSessionEntity invite(String initiatorId, String receiverId) {
@@ -38,13 +47,13 @@ public class CallSessionService {
         session.setStartTime(Instant.now());
         session.setStatus(CallSessionStatus.RINGING);
         session.setExpiresAt(retentionPolicy.expiresAtFromNow());
-        return repository.save(session);
+        return repo().save(session);
     }
 
     public CallSessionEntity requireSession(String callId) {
         String id = normalize(callId);
         if (id.isEmpty()) throw new IllegalArgumentException("Missing callId");
-        return repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Call session not found"));
+        return repo().findById(id).orElseThrow(() -> new IllegalArgumentException("Call session not found"));
     }
 
     public CallSessionEntity accept(String callId, String actorUserId) {
@@ -53,7 +62,7 @@ public class CallSessionService {
         session.setStatus(CallSessionStatus.ACTIVE);
         log.info("event_name=video_call_event domain=video status=success reason_code=call_connected call_id={} user_id={}",
                 session.getCallId(), normalize(actorUserId));
-        return repository.save(session);
+        return repo().save(session);
     }
 
     public CallSessionEntity reject(String callId, String actorUserId) {
@@ -62,7 +71,7 @@ public class CallSessionService {
         session.setStatus(CallSessionStatus.REJECTED);
         session.setEndTime(Instant.now());
         session.setEndedReason("REJECTED");
-        return repository.save(session);
+        return repo().save(session);
     }
 
     public CallSessionEntity end(String callId, String actorUserId, String reason) {
@@ -74,7 +83,7 @@ public class CallSessionService {
         session.setEndedReason(normalize(reason));
         log.info("event_name=video_call_event domain=video status=drop reason_code=call_dropped call_id={} user_id={} ended_reason={}",
                 session.getCallId(), normalize(actorUserId), normalize(reason));
-        return repository.save(session);
+        return repo().save(session);
     }
 
     public void ensureParticipant(CallSessionEntity session, String actorUserId) {

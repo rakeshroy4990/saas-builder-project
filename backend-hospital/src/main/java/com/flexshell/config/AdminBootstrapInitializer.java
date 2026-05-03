@@ -2,7 +2,7 @@ package com.flexshell.config;
 
 import com.flexshell.auth.RoleRequestStatus;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,10 +16,10 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 
 @Component
-@ConditionalOnBean(UserRepository.class)
+@ConditionalOnBean(UserAccess.class)
 public class AdminBootstrapInitializer {
     private static final Logger log = LoggerFactory.getLogger(AdminBootstrapInitializer.class);
-    private final UserRepository userRepository;
+    private final UserAccess userAccess;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final boolean enabled;
     private final String email;
@@ -28,14 +28,14 @@ public class AdminBootstrapInitializer {
     private final String lastName;
 
     public AdminBootstrapInitializer(
-            UserRepository userRepository,
+            UserAccess userAccess,
             @Value("${app.bootstrap.admin.enabled:false}") boolean enabled,
             @Value("${app.bootstrap.admin.email:}") String email,
             @Value("${app.bootstrap.admin.password:}") String password,
             @Value("${app.bootstrap.admin.first-name:System}") String firstName,
             @Value("${app.bootstrap.admin.last-name:Admin}") String lastName
     ) {
-        this.userRepository = userRepository;
+        this.userAccess = userAccess;
         this.enabled = enabled;
         this.email = email;
         this.password = password;
@@ -48,7 +48,7 @@ public class AdminBootstrapInitializer {
         if (!enabled) {
             return;
         }
-        if (userRepository.countByRole(UserRole.ADMIN) > 0) {
+        if (userAccess.countByRole(UserRole.ADMIN) > 0) {
             log.info("Admin bootstrap skipped: existing admin found");
             return;
         }
@@ -75,7 +75,7 @@ public class AdminBootstrapInitializer {
         admin.setTokenVersion(1L);
         admin.setRole(UserRole.ADMIN);
         admin.setRoleStatus(RoleRequestStatus.ACTIVE);
-        userRepository.save(admin);
+        userAccess.save(admin);
         log.info("Bootstrap admin user created for email={}", normalizedEmail);
     }
 }

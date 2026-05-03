@@ -23,7 +23,11 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.security:spring-security-crypto'
@@ -43,4 +47,44 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+/** Load KEY=value pairs from .env (comments, blank lines, optional export prefix; simple "..." or '...' stripping). */
+def loadDotEnv(File envFile) {
+    if (!envFile.exists()) {
+        return [:]
+    }
+    Map<String, String> out = new LinkedHashMap<>()
+    envFile.eachLine { String raw ->
+        String line = raw.trim()
+        if (line.isEmpty() || line.startsWith('#')) {
+            return
+        }
+        if (line.startsWith('export ')) {
+            line = line.substring(7).trim()
+        }
+        int i = line.indexOf('=')
+        if (i < 1) {
+            return
+        }
+        String key = line.substring(0, i).trim()
+        if (key.isEmpty()) {
+            return
+        }
+        String val = line.substring(i + 1).trim()
+        if (val.length() >= 2
+                && ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))) {
+            val = val.substring(1, val.length() - 1)
+        }
+        out.put(key, val)
+    }
+    return out
+}
+
+tasks.named('bootRun', org.springframework.boot.gradle.tasks.run.BootRun) { bootRun ->
+    Map<String, Object> env = new LinkedHashMap<>(System.getenv())
+    loadDotEnv(file("${project.projectDir}/.env")).each { String k, String v ->
+        env.put(k, v)
+    }
+    bootRun.environment = env
 }

@@ -7,6 +7,7 @@ import { URLRegistry } from '../../../http/URLRegistry';
 import { clearAuthToken } from '../../../auth/authToken';
 import { buildLogoutRequestBody } from '../../../auth/logoutRequestBody';
 import { clearPersistedAuthSessionProfile } from '../../../auth/authSessionStore';
+import { clearLoginSessionId } from '../../../logging/loginSessionContext';
 import { ok } from '../shared/response';
 import { stompClient } from '../../../realtime/stompClient';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
@@ -63,6 +64,7 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
         messagesByRoomId: {}
       });
       clearPersistedAuthSessionProfile();
+      clearLoginSessionId();
       useAppStore(pinia).setProperty('hospital', 'AuthForm', 'identity', '');
       useAppStore(pinia).setProperty('hospital', 'AuthForm', 'password', '');
       useAppStore(pinia).setProperty('hospital', 'AuthForm', 'emailError', '');

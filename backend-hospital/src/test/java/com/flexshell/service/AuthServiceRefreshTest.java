@@ -2,9 +2,9 @@ package com.flexshell.service;
 
 import com.flexshell.auth.JwtService;
 import com.flexshell.auth.RefreshTokenEntity;
-import com.flexshell.auth.RefreshTokenRepository;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.RefreshTokenAccess;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.auth.api.RefreshTokenRequest;
 import com.flexshell.auth.api.RefreshTokenResponse;
@@ -30,24 +30,24 @@ class AuthServiceRefreshTest {
     private static final String SECRET = "unit-test-jwt-secret-minimum-32-characters-long";
     private static final String ISSUER = "test-issuer";
 
-    private UserRepository userRepository;
-    private RefreshTokenRepository refreshTokenRepository;
+    private UserAccess users;
+    private RefreshTokenAccess refreshTokenAccess;
     private JwtService jwtService;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        userRepository = mock(UserRepository.class);
-        refreshTokenRepository = mock(RefreshTokenRepository.class);
+        users = mock(UserAccess.class);
+        refreshTokenAccess = mock(RefreshTokenAccess.class);
         jwtService = new JwtService(SECRET, 900L, 3600L, ISSUER);
 
         @SuppressWarnings("unchecked")
-        ObjectProvider<UserRepository> userProvider = mock(ObjectProvider.class);
+        ObjectProvider<UserAccess> userProvider = mock(ObjectProvider.class);
         @SuppressWarnings("unchecked")
-        ObjectProvider<RefreshTokenRepository> refreshProvider = mock(ObjectProvider.class);
-        when(userProvider.getIfAvailable()).thenReturn(userRepository);
-        when(refreshProvider.getIfAvailable()).thenReturn(refreshTokenRepository);
-        when(refreshTokenRepository.save(any(RefreshTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ObjectProvider<RefreshTokenAccess> refreshProvider = mock(ObjectProvider.class);
+        when(userProvider.getIfAvailable()).thenReturn(users);
+        when(refreshProvider.getIfAvailable()).thenReturn(refreshTokenAccess);
+        when(refreshTokenAccess.save(any(RefreshTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AppEmailProperties emailProperties = mock(AppEmailProperties.class);
         PasswordPolicy passwordPolicy = mock(PasswordPolicy.class);
@@ -63,7 +63,7 @@ class AuthServiceRefreshTest {
 
     @Test
     void refresh_unknownToken_returnsEmpty() {
-        when(refreshTokenRepository.findByToken("missing")).thenReturn(Optional.empty());
+        when(refreshTokenAccess.findByToken("missing")).thenReturn(Optional.empty());
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken("missing");
         request.setDeviceId("browser");
@@ -78,39 +78,39 @@ class AuthServiceRefreshTest {
         entity.setUserId("u1");
         entity.setDeviceId("browser");
         entity.setExpiry(Instant.now().minusSeconds(60));
-        when(refreshTokenRepository.findByToken(rt)).thenReturn(Optional.of(entity));
+        when(refreshTokenAccess.findByToken(rt)).thenReturn(Optional.of(entity));
 
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken(rt);
         request.setDeviceId("browser");
 
         assertTrue(authService.refresh(request).isEmpty());
-        verify(refreshTokenRepository).delete(entity);
+        verify(refreshTokenAccess).delete(entity);
     }
 
     @Test
     void refresh_deviceMismatch_returnsEmpty() {
         String rt = jwtService.generateRefreshToken("u1", "web", "browser", 1L);
         RefreshTokenEntity entity = entityFor(rt, "u1", "browser", Instant.now().plusSeconds(3600));
-        when(refreshTokenRepository.findByToken(rt)).thenReturn(Optional.of(entity));
+        when(refreshTokenAccess.findByToken(rt)).thenReturn(Optional.of(entity));
 
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken(rt);
         request.setDeviceId("mobile");
 
         assertTrue(authService.refresh(request).isEmpty());
-        verify(refreshTokenRepository, never()).delete(entity);
+        verify(refreshTokenAccess, never()).delete(entity);
     }
 
     @Test
     void refresh_tokenVersionMismatch_returnsEmpty() {
         String rt = jwtService.generateRefreshToken("u1", "web", "browser", 1L);
         RefreshTokenEntity entity = entityFor(rt, "u1", "browser", Instant.now().plusSeconds(3600));
-        when(refreshTokenRepository.findByToken(rt)).thenReturn(Optional.of(entity));
+        when(refreshTokenAccess.findByToken(rt)).thenReturn(Optional.of(entity));
 
         UserEntity user = activeUser("u1", 2L);
 
-        when(userRepository.findById("u1")).thenReturn(Optional.of(user));
+        when(users.findById("u1")).thenReturn(Optional.of(user));
 
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken(rt);
@@ -123,10 +123,10 @@ class AuthServiceRefreshTest {
     void refresh_accessTokenUsedAsRefresh_returnsEmpty() {
         String access = jwtService.generateAccessToken("u1", "web", 1L, UserRole.PATIENT.name());
         RefreshTokenEntity entity = entityFor(access, "u1", "browser", Instant.now().plusSeconds(3600));
-        when(refreshTokenRepository.findByToken(access)).thenReturn(Optional.of(entity));
+        when(refreshTokenAccess.findByToken(access)).thenReturn(Optional.of(entity));
 
         UserEntity user = activeUser("u1", 1L);
-        when(userRepository.findById("u1")).thenReturn(Optional.of(user));
+        when(users.findById("u1")).thenReturn(Optional.of(user));
 
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken(access);
@@ -139,10 +139,10 @@ class AuthServiceRefreshTest {
     void refresh_validRotatesAndReturnsNewPair() {
         String rt = jwtService.generateRefreshToken("u1", "web", "browser", 1L);
         RefreshTokenEntity entity = entityFor(rt, "u1", "browser", Instant.now().plusSeconds(3600));
-        when(refreshTokenRepository.findByToken(rt)).thenReturn(Optional.of(entity));
+        when(refreshTokenAccess.findByToken(rt)).thenReturn(Optional.of(entity));
 
         UserEntity user = activeUser("u1", 1L);
-        when(userRepository.findById("u1")).thenReturn(Optional.of(user));
+        when(users.findById("u1")).thenReturn(Optional.of(user));
 
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken(rt);
@@ -152,8 +152,8 @@ class AuthServiceRefreshTest {
         assertTrue(out.isPresent());
         assertEquals(jwtService.getAccessExpirationSeconds(), out.get().getAccessTokenExpiresInSeconds());
         assertEquals(jwtService.getRefreshExpirationSeconds(), out.get().getRefreshTokenExpiresInSeconds());
-        verify(refreshTokenRepository).delete(entity);
-        verify(refreshTokenRepository).save(any(RefreshTokenEntity.class));
+        verify(refreshTokenAccess).delete(entity);
+        verify(refreshTokenAccess).save(any(RefreshTokenEntity.class));
     }
 
     private static RefreshTokenEntity entityFor(String token, String userId, String deviceId, Instant expiry) {

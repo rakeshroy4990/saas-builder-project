@@ -2,6 +2,7 @@ package com.flexshell.ai;
 
 import com.flexshell.controller.dto.AiChatMessageDto;
 import com.flexshell.controller.dto.AiChatRequest;
+import com.flexshell.testsupport.QuotaTestDoubles;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -19,13 +20,13 @@ class SmartAiQuotaServiceTest {
                 null,
                 List.of(new AiChatMessageDto("user", pad), new AiChatMessageDto("assistant", pad))
         );
-        SmartAiQuotaService svc = new SmartAiQuotaService(15, 299, null);
+        SmartAiQuotaService svc = new SmartAiQuotaService(15, 299, null, QuotaTestDoubles.emptyPgDailyUsage());
         assertThrows(SmartAiQuotaExceededException.class, () -> svc.assertWithinTokenBudget(request));
     }
 
     @Test
     void dailyLimitUsesConfiguredCap() {
-        SmartAiQuotaService svc = new SmartAiQuotaService(2, 50_000, null);
+        SmartAiQuotaService svc = new SmartAiQuotaService(2, 50_000, null, QuotaTestDoubles.emptyPgDailyUsage());
         svc.consumeDailyRequestOrThrow("u-daily");
         svc.consumeDailyRequestOrThrow("u-daily");
         assertThrows(SmartAiQuotaExceededException.class, () -> svc.consumeDailyRequestOrThrow("u-daily"));

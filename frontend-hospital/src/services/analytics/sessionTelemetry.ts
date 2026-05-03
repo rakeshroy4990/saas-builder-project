@@ -1,5 +1,6 @@
 import { URLRegistry } from '../http/URLRegistry';
 import { getOrCreateTraceId } from '../logging/traceContext';
+import { readLoginSessionId } from '../logging/loginSessionContext';
 import { enqueueTelemetryBody, flushTelemetryOutbox } from './sessionTelemetryQueue';
 
 export type SessionSummaryEntryPayload = {
@@ -32,6 +33,11 @@ export type SessionTelemetryPayload = {
   reason_code?: string;
   http_status?: number;
   trace_id: string;
+  /**
+   * Set for authenticated flows after login; server groups session_summary into a new session_telemetry
+   * document per login when present.
+   */
+  login_session_id?: string;
   /**
    * When set, overrides the user id read from session storage (e.g. last telemetry before clearing profile).
    * Prefer leaving unset so the client uses the persisted profile.
@@ -73,9 +79,12 @@ export async function ingestSessionTelemetry(payload: SessionTelemetryPayload): 
   try {
     const { user_id: explicitUserId, ...rest } = payload;
     const userId = (explicitUserId ?? readPersistedUserId()).trim() || undefined;
+    const loginSessionId = (rest.login_session_id ?? readLoginSessionId()).trim();
+    const { login_session_id: _ls, ...restWithoutLs } = rest;
     const body = JSON.stringify({
-      ...rest,
-      ...(userId ? { user_id: userId } : {})
+      ...restWithoutLs,
+      ...(userId ? { user_id: userId } : {}),
+      ...(loginSessionId ? { login_session_id: loginSessionId } : {})
     });
     await enqueueTelemetryBody(body);
   } catch {

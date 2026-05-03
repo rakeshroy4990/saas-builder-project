@@ -4,6 +4,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+# Primary document store for RAG chunks, cache, and pdf registry.
+#   mongo    — default; MONGO_URI + MONGO_DB (same as today).
+#   postgres — PostgreSQL (e.g. Supabase); requires DATABASE_URL; tables rag_* created on startup.
+APP_PERSISTENCE_PROVIDER = os.getenv("APP_PERSISTENCE_PROVIDER", "mongo").strip().lower()
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+PG_TEXT_SEARCH_MIN_SCORE = float(os.getenv("PG_TEXT_SEARCH_MIN_SCORE", "0.02"))
+
+
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
     if value is None:
@@ -22,6 +30,10 @@ def _env_float(name: str, default: float) -> float:
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 MONGO_DB_NAME = os.getenv("MONGO_DB", "rag_db")
+
+
+def is_postgres_persistence() -> bool:
+    return APP_PERSISTENCE_PROVIDER == "postgres"
 
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")

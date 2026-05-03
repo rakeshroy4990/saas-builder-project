@@ -13,6 +13,7 @@ from config.settings import (
     SENTRY_ENABLED,
     SENTRY_ENVIRONMENT,
     SENTRY_TRACES_SAMPLE_RATE,
+    is_postgres_persistence,
 )
 from db.text_search_index import ensure_text_index
 from ingestion.pdf_tracker import ensure_registry_indexes
@@ -47,9 +48,14 @@ async def startup() -> None:
     logging.getLogger("query.llm_service").setLevel(log_level)
     logging.getLogger("query.retriever").setLevel(log_level)
     logging.getLogger(__name__).info("Configured application log level: %s", APP_LOG_LEVEL)
-    ensure_text_index()
-    ensure_cache_ttl_index()
-    ensure_registry_indexes()
+    if is_postgres_persistence():
+        from db.postgres_backend import ensure_postgres_schema
+
+        ensure_postgres_schema()
+    else:
+        ensure_text_index()
+        ensure_cache_ttl_index()
+        ensure_registry_indexes()
 
 
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])

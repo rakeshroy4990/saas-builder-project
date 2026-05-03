@@ -2,10 +2,10 @@ package com.flexshell.service;
 
 import com.flexshell.auth.JwtService;
 import com.flexshell.auth.RefreshTokenEntity;
-import com.flexshell.auth.RefreshTokenRepository;
 import com.flexshell.auth.RoleRequestStatus;
 import com.flexshell.auth.UserEntity;
-import com.flexshell.auth.UserRepository;
+import com.flexshell.persistence.api.RefreshTokenAccess;
+import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.auth.api.AuthApiException;
 import com.flexshell.auth.api.ChangePasswordRequest;
@@ -32,26 +32,26 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AuthServiceRolePolicyTest {
-    private UserRepository userRepository;
-    private RefreshTokenRepository refreshTokenRepository;
+    private UserAccess users;
+    private RefreshTokenAccess refreshTokenAccess;
     private JwtService jwtService;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        userRepository = mock(UserRepository.class);
-        refreshTokenRepository = mock(RefreshTokenRepository.class);
+        users = mock(UserAccess.class);
+        refreshTokenAccess = mock(RefreshTokenAccess.class);
         jwtService = mock(JwtService.class);
 
         @SuppressWarnings("unchecked")
-        ObjectProvider<UserRepository> userProvider = mock(ObjectProvider.class);
+        ObjectProvider<UserAccess> userProvider = mock(ObjectProvider.class);
         @SuppressWarnings("unchecked")
-        ObjectProvider<RefreshTokenRepository> refreshProvider = mock(ObjectProvider.class);
+        ObjectProvider<RefreshTokenAccess> refreshProvider = mock(ObjectProvider.class);
 
-        when(userProvider.getIfAvailable()).thenReturn(userRepository);
-        when(refreshProvider.getIfAvailable()).thenReturn(refreshTokenRepository);
+        when(userProvider.getIfAvailable()).thenReturn(users);
+        when(refreshProvider.getIfAvailable()).thenReturn(refreshTokenAccess);
         when(jwtService.getRefreshExpirationSeconds()).thenReturn(3600L);
-        when(refreshTokenRepository.save(any(RefreshTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(refreshTokenAccess.save(any(RefreshTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AppEmailProperties emailProperties = mock(AppEmailProperties.class);
         PasswordPolicy passwordPolicy = mock(PasswordPolicy.class);
@@ -63,8 +63,8 @@ class AuthServiceRolePolicyTest {
     @Test
     void registerWithoutRoleDefaultsToPatientActive() {
         RegisterRequest request = buildRequest(null);
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.empty());
-        when(userRepository.save(any(UserEntity.class))).thenAnswer(invocation -> {
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.empty());
+        when(users.save(any(UserEntity.class))).thenAnswer(invocation -> {
             UserEntity user = invocation.getArgument(0);
             user.setId("user-1");
             return user;
@@ -80,8 +80,8 @@ class AuthServiceRolePolicyTest {
     @Test
     void registerDoctorCreatesPendingApprovalRequest() {
         RegisterRequest request = buildRequest("DOCTOR");
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.empty());
-        when(userRepository.save(any(UserEntity.class))).thenAnswer(invocation -> {
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.empty());
+        when(users.save(any(UserEntity.class))).thenAnswer(invocation -> {
             UserEntity user = invocation.getArgument(0);
             user.setId("user-2");
             return user;
@@ -104,7 +104,7 @@ class AuthServiceRolePolicyTest {
         inactiveUser.setRoleStatus(RoleRequestStatus.INACTIVE);
         inactiveUser.setPasswordHash(new BCryptPasswordEncoder().encode("StrongPass123"));
 
-        when(userRepository.findByEmail("bob@example.com")).thenReturn(Optional.of(inactiveUser));
+        when(users.findByEmail("bob@example.com")).thenReturn(Optional.of(inactiveUser));
 
         AuthApiException exception = assertThrows(
                 AuthApiException.class,
@@ -113,7 +113,7 @@ class AuthServiceRolePolicyTest {
         assertEquals(
                 "Your account has been deactivated. You cannot sign in until an administrator reactivates your account.",
                 exception.getMessage());
-        verify(refreshTokenRepository, never()).save(any(RefreshTokenEntity.class));
+        verify(refreshTokenAccess, never()).save(any(RefreshTokenEntity.class));
     }
 
     @Test
@@ -123,12 +123,12 @@ class AuthServiceRolePolicyTest {
         existing.setEmail("alice@example.com");
         existing.setActive(true);
         existing.setRoleStatus(RoleRequestStatus.ACTIVE);
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existing));
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(existing));
 
         AuthApiException ex = assertThrows(AuthApiException.class, () -> authService.register(request));
         assertEquals("AUTH_ACCOUNT_EXISTS", ex.getErrorCode());
         assertEquals("An account already exists for this email address.", ex.getMessage());
-        verify(userRepository, never()).save(any(UserEntity.class));
+        verify(users, never()).save(any(UserEntity.class));
     }
 
     @Test
@@ -138,14 +138,14 @@ class AuthServiceRolePolicyTest {
         existing.setEmail("alice@example.com");
         existing.setActive(false);
         existing.setRoleStatus(RoleRequestStatus.INACTIVE);
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existing));
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(existing));
 
         AuthApiException ex = assertThrows(AuthApiException.class, () -> authService.register(request));
         assertEquals("AUTH_ACCOUNT_INACTIVE", ex.getErrorCode());
         assertEquals(
                 "Your account is already inactive. You cannot register again with this email address until an administrator reactivates your account.",
                 ex.getMessage());
-        verify(userRepository, never()).save(any(UserEntity.class));
+        verify(users, never()).save(any(UserEntity.class));
     }
 
     @Test
@@ -159,8 +159,8 @@ class AuthServiceRolePolicyTest {
         user.setPasswordHash(encoder.encode("OldPass123"));
         user.setTokenVersion(3L);
 
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
-        when(userRepository.save(any(UserEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(users.save(any(UserEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ChangePasswordRequest req = new ChangePasswordRequest();
         req.setEmailId("alice@example.com");
@@ -171,7 +171,7 @@ class AuthServiceRolePolicyTest {
 
         assertTrue(encoder.matches("NewPass9999", user.getPasswordHash()));
         assertEquals(4L, user.getTokenVersion());
-        verify(userRepository).save(user);
+        verify(users).save(user);
     }
 
     @Test
@@ -182,7 +182,7 @@ class AuthServiceRolePolicyTest {
         user.setActive(true);
         user.setRoleStatus(RoleRequestStatus.ACTIVE);
         user.setPasswordHash(new BCryptPasswordEncoder().encode("RightOld123"));
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
 
         ChangePasswordRequest req = new ChangePasswordRequest();
         req.setEmailId("alice@example.com");
@@ -195,7 +195,7 @@ class AuthServiceRolePolicyTest {
 
     @Test
     void changePasswordUnknownEmailThrows() {
-        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+        when(users.findByEmail("missing@example.com")).thenReturn(Optional.empty());
         ChangePasswordRequest req = new ChangePasswordRequest();
         req.setEmailId("missing@example.com");
         req.setOldPassword("x");
@@ -212,7 +212,7 @@ class AuthServiceRolePolicyTest {
         user.setActive(false);
         user.setRoleStatus(RoleRequestStatus.INACTIVE);
         user.setPasswordHash(new BCryptPasswordEncoder().encode("OldPass123"));
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
 
         ChangePasswordRequest req = new ChangePasswordRequest();
         req.setEmailId("alice@example.com");
@@ -232,13 +232,13 @@ class AuthServiceRolePolicyTest {
         pendingUser.setRoleStatus(RoleRequestStatus.PENDING_APPROVAL);
         pendingUser.setPasswordHash(new BCryptPasswordEncoder().encode("StrongPass123"));
 
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(pendingUser));
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(pendingUser));
 
         AuthApiException exception = assertThrows(
                 AuthApiException.class,
                 () -> authService.login("alice@example.com", "StrongPass123"));
         assertEquals("AUTH_ROLE_PENDING_APPROVAL", exception.getErrorCode());
-        verify(refreshTokenRepository, never()).save(any(RefreshTokenEntity.class));
+        verify(refreshTokenAccess, never()).save(any(RefreshTokenEntity.class));
     }
 
     private RegisterRequest buildRequest(String role) {
