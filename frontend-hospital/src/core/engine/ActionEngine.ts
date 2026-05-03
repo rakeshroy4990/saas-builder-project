@@ -20,7 +20,7 @@ export class ActionEngine {
   ): Promise<void> {
     const action = this.resolveAction(actionRef);
     if (runTelemetry?.component_id) {
-      emitLoggedInSessionSummary({
+      void emitLoggedInSessionSummary({
         kind: SessionSummaryKind.BUTTON_CLICK,
         page_id: this.pageConfig.pageId,
         package_name: this.pageConfig.packageName,

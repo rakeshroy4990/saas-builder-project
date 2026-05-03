@@ -241,7 +241,7 @@ apiClient.interceptors.response.use(
       const cfg = response.config as FlexshellTelemetryConfig;
       const t0 = cfg.__flexshellTelemetryT0;
       const durationMs = typeof t0 === 'number' ? Math.round(performance.now() - t0) : undefined;
-      emitLoggedInSessionSummary({
+      void emitLoggedInSessionSummary({
         kind: SessionSummaryKind.API_CALL,
         api_path: axiosResolvedUrl(response.config),
         http_method: String(response.config.method ?? 'get').toUpperCase(),
@@ -269,7 +269,7 @@ apiClient.interceptors.response.use(
       const data = error.response?.data as { Message?: string; message?: string } | undefined;
       const errMsg =
         (data?.Message ?? data?.message ?? (error instanceof Error ? error.message : String(error))).toString();
-      emitLoggedInSessionSummary({
+      void emitLoggedInSessionSummary({
         kind: SessionSummaryKind.API_ERROR,
         api_path: axiosResolvedUrl(error.config),
         http_method: String(error.config.method ?? 'get').toUpperCase(),

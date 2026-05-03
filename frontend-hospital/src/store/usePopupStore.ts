@@ -57,7 +57,7 @@ export const usePopupStore = defineStore('popup', {
         activePageId: pageId,
         title: req?.title
       });
-      emitLoggedInSessionSummary({
+      void emitLoggedInSessionSummary({
         kind: SessionSummaryKind.POPUP_OPEN,
         popup_page_id: pageId,
         package_name: packageName,

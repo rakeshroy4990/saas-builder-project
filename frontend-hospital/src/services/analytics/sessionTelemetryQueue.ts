@@ -183,7 +183,7 @@ async function runFlush(postTelemetry: PostTelemetry): Promise<void> {
       const ids = batch.map((r) => r.id).filter((id): id is number => typeof id === 'number');
       if (ids.length === 0) break;
 
-      if (batch.length >= 2) {
+      if (batch.length >= 1) {
         try {
           const res = await postSessionEventsBatch(batch.map((r) => r.body));
           if (res.ok) {

@@ -53,4 +53,35 @@ class BlogPreviewServiceParseTest {
     void parseJsonArray_invalid_returnsEmpty() {
         assertThat(service.parseJsonArray("not json")).isEmpty();
     }
+
+    @Test
+    void parseJsonArray_prefersLongerBodyOverShortTeaser() {
+        String longBody = ("adequate ").repeat(95).trim();
+        String json =
+                "[{\"title\":\"X\",\"slug\":\"x\",\"teaser\":\"tiny\",\"body\":\""
+                        + longBody
+                        + "\",\"category\":\"C\",\"readTimeMinutes\":8}]";
+        List<BlogPreviewDto> out = service.parseJsonArray(json);
+        assertThat(out).hasSize(1);
+        assertThat(out.get(0).getTeaser()).isEqualTo(longBody);
+    }
+
+    @Test
+    void parseJsonArray_readsHookAndCuriosityQuestions() {
+        String longTeaser = ("adequate ").repeat(95).trim();
+        String json =
+                "[{\"title\":\"Tt\",\"slug\":\"t\",\"hook\":\"Stand up—feel your circulation catch up?\","
+                        + "\"curiosityQuestions\":[\"What everyday habits change the sensation?\","
+                        + "\"Which details help your clinician understand the pattern?\"],"
+                        + "\"teaser\":\""
+                        + longTeaser
+                        + "\",\"category\":\"C\",\"readTimeMinutes\":8}]";
+        List<BlogPreviewDto> out = service.parseJsonArray(json);
+        assertThat(out).hasSize(1);
+        assertThat(out.get(0).getHook()).isEqualTo("Stand up—feel your circulation catch up?");
+        assertThat(out.get(0).getCuriosityQuestions()).containsExactly(
+                "What everyday habits change the sensation?",
+                "Which details help your clinician understand the pattern?"
+        );
+    }
 }

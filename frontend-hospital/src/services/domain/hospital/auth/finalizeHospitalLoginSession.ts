@@ -118,6 +118,6 @@ export async function finalizeHospitalLoginSession(
     status: 'success',
     trace_id: getOrCreateTraceId()
   });
-  emitSessionSummaryAuthLogin(options?.authMethod === 'google' ? 'google' : 'password');
+  void emitSessionSummaryAuthLogin(options?.authMethod === 'google' ? 'google' : 'password');
   void refreshHeroYoutubeFromUserQueryCache();
 }

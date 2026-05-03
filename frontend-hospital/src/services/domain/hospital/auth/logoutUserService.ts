@@ -14,8 +14,8 @@ import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/call
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { flushSessionTelemetryQueue } from '../../../analytics/sessionTelemetry';
 import {
-  emitSessionSummaryAuthLogout,
-  flushPendingSessionSummaryNavigate
+  flushPendingSessionSummaryNavigate,
+  ingestUserInitiatedLogoutSessionTelemetry
 } from '../../../analytics/sessionSummary';
 
 export const logoutUserHospitalServices: ServiceDefinition[] = [
@@ -23,15 +23,13 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'logout-user',
     execute: async () => {
-      flushPendingSessionSummaryNavigate();
-      trackEvent('logout');
-      emitSessionSummaryAuthLogout({ reason: 'user_initiated' });
-      await flushSessionTelemetryQueue();
-      try {
-        await apiClient.post(URLRegistry.paths.logout, buildLogoutRequestBody());
-      } catch {
-        // Local logout should still proceed even when server call fails.
-      }
+      await flushPendingSessionSummaryNavigate();
+      trackEvent('logout', undefined, { skipSessionTelemetry: true });
+      await ingestUserInitiatedLogoutSessionTelemetry({ reason: 'user_initiated' });
+      await Promise.all([
+        flushSessionTelemetryQueue(),
+        apiClient.post(URLRegistry.paths.logout, buildLogoutRequestBody()).catch(() => undefined)
+      ]);
       stompClient.disconnect();
       clearWebrtcSubscription();
       clearCallHeartbeatTimer();
