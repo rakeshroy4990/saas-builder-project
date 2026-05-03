@@ -43,7 +43,7 @@ public class OpenAiChatAdapter {
             @Value("${app.ai.max-tokens:400}") int maxTokens,
             @Value("${app.ai.temperature:0.3}") double temperature,
             @Value("${app.ai.timeout-ms:12000}") int timeoutMs,
-            @Value("${app.ai.blog.max-tokens:1200}") int blogMaxTokens,
+            @Value("${app.ai.blog.max-tokens:4500}") int blogMaxTokens,
             @Value("${app.ai.blog.temperature:0.75}") double blogTemperature
     ) {
         this.objectMapper = objectMapper;
@@ -96,11 +96,17 @@ public class OpenAiChatAdapter {
             Each element must be an object with keys exactly:
             "title" (string, compelling question or headline),
             "slug" (string, lowercase kebab-case, URL-safe),
-            "teaser" (string, 1-2 sentences that spark curiosity; educational tone),
+            "hook" (string, ONE inviting sentence for the blog grid, max ~160 characters; spark curiosity; no disclaimers),
+            "curiosityQuestions" (JSON array of exactly 2 strings; each a genuine question ending with "?"; max ~120 chars each; must not repeat the hook verbatim; educational curiosity only),
+            "teaser" (string, REQUIRED: full mini-article text for the dedicated article page only—not shown on the main grid.
+            Use at least three paragraphs separated by a blank line (two newline characters between paragraphs).
+            Each paragraph should have several sentences with concrete explanations, examples, or habits readers can try.
+            Target about 120-200 words; educational tone; no diagnoses; no medication dosing; no emergency instructions;
+            suitable for India/global English readers),
             "category" (string, short label e.g. Nutrition, Sleep, Heart Health),
-            "readTimeMinutes" (integer, 3-8).
-            Rules: general wellness and health literacy only; no diagnoses; no medication dosing;
-            no emergency instructions; suitable for India/global English readers; varied topics.
+            "readTimeMinutes" (integer, 6-14, consistent with reading time).
+            Optional: include "body" with the same article text as "teaser" if you split fields—the server keeps the longer of "body" and "teaser".
+            Rules: general wellness and health literacy only; varied topics across items.
             """;
 
     public String complete(List<AiChatMessageDto> history, String message) {

@@ -43,8 +43,8 @@ export type SessionSummaryRowInput = Omit<SessionSummaryEntryPayload, 'entry_id'
 /**
  * Appends one row to Mongo `sessionSummary` for the current user + trace (no-op when anonymous).
  */
-export function emitLoggedInSessionSummary(row: SessionSummaryRowInput): void {
-  if (!isLoggedInForSessionSummary()) return;
+export function emitLoggedInSessionSummary(row: SessionSummaryRowInput): Promise<void> {
+  if (!isLoggedInForSessionSummary()) return Promise.resolve();
   const trace_id = getOrCreateTraceId();
   const email = readPersistedUserEmail();
   const session_summary_entry: SessionSummaryEntryPayload = {
@@ -53,7 +53,7 @@ export function emitLoggedInSessionSummary(row: SessionSummaryRowInput): void {
     ...row,
     ...(email ? { user_email: email } : {})
   };
-  void ingestSessionTelemetry({
+  return ingestSessionTelemetry({
     event_name: 'session_summary_row',
     flow: 'session',
     status: 'ok',
@@ -62,17 +62,45 @@ export function emitLoggedInSessionSummary(row: SessionSummaryRowInput): void {
   });
 }
 
-export function emitSessionSummaryAuthLogin(authMethod: 'password' | 'google'): void {
-  emitLoggedInSessionSummary({
+export function emitSessionSummaryAuthLogin(authMethod: 'password' | 'google'): Promise<void> {
+  return emitLoggedInSessionSummary({
     kind: SessionSummaryKind.AUTH_LOGIN,
     attributes: { auth_method: authMethod }
   });
 }
 
-export function emitSessionSummaryAuthLogout(attributes?: Record<string, unknown>): void {
-  emitLoggedInSessionSummary({
+/** Session summary row only (e.g. account deactivated). User menu logout uses {@link ingestUserInitiatedLogoutSessionTelemetry}. */
+export function emitSessionSummaryAuthLogout(attributes?: Record<string, unknown>): Promise<void> {
+  return emitLoggedInSessionSummary({
     kind: SessionSummaryKind.AUTH_LOGOUT,
     attributes: attributes ?? { reason: 'user_initiated' }
+  });
+}
+
+/**
+ * One queued telemetry row for explicit user logout: `event_name=logout` plus `session_summary` auth_logout
+ * (avoids duplicating Firebase `trackEvent('logout')` session-event ingest).
+ */
+export async function ingestUserInitiatedLogoutSessionTelemetry(
+  attributes?: Record<string, unknown>
+): Promise<void> {
+  if (!isLoggedInForSessionSummary()) return;
+  const trace_id = getOrCreateTraceId();
+  const email = readPersistedUserEmail();
+  const session_summary_entry: SessionSummaryEntryPayload = {
+    entry_id: newSessionSummaryEntryId(),
+    occurred_at: new Date().toISOString(),
+    kind: SessionSummaryKind.AUTH_LOGOUT,
+    attributes: attributes ?? { reason: 'user_initiated' },
+    ...(email ? { user_email: email } : {})
+  };
+  await ingestSessionTelemetry({
+    event_name: 'logout',
+    flow: 'auth',
+    status: '',
+    reason_code: '',
+    trace_id,
+    session_summary_entry
   });
 }
 
@@ -84,13 +112,13 @@ let pendingNavigateRow: SessionSummaryRowInput | null = null;
 /**
  * Flushes a debounced navigation summary immediately (call before logout / deactivate so the last route is captured).
  */
-export function flushPendingSessionSummaryNavigate(): void {
+export async function flushPendingSessionSummaryNavigate(): Promise<void> {
   if (navigateDebounceTimer != null) {
     clearTimeout(navigateDebounceTimer);
     navigateDebounceTimer = null;
   }
   if (pendingNavigateRow) {
-    emitLoggedInSessionSummary(pendingNavigateRow);
+    await emitLoggedInSessionSummary(pendingNavigateRow);
     pendingNavigateRow = null;
   }
 }
@@ -112,7 +140,7 @@ export function initSessionSummaryNavigation(router: Router): void {
     navigateDebounceTimer = setTimeout(() => {
       navigateDebounceTimer = null;
       if (pendingNavigateRow) {
-        emitLoggedInSessionSummary(pendingNavigateRow);
+        void emitLoggedInSessionSummary(pendingNavigateRow);
         pendingNavigateRow = null;
       }
     }, NAVIGATE_DEBOUNCE_MS);

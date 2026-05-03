@@ -2554,11 +2554,27 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       {
-                        id: 'hospital-blog-card-teaser',
+                        id: 'hospital-blog-card-hook',
                         type: 'text',
                         config: {
-                          text: '{{teaser}}',
-                          styles: { utilityClasses: 'text-sm text-slate-700 leading-relaxed flex-1' }
+                          text: '{{hook}}',
+                          styles: { utilityClasses: 'text-sm font-medium text-slate-800 leading-snug flex-1' }
+                        }
+                      },
+                      {
+                        id: 'hospital-blog-card-questions',
+                        type: 'text',
+                        config: {
+                          text: '{{curiosityQuestionsText}}',
+                          styles: { utilityClasses: 'text-sm text-slate-600 leading-relaxed whitespace-pre-line' }
+                        }
+                      },
+                      {
+                        id: 'hospital-blog-card-read-more-hint',
+                        type: 'text',
+                        config: {
+                          text: 'Open the article page for the full story, examples, and practical context.',
+                          styles: { utilityClasses: 'text-xs text-slate-500 italic' }
                         }
                       },
                       {
@@ -2717,22 +2733,6 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   mapping: { packageName: 'hospital', key: 'BlogArticleView', property: 'teaser' },
                   styles: { utilityClasses: 'text-base text-slate-700 leading-relaxed' }
-                }
-              },
-              {
-                id: 'hospital-blog-article-footnote',
-                type: 'text',
-                condition: {
-                  expression: '!loading && String(err ?? "").trim().length === 0',
-                  mappings: {
-                    loading: { packageName: 'hospital', key: 'BlogArticleView', property: 'loading' },
-                    err: { packageName: 'hospital', key: 'BlogArticleView', property: 'error' }
-                  }
-                },
-                config: {
-                  text:
-                    'This is the same educational teaser shown on the blog list. Long-form articles are not published here yet. Not medical advice—speak with your clinician for personal decisions.',
-                  styles: { utilityClasses: 'text-xs text-slate-500 border-t border-slate-100 pt-4 mt-2' }
                 }
               }
             ]

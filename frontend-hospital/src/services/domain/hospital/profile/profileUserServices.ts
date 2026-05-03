@@ -293,8 +293,8 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       } catch {
         // ignore
       }
-      flushPendingSessionSummaryNavigate();
-      emitSessionSummaryAuthLogout({ reason: 'account_deactivated' });
+      await flushPendingSessionSummaryNavigate();
+      await emitSessionSummaryAuthLogout({ reason: 'account_deactivated' });
       trackEvent('profile_deactivated', {
         domain: 'profile',
         status: 'success',

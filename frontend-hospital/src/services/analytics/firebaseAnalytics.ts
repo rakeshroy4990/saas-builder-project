@@ -6,24 +6,59 @@ import type { TelemetryDomain, TelemetryReasonCode, TelemetryStatus } from '../o
 import { ingestSessionTelemetry } from './sessionTelemetry'
 import { getOrCreateTraceId } from '../logging/traceContext'
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+/** Strip Vite/env placeholders so `"undefined"` strings do not count as configured. */
+function normalizeFirebaseEnv(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const t = value.trim();
+  if (!t || t === 'undefined' || t === 'null' || t === 'none') return '';
+  return t;
 }
 
-function hasFirebaseConfig(): boolean {
+const firebaseConfig = {
+  apiKey: normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_API_KEY),
+  authDomain: normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+  projectId: normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+  storageBucket: normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
+  messagingSenderId: normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+  appId: normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_APP_ID),
+  measurementId: normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID)
+};
+
+function firebaseAnalyticsExplicitlyDisabled(): boolean {
+  const v = normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_ANALYTICS_ENABLED).toLowerCase();
+  return v === 'false' || v === '0' || v === 'off' || v === 'no';
+}
+
+/** Firebase / Google Cloud browser keys used by the web SDK are typically `AIza…`. */
+function looksLikeGoogleBrowserApiKey(apiKey: string): boolean {
+  return /^AIza[\w-]{20,}$/.test(apiKey);
+}
+
+/** e.g. `1:317459219201:web:428ee07a430fbdebe51100` */
+function looksLikeFirebaseWebAppId(appId: string): boolean {
+  return /^\d+:\d+:web:[a-zA-Z0-9]+$/.test(appId);
+}
+
+/** GA4 web stream measurement id */
+function looksLikeGtagMeasurementId(measurementId: string): boolean {
+  return /^G-[A-Z0-9]+$/i.test(measurementId);
+}
+
+function hasFirebaseAnalyticsConfig(): boolean {
+  if (firebaseAnalyticsExplicitlyDisabled()) {
+    return false;
+  }
+  const { apiKey, authDomain, projectId, appId, measurementId } = firebaseConfig;
   return Boolean(
-    firebaseConfig.apiKey
-      && firebaseConfig.authDomain
-      && firebaseConfig.projectId
-      && firebaseConfig.appId
-      && firebaseConfig.measurementId
-  )
+    apiKey
+      && looksLikeGoogleBrowserApiKey(apiKey)
+      && authDomain
+      && projectId
+      && appId
+      && looksLikeFirebaseWebAppId(appId)
+      && measurementId
+      && looksLikeGtagMeasurementId(measurementId)
+  );
 }
 
 let analytics: Analytics | null = null
@@ -202,19 +237,26 @@ const analyticsFlowByEvent: Record<AnalyticsEventName, AnalyticsFlowKey> = {
   profile_deactivate_failed: 'profile'
 }
 
+export type TrackEventOptions = {
+  /** When true, only Firebase `logEvent` runs (no session-event queue ingest). */
+  skipSessionTelemetry?: boolean;
+};
+
 export function trackEvent<TEventName extends AnalyticsEventName>(
   eventName: TEventName,
-  params?: AnalyticsEventParamsMap[TEventName]
+  params?: AnalyticsEventParamsMap[TEventName],
+  options?: TrackEventOptions
 ): void {
   const eventParams = params ?? {}
   const flow = analyticsFlowByEvent[eventName]
   if (
-    flow === 'appointment'
+    !options?.skipSessionTelemetry
+    && (flow === 'appointment'
     || flow === 'chat'
     || flow === 'video'
     || flow === 'profile'
     || eventName === 'login_success'
-    || eventName === 'logout'
+    || eventName === 'logout')
   ) {
     const traceId =
       String((eventParams as Record<string, unknown>)?.trace_id ?? '').trim() || getOrCreateTraceId()
@@ -244,22 +286,47 @@ export function trackEvent<TEventName extends AnalyticsEventName>(
 }
 
 export async function initFirebaseAnalytics(router: Router): Promise<void> {
-  if (!hasFirebaseConfig()) {
-    return
+  if (firebaseAnalyticsExplicitlyDisabled()) {
+    return;
+  }
+
+  const partialEnvPresent =
+    normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_API_KEY).length > 0
+    || normalizeFirebaseEnv(import.meta.env.VITE_FIREBASE_APP_ID).length > 0;
+
+  if (partialEnvPresent && !hasFirebaseAnalyticsConfig()) {
+    if (import.meta.env.DEV) {
+      console.info(
+        '[Flexshell] Firebase Analytics skipped: VITE_FIREBASE_* values look wrong or incomplete. ' +
+          'Use the Web app config from Firebase Console (apiKey starting with AIza…, appId 1:…:web:…, measurementId G-…). ' +
+          'Mismatched keys cause API_KEY_INVALID on googleapis.com. Set VITE_FIREBASE_ANALYTICS_ENABLED=false to disable.'
+      );
+    }
+    return;
+  }
+
+  if (!hasFirebaseAnalyticsConfig()) {
+    return;
   }
 
   if (!(await isSupported())) {
-    return
+    return;
   }
 
-  const app = initializeApp(firebaseConfig)
-  analytics = getAnalytics(app)
+  try {
+    const app = initializeApp(firebaseConfig);
+    analytics = getAnalytics(app);
+  } catch (err) {
+    analytics = null;
+    console.warn('[Flexshell] Firebase Analytics init failed:', err);
+    return;
+  }
 
   router.afterEach((to) => {
     trackEvent('page_view', {
       page_title: document.title || String(to.name ?? ''),
       page_location: window.location.href,
       page_path: to.fullPath
-    })
-  })
+    });
+  });
 }

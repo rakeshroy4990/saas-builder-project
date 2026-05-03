@@ -31,7 +31,7 @@ function emitFetchSessionSummary(
   const durationMs = Math.round(performance.now() - startedAt);
   try {
     if (outcome.type === 'response') {
-      emitLoggedInSessionSummary({
+      void emitLoggedInSessionSummary({
         kind: SessionSummaryKind.API_CALL,
         api_path: apiPath,
         http_method: method,
@@ -48,7 +48,7 @@ function emitFetchSessionSummary(
             : err == null
               ? 'Network error'
               : String(err);
-      emitLoggedInSessionSummary({
+      void emitLoggedInSessionSummary({
         kind: SessionSummaryKind.API_ERROR,
         api_path: apiPath,
         http_method: method,

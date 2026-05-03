@@ -14,6 +14,53 @@ function envelopeData(root: unknown): unknown {
   return row.Data ?? row.data ?? root;
 }
 
+/** Matches server-side filter: skip one-line list blurbs (blog list + article view). */
+const MIN_ARTICLE_CHARS = 520;
+const MIN_ARTICLE_WORDS = 90;
+
+function isSubstantialBlogPost(post: Record<string, unknown>): boolean {
+  const teaser = String(post.teaser ?? '').trim();
+  if (teaser.length < MIN_ARTICLE_CHARS) return false;
+  const words = teaser.split(/\s+/).filter((w) => w.length > 0).length;
+  return words >= MIN_ARTICLE_WORDS;
+}
+
+function readCuriosityQuestionStrings(row: Record<string, unknown>): string[] {
+  const raw = row.curiosityQuestions ?? row.CuriosityQuestions;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((x) => String(x ?? '').trim()).filter((s) => s.length > 0);
+}
+
+function deriveHookFromTeaser(teaser: string): string {
+  const t = teaser.trim();
+  if (!t) return '';
+  const m = t.match(/^[^.!?]+[.!?]/);
+  if (m && m[0].length >= 12 && m[0].length <= 200) return m[0].trim();
+  return t.length > 160 ? `${t.slice(0, 157)}…` : t;
+}
+
+function ensureHook(row: Record<string, unknown>, teaser: string): string {
+  let h = pickString(row, ['Hook', 'hook']).trim();
+  if (h.length > 200) h = `${h.slice(0, 197)}…`;
+  if (h.length > 0) return h;
+  return deriveHookFromTeaser(teaser);
+}
+
+function buildCuriosityQuestionsBlock(questions: string[], title: string): string {
+  const q = [...questions];
+  while (q.length < 2) {
+    q.push(
+      q.length === 0
+        ? `What is the first thing you would want to explore about “${title}”?`
+        : 'What questions could you bring to a routine visit after reading the full article?'
+    );
+  }
+  return q
+    .slice(0, 2)
+    .map((line) => (line.startsWith('•') ? line : `• ${line}`))
+    .join('\n');
+}
+
 function parseBlogPayload(raw: unknown): {
   posts: ReturnType<typeof normalizePreview>[];
   contentSource: string;
@@ -21,7 +68,9 @@ function parseBlogPayload(raw: unknown): {
   servedFromCache: boolean;
 } {
   if (Array.isArray(raw)) {
-    const posts = raw.map((entry, idx) => normalizePreview(entry, idx));
+    const posts = raw
+      .map((entry, idx) => normalizePreview(entry, idx))
+      .filter((post) => isSubstantialBlogPost(post));
     return {
       posts,
       contentSource: 'unknown',
@@ -33,7 +82,9 @@ function parseBlogPayload(raw: unknown): {
   const o = (raw ?? {}) as Record<string, unknown>;
   const itemsRaw = o.Items ?? o.items;
   const list = Array.isArray(itemsRaw) ? itemsRaw : [];
-  const posts = list.map((entry, idx) => normalizePreview(entry, idx));
+  const posts = list
+    .map((entry, idx) => normalizePreview(entry, idx))
+    .filter((post) => isSubstantialBlogPost(post));
   const contentSource = pickString(o, ['ContentSource', 'contentSource']).trim();
   let contentSourceDetail = pickString(o, ['ContentSourceDetail', 'contentSourceDetail']).trim();
   const servedRaw = o.ServedFromCache ?? o.servedFromCache;
@@ -53,17 +104,25 @@ function normalizePreview(entry: unknown, idx: number): Record<string, unknown> 
   const row = (entry ?? {}) as Record<string, unknown>;
   const title = pickString(row, ['Title', 'title']).trim() || `Article ${idx + 1}`;
   const slug = pickString(row, ['Slug', 'slug']).trim() || `post-${idx + 1}`;
-  const teaser = pickString(row, ['Teaser', 'teaser']).trim();
+  let teaser = pickString(row, ['Teaser', 'teaser']).trim();
+  const body = pickString(row, ['Body', 'body']).trim();
+  const article = pickString(row, ['Article', 'article']).trim();
+  if (article.length > teaser.length) teaser = article;
+  if (body.length > teaser.length) teaser = body;
   const category = pickString(row, ['Category', 'category']).trim() || 'Wellness';
   const readRaw = row.ReadTimeMinutes ?? row.readTimeMinutes;
   const readTime =
     typeof readRaw === 'number' && Number.isFinite(readRaw)
       ? Math.round(readRaw)
       : Number.parseInt(String(readRaw ?? '5'), 10) || 5;
+  const hook = ensureHook(row, teaser);
+  const curiosityQuestionsText = buildCuriosityQuestionsBlock(readCuriosityQuestionStrings(row), title);
   return {
     title,
     slug,
     teaser,
+    hook,
+    curiosityQuestionsText,
     category,
     readTimeMinutes: readTime
   };

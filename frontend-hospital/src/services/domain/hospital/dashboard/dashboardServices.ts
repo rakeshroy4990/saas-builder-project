@@ -32,6 +32,13 @@ function appointmentPreferredDateToInput(raw: unknown): string {
 
 const DASHBOARD_GUARD_TABS = new Set(['appointments', 'working-slots', 'admin']);
 
+/** Mobile appointment filters use `dashboardFiltersOpen`; desktop grid ignores it (`lg:`). */
+function collapseDashboardFiltersPanel(): void {
+  const appStore = useAppStore(pinia);
+  const responsive = (appStore.getData('hospital', 'ResponsiveUiState') ?? {}) as Record<string, unknown>;
+  appStore.setData('hospital', 'ResponsiveUiState', { ...responsive, dashboardFiltersOpen: false });
+}
+
 function openLoginRecoverDashboardSession(tab: string): void {
   setDeferredPostLoginAction({
     packageName: 'hospital',
@@ -305,6 +312,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         status: normalizedStatus,
         statusSelectedExplicitly: true
       });
+      collapseDashboardFiltersPanel();
       await loadDashboardAppointmentsPage(0);
       return ok();
     }
@@ -319,6 +327,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         ...filters,
         preferredDate: String(request.data.value ?? '').trim()
       });
+      collapseDashboardFiltersPanel();
       await loadDashboardAppointmentsPage(0);
       return ok();
     }
@@ -330,6 +339,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const appStore = useAppStore(pinia);
       const filters = (appStore.getData('hospital', 'DashboardFilters') ?? {}) as Record<string, unknown>;
       appStore.setData('hospital', 'DashboardFilters', { ...filters, doctorId: String(request.data.value ?? '').trim() });
+      collapseDashboardFiltersPanel();
       await loadDashboardAppointmentsPage(0);
       return ok();
     }
@@ -344,6 +354,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         ...filters,
         department: String(request.data.value ?? '').trim()
       });
+      collapseDashboardFiltersPanel();
       await loadDashboardAppointmentsPage(0);
       return ok();
     }
