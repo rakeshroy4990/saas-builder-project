@@ -27,9 +27,9 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       trackEvent('logout', undefined, { skipSessionTelemetry: true });
       await ingestUserInitiatedLogoutSessionTelemetry({ reason: 'user_initiated' });
       await Promise.all([
-        flushSessionTelemetryQueue(),
         apiClient.post(URLRegistry.paths.logout, buildLogoutRequestBody()).catch(() => undefined)
       ]);
+      flushSessionTelemetryQueue();
       stompClient.disconnect();
       clearWebrtcSubscription();
       clearCallHeartbeatTimer();
