@@ -275,6 +275,7 @@ def pdf_registry_mark(file_hash: str, status: str, **kwargs: Any) -> None:
     chunks_count = kwargs.get("chunks_count")
     ingested_at = kwargs.get("ingested_at")
     prefilter_stats = kwargs.get("prefilter_stats")
+    image_stats = kwargs.get("image_stats")
     with get_pool().connection() as conn:
         with conn.cursor(row_factory=dict_row) as cur:
             cur.execute("SELECT * FROM rag_pdf_registry WHERE file_hash = %s", (file_hash,))
@@ -294,17 +295,21 @@ def pdf_registry_mark(file_hash: str, status: str, **kwargs: Any) -> None:
             merged["ingested_at"] = ingested_at
         if prefilter_stats is not None:
             merged["prefilter_stats"] = prefilter_stats
+        if image_stats is not None:
+            merged["image_stats"] = image_stats
         if status == "processed" and ingested_at is None and merged.get("ingested_at") is None:
             merged["ingested_at"] = datetime.now(timezone.utc)
 
         ps = merged.get("prefilter_stats")
         ps_json = Json(ps) if isinstance(ps, dict) else Json({})
+        ims = merged.get("image_stats")
+        ims_json = Json(ims) if isinstance(ims, dict) else Json({})
 
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO rag_pdf_registry (file_hash, status, filename, filepath, error, chunks_count, ingested_at, prefilter_stats)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO rag_pdf_registry (file_hash, status, filename, filepath, error, chunks_count, ingested_at, prefilter_stats, image_stats)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (file_hash) DO UPDATE SET
                     status = EXCLUDED.status,
                     filename = EXCLUDED.filename,
@@ -312,7 +317,8 @@ def pdf_registry_mark(file_hash: str, status: str, **kwargs: Any) -> None:
                     error = EXCLUDED.error,
                     chunks_count = EXCLUDED.chunks_count,
                     ingested_at = EXCLUDED.ingested_at,
-                    prefilter_stats = EXCLUDED.prefilter_stats
+                    prefilter_stats = EXCLUDED.prefilter_stats,
+                    image_stats = EXCLUDED.image_stats
                 """,
                 (
                     file_hash,
@@ -323,6 +329,7 @@ def pdf_registry_mark(file_hash: str, status: str, **kwargs: Any) -> None:
                     int(merged.get("chunks_count") or 0),
                     merged.get("ingested_at"),
                     ps_json,
+                    ims_json,
                 ),
             )
         conn.commit()
@@ -372,7 +379,7 @@ def pdf_registry_find_recent(limit: int) -> list[dict[str, Any]]:
         with conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
                 """
-                SELECT file_hash, filename, filepath, status, chunks_count, error, prefilter_stats, ingested_at
+                SELECT file_hash, filename, filepath, status, chunks_count, error, prefilter_stats, image_stats, ingested_at
                 FROM rag_pdf_registry
                 ORDER BY ingested_at DESC NULLS LAST
                 LIMIT %s
@@ -388,6 +395,12 @@ def pdf_registry_find_recent(limit: int) -> list[dict[str, Any]]:
                 ps = json.loads(ps)
             except json.JSONDecodeError:
                 ps = None
+        ims = r.get("image_stats")
+        if isinstance(ims, str):
+            try:
+                ims = json.loads(ims)
+            except json.JSONDecodeError:
+                ims = None
         out.append(
             {
                 "_id": r["file_hash"],
@@ -397,6 +410,7 @@ def pdf_registry_find_recent(limit: int) -> list[dict[str, Any]]:
                 "chunks_count": int(r.get("chunks_count") or 0),
                 "error": r.get("error"),
                 "prefilter_stats": ps,
+                "image_stats": ims,
                 "ingested_at": r.get("ingested_at"),
             }
         )

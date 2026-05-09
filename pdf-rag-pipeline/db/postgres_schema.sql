@@ -20,6 +20,7 @@ CREATE INDEX IF NOT EXISTS rag_chunks_file_hash_idx ON rag_chunks (file_hash);
 CREATE INDEX IF NOT EXISTS rag_chunks_metadata_audience_idx ON rag_chunks ((metadata->>'audience'));
 CREATE INDEX IF NOT EXISTS rag_chunks_metadata_chapter_topic_idx ON rag_chunks ((metadata->>'chapter_topic'));
 CREATE INDEX IF NOT EXISTS rag_chunks_file_hash_page_idx ON rag_chunks (file_hash, page_num, chunk_index);
+ALTER TABLE rag_chunks DROP COLUMN IF EXISTS images;
 
 CREATE TABLE IF NOT EXISTS rag_pdf_registry (
     file_hash       TEXT PRIMARY KEY,
@@ -29,8 +30,10 @@ CREATE TABLE IF NOT EXISTS rag_pdf_registry (
     error           TEXT,
     chunks_count    INT NOT NULL DEFAULT 0,
     ingested_at     TIMESTAMPTZ,
-    prefilter_stats JSONB
+    prefilter_stats JSONB,
+    image_stats     JSONB
 );
+ALTER TABLE rag_pdf_registry ADD COLUMN IF NOT EXISTS image_stats JSONB;
 
 CREATE INDEX IF NOT EXISTS rag_pdf_registry_status_idx ON rag_pdf_registry (status);
 CREATE INDEX IF NOT EXISTS rag_pdf_registry_ingested_at_idx ON rag_pdf_registry (ingested_at DESC);
@@ -51,3 +54,4 @@ CREATE TABLE IF NOT EXISTS rag_query_cache (
 CREATE INDEX IF NOT EXISTS rag_query_cache_expires_at_idx ON rag_query_cache (expires_at);
 CREATE INDEX IF NOT EXISTS rag_query_cache_user_cached_idx ON rag_query_cache (user_id, cached_at DESC);
 CREATE INDEX IF NOT EXISTS rag_query_cache_audience_idx ON rag_query_cache (audience);
+ALTER TABLE rag_query_cache DROP COLUMN IF EXISTS images;

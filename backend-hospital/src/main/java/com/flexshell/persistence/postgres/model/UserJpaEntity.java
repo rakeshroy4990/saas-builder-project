@@ -84,6 +84,9 @@ public class UserJpaEntity {
     @Column(name = "role_rejected_reason")
     private String roleRejectedReason;
 
+    @Column(name = "preferred_locale", length = 16)
+    private String preferredLocale;
+
     private boolean deleted;
 
     public String getId() {
@@ -292,5 +295,13 @@ public class UserJpaEntity {
 
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
     }
 }

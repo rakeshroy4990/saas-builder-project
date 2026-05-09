@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { sanitizeDomIdSegment } from '../../core/utils/domId';
 import { resolveStyle } from '../../core/engine/StyleResolver';
 import { DISABLED_NATIVE_CONTROL_CLASSES } from '../../core/theme/disabledControlChrome';
@@ -8,7 +9,7 @@ import type { StyleConfig } from '../../core/types/StyleConfig';
 
 interface DropdownConfig {
   label?: string;
-  options?: Array<{ label?: string; value?: string; id?: string; name?: string } | string>;
+  options?: Array<{ label?: string; labelI18nKey?: string; value?: string; id?: string; name?: string } | string>;
   /** Current selection — keep in sync with store via `valueMapping` on the page definition. */
   value?: string;
   disabled?: boolean;
@@ -18,6 +19,7 @@ interface DropdownConfig {
 }
 
 const props = defineProps<{ config?: DropdownConfig; htmlId?: string }>();
+const { t } = useI18n();
 const emit = defineEmits<{
   action: [event: { action?: ActionConfig; payload?: Record<string, unknown> }];
 }>();
@@ -73,14 +75,14 @@ watch(
       :disabled="Boolean(config?.disabled)"
       @change="onChange"
     >
-      <option :id="htmlId ? `${htmlId}-opt-placeholder` : undefined" value="">Select...</option>
+      <option :id="htmlId ? `${htmlId}-opt-placeholder` : undefined" value="">{{ t('common.selectPlaceholder') }}</option>
       <option
         v-for="(option, index) in options"
         :id="optionId(index, option.value ?? option.id ?? option)"
         :key="option.value ?? option.id ?? option"
         :value="option.value ?? option.id ?? option"
       >
-        {{ option.label ?? option.name ?? option }}
+        {{ option.labelI18nKey ? t(option.labelI18nKey) : option.label ?? option.name ?? option }}
       </option>
     </select>
   </label>

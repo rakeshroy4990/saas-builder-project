@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { resolveStyle } from '../../core/engine/StyleResolver';
 import type { ActionConfig } from '../../core/types/ActionConfig';
 import type { StyleConfig } from '../../core/types/StyleConfig';
 
 interface InputConfig {
   label?: string;
+  labelI18nKey?: string;
   placeholder?: string;
+  placeholderI18nKey?: string;
   inputType?: string;
   value?: string;
   min?: string;
@@ -28,6 +31,7 @@ interface InputConfig {
 }
 
 const props = defineProps<{ config?: InputConfig; htmlId?: string }>();
+const { t } = useI18n();
 const emit = defineEmits<{
   action: [event: { action?: ActionConfig; payload?: Record<string, unknown> }];
 }>();
@@ -106,7 +110,9 @@ watch(
 
 <template>
   <label :id="fieldId" :class="labelClass" @click="onLabelClick">
-    <span v-if="config?.label" :id="labelTextId">{{ config?.label }}</span>
+    <span v-if="config?.label || config?.labelI18nKey" :id="labelTextId">{{
+      config?.labelI18nKey ? t(config.labelI18nKey) : config?.label
+    }}</span>
     <input
       v-if="config?.inputType === 'file'"
       :id="inputId"
@@ -123,7 +129,7 @@ watch(
       v-model="model"
       :class="classes"
       :type="config?.inputType ?? 'text'"
-      :placeholder="config?.placeholder"
+      :placeholder="config?.placeholderI18nKey ? t(config.placeholderI18nKey) : config?.placeholder"
       :min="config?.min"
       :max="config?.max"
       :maxlength="config?.maxlength"
@@ -137,7 +143,7 @@ watch(
       v-model="model"
       :class="classes"
       :rows="config?.rows ?? 4"
-      :placeholder="config?.placeholder"
+      :placeholder="config?.placeholderI18nKey ? t(config.placeholderI18nKey) : config?.placeholder"
       @input="emitChange"
     />
   </label>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { PageRegistry } from '../../core/registry/PageRegistry';
 import { ActionEngine } from '../../core/engine/ActionEngine';
@@ -12,6 +13,7 @@ import { pinia } from '../../store/pinia';
 
 const route = useRoute();
 const router = useRouter();
+const { t, locale } = useI18n();
 const defaultPackageName =
   import.meta.env.VITE_DEFAULT_PACKAGE_NAME ?? import.meta.env.VITE_DEFAULT_NAMESPACE ?? 'hospital';
 
@@ -41,6 +43,20 @@ const pageRootHtmlId = computed(() => {
 
 const shellPageHost = computed(() => resolveStyle({ styleTemplate: 'shell.page.host' }));
 const notFoundBox = computed(() => resolveStyle({ styleTemplate: 'system.error.pageNotFound' }));
+
+watch(
+  () => [pageConfig.value, locale.value] as const,
+  ([cfg]) => {
+    if (!cfg) {
+      document.title = t('errors.notFoundTitle');
+      return;
+    }
+    if (!cfg.title) return;
+    const key = cfg.titleKey?.trim();
+    document.title = key ? t(key) : cfg.title;
+  },
+  { immediate: true }
+);
 
 let initGeneration = 0;
 let lastInitializedKey = '';
@@ -75,6 +91,6 @@ watch(
     />
   </div>
   <div v-else id="system-page-not-found" :class="notFoundBox">
-    Page not found: {{ packageName }}/{{ pageId }}
+    {{ t('errors.notFound', { package: packageName, page: pageId }) }}
   </div>
 </template>

@@ -1,0 +1,13 @@
+---
+description: FastAPI services (`ai-service`, `pdf-rag-pipeline`)
+globs: **/ai-service/**/*.py, pdf-rag-pipeline/api/**/*.py, pdf-rag-pipeline/auth/**/*.py, pdf-rag-pipeline/query/**/*.py
+alwaysApply: false
+---
+
+# FastAPI
+
+**Boundary (clinical AI stack):** Internal-only behind Spring Boot; validate service token per request; prefer data via backend APIs over direct DB from FastAPI.
+
+**Clinical assistant prompts:** Include non-diagnosis, no drug/dose prescribing, defer to treating clinician, closing line to consult a doctor; never ship raw PHI to the model (summarize/redact); sub-threshold confidence → safe escalation; rate limits (~20 req/user/hr); structured audit logs with user/session/time (DPDP).
+
+**Code:** Pydantic v2 schemas; `async def` for I/O routes; `structlog` (no `print()`).

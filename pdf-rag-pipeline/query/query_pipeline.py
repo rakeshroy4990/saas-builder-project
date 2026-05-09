@@ -13,6 +13,7 @@ from query.keyword_extractor import extract_keywords
 from query.llm_service import answer_with_context
 from query.retriever import retrieve_top_chunks
 from query.safety_layer import check_safety
+from db.image_store import build_public_image_url
 import logging
 import re
 from typing import List, Optional
@@ -22,13 +23,77 @@ LOG = logging.getLogger(__name__)
 INSUFFICIENT_EXPERT_MESSAGE = "Insufficient data in provided context."
 INSUFFICIENT_LAYMAN_MESSAGE = "I don't have enough information to answer this."
 
+# Regex to parse inline image markers in chunk text:
+#   [IMAGE:0 | page=7 | ext=png | Figure related to: X.]
+# Legacy supported:
+#   [IMAGE:0 | page=7 | Figure related to: X.]
+_IMAGE_MARKER_RE = re.compile(
+    r'\[IMAGE:(\d+)\s*\|\s*page=(\d+)\s*(?:\|\s*ext=([a-zA-Z0-9]+)\s*)?\|\s*([^\]]+)\]'
+)
+_IMAGE_DATA_RE = re.compile(r'\[IMAGE_DATA:(\d+):([A-Za-z0-9+/=]+)\]')
+
+
+# ── Image helpers ─────────────────────────────────────────────────────────────
+
+def _extract_images_from_chunk(text: str) -> list[dict]:
+    """
+    Pull every inline image out of a chunk string.
+    Returns list of { img_index, page, caption, image_data (b64 str) }
+    so the caller never has to touch raw bytes.
+    """
+    images = []
+    data_by_index: dict[int, str] = {}
+    for data_match in _IMAGE_DATA_RE.finditer(text or ""):
+        try:
+            data_by_index[int(data_match.group(1))] = data_match.group(2)
+        except (TypeError, ValueError):
+            continue
+
+    for m in _IMAGE_MARKER_RE.finditer(text or ""):
+        img_index = int(m.group(1))
+        images.append({
+            "img_index":  img_index,
+            "page":       int(m.group(2)),
+            "ext":        (m.group(3) or "png").strip().lower(),
+            "caption":    m.group(4).strip(),
+            "image_data": data_by_index.get(img_index, ""),
+        })
+    return images
+
+
+def _strip_image_markers(text: str) -> str:
+    """
+    Remove IMAGE_DATA lines from text before sending to the LLM.
+    The LLM sees the caption (searchable) but not the raw base64 blob
+    — keeps the prompt small and avoids token waste.
+    """
+    # Remove [IMAGE_DATA:N:....] lines entirely
+    text = re.sub(r'\[IMAGE_DATA:\d+:[A-Za-z0-9+/=]+\]\n?', '', text)
+    # Normalise leftover blank lines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def _build_image_context_for_llm(images: list[dict]) -> str:
+    """
+    Append a compact image summary at the end of the chunk text
+    so the LLM knows images exist and can reference them by index.
+    """
+    if not images:
+        return ""
+    lines = ["\n[Attached figures in this excerpt:]"]
+    for img in images:
+        lines.append(f"  • Figure {img['img_index']} (page {img['page']}): {img['caption']}")
+    return "\n".join(lines)
+
+
+# ── Existing helpers (unchanged) ──────────────────────────────────────────────
 
 def _insufficient_message_for_audience(audience: str) -> str:
     return INSUFFICIENT_EXPERT_MESSAGE if audience == "expert" else INSUFFICIENT_LAYMAN_MESSAGE
 
 
 def _answer_body_without_followups(answer: str) -> str:
-    """Main reply text only (follow-up chips are not part of the cacheability decision)."""
     raw = str(answer or "")
     m = re.search(r"(?im)\n\s*Next options:\s*", raw)
     if not m:
@@ -37,9 +102,6 @@ def _answer_body_without_followups(answer: str) -> str:
 
 
 def _is_non_cacheable_answer(answer: str) -> bool:
-    """
-    Do not cache low-value or failure replies so retrieval/model fixes can take effect on retry.
-    """
     body = _answer_body_without_followups(answer)
     if not body:
         return True
@@ -49,8 +111,6 @@ def _is_non_cacheable_answer(answer: str) -> bool:
         "not available",
         "not enough information in knowledge base.",
     }:
-        return True
-    if body.strip() == "not available":
         return True
     refusal_markers = (
         "i don't have enough information",
@@ -66,7 +126,7 @@ def _is_non_cacheable_answer(answer: str) -> bool:
 
 
 def _chunk_text_for_log(text: str) -> str:
-    raw = str(text or "")
+    raw = _strip_image_markers(str(text or ""))   # don't flood logs with base64
     if RAG_LOG_FULL_PROMPT:
         return raw
     preview_chars = max(0, int(RAG_LOG_PROMPT_PREVIEW_CHARS))
@@ -76,72 +136,99 @@ def _chunk_text_for_log(text: str) -> str:
 
 
 def _focus_chunk_text_for_query(text: str, query: str) -> str:
+    """
+    Focus the text portion of a chunk on keywords.
+    Image markers are stripped before focus and re-appended after
+    so images are never lost during context trimming.
+    """
     raw = str(text or "")
-    body = raw.split("[medical_aliases]")[0]
-    # Remove heavy table delimiters / repeated separators for cleaner context.
+
+    # Separate image markers from body text before any processing
+    images_in_chunk = _extract_images_from_chunk(raw)
+    body = _strip_image_markers(raw)
+
+    body = body.split("[medical_aliases]")[0]
     body = re.sub(r"\s{2,}", " ", body)
     body = re.sub(r"\s*\|\s*", " ", body)
     body = body.strip()
 
     keywords = [k for k in extract_keywords(query).split() if len(k) >= 2]
     if not keywords:
-        return body[:1400]
+        focused = body[:1400]
+    else:
+        fragments = re.split(r"(?<=[\.\!\?])\s+|\n+", body)
+        matched = [
+            f.strip() for f in fragments
+            if f.strip() and any(
+                re.search(r"\b" + re.escape(k.lower()) + r"\b", f.lower())
+                for k in keywords
+            )
+        ]
 
-    # First pass: split by sentence-ish separators and keep only relevant fragments.
-    fragments = re.split(r"(?<=[\.\!\?])\s+|\n+", body)
-    matched: list[str] = []
-    for fragment in fragments:
-        f = fragment.strip()
-        if not f:
-            continue
-        fl = f.lower()
-        if any(re.search(r"\b" + re.escape(k.lower()) + r"\b", fl) for k in keywords):
-            matched.append(f)
-
-    if not matched:
-        # Fallback to keyword-centered windows when OCR/table formatting creates huge fragments.
-        lowered = body.lower()
-        windows: list[str] = []
-        for keyword in keywords:
-            for m in re.finditer(r"\b" + re.escape(keyword.lower()) + r"\b", lowered):
-                start = max(0, m.start() - 260)
-                end = min(len(body), m.end() + 260)
-                windows.append(body[start:end].strip())
+        if not matched:
+            lowered = body.lower()
+            windows: list[str] = []
+            for keyword in keywords:
+                for m in re.finditer(r"\b" + re.escape(keyword.lower()) + r"\b", lowered):
+                    start = max(0, m.start() - 260)
+                    end   = min(len(body), m.end() + 260)
+                    windows.append(body[start:end].strip())
+                    if len(windows) >= 4:
+                        break
                 if len(windows) >= 4:
                     break
-            if len(windows) >= 4:
-                break
-        if windows:
-            focused = " ... ".join(windows)
+            focused = (" ... ".join(windows) if windows else body[:1000])
+            focused = re.sub(r"\s{2,}", " ", focused).strip()[:1100]
+        else:
+            focused = " ".join(matched)
             focused = re.sub(r"\s{2,}", " ", focused).strip()
-            return focused[:1100]
-        return body[:1000]
+            focused = re.split(
+                r"\b(Table\s+\d+|SHORT\s+INCUBATION|MEDIUM\s+INCUBATION|"
+                r"LONG\s+INCUBATION|Part\s+[IVXLC]+)\b",
+                focused, maxsplit=1, flags=re.IGNORECASE,
+            )[0].strip()
+            sentence_parts = [s.strip() for s in re.split(r"(?<=[\.\!\?])\s+", focused) if s.strip()]
+            focused = " ".join(sentence_parts[:3]).strip()[:1100]
 
-    focused = " ".join(matched)
-    focused = re.sub(r"\s{2,}", " ", focused).strip()
-    # OCR often glues disease paragraph with giant table blocks. Trim hard at table-like markers.
-    focused = re.split(
-        r"\b(Table\s+\d+|SHORT\s+INCUBATION|MEDIUM\s+INCUBATION|LONG\s+INCUBATION|Part\s+[IVXLC]+)\b",
-        focused,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0].strip()
-    # Keep first few sentences only; avoids spilling unrelated tail text.
-    sentence_parts = [s.strip() for s in re.split(r"(?<=[\.\!\?])\s+", focused) if s.strip()]
-    if sentence_parts:
-        focused = " ".join(sentence_parts[:3]).strip()
-    # Hard cap so prompt context doesn't balloon on long textbook pages.
-    return focused[:1100]
+    # Re-attach image context as a compact summary (no raw base64 in the prompt)
+    image_summary = _build_image_context_for_llm(images_in_chunk)
+    return f"{focused}{image_summary}".strip()
+
+
+def _extract_images_for_response(chunk: dict) -> list[dict]:
+    # Build response images directly from inline markers + deterministic S3 key.
+    # We do not persist image URLs in DB tables.
+    legacy = _extract_images_from_chunk(str(chunk.get("text", "")))
+    file_hash = str(chunk.get("file_hash", "")).strip()
+    page_num_zero = int(chunk.get("page_num", 0))
+    chunk_index = int(chunk.get("chunk_index", 0))
+    out = []
+    for img in legacy:
+        url = ""
+        if file_hash:
+            url = build_public_image_url(
+                file_hash=file_hash,
+                page_num=page_num_zero,
+                chunk_index=chunk_index,
+                img_index=int(img.get("img_index", 0)),
+                ext=str(img.get("ext", "png")).lower() or "png",
+            )
+        out.append({
+            **img,
+            "url": url,
+            "source_file": chunk.get("source_file", "unknown"),
+        })
+    return [img for img in out if img.get("url")]
 
 
 def _history_pairs(history: Optional[list]) -> list[tuple[str, str]]:
     pairs: list[tuple[str, str]] = []
     for item in history or []:
         if isinstance(item, dict):
-            role = str(item.get("Role") or item.get("role") or "").strip().lower()
+            role    = str(item.get("Role") or item.get("role") or "").strip().lower()
             content = str(item.get("Content") or item.get("content") or "").strip()
         else:
-            role = str(getattr(item, "role", "")).strip().lower()
+            role    = str(getattr(item, "role", "")).strip().lower()
             content = str(getattr(item, "content", "")).strip()
         if content:
             pairs.append((role or "user", content))
@@ -155,8 +242,6 @@ def _build_effective_question(user_query: str, history: Optional[list]) -> str:
     turns = _history_pairs(history)[-6:]
     if not turns:
         return latest
-    # Retrieval should be anchored on user intent, not assistant phrasing.
-    # Including assistant responses often dilutes keywords and hurts relevance.
     user_turns = [content for role, content in turns if role in {"user", "patient"}]
     if not user_turns:
         return latest
@@ -165,12 +250,10 @@ def _build_effective_question(user_query: str, history: Optional[list]) -> str:
 
 
 def _build_cache_query_key(user_query: str) -> str:
-    """
-    Keep cache key stable across turns for the same visible question.
-    Do NOT include assistant/user transcript in cache identity.
-    """
     return str(user_query or "").strip()
 
+
+# ── Main handler ──────────────────────────────────────────────────────────────
 
 async def handle_query(
         user_query: str,
@@ -179,34 +262,46 @@ async def handle_query(
         conversation_id: str = "default",
         history: Optional[list] = None,
 ) -> dict:
-    LOG.info("[RAG][QUERY] user_id=%s conversation_id=%s question=%s", user_id or "", conversation_id or "default", user_query)
-    audience = infer_user_audience(user_roles or [])
+    LOG.info(
+        "[RAG][QUERY] user_id=%s conversation_id=%s question=%s",
+        user_id or "", conversation_id or "default", user_query,
+    )
+    audience         = infer_user_audience(user_roles or [])
     effective_question = _build_effective_question(user_query, history)
-    cache_query_key = _build_cache_query_key(user_query)
+    cache_query_key  = _build_cache_query_key(user_query)
+
+    # ── Cache check ───────────────────────────────────────────────────────────
     cached = get_cached(cache_query_key, audience=audience, user_id=user_id)
     if cached:
         LOG.info("[RAG][CACHE] hit question=%s audience=%s", user_query, audience)
         return {
-            "answer": str(cached.get("answer", "")).strip(),
+            "answer":              str(cached.get("answer", "")).strip(),
             "follow_up_questions": cached.get("follow_up_questions", []),
-            "source": "cache"
+            "images":              [],
+            "source":              "cache",
         }
     LOG.info("[RAG][CACHE] miss question=%s audience=%s", user_query, audience)
 
+    # ── Safety ────────────────────────────────────────────────────────────────
     safety = check_safety(user_query)
     if not safety.safe:
-        return {"answer": safety.reason, "follow_up_questions": [], "source": "safety_block"}
-
+        return {"answer": safety.reason, "follow_up_questions": [], "images": [], "source": "safety_block"}
     if safety.escalate:
         return {
             "answer": "Your symptoms may indicate an emergency. Please call emergency services or visit the nearest hospital immediately.",
             "follow_up_questions": [],
+            "images": [],
             "source": "escalation",
         }
 
-    max_chunks = 2 if len(user_query) < 20 else 3
+    # ── Retrieval ─────────────────────────────────────────────────────────────
+    max_chunks     = 2 if len(user_query) < 20 else 3
     allowed_topics = infer_allowed_topics(effective_question)
-    LOG.info("[RAG][INTENT] question=%s allowed_topics=%s audience=%s", user_query, allowed_topics, audience)
+    LOG.info(
+        "[RAG][INTENT] question=%s allowed_topics=%s audience=%s",
+        user_query, allowed_topics, audience,
+    )
+
     chunks = retrieve_top_chunks(
         effective_question,
         top_k=max_chunks,
@@ -215,83 +310,92 @@ async def handle_query(
         audience=audience,
     )
     LOG.info(
-        "[RAG][RETRIEVE] question=%s max_chunks=%s min_score=%s retrieved=%s",
-        user_query,
-        max_chunks,
-        TEXT_SEARCH_MIN_SCORE,
-        len(chunks),
+        "[RAG][RETRIEVE] question=%s retrieved=%s",
+        user_query, len(chunks),
     )
     if chunks:
-        chunk_refs = [f"{c.get('source_file', 'unknown')}#p{c.get('page_num', '?')}" for c in chunks]
+        chunk_refs = [
+            f"{c.get('source_file','unknown')}#p{c.get('page_num','?')} "
+            f"[images={len(c.get('images', []))}]"
+            for c in chunks
+        ]
         LOG.info("[RAG][RETRIEVE] chunk_refs=%s", chunk_refs)
-    if not chunks:
-        LOG.warning("[RAG][INSUFFICIENT] no chunks after retrieval query=%s", user_query)
+
+    if not chunks or len(chunks) < MIN_CHUNKS_REQUIRED:
+        LOG.warning("[RAG][INSUFFICIENT] query=%s chunks=%s", user_query, len(chunks))
         return {
-            "answer": _insufficient_message_for_audience(audience),
+            "answer":              _insufficient_message_for_audience(audience),
             "follow_up_questions": [],
-            "source": "insufficient_chunks",
-        }
-    if len(chunks) < MIN_CHUNKS_REQUIRED:
-        LOG.warning(
-            "[RAG][INSUFFICIENT] chunks_below_min query=%s chunks=%s min_required=%s",
-            user_query,
-            len(chunks),
-            MIN_CHUNKS_REQUIRED,
-        )
-        return {
-            "answer": _insufficient_message_for_audience(audience),
-            "follow_up_questions": [],
-            "source": "insufficient_chunks",
+            "images":              [],
+            "source":              "insufficient_chunks",
         }
 
-    selected = assemble_context(chunks, max_chunks=max_chunks)
+    # ── Context assembly ──────────────────────────────────────────────────────
+    selected            = assemble_context(chunks, max_chunks=max_chunks)
     context_token_count = context_tokens(selected)
     LOG.info(
-        "[RAG][CONTEXT] selected=%s context_tokens=%s max_context_tokens=%s",
-        len(selected),
-        context_token_count,
-        MAX_CONTEXT_TOKENS,
+        "[RAG][CONTEXT] selected=%s context_tokens=%s max=%s",
+        len(selected), context_token_count, MAX_CONTEXT_TOKENS,
     )
     if context_token_count > MAX_CONTEXT_TOKENS:
-        selected = trim_chunks(selected)
+        selected            = trim_chunks(selected)
         context_token_count = context_tokens(selected)
-        LOG.info(
-            "[RAG][CONTEXT] trimmed_selected=%s context_tokens=%s",
-            len(selected),
-            context_token_count,
-        )
+        LOG.info("[RAG][CONTEXT] trimmed selected=%s tokens=%s", len(selected), context_token_count)
 
     if len(selected) < MIN_CHUNKS_REQUIRED:
         return {
-            "answer": _insufficient_message_for_audience(audience),
+            "answer":              _insufficient_message_for_audience(audience),
             "follow_up_questions": [],
-            "source": "insufficient_chunks",
+            "images":              [],
+            "source":              "insufficient_chunks",
         }
-    for idx, chunk in enumerate(selected, start=1):
+
+    # ── Collect ALL images across selected chunks ─────────────────────────────
+    # New format keeps S3 URLs in chunk["images"]; old format used inline markers.
+    all_response_images: list[dict] = []
+    seen_image_keys: set[str] = set()
+
+    for chunk in selected:
+        chunk_text_raw = chunk.get("text", "")
+        imgs = _extract_images_for_response(chunk)
         LOG.info(
-            "[RAG][SELECTED_CHUNK] index=%s source=%s page=%s weighted_score=%s text=\n%s",
-            idx,
+            "[RAG][SELECTED_CHUNK] source=%s page=%s score=%s images=%s text=\n%s",
             chunk.get("source_file", "unknown"),
             chunk.get("page_num", "?"),
             chunk.get("weighted_score", chunk.get("score", "")),
-            _chunk_text_for_log(chunk.get("text", "")),
+            len(imgs),
+            _chunk_text_for_log(chunk_text_raw),
         )
+        for img in imgs:
+            # Deduplicate: same image can appear in overlapping chunks
+            key = f"{chunk.get('page_num')}_{img['img_index']}"
+            if key not in seen_image_keys:
+                seen_image_keys.add(key)
+                all_response_images.append(img)
 
+    # ── Focus text for LLM (strips raw base64, keeps captions) ───────────────
     focused_selected = []
     for chunk in selected:
         focused_text = _focus_chunk_text_for_query(chunk.get("text", ""), effective_question)
         focused_selected.append({**chunk, "text": focused_text})
         LOG.info(
-            "[RAG][FOCUSED_CHUNK] source=%s page=%s focused_chars=%s",
+            "[RAG][FOCUSED_CHUNK] source=%s page=%s focused_chars=%s images_in_chunk=%s",
             chunk.get("source_file", "unknown"),
             chunk.get("page_num", "?"),
             len(focused_text),
+            len(_extract_images_for_response(chunk)),
         )
-    llm_result = answer_with_context(user_query, focused_selected, audience=audience)
-    answer = str(llm_result.get("answer", "")).strip()
+
+    # ── LLM call ──────────────────────────────────────────────────────────────
+    # focused_selected has base64 stripped — prompt stays compact.
+    # Images are returned separately so the UI can render them.
+    llm_result         = answer_with_context(user_query, focused_selected, audience=audience)
+    answer             = str(llm_result.get("answer", "")).strip()
     follow_up_questions = llm_result.get("follow_up_questions")
     if not isinstance(follow_up_questions, list):
         follow_up_questions = []
+
+    # ── Cache store ───────────────────────────────────────────────────────────
     if not _is_non_cacheable_answer(answer):
         set_cache(
             cache_query_key,
@@ -302,14 +406,16 @@ async def handle_query(
         )
         LOG.info("[RAG][CACHE] stored question=%s audience=%s", user_query, audience)
     else:
-        LOG.info("[RAG][CACHE] skipped_store_for_fallback question=%s", user_query)
+        LOG.info("[RAG][CACHE] skipped question=%s", user_query)
 
     return {
-        "answer": answer,
+        "answer":              answer,
         "follow_up_questions": follow_up_questions,
-        "source": "rag",
-        "chunks_used": len(selected),
-        "context_tokens": context_token_count,
-        "max_chunks": max_chunks,
-        "user_id": user_id,
+        # ↓ every image from every selected chunk, deduped, ready for the UI
+        "images":              all_response_images,
+        "source":              "rag",
+        "chunks_used":         len(selected),
+        "context_tokens":      context_token_count,
+        "max_chunks":          max_chunks,
+        "user_id":             user_id,
     }

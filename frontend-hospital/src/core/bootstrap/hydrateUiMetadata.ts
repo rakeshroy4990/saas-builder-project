@@ -14,11 +14,11 @@ export async function hydrateUiMetadataFromServer(): Promise<void> {
   const allowAnonymous = String(import.meta.env.VITE_ALLOW_ANON_UI_METADATA ?? '')
     .trim()
     .toLowerCase() === 'true';
-  const hasSessionHint = hasPersistedAuthSessionProfile();
-  if (!allowAnonymous && !hasSessionHint) {
-    // Backend currently protects this endpoint; skip pre-login call by default.
+  if (!allowAnonymous) {
+    // Backend may protect this endpoint; keep local bundled UI metadata unless explicitly enabled.
     return;
   }
+  const hasSessionHint = hasPersistedAuthSessionProfile();
 
   try {
     await logClient('INFO', 'Fetching UI metadata from server');

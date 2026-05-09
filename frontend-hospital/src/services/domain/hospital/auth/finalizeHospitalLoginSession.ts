@@ -16,6 +16,10 @@ import { emitSessionSummaryAuthLogin } from '../../../analytics/sessionSummary';
 import { mintLoginSessionId } from '../../../logging/loginSessionContext';
 import { getOrCreateTraceId, startNewTraceId } from '../../../logging/traceContext';
 import { refreshHeroYoutubeFromUserQueryCache } from '../home/resolveHeroYoutubeVideoService';
+import { i18n } from '../../../../i18n';
+import { isSupportedLocale } from '@saas-builder/i18n-contract';
+import { apiClient } from '../../../http/apiClient';
+import { URLRegistry } from '../../../http/URLRegistry';
 
 /**
  * Applies login API payload to Pinia, persistence, and post-login side effects (WebRTC, admin inbox).
@@ -68,6 +72,20 @@ export async function finalizeHospitalLoginSession(
     'registrationNumber'
   ]);
   const resolvedRole = pickString(userData, ['Role', 'role']).toUpperCase() || 'PATIENT';
+  const preferredLocaleFromApi = pickString(userData, ['PreferredLocale', 'preferredLocale']).trim().toLowerCase();
+  const globalLocale = i18n.global.locale as unknown;
+  const currentUiLocale = String(
+    globalLocale && typeof globalLocale === 'object' && 'value' in (globalLocale as Record<string, unknown>)
+      ? (globalLocale as { value?: unknown }).value
+      : globalLocale
+  )
+    .trim()
+    .toLowerCase();
+  const preferredLocale = isSupportedLocale(preferredLocaleFromApi)
+    ? preferredLocaleFromApi
+    : isSupportedLocale(currentUiLocale)
+      ? currentUiLocale
+      : '';
   useAppStore(pinia).setProperty('hospital', 'AuthSession', 'userId', canonicalUserId);
   useAppStore(pinia).setProperty('hospital', 'AuthSession', 'userDisplayName', displayName);
   useAppStore(pinia).setProperty('hospital', 'AuthSession', 'email', resolvedEmail);
@@ -80,6 +98,7 @@ export async function finalizeHospitalLoginSession(
   useAppStore(pinia).setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', resolvedSmcRegistrationNumber);
   useAppStore(pinia).setProperty('hospital', 'AuthSession', 'fullName', fullName);
   useAppStore(pinia).setProperty('hospital', 'AuthSession', 'role', resolvedRole);
+  useAppStore(pinia).setProperty('hospital', 'AuthSession', 'preferredLocale', preferredLocale);
   persistAuthSessionProfile({
     userId: canonicalUserId,
     userDisplayName: displayName,
@@ -93,13 +112,25 @@ export async function finalizeHospitalLoginSession(
     qualifications: resolvedQualifications,
     smcName: resolvedSmcName,
     smcRegistrationNumber: resolvedSmcRegistrationNumber,
-    role: resolvedRole
+    role: resolvedRole,
+    preferredLocale
   });
   mintLoginSessionId();
   startNewTraceId();
   useAppStore(pinia).setProperty('hospital', 'AuthForm', 'emailError', '');
   useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', '');
   useAppStore(pinia).setProperty('hospital', 'AuthForm', 'loginInfoMessage', '');
+  if (preferredLocale && preferredLocale !== preferredLocaleFromApi && canonicalUserId) {
+    try {
+      await apiClient.put(
+        URLRegistry.paths.userProfile,
+        { PreferredLocale: preferredLocale },
+        { params: { userId: canonicalUserId } }
+      );
+    } catch {
+      // Non-fatal: locale remains persisted in client state.
+    }
+  }
   try {
     await ensureHospitalWebRtcInboundConnected();
   } catch {

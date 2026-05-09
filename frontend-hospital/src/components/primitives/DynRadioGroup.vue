@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { sanitizeDomIdSegment } from '../../core/utils/domId';
 import { resolveStyle } from '../../core/engine/StyleResolver';
 import type { ActionConfig } from '../../core/types/ActionConfig';
 
 interface RadioOption {
   label: string;
+  labelI18nKey?: string;
   value: string;
 }
 
@@ -16,6 +18,7 @@ interface RadioGroupConfig {
 }
 
 const props = defineProps<{ config?: RadioGroupConfig; htmlId?: string }>();
+const { t } = useI18n();
 const emit = defineEmits<{
   action: [event: { action?: ActionConfig; payload?: Record<string, unknown> }];
 }>();
@@ -56,7 +59,7 @@ const onChange = async () => {
         :value="option.value"
         @change="onChange"
       />
-      <span :id="optionTextId(index, option.value)">{{ option.label }}</span>
+      <span :id="optionTextId(index, option.value)">{{ option.labelI18nKey ? t(option.labelI18nKey) : option.label }}</span>
     </label>
   </fieldset>
 </template>

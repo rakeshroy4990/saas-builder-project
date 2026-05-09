@@ -47,6 +47,7 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'fullName', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'role', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
+      useAppStore(pinia).setProperty('hospital', 'AuthSession', 'preferredLocale', '');
       // Clear user-scoped hero media so home never shows prior session's YouTube video after logout.
       const currentHome = (useAppStore(pinia).getData('hospital', 'HomeContent') ?? {}) as Record<string, unknown>;
       const currentHero =

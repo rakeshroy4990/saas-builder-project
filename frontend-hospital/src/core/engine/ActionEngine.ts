@@ -6,6 +6,7 @@ import { resolveMapping, resolveMappings } from './DataMapper';
 import { ServiceRegistry } from '../registry/ServiceRegistry';
 import { usePopupStore } from '../../store/usePopupStore';
 import { pinia } from '../../store/pinia';
+import { logClient } from '../../services/logging/clientLogger';
 
 export class ActionEngine {
   constructor(
@@ -54,7 +55,7 @@ export class ActionEngine {
       }
     } catch (err) {
       if (action.onFailure) await this.execute(action.onFailure, undefined, undefined);
-      else this.handleGlobalError(err);
+      else this.handleGlobalError(err, action);
     }
   }
 
@@ -115,8 +116,26 @@ export class ActionEngine {
     usePopupStore(pinia).open(normalizedReq);
   }
 
-  private handleGlobalError(err: unknown): void {
-    usePopupStore(pinia).openError(err);
+  private handleGlobalError(err: unknown, action: ActionConfig): void {
+    // Ensure we never open an empty-message error popup.
+    const toError = (e: unknown): Error => {
+      if (e instanceof Error) {
+        const msg = String(e.message ?? '').trim();
+        if (msg) return e;
+        return new Error(`Unexpected error (empty message) in action: ${action.actionId ?? 'unknown'}`);
+      }
+      const s = e == null ? '' : String(e).trim();
+      return new Error(s || `Unexpected error in action: ${action.actionId ?? 'unknown'}`);
+    };
+    const normalized = toError(err);
+    void logClient('ERROR', 'Action failed', {
+      action_id: action.actionId ?? null,
+      action_type: action.actionType ?? 'service',
+      page_id: this.pageConfig.pageId,
+      package_name: this.pageConfig.packageName,
+      error_message: normalized.message
+    });
+    usePopupStore(pinia).openError(normalized);
   }
 
   private setPopupInlineError(response: Record<string, unknown>): void {

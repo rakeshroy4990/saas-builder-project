@@ -1,0 +1,12 @@
+---
+description: DPDP / telemedicine compliance — attach manually when building consent, audit, or data-handling features
+alwaysApply: false
+---
+
+# Healthcare compliance (India)
+
+**DPDP:** Health data = sensitive personal data; collect minimum necessary; patients can view/download/request deletion; deletion within 72h (soft-delete + anonymize PII); log processing for audit.
+
+**Telemedicine (2020):** Licensed prescriber registration on prescriptions; Schedule H/H1 needs explicit consent logs; video consent before call starts; AI must not substitute a licensed doctor.
+
+**Security:** HTTPS-only (reject HTTP in prod); encrypt sensitive fields at rest; no patient data in logs or URL query params; prescription links signed and short-lived (e.g. ≤1h).

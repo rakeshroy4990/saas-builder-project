@@ -1,0 +1,14 @@
+---
+description: Core Agastya Healthcare constraints — always loaded (keep minimal)
+alwaysApply: true
+---
+
+# Agastya Healthcare — core
+
+**Stack:** Vue 3 · Spring Boot 3 · FastAPI · PostgreSQL (Supabase) · telemedicine.
+
+**Must-hold:** Treat patient data as sensitive PII (no logging/exposure/insecure storage). Soft-delete only for medical records, prescriptions, appointments. APIs use `external_id` (UUID), never internal Long PKs. JWT — access in Pinia memory, refresh in `httpOnly` cookie. All timestamps UTC as `TIMESTAMPTZ`.
+
+**Repos:** `frontend*` → Vue (`components`, `pages`, `composables`, `stores`, `services`); `backend*` → Spring (`controller` → `service` → `repository`, `dto`, security, audit); `ai-service` → FastAPI (`routers`, `services`, `schemas`, middleware).
+
+**HTTP:** Response envelope `{ "success", "data", "message", "timestamp" }`; errors include machine-readable `errorCode`. Lists `?page=0&size=20&sort=createdAt,desc`. REST `/api/v1/{resource}/{external_id}/action`.

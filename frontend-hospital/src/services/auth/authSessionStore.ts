@@ -17,6 +17,8 @@ type PersistedAuthSession = {
   smcRegistrationNumber: string;
   /** Server role, e.g. PATIENT, ADMIN, DOCTOR */
   role: string;
+  /** Persisted UI locale (en | hi), aligned with UserEntity.preferredLocale */
+  preferredLocale: string;
 };
 
 const AUTH_SESSION_KEY = 'flexshell_auth_session_profile';
@@ -44,7 +46,8 @@ export function persistAuthSessionProfile(partial: Partial<PersistedAuthSession>
       qualifications: toStringSafe(partial.qualifications ?? existing?.qualifications),
       smcName: toStringSafe(partial.smcName ?? existing?.smcName),
       smcRegistrationNumber: toStringSafe(partial.smcRegistrationNumber ?? existing?.smcRegistrationNumber),
-      role: toStringSafe(partial.role ?? existing?.role)
+      role: toStringSafe(partial.role ?? existing?.role),
+      preferredLocale: toStringSafe(partial.preferredLocale ?? existing?.preferredLocale)
     };
     sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(merged));
   } catch {
@@ -90,6 +93,7 @@ export function hydrateAuthSessionProfile(): void {
   appStore.setProperty('hospital', 'AuthSession', 'smcName', session.smcName);
   appStore.setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', session.smcRegistrationNumber);
   appStore.setProperty('hospital', 'AuthSession', 'role', session.role);
+  appStore.setProperty('hospital', 'AuthSession', 'preferredLocale', session.preferredLocale);
 }
 
 function readPersistedAuthSession(): PersistedAuthSession | null {
@@ -111,7 +115,8 @@ function readPersistedAuthSession(): PersistedAuthSession | null {
       qualifications: toStringSafe(parsed.qualifications),
       smcName: toStringSafe(parsed.smcName),
       smcRegistrationNumber: toStringSafe(parsed.smcRegistrationNumber),
-      role: toStringSafe(parsed.role)
+      role: toStringSafe(parsed.role),
+      preferredLocale: toStringSafe(parsed.preferredLocale)
     };
   } catch {
     return null;

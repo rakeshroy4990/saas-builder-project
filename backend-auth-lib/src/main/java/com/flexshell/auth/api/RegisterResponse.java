@@ -57,6 +57,9 @@ public class RegisterResponse {
     @JsonProperty("RoleRejectedReason")
     private String roleRejectedReason;
 
+    @JsonProperty("PreferredLocale")
+    private String preferredLocale;
+
     public RegisterResponse() {
     }
 
@@ -78,7 +81,8 @@ public class RegisterResponse {
             String role,
             String roleStatus,
             String requestedRole,
-            String roleRejectedReason) {
+            String roleRejectedReason,
+            String preferredLocale) {
         this.userId = userId;
         this.emailId = emailId;
         this.firstName = firstName;
@@ -97,6 +101,7 @@ public class RegisterResponse {
         this.roleStatus = roleStatus;
         this.requestedRole = requestedRole;
         this.roleRejectedReason = roleRejectedReason;
+        this.preferredLocale = preferredLocale;
     }
 
     public String getUserId() {
@@ -241,5 +246,13 @@ public class RegisterResponse {
 
     public void setRoleRejectedReason(String roleRejectedReason) {
         this.roleRejectedReason = roleRejectedReason;
+    }
+
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
     }
 }

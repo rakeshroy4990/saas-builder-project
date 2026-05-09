@@ -1,0 +1,15 @@
+---
+description: PostgreSQL / Flyway migrations — only when editing SQL migrations
+globs: **/src/main/resources/db/migration/**/*.sql
+alwaysApply: false
+---
+
+# PostgreSQL / Flyway
+
+**Schema:** `BIGSERIAL` internal PKs; `UUID` external IDs; `TIMESTAMPTZ`; `NUMERIC(10,2)` money; `deleted BOOLEAN DEFAULT false` + `created_at` / `updated_at` on patient-domain tables.
+
+**Indexes (examples):** `appointments(patient_id)`, `appointments(doctor_id)`, `appointments(appointment_date)`; `slots(doctor_id, slot_date)`; `users(email)`. Filter large tables on indexed columns.
+
+**Flyway:** Name `V{n}__snake_case_description.sql`; **never edit shipped migrations** — add a new version; Spring `ddl-auto: validate`; Flyway owns schema.
+
+**Mongo → PG ETL (when relevant):** Order FK-safe (e.g. users → hospitals → doctor_profiles → slots → appointments → prescriptions → chat_sessions → chat_messages); map Mongo `_id` → `external_id` UUID; preserve `created_at`; idempotent inserts (`ON CONFLICT DO NOTHING`); validate counts; keep Atlas read-only briefly post-cutover.

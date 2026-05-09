@@ -1,0 +1,13 @@
+{
+  "nav": {
+    "language": "भाषा",
+    "languageHint": "भाषा चुनें",
+    "home": "होम"
+  },
+  "errors": {
+    "notFoundTitle": "पृष्ठ नहीं मिला"
+  },
+  "locale": {
+    "setTitle": "भाषा सेट हो रही है…"
+  }
+}

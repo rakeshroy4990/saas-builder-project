@@ -47,6 +47,9 @@ public class RegisterRequest {
     @JsonAlias({"Role", "RequestedRole"})
     private String role;
 
+    @JsonAlias({"PreferredLocale"})
+    private String preferredLocale;
+
     public String getFirstName() {
         return firstName;
     }
@@ -141,5 +144,13 @@ public class RegisterRequest {
 
     public void setSmcRegistrationNumber(String smcRegistrationNumber) {
         this.smcRegistrationNumber = smcRegistrationNumber;
+    }
+
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
     }
 }

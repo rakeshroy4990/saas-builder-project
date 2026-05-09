@@ -1,3 +1,4 @@
+import type { Composer } from 'vue-i18n';
 import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition';
 import { isAxiosError } from 'axios';
 import { useAppStore } from '../../../../store/useAppStore';
@@ -22,6 +23,10 @@ import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { getOrCreateTraceId } from '../../../logging/traceContext';
 import { clearLoginSessionId } from '../../../logging/loginSessionContext';
 import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
+import { isSupportedLocale, type LocaleCode } from '@saas-builder/i18n-contract';
+import { i18n, setAppLocale } from '../../../../i18n';
+
+const tr = (key: string): string => (i18n.global as Composer).t(key);
 
 function mapMeToProfileForm(row: Record<string, unknown>): void {
   const store = useAppStore(pinia);
@@ -42,6 +47,7 @@ function mapMeToProfileForm(row: Record<string, unknown>): void {
       'registrationNumber'
     ]),
     role: pickString(row, ['Role', 'role']),
+    preferredLocale: pickString(row, ['PreferredLocale', 'preferredLocale']).trim().toLowerCase(),
     saveError: '',
     saving: false
   });
@@ -66,6 +72,7 @@ function syncAuthSessionFromProfile(row: Record<string, unknown>): void {
     'registrationNumber'
   ]);
   const userId = pickString(row, ['UserId', 'userId']);
+  const preferredLocale = pickString(row, ['PreferredLocale', 'preferredLocale']).trim().toLowerCase();
   store.setProperty('hospital', 'AuthSession', 'email', email);
   store.setProperty('hospital', 'AuthSession', 'mobileNumber', mobile);
   store.setProperty('hospital', 'AuthSession', 'address', address);
@@ -78,6 +85,7 @@ function syncAuthSessionFromProfile(row: Record<string, unknown>): void {
     store.setProperty('hospital', 'AuthSession', 'fullName', full);
     store.setProperty('hospital', 'AuthSession', 'userDisplayName', full);
   }
+  store.setProperty('hospital', 'AuthSession', 'preferredLocale', preferredLocale);
   const sess = (store.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
   persistAuthSessionProfile({
     userId: userId || String(sess.userId ?? ''),
@@ -92,7 +100,8 @@ function syncAuthSessionFromProfile(row: Record<string, unknown>): void {
     qualifications: qualifications || String(sess.qualifications ?? ''),
     smcName: smcName || String(sess.smcName ?? ''),
     smcRegistrationNumber: smcRegistrationNumber || String(sess.smcRegistrationNumber ?? ''),
-    role: String(sess.role ?? '')
+    role: String(sess.role ?? ''),
+    preferredLocale: preferredLocale || String(sess.preferredLocale ?? '')
   });
 }
 
@@ -129,7 +138,8 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         'department',
         'qualifications',
         'smcName',
-        'smcRegistrationNumber'
+        'smcRegistrationNumber',
+        'preferredLocale'
       ]);
       if (!allowed.has(field)) return ok();
       useAppStore(pinia).setProperty('hospital', 'ProfileForm', field, String(request.data.value ?? ''));
@@ -145,7 +155,7 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const uid = String(session.userId ?? '').trim();
       if (!uid) {
-        useToastStore(pinia).show('Please log in to view your profile.', 'info');
+        useToastStore(pinia).show(tr('toast.profileViewLoginRequired'), 'info');
         await router.replace('/home');
         return ok();
       }
@@ -182,8 +192,8 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         });
         const msg = isAxiosError(err)
           ? String((err.response?.data as Record<string, unknown>)?.Message ?? err.response?.data ?? err.message)
-          : 'Could not load profile';
-        useToastStore(pinia).show(typeof msg === 'string' ? msg : 'Could not load profile', 'error');
+          : tr('toast.profileLoadFailed');
+        useToastStore(pinia).show(typeof msg === 'string' ? msg : tr('toast.profileLoadFailed'), 'error');
         return ok();
       } finally {
         useAppStore(pinia).setProperty('hospital', 'ProfileForm', 'saving', false);
@@ -200,7 +210,7 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const uid = String(session.userId ?? '').trim();
       if (!uid) {
-        toast.show('Please log in to save your profile.', 'info');
+        toast.show(tr('toast.profileSaveLoginRequired'), 'info');
         return { responseCode: 'USER_PROFILE_SAVE_FAILED', message: 'Not logged in' };
       }
       const form = (appStore.getData('hospital', 'ProfileForm') ?? {}) as Record<string, unknown>;
@@ -220,11 +230,15 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         body.SmcName = pickString(form, ['smcName', 'SmcName']);
         body.SmcRegistrationNumber = pickString(form, ['smcRegistrationNumber', 'SmcRegistrationNumber']);
       }
+      const prefLocale = pickString(form, ['preferredLocale', 'PreferredLocale']).trim().toLowerCase();
+      if (prefLocale && isSupportedLocale(prefLocale)) {
+        body.PreferredLocale = prefLocale;
+      }
       try {
         const response = await apiClient.put(URLRegistry.paths.userProfile, body, { params: { userId: uid } });
         const root = (response.data ?? {}) as Record<string, unknown>;
         if (root.Success === false || root.success === false) {
-          const msg = String(root.Message ?? root.message ?? 'Save failed');
+          const msg = String(root.Message ?? root.message ?? tr('toast.profileSaveFailed'));
           appStore.setProperty('hospital', 'ProfileForm', 'saveError', msg);
           toast.show(msg, 'error');
           return { responseCode: 'USER_PROFILE_SAVE_FAILED', message: msg };
@@ -238,7 +252,11 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
           reason_code: telemetryReasonCodes.profile.saveSuccess,
           trace_id: getOrCreateTraceId()
         });
-        toast.show('Profile saved.', 'success');
+        const plAfter = pickString(data, ['PreferredLocale', 'preferredLocale']).trim().toLowerCase();
+        if (plAfter && isSupportedLocale(plAfter)) {
+          await setAppLocale(plAfter as LocaleCode);
+        }
+        toast.show(tr('toast.profileSaved'), 'success');
         return ok();
       } catch (err: unknown) {
         trackEvent('profile_save_failed', {
@@ -249,13 +267,69 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
           http_status: isAxiosError(err) ? err.response?.status : undefined
         });
         const msg = isAxiosError(err)
-          ? String((err.response?.data as Record<string, unknown>)?.Message ?? 'Save failed')
-          : 'Save failed';
+          ? String((err.response?.data as Record<string, unknown>)?.Message ?? tr('toast.profileSaveFailed'))
+          : tr('toast.profileSaveFailed');
         appStore.setProperty('hospital', 'ProfileForm', 'saveError', msg);
         toast.show(msg, 'error');
         return { responseCode: 'USER_PROFILE_SAVE_FAILED', message: msg };
       } finally {
         appStore.setProperty('hospital', 'ProfileForm', 'saving', false);
+      }
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'save-preferred-locale',
+    responseCodes: { failure: ['PREFERRED_LOCALE_SAVE_FAILED'] },
+    execute: async (request) => {
+      const toast = useToastStore(pinia);
+      const appStore = useAppStore(pinia);
+      const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+      const uid = String(session.userId ?? '').trim();
+      if (!uid) {
+        toast.show(tr('toast.localeLoginRequired'), 'info');
+        return { responseCode: 'PREFERRED_LOCALE_SAVE_FAILED', message: 'Not logged in' };
+      }
+      const code = pickString(request.data, ['locale']).trim().toLowerCase();
+      if (!isSupportedLocale(code)) {
+        toast.show(tr('toast.localeUnsupported'), 'error');
+        return { responseCode: 'PREFERRED_LOCALE_SAVE_FAILED', message: 'Unsupported locale' };
+      }
+      try {
+        const response = await apiClient.put(
+          URLRegistry.paths.userProfile,
+          { PreferredLocale: code },
+          { params: { userId: uid } }
+        );
+        const root = (response.data ?? {}) as Record<string, unknown>;
+        if (root.Success === false || root.success === false) {
+          const msg = String(root.Message ?? root.message ?? tr('toast.profileSaveFailed'));
+          toast.show(msg, 'error');
+          return { responseCode: 'PREFERRED_LOCALE_SAVE_FAILED', message: msg };
+        }
+        const data = (root.Data ?? root.data ?? {}) as Record<string, unknown>;
+        let resolved = pickString(data, ['PreferredLocale', 'preferredLocale']).trim().toLowerCase();
+        if (!isSupportedLocale(resolved)) {
+          resolved = code;
+        }
+        appStore.setProperty('hospital', 'AuthSession', 'preferredLocale', resolved);
+        persistAuthSessionProfile({ preferredLocale: resolved });
+        appStore.setProperty('hospital', 'ProfileForm', 'preferredLocale', resolved);
+        await setAppLocale(resolved as LocaleCode);
+        trackEvent('profile_saved', {
+          domain: 'profile',
+          status: 'success',
+          reason_code: telemetryReasonCodes.profile.saveSuccess,
+          trace_id: getOrCreateTraceId()
+        });
+        toast.show(tr('toast.languageSaved'), 'success');
+        return ok();
+      } catch (err: unknown) {
+        const msg = isAxiosError(err)
+          ? String((err.response?.data as Record<string, unknown>)?.Message ?? tr('toast.profileSaveFailed'))
+          : tr('toast.profileSaveFailed');
+        toast.show(msg, 'error');
+        return { responseCode: 'PREFERRED_LOCALE_SAVE_FAILED', message: msg };
       }
     }
   },
@@ -269,7 +343,7 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const uid = String(session.userId ?? '').trim();
       if (!uid) {
-        toast.show('Please log in first.', 'info');
+        toast.show(tr('toast.deactivateLoginRequired'), 'info');
         return { responseCode: 'USER_DEACTIVATE_FAILED', message: 'Not logged in' };
       }
       try {
@@ -283,8 +357,8 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
           http_status: isAxiosError(err) ? err.response?.status : undefined
         });
         const msg = isAxiosError(err)
-          ? String((err.response?.data as Record<string, unknown>)?.Message ?? 'Could not deactivate account')
-          : 'Could not deactivate account';
+          ? String((err.response?.data as Record<string, unknown>)?.Message ?? tr('toast.deactivateFailed'))
+          : tr('toast.deactivateFailed');
         toast.show(msg, 'error');
         return { responseCode: 'USER_DEACTIVATE_FAILED', message: msg };
       }
@@ -320,9 +394,10 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       appStore.setProperty('hospital', 'AuthSession', 'fullName', '');
       appStore.setProperty('hospital', 'AuthSession', 'role', '');
       appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
+      appStore.setProperty('hospital', 'AuthSession', 'preferredLocale', '');
       clearPersistedAuthSessionProfile();
       clearLoginSessionId();
-      toast.show('Your account has been deactivated.', 'info');
+      toast.show(tr('toast.accountDeactivated'), 'info');
       window.location.assign('/home');
       return ok();
     }

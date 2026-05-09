@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import DynamicPage from '../components/renderer/DynamicPage.vue';
+import SetLocaleView from '../components/system/SetLocaleView.vue';
 import NotFound from '../components/system/NotFound.vue';
 
 const defaultPackageName =
@@ -16,6 +17,10 @@ export const router = createRouter({
     {
       path: '/page/:packageName/:pageId',
       component: DynamicPage
+    },
+    {
+      path: '/locale/:code',
+      component: SetLocaleView
     },
     {
       path: '/:pathMatch(.*)*',

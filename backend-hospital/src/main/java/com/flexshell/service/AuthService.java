@@ -236,6 +236,7 @@ public class AuthService implements AuthFacade {
         response.setRoleStatus(account.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : account.getRoleStatus().name());
         response.setRequestedRole(account.getRequestedRole() == null ? null : account.getRequestedRole().name());
         response.setRoleRejectedReason(account.getRoleRejectedReason());
+        response.setPreferredLocale(account.getPreferredLocale());
         ObservabilityLogger.info(log, telemetryEvent, Map.of(
                 "domain", "auth",
                 "status", "success",
@@ -610,7 +611,8 @@ public class AuthService implements AuthFacade {
                 saved.getRole() == null ? UserRole.PATIENT.name() : saved.getRole().name(),
                 saved.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : saved.getRoleStatus().name(),
                 saved.getRequestedRole() == null ? null : saved.getRequestedRole().name(),
-                saved.getRoleRejectedReason()));
+                saved.getRoleRejectedReason(),
+                saved.getPreferredLocale()));
     }
 
     private void sendWelcomeRegistrationEmail(UserEntity user) {

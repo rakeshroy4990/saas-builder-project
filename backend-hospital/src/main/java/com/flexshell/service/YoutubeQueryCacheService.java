@@ -8,7 +8,6 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.Sorts;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -25,19 +24,17 @@ import java.util.Optional;
 @Service
 public class YoutubeQueryCacheService {
     private static final String COLLECTION = "query_cache";
+    private static final String QUERY_CACHE_DATABASE = "rag_db";
 
     private final ObjectProvider<MongoTemplate> mongoTemplateProvider;
     private final ObjectProvider<JdbcTemplate> jdbcTemplateProvider;
-    private final String queryCacheDatabase;
 
     public YoutubeQueryCacheService(
             ObjectProvider<MongoTemplate> mongoTemplateProvider,
-            ObjectProvider<JdbcTemplate> jdbcTemplateProvider,
-            @Value("${app.youtube.query-cache.database:${APP_YOUTUBE_QUERY_CACHE_DATABASE:rag_db}}") String queryCacheDatabase
+            ObjectProvider<JdbcTemplate> jdbcTemplateProvider
     ) {
         this.mongoTemplateProvider = mongoTemplateProvider;
         this.jdbcTemplateProvider = jdbcTemplateProvider;
-        this.queryCacheDatabase = queryCacheDatabase == null ? "rag_db" : queryCacheDatabase.trim();
     }
 
     public List<YoutubeQueryCacheEntryDto> listRecentForUser(String userId, int limit) {
@@ -252,8 +249,7 @@ public class YoutubeQueryCacheService {
     }
 
     private MongoCollection<Document> queryCacheCollection(MongoTemplate template) {
-        String db = queryCacheDatabase == null || queryCacheDatabase.isBlank() ? "rag_db" : queryCacheDatabase;
-        return template.getMongoDatabaseFactory().getMongoDatabase(db).getCollection(COLLECTION);
+        return template.getMongoDatabaseFactory().getMongoDatabase(QUERY_CACHE_DATABASE).getCollection(COLLECTION);
     }
 
     private static String asString(Object... values) {

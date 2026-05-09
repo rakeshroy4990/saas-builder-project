@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { resolveStyle } from '../../core/engine/StyleResolver';
 import type { ActionConfig } from '../../core/types/ActionConfig';
 import type { StyleConfig } from '../../core/types/StyleConfig';
@@ -11,6 +12,7 @@ type SlotCountRow = {
 
 interface DatePickerConfig {
   label?: string;
+  labelI18nKey?: string;
   value?: string;
   disabled?: boolean;
   min?: string;
@@ -34,6 +36,7 @@ const MONTH_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'long', year: 
 
 const props = defineProps<{ config?: DatePickerConfig; htmlId?: string }>();
 const emit = defineEmits<{ action: [event: { action?: ActionConfig; payload?: Record<string, unknown> }] }>();
+const { t } = useI18n();
 
 const model = ref('');
 const panelOpen = ref(false);
@@ -177,7 +180,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
 
 <template>
   <label :id="fieldId" ref="rootRef" :class="labelClass">
-    <span v-if="config?.label" :id="labelTextId">{{ config.label }}</span>
+    <span v-if="config?.label || config?.labelI18nKey" :id="labelTextId">{{
+      config?.labelI18nKey ? t(config.labelI18nKey) : config?.label
+    }}</span>
     <div class="relative">
       <button
       :id="triggerId"
@@ -190,7 +195,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
         :value="model"
         :class="classes"
         type="text"
-        placeholder="yyyy-mm-dd"
+        :placeholder="t('common.dateFormatYmd')"
         :disabled="Boolean(config?.disabled)"
         readonly
       />
@@ -202,7 +207,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
         :id="panelId"
         class="absolute left-0 top-[calc(100%+8px)] z-40 w-full max-w-[360px] rounded-lg border border-slate-200 bg-white p-2 shadow-lg"
         role="dialog"
-        aria-label="Choose date"
+        :aria-label="t('common.chooseDate')"
       >
       <div class="mb-1 flex items-center justify-between">
         <button type="button" class="rounded px-2 py-1 text-xs hover:bg-slate-100" @click="goPreviousMonth">‹</button>

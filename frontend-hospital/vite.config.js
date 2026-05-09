@@ -6,7 +6,7 @@ import { fileURLToPath, URL } from 'node:url';
 import path from 'node:path';
 
 function forceReloadOnUiChanges() {
-  const watchedUiFile = /\/src\/(components|configs|core|modules)\/.*\.(vue|ts|js)$/;
+  const watchedUiFile = /\/src\/(components|configs|core|modules|locales|i18n)\/.*\.(vue|ts|js|json)$/;
   return {
     name: 'force-reload-on-ui-changes',
     handleHotUpdate(ctx) {
@@ -73,7 +73,8 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (id.includes('agora-rtc-sdk-ng') || id.includes('@agora-js')) return 'agora-rtc';
-          if (id.includes('/vue/') || id.includes('vue-router') || id.includes('/pinia/')) return 'vue-vendor';
+          if (id.includes('/vue/') || id.includes('vue-router') || id.includes('/pinia/') || id.includes('vue-i18n'))
+            return 'vue-vendor';
           if (id.includes('axios')) return 'axios';
           if (id.includes('@stomp')) return 'stomp';
           if (id.includes('vue-async-ui')) return 'async-ui';

@@ -10,6 +10,7 @@ export interface ConditionConfig {
 export type ComponentType =
   | 'button'
   | 'text'
+  | 'language-switcher'
   | 'container'
   | 'input'
   | 'date-picker'

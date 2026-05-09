@@ -43,6 +43,12 @@ const SMART_AI_WELCOME_MESSAGE = [
   '• "Stomach pain after eating"'
 ].join('\n');
 
+function supportOpenApiEnabled(): boolean {
+  return String(import.meta.env.VITE_ENABLE_SUPPORT_OPEN_API ?? '')
+    .trim()
+    .toLowerCase() === 'true';
+}
+
 function getChatStore(appStore: HospitalAppStore): Record<string, unknown> {
   return (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
 }
@@ -192,6 +198,7 @@ function subscribeHospitalSupportQueueIfNeeded(appStore: HospitalAppStore): void
 
 async function mergeOpenSupportRequestsFromApi(appStore: HospitalAppStore): Promise<void> {
   if (!roleIsAdmin(appStore)) return;
+  if (!supportOpenApiEnabled()) return;
   try {
     const openResponse = await apiClient.get(URLRegistry.paths.chatSupportOpen);
     const openNode = (openResponse.data?.Data ?? openResponse.data?.data ?? []) as unknown;

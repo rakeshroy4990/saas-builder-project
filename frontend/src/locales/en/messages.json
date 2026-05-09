@@ -1,0 +1,13 @@
+{
+  "nav": {
+    "language": "Language",
+    "languageHint": "Select interface language",
+    "home": "Home"
+  },
+  "errors": {
+    "notFoundTitle": "Page not found"
+  },
+  "locale": {
+    "setTitle": "Setting language…"
+  }
+}

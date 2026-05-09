@@ -129,7 +129,8 @@ public class AdminDoctorManagementService {
                 saved.getRole() == null ? UserRole.DOCTOR.name() : saved.getRole().name(),
                 saved.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : saved.getRoleStatus().name(),
                 null,
-                null);
+                null,
+                saved.getPreferredLocale());
     }
 
     private DoctorAdminRow toRow(UserEntity u) {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { PageConfig } from '../../core/types/PageConfig';
 import { useActionEngine } from '../../composables/useActionEngine';
 import { useAppStore } from '../../store/useAppStore';
@@ -8,16 +9,6 @@ import { pinia } from '../../store/pinia';
 const DAY_KEYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI'] as const;
 const WEEKEND = ['SAT', 'SUN'] as const;
-const DAY_LABEL: Record<string, string> = {
-  MON: 'Monday',
-  TUE: 'Tuesday',
-  WED: 'Wednesday',
-  THU: 'Thursday',
-  FRI: 'Friday',
-  SAT: 'Saturday',
-  SUN: 'Sunday'
-};
-
 type DayCfg = { enabled: boolean; slotMinutes: number; windows: { start: string; end: string }[] };
 
 const props = defineProps<{
@@ -28,6 +19,11 @@ const props = defineProps<{
 
 const { execute } = useActionEngine(props.pageConfig);
 const appStore = useAppStore(pinia);
+const { t } = useI18n();
+
+function dayLabel(key: string): string {
+  return t(`common.days.${String(key).toLowerCase()}`);
+}
 
 const weekly = computed(() => {
   const form = (appStore.getData('hospital', 'DoctorScheduleForm') ?? {}) as Record<string, unknown>;
@@ -154,8 +150,7 @@ async function onSave() {
   <div :id="htmlId" class="space-y-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <p class="max-w-2xl text-sm text-slate-600">
-        Weekly hours use the hospital time zone configured on the server. Add multiple windows in one day for lunch
-        breaks (gaps).
+        {{ t('dashboard.workingSlots.helper') }}
       </p>
       <button
         type="button"
@@ -163,7 +158,7 @@ async function onSave() {
         :disabled="loading"
         @click="onSave"
       >
-        Save schedule
+        {{ t('dashboard.workingSlots.save') }}
       </button>
     </div>
     <div class="space-y-3">
@@ -175,10 +170,10 @@ async function onSave() {
         <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 pb-2 mb-3">
           <label class="flex items-center gap-2 text-sm font-semibold text-slate-800">
             <input type="checkbox" :checked="dayOf(key).enabled" @change="setEnabled(key, ($event.target as HTMLInputElement).checked)" />
-            {{ DAY_LABEL[key] }}
+            {{ dayLabel(key) }}
           </label>
           <div class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-            <span>Slot length</span>
+            <span>{{ t('dashboard.workingSlots.slotLength') }}</span>
             <label class="inline-flex items-center gap-1">
               <input
                 type="radio"
@@ -186,7 +181,7 @@ async function onSave() {
                 :checked="dayOf(key).slotMinutes === 15"
                 @change="setSlotMinutes(key, 15)"
               />
-              15 min
+              {{ t('dashboard.workingSlots.minutes15') }}
             </label>
             <label class="inline-flex items-center gap-1">
               <input
@@ -195,7 +190,7 @@ async function onSave() {
                 :checked="dayOf(key).slotMinutes === 30"
                 @change="setSlotMinutes(key, 30)"
               />
-              30 min
+              {{ t('dashboard.workingSlots.minutes30') }}
             </label>
           </div>
         </div>
@@ -206,7 +201,7 @@ async function onSave() {
             class="flex flex-wrap items-end gap-2"
           >
             <label class="text-xs font-medium text-slate-600">
-              Start
+              {{ t('common.start') }}
               <input
                 type="time"
                 class="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
@@ -215,7 +210,7 @@ async function onSave() {
               />
             </label>
             <label class="text-xs font-medium text-slate-600">
-              End
+              {{ t('common.end') }}
               <input
                 type="time"
                 class="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
@@ -228,7 +223,7 @@ async function onSave() {
               class="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
               @click="addWindow(key)"
             >
-              Add window
+              {{ t('dashboard.workingSlots.addWindow') }}
             </button>
             <button
               v-if="dayOf(key).windows.length > 1"
@@ -236,46 +231,46 @@ async function onSave() {
               class="rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
               @click="removeWindow(key, idx)"
             >
-              Remove
+              {{ t('common.remove') }}
             </button>
           </div>
         </div>
-        <p v-else class="text-xs text-slate-500">Day off — not bookable.</p>
+        <p v-else class="text-xs text-slate-500">{{ t('dashboard.workingSlots.dayOffNotBookable') }}</p>
         <details class="mt-3 border-t border-slate-100 pt-2">
           <summary class="cursor-pointer select-none text-xs font-semibold text-emerald-700 hover:underline">
-            Copy this day's setup to other days
+            {{ t('dashboard.workingSlots.copyThisDay') }}
           </summary>
           <div class="mt-2 space-y-2 rounded-md border border-slate-100 bg-slate-50/90 p-2">
             <p class="text-xs text-slate-600">
-              Copies slot length, on/off, and all time windows. Use quick actions or pick days below.
+              {{ t('dashboard.workingSlots.copyHint') }}
             </p>
             <div class="flex flex-wrap gap-2">
               <button
                 type="button"
-                title="Monday through Friday (except this day if it is a weekday)"
+                :title="t('dashboard.workingSlots.copyMonFriTitle')"
                 class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="loading"
                 @click="copyDayToTargets(key, weekdayOthers(key))"
               >
-                Copy to Mon–Fri
+                {{ t('dashboard.workingSlots.copyMonFri') }}
               </button>
               <button
                 type="button"
-                title="Saturday and Sunday (except this day if it is a weekend day)"
+                :title="t('dashboard.workingSlots.copySatSunTitle')"
                 class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="loading"
                 @click="copyDayToTargets(key, weekendOthers(key))"
               >
-                Copy to Sat–Sun
+                {{ t('dashboard.workingSlots.copySatSun') }}
               </button>
               <button
                 type="button"
-                title="All other days of the week"
+                :title="t('dashboard.workingSlots.copyAllOtherTitle')"
                 class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="loading"
                 @click="copyDayToTargets(key, otherDayKeys(key))"
               >
-                Copy to all other days
+                {{ t('dashboard.workingSlots.copyAllOther') }}
               </button>
             </div>
             <div class="flex flex-wrap gap-x-3 gap-y-1">
@@ -285,7 +280,7 @@ async function onSave() {
                 class="inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-700"
               >
                 <input v-model="copyTargets[key][t]" type="checkbox" class="rounded border-slate-300 text-emerald-600" />
-                {{ DAY_LABEL[t] }}
+                {{ dayLabel(t) }}
               </label>
             </div>
             <button
@@ -294,7 +289,7 @@ async function onSave() {
               :disabled="!otherDayKeys(key).some((t) => copyTargets[key][t])"
               @click="copyDayToSelected(key)"
             >
-              Copy to selected days
+              {{ t('dashboard.workingSlots.copySelected') }}
             </button>
           </div>
         </details>

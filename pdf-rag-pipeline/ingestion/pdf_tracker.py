@@ -117,6 +117,7 @@ def registry_find_recent(limit: int) -> list[dict]:
                 "chunks_count": 1,
                 "error": 1,
                 "prefilter_stats": 1,
+                "image_stats": 1,
                 "ingested_at": 1,
             },
         )

@@ -7,6 +7,7 @@ import { ok } from '../shared/response';
 import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
 import { consumeDeferredPostLoginAction } from '../auth/postLoginAction';
 import { ServiceRegistry } from '../../../../core/registry/ServiceRegistry';
+import { runDashboardInitIfPresent } from './runDashboardInitIfPresent';
 
 function resolveHeaderMenuOpenState(responsive: Record<string, unknown>): boolean {
   return responsive.headerMenuOpen !== false;
@@ -278,24 +279,22 @@ export const navigationHospitalServices: ServiceDefinition[] = [
         }
         try {
           await deferredService.execute({ data: deferredAction.data ?? {} });
-          return ok({ resumed: true });
         } catch {
           return ok({ resumed: false });
         }
+        await runDashboardInitIfPresent();
+        return ok({ resumed: true });
       }
-      const path = String(router.currentRoute.value?.path ?? '');
-      const onDashboard = path === '/dashboard' || path.endsWith('/dashboard');
-      if (onDashboard) {
-        const init = ServiceRegistry.getInstance().get('hospital', 'init-dashboard');
-        if (init) {
-          try {
-            await init.execute({ data: {} });
-          } catch {
-            /* ignore */
-          }
-        }
-      }
+      await runDashboardInitIfPresent();
       return ok({ resumed: false });
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'run-dashboard-init-if-present',
+    execute: async () => {
+      await runDashboardInitIfPresent();
+      return ok();
     }
   }
 ];

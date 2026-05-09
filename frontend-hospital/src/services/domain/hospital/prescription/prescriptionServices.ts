@@ -9,6 +9,9 @@ import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { loadDashboardAppointmentsPage } from '../shared/dashboardAppointments';
+import { i18n } from '../../../../i18n';
+
+const tr = (key: string): string => String((i18n.global as any).t(key));
 
 function childStr(obj: Record<string, unknown> | undefined, keys: string[]): string {
   if (!obj) return '';
@@ -305,16 +308,31 @@ export const prescriptionHospitalServices: ServiceDefinition[] = [
       const appStore = useAppStore(pinia);
       appStore.setData('hospital', 'PrescriptionConsultationModeOptions', {
         list: [
-          { id: 'VIDEO', value: 'VIDEO', label: 'Video' },
-          { id: 'AUDIO', value: 'AUDIO', label: 'Audio' },
-          { id: 'InPerson', value: 'InPerson', label: 'InPerson' }
+          {
+            id: 'VIDEO',
+            value: 'VIDEO',
+            label: tr('prescription.options.consultation.video'),
+            labelI18nKey: 'prescription.options.consultation.video'
+          },
+          {
+            id: 'AUDIO',
+            value: 'AUDIO',
+            label: tr('prescription.options.consultation.audio'),
+            labelI18nKey: 'prescription.options.consultation.audio'
+          },
+          {
+            id: 'InPerson',
+            value: 'InPerson',
+            label: tr('prescription.options.consultation.inPerson'),
+            labelI18nKey: 'prescription.options.consultation.inPerson'
+          }
         ]
       });
       appStore.setData('hospital', 'PrescriptionPatientSexOptions', {
         list: [
-          { id: 'male', value: 'male', label: 'Male' },
-          { id: 'female', value: 'female', label: 'Female' },
-          { id: 'other', value: 'other', label: 'Other' }
+          { id: 'male', value: 'male', label: tr('prescription.options.sex.male'), labelI18nKey: 'prescription.options.sex.male' },
+          { id: 'female', value: 'female', label: tr('prescription.options.sex.female'), labelI18nKey: 'prescription.options.sex.female' },
+          { id: 'other', value: 'other', label: tr('prescription.options.sex.other'), labelI18nKey: 'prescription.options.sex.other' }
         ]
       });
       appStore.setData('hospital', 'PrescriptionEditor', {

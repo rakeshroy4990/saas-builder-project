@@ -1,0 +1,17 @@
+---
+description: Spring Boot — all `backend*` Java modules
+globs: **/backend*/**/*.java
+alwaysApply: false
+---
+
+# Spring Boot — `backend*`
+
+**Layers:** Controller → Service → Repository; no business logic in controllers. DTOs under `dto/request|response`; don’t return JPA entities from controllers. Audit sensitive actions (prescriptions, appointments, roles) via `audit/` / AOP.
+
+**Security:** `@PreAuthorize` on endpoints; JWT validates signature, expiry, token kind; refresh rotation invalidates prior token; resolve roles from DB, not claims; rate limits (examples): login 5/min/IP, refresh 10/min/user, reset-password 3/hr/email; CORS explicit allowlist (no `*` prod); HTTPS-only prod.
+
+**JPA:** `ddl-auto` validate/none; lazy fetching; `@Version` on contended entities; soft-delete pattern (`@SQLDelete` + `@Where`); DTOs expose `external_id` only; money as `NUMERIC`/BigDecimal; avoid `SELECT *`.
+
+**Prescriptions / visits:** Optimistic locking on booking; `/join-call` checks ownership, CONFIRMED, ±15m window before Agora token; prescription immutable after issue (versioning); signed short-lived prescription URLs; prescriber registration on PDF.
+
+**Audit log:** Append-only; capture userId, action, resourceType, resourceId, timestamp, ipAddress — no updates/deletes.

@@ -19,11 +19,7 @@ public class YoutubeHeroController {
         this.youtubeHeroService = youtubeHeroService;
     }
 
-    /**
-     * Public endpoint: returns a video id within the configured channel for the given query.
-     * When {@code q} is omitted or blank, returns a recent upload per {@code app.youtube.hero-rank-by}
-     * ({@code RANDOM}, {@code VIEWS}, or {@code LIKES}).
-     */
+    /** Public endpoint: returns a random curated hero video from backend constants. */
     @GetMapping(value = "/hero-video", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<YoutubeHeroVideoResponse>> heroVideo(
             @RequestParam(value = "q", required = false, defaultValue = "") String q,

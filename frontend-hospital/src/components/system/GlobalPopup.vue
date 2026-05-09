@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { usePopupStore } from '../../store/usePopupStore';
 import { PageRegistry } from '../../core/registry/PageRegistry';
 import { resolveStyle } from '../../core/engine/StyleResolver';
@@ -13,6 +14,7 @@ import { ActionEngine } from '../../core/engine/ActionEngine';
 
 const popupStore = usePopupStore(pinia);
 const router = useRouter();
+const { t } = useI18n();
 
 const normalizePopupValue = (value: string | undefined, fallback: string) => {
   const normalized = value?.trim();
@@ -77,20 +79,31 @@ const isChatPopup = computed(() => {
   return pageId === 'chat-popup';
 });
 
+/** First-time language choice: no backdrop dismiss or Escape-to-close without picking a language. */
+const blockBackdropClose = computed(() => {
+  const pageId = normalizePopupValue(activePopupRequest.value.pageId, '');
+  return pageId === 'locale-onboarding-popup';
+});
+
+function onBackdropMouseDown(): void {
+  if (blockBackdropClose.value) return;
+  popupStore.close();
+}
+
 const normalizedPopupErrorMessage = computed(() => {
   const raw = String(popupStore.errorMessage ?? '').trim();
   if (!raw) {
-    return 'Something went wrong while processing your request. Please try again.';
+    return t('popup.error.generic');
   }
   const lower = raw.toLowerCase();
   if (lower.includes('network') || lower.includes('failed to fetch') || lower.includes('timeout')) {
-    return 'Unable to reach the server right now. Please check your connection and try again.';
+    return t('popup.error.network');
   }
   if (lower.includes('unauthorized') || lower.includes('forbidden')) {
-    return 'Your session may have expired. Please log in again and retry.';
+    return t('popup.error.sessionExpired');
   }
   if (lower.includes('service unavailable') || lower.includes('temporarily unavailable')) {
-    return 'The service is temporarily unavailable. Please try again in a moment.';
+    return t('popup.error.unavailable');
   }
   return raw;
 });
@@ -196,6 +209,10 @@ const onGlobalKeydown = (event: KeyboardEvent): void => {
   }
 
   if (event.key === 'Escape') {
+    if (blockBackdropClose.value) {
+      event.preventDefault();
+      return;
+    }
     event.preventDefault();
     const secondaryButton = resolveSecondaryButton();
     if (secondaryButton) {
@@ -230,11 +247,11 @@ onBeforeUnmount(() => {
       v-if="popupStore.isOpen && !isChatPopup"
       id="system-popup-backdrop"
       :class="backdropClass"
-      @click.self="popupStore.close"
+      @click.self="onBackdropMouseDown"
     >
       <div id="system-popup-panel" :class="panelClass" tabindex="-1">
         <template v-if="popupStore.isError">
-          <h2 id="system-popup-error-title" :class="errorTitleClass">Something went wrong</h2>
+          <h2 id="system-popup-error-title" :class="errorTitleClass">{{ t('popup.error.title') }}</h2>
           <p id="system-popup-error-body" :class="errorBodyClass">{{ normalizedPopupErrorMessage }}</p>
           <button
             id="system-popup-close"
@@ -242,7 +259,7 @@ onBeforeUnmount(() => {
             :class="closeButtonClass"
             @click="popupStore.close"
           >
-            Close
+            {{ t('common.close') }}
           </button>
         </template>
         <template v-else-if="pageConfig">
@@ -279,7 +296,7 @@ onBeforeUnmount(() => {
         tabindex="-1"
       >
         <template v-if="popupStore.isError">
-          <h2 id="system-popup-error-title" :class="errorTitleClass">Something went wrong</h2>
+          <h2 id="system-popup-error-title" :class="errorTitleClass">{{ t('popup.error.title') }}</h2>
           <p id="system-popup-error-body" :class="errorBodyClass">{{ normalizedPopupErrorMessage }}</p>
           <button
             id="system-popup-close"
@@ -287,7 +304,7 @@ onBeforeUnmount(() => {
             :class="closeButtonClass"
             @click="popupStore.close"
           >
-            Close
+            {{ t('common.close') }}
           </button>
         </template>
         <template v-else-if="pageConfig">

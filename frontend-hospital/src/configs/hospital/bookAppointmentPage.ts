@@ -13,7 +13,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         id: 'hospital-book-appt-patient-name',
         type: 'input',
         config: {
-          label: 'Patient Name *',
+          labelI18nKey: 'appointment.form.patientName',
           mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'patientName' },
           change: { actionId: 'set-appointment-patient-field', data: { field: 'patientName' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -23,7 +23,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         id: 'hospital-book-appt-email',
         type: 'input',
         config: {
-          label: 'Email Address *',
+          labelI18nKey: 'appointment.form.email',
           mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'patientEmail' },
           change: { actionId: 'set-appointment-patient-field', data: { field: 'patientEmail' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -33,7 +33,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         id: 'hospital-book-appt-phone',
         type: 'input',
         config: {
-          label: 'Phone Number *',
+          labelI18nKey: 'appointment.form.phone',
           mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'patientPhone' },
           change: { actionId: 'set-appointment-patient-field', data: { field: 'patientPhone' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -43,8 +43,8 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         id: 'hospital-book-appt-age',
         type: 'input',
         config: {
-          label: 'Patient Age (years) *',
-          placeholder: 'Digits only, e.g. 25 or 72',
+          labelI18nKey: 'appointment.form.ageYears',
+          placeholderI18nKey: 'appointment.form.agePlaceholder',
           inputType: 'text',
           inputMode: 'numeric',
           pattern: '[0-9]*',
@@ -59,7 +59,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         id: 'hospital-book-appt-department',
         type: 'dropdown',
         config: {
-          label: 'Department *',
+          labelI18nKey: 'appointment.form.department',
           mapping: { packageName: 'hospital', key: 'AppointmentDepartments', property: 'list' },
           valueMapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'department' },
           change: { actionId: 'set-appointment-department' },
@@ -76,7 +76,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
           }
         },
         config: {
-          label: 'Doctor (select department first) *',
+          labelI18nKey: 'appointment.form.doctorSelectDepartment',
           disabled: true,
           options: [],
           styles: { styleTemplate: 'hosp.form.input' }
@@ -92,7 +92,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
           }
         },
         config: {
-          label: 'Doctor *',
+          labelI18nKey: 'appointment.form.doctor',
           mapping: { packageName: 'hospital', key: 'AppointmentDoctors', property: 'list' },
           valueMapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'doctor' },
           change: { actionId: 'set-appointment-doctor' },
@@ -124,7 +124,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
           }
         },
         config: {
-          label: 'Preferred Date *',
+          labelI18nKey: 'appointment.form.preferredDate',
           disabled: true,
           mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'preferredDate' },
           unavailableDatesMapping: {
@@ -152,7 +152,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
           }
         },
         config: {
-          label: 'Preferred Date *',
+          labelI18nKey: 'appointment.form.preferredDate',
           mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'preferredDate' },
           unavailableDatesMapping: {
             packageName: 'hospital',
@@ -180,7 +180,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
           }
         },
         config: {
-          label: 'Preferred Time Slot *',
+          labelI18nKey: 'appointment.form.preferredTimeSlot',
           disabled: true,
           mapping: { packageName: 'hospital', key: 'AppointmentTimeSlots', property: 'list' },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -198,7 +198,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
           }
         },
         config: {
-          label: 'Preferred Time Slot *',
+          labelI18nKey: 'appointment.form.preferredTimeSlot',
           mapping: { packageName: 'hospital', key: 'AppointmentTimeSlots', property: 'list' },
           valueMapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'preferredTimeSlot' },
           change: { actionId: 'set-appointment-time-slot' },
@@ -229,7 +229,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         id: 'hospital-book-appt-notes',
         type: 'input',
         config: {
-          label: 'Additional Notes',
+          labelI18nKey: 'appointment.form.additionalNotes',
           inputType: 'textarea',
           rows: 5,
           mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'additionalNotes' },
@@ -241,8 +241,7 @@ const bookAppointmentEditFormGrid: ComponentDefinition = {
         id: 'hospital-book-appt-prescriptions',
         type: 'input',
         config: {
-          label:
-            'Prior documents / scans (optional, up to 2 images)',
+          labelI18nKey: 'appointment.form.priorDocs',
           inputType: 'file',
           accept: 'image/*',
           multiple: true,
@@ -276,7 +275,7 @@ const bookAppointmentSaveButton: ComponentDefinition = {
   id: 'hospital-book-appt-save',
   type: 'button',
   config: {
-    text: 'Save changes',
+    i18nKey: 'appointment.form.saveChanges',
     styles: { styleTemplate: 'hosp.popup.button.primary' },
     click: { actionId: 'book-appointment' }
   }
@@ -287,6 +286,7 @@ export const hospitalBookAppointmentPage: PageConfig = {
   packageName: 'hospital',
   pageId: 'book-appointment',
   title: 'Appointment',
+  titleKey: 'page.appointment.title',
   initializeActions: [{ actionId: 'set-dashboard-header-active' }, { actionId: 'init-book-appointment-page' }],
   container: {
     layoutTemplate: 'hosp.page.root',
@@ -317,7 +317,7 @@ export const hospitalBookAppointmentPage: PageConfig = {
                           id: 'hospital-book-appt-title',
                           type: 'text',
                           config: {
-                            text: 'Edit appointment',
+                            i18nKey: 'popup.editAppointment',
                             styles: { styleTemplate: 'hosp.section.heading', utilityClasses: 'text-2xl' }
                           }
                         },
@@ -325,7 +325,7 @@ export const hospitalBookAppointmentPage: PageConfig = {
                           id: 'hospital-book-appt-back',
                           type: 'button',
                           config: {
-                            text: 'Back to dashboard',
+                            i18nKey: 'appointment.form.backToDashboard',
                             styles: { styleTemplate: 'hosp.button.secondary' },
                             click: {
                               actionId: 'set-dashboard-header-active',
@@ -354,10 +354,9 @@ export const hospitalBookAppointmentPage: PageConfig = {
           ]
         }
       },
-      hospitalSiteFooter(
-        'hospital-book-appt-footer',
-        'Agastya Healthcare | Update your appointment details.'
-      )
+      hospitalSiteFooter('hospital-book-appt-footer', '', {
+        taglineI18nKey: 'footer.tagline.bookAppointment'
+      })
     ]
   }
 };
@@ -367,6 +366,7 @@ export const hospitalBookAppointmentPopupPage: PageConfig = {
   packageName: 'hospital',
   pageId: 'book-appointment-popup',
   title: 'Edit appointment',
+  titleKey: 'popup.editAppointment',
   initializeActions: [{ actionId: 'init-book-appointment-popup' }],
   container: {
     layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-4', 'max-h-[85vh]', 'overflow-y-auto'] },
@@ -380,7 +380,7 @@ export const hospitalBookAppointmentPopupPage: PageConfig = {
             {
               id: 'hospital-book-appt-popup-title',
               type: 'text',
-              config: { text: 'Edit appointment', styles: { styleTemplate: 'hosp.popup.header.title' } }
+              config: { i18nKey: 'popup.editAppointment', styles: { styleTemplate: 'hosp.popup.header.title' } }
             },
             {
               id: 'hospital-book-appt-popup-close',
@@ -413,7 +413,7 @@ export const hospitalBookAppointmentPopupPage: PageConfig = {
               id: 'hospital-book-appt-popup-cancel',
               type: 'button',
               config: {
-                text: 'Cancel',
+                i18nKey: 'common.cancel',
                 styles: { styleTemplate: 'hosp.popup.button.secondary' },
                 click: { actionType: 'closePopup' }
               }

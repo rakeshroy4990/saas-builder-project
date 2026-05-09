@@ -42,6 +42,7 @@ export const hospitalPrivacyPage: PageConfig = {
   packageName: 'hospital',
   pageId: 'privacy',
   title: 'Privacy Notice (India)',
+  titleKey: 'page.privacy.title',
   initializeActions: [{ actionId: 'set-home-header-active' }],
   container: {
     layoutTemplate: 'hosp.page.root',
@@ -153,9 +154,10 @@ export const hospitalPrivacyPage: PageConfig = {
           ]
         }
       },
-      hospitalSiteFooter('hospital-privacy-footer', 'Agastya Healthcare | Pediatric and family care you can trust.', {
+      hospitalSiteFooter('hospital-privacy-footer', '', {
         termsPageId: 'terms',
-        privacyPageId: ''
+        privacyPageId: '',
+        taglineI18nKey: 'footer.tagline.privacy'
       })
     ]
   }

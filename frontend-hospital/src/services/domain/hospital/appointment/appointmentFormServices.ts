@@ -1,8 +1,11 @@
+import type { Composer } from 'vue-i18n';
 import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition';
 import { useAppStore } from '../../../../store/useAppStore';
 import { pinia } from '../../../../store/pinia';
+import { i18n } from '../../../../i18n';
 import { ok } from '../shared/response';
-import { PRESCRIPTION_LIMIT_ERROR_MESSAGE } from '../shared/constants';
+
+const tr = (key: string): string => (i18n.global as Composer).t(key);
 import { setAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
 import { ensureDoctorOptionsLoadedByDepartment } from '../shared/doctorCatalog';
 import { refreshAppointmentDateAvailabilityFromForm } from '../shared/refreshAppointmentDateAvailability';
@@ -78,7 +81,7 @@ export const appointmentFormHospitalServices: ServiceDefinition[] = [
           'hospital',
           'AppointmentForm',
           'doctorLoadError',
-          'Unable to load the Doctors please try again'
+          tr('appointment.doctorLoadFailed')
         );
       }
       await refreshAppointmentTimeSlotOptionsFromForm();
@@ -121,7 +124,7 @@ export const appointmentFormHospitalServices: ServiceDefinition[] = [
         'hospital',
         'AppointmentForm',
         'prescriptionUploadError',
-        exceedsLimit ? PRESCRIPTION_LIMIT_ERROR_MESSAGE : ''
+        exceedsLimit ? tr('toast.prescriptionImageLimit') : ''
       );
       return ok();
     }

@@ -22,6 +22,9 @@ import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppo
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { getOrCreateTraceId } from '../../../logging/traceContext';
 import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
+import { i18n } from '../../../../i18n';
+
+const tr = (key: string): string => String((i18n.global as any).t(key));
 
 function appointmentPreferredDateToInput(raw: unknown): string {
   const s = String(raw ?? '').trim();
@@ -214,14 +217,35 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         department: '',
         adminFullListing: role === 'ADMIN',
         statusOptions: [
-          { id: 'allAppointments', value: 'All Appointments', label: 'All Appointments' },
-          { id: 'completed', value: 'COMPLETED', label: 'Completed' },
-          { id: 'cancelled', value: 'CANCELLED', label: 'Cancelled' },
+          {
+            id: 'allAppointments',
+            value: 'All Appointments',
+            label: tr('dashboard.filters.statusOptionAll'),
+            labelI18nKey: 'dashboard.filters.statusOptionAll'
+          },
+          {
+            id: 'completed',
+            value: 'COMPLETED',
+            label: tr('dashboard.filters.statusOptionCompleted'),
+            labelI18nKey: 'dashboard.filters.statusOptionCompleted'
+          },
+          {
+            id: 'cancelled',
+            value: 'CANCELLED',
+            label: tr('dashboard.filters.statusOptionCancelled'),
+            labelI18nKey: 'dashboard.filters.statusOptionCancelled'
+          },
           ...(role === 'ADMIN'
-            ? ([{ id: 'deleted', value: 'DELETED', label: 'Removed (admin)' }] as Array<{
+            ? ([{
+                id: 'deleted',
+                value: 'DELETED',
+                label: tr('dashboard.filters.statusOptionRemovedAdmin'),
+                labelI18nKey: 'dashboard.filters.statusOptionRemovedAdmin'
+              }] as Array<{
                 id: string;
                 value: string;
                 label: string;
+                labelI18nKey?: string;
               }>)
             : [])
         ],

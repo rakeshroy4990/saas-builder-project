@@ -27,6 +27,7 @@ export const hospitalProfilePage: PageConfig = {
   packageName: 'hospital',
   pageId: 'profile',
   title: 'Profile',
+  titleKey: 'page.profile.title',
   initializeActions: [{ actionId: 'set-profile-header-active' }, { actionId: 'init-profile-page' }],
   container: {
     layoutTemplate: 'hosp.page.root',
@@ -163,6 +164,70 @@ export const hospitalProfilePage: PageConfig = {
                                       config: {
                                         text: 'Your details',
                                         styles: { utilityClasses: 'text-lg font-semibold text-slate-900' }
+                                      }
+                                    },
+                                    {
+                                      id: 'hospital-profile-language-block',
+                                      type: 'container',
+                                      config: {
+                                        styles: {
+                                          utilityClasses:
+                                            'rounded-xl border border-slate-200 bg-slate-50/80 p-4 space-y-3 w-full'
+                                        },
+                                        children: [
+                                          {
+                                            id: 'hospital-profile-language-title',
+                                            type: 'text',
+                                            config: {
+                                              i18nKey: 'nav.language',
+                                              styles: { utilityClasses: 'text-base font-semibold text-slate-900' }
+                                            }
+                                          },
+                                          {
+                                            id: 'hospital-profile-language-hint',
+                                            type: 'text',
+                                            config: {
+                                              i18nKey: 'nav.languageHint',
+                                              styles: { utilityClasses: 'text-sm text-slate-600' }
+                                            }
+                                          },
+                                          {
+                                            id: 'hospital-profile-language-buttons',
+                                            type: 'container',
+                                            config: {
+                                              layout: {
+                                                type: 'flex',
+                                                flex: ['flex', 'flex-col', 'sm:flex-row', 'gap-3', 'w-full']
+                                              },
+                                              children: [
+                                                {
+                                                  id: 'hospital-profile-lang-en',
+                                                  type: 'button',
+                                                  config: {
+                                                    text: 'English',
+                                                    styles: {
+                                                      styleTemplate: 'hosp.popup.button.secondary',
+                                                      utilityClasses: 'w-full sm:flex-1 min-h-[44px]'
+                                                    },
+                                                    click: { actionId: 'save-preferred-locale', data: { locale: 'en' } }
+                                                  }
+                                                },
+                                                {
+                                                  id: 'hospital-profile-lang-hi',
+                                                  type: 'button',
+                                                  config: {
+                                                    text: 'हिंदी',
+                                                    styles: {
+                                                      styleTemplate: 'hosp.popup.button.secondary',
+                                                      utilityClasses: 'w-full sm:flex-1 min-h-[44px]'
+                                                    },
+                                                    click: { actionId: 'save-preferred-locale', data: { locale: 'hi' } }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
                                       }
                                     },
                                     {
@@ -384,7 +449,9 @@ export const hospitalProfilePage: PageConfig = {
           ]
         }
       },
-      hospitalSiteFooter('hospital-profile-footer', 'Agastya Healthcare | Manage your account settings.')
+      hospitalSiteFooter('hospital-profile-footer', '', {
+        taglineI18nKey: 'footer.tagline.profile'
+      })
     ]
   }
 };

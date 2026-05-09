@@ -1,0 +1,15 @@
+---
+description: Vue 3 frontends (`frontend*`)
+globs: **/frontend*/src/**/*.vue, **/frontend*/src/**/*.ts
+alwaysApply: false
+---
+
+# Vue 3 — `frontend*`
+
+**Auth:** Access JWT only in Pinia; refresh in `httpOnly` cookie (e.g. scoped to `/api/v1/auth/refresh`). Cross-origin: `SameSite=None; Secure`. Router guards check **both** `isAuthenticated` and `role`; wrong role → `/unauthorized` (not `/login`). Route meta `requiresAuth`, `role` ∈ PATIENT | DOCTOR | ADMIN.
+
+**Composition API:** `<script setup>` only; typed `defineProps`; composables `src/composables/use{Name}.ts`; no raw Axios in components — composables / Pinia actions only.
+
+**Layout:** Components `src/components/{domain}/{Name}.vue`; pages `src/pages/{patient|doctor|admin}/{Name}.vue`; stores `src/stores/{name}.store.ts`; API `src/services/{name}.service.ts`. Tailwind only (no inline styles). Validate forms client-side; user-facing errors sanitized (no raw API errors).
+
+**Agora:** Tokens only from backend; channel = appointment UUID (not raw user IDs); handle token refresh mid-call; degrade to audio when network poor; on `onUnmounted`, close tracks and `client.leave()`.

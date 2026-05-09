@@ -1,0 +1,13 @@
+{
+  "name": "@saas-builder/i18n-contract",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared locale codes, metadata, and storage key for FlexShell / SaaS Builder apps (Vue, React, Spring, etc.)",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}

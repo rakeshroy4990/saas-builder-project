@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import DynamicPage from '../components/renderer/DynamicPage.vue';
+import SetLocaleView from '../components/system/SetLocaleView.vue';
 import NotFound from '../components/system/NotFound.vue';
 import SessionTelemetryDebug from '../components/system/SessionTelemetryDebug.vue';
 import { registerHospitalRouteGuards } from './authGuards';
@@ -36,6 +37,10 @@ export const router = createRouter({
     {
       path: '/_telemetry/session',
       component: SessionTelemetryDebug
+    },
+    {
+      path: '/locale/:code',
+      component: SetLocaleView
     },
     {
       path: '/blog/:slug',

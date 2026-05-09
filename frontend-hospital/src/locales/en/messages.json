@@ -1,0 +1,464 @@
+{
+  "nav": {
+    "menu": "Menu",
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "education": "Education",
+    "blog": "Blog",
+    "loginRegister": "Login/Register",
+    "bookNow": "Book Now",
+    "profile": "Profile",
+    "inactiveAccount": "Inactive Account",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…",
+    "accountMenuTitle": "Account menu — profile, account status, sign out",
+    "language": "Language",
+    "languageHint": "Select interface language",
+    "account": "Account"
+  },
+  "hospital": {
+    "brandTitle": "Agastya Healthcare",
+    "logoAlt": "Agastya Healthcare logo"
+  },
+  "footer": {
+    "terms": "Terms & Conditions",
+    "privacyIndia": "Privacy Notice (India)",
+    "tagline": {
+      "home": "Agastya Healthcare | Pediatric and family care you can trust.",
+      "dashboard": "Agastya Healthcare Dashboard | Manage appointments efficiently.",
+      "patientDashboard": "Agastya Healthcare | Your patient dashboard and care updates.",
+      "doctorOverview": "Agastya Healthcare | Meet our care team and specialists.",
+      "doctorEducation": "Agastya Healthcare | Clinical flashcards for continuous medical learning.",
+      "blog": "Agastya Healthcare | Wellness stories for curious readers.",
+      "blogArticle": "Agastya Healthcare | Wellness stories for curious readers.",
+      "chat": "Agastya Healthcare | Questions? Our team is here to help.",
+      "privacy": "Agastya Healthcare | Pediatric and family care you can trust.",
+      "bookAppointment": "Agastya Healthcare | Update your appointment details.",
+      "profile": "Agastya Healthcare | Manage your account settings.",
+      "termsPage": "Agastya Healthcare | Pediatric and family care you can trust."
+    }
+  },
+  "popup": {
+    "login": "Login",
+    "register": "Register",
+    "bookAppointment": "Book an Appointment",
+    "articlePreview": "Article preview",
+    "registrationSuccess": "Registration Successful",
+    "appointmentCreated": "Appointment Created",
+    "receipts": "Receipts",
+    "videoCall": "Video Call",
+    "editAppointment": "Edit appointment",
+    "eprescription": "E-Prescription",
+    "resetPassword": "Reset password",
+    "chooseLanguage": "Choose your language",
+    "chooseLanguageHint": "This controls menus and labels in the app. You can change it later from Profile.",
+    "error": {
+      "title": "Something went wrong",
+      "generic": "Something went wrong while processing your request. Please try again.",
+      "network": "Unable to reach the server right now. Please check your connection and try again.",
+      "sessionExpired": "Your session may have expired. Please log in again and retry.",
+      "unavailable": "The service is temporarily unavailable. Please try again in a moment."
+    },
+    "loginForm": {
+      "emailLabel": "Email *",
+      "emailPlaceholder": "youremail{'@'}example.com",
+      "passwordLabel": "Password *",
+      "passwordPlaceholder": "Enter password",
+      "or": "or",
+      "googleSignIn": "Sign In With Google",
+      "resetForgotPassword": "Reset / Forgot Password",
+      "newUserRegister": "New user? Register"
+    }
+  },
+  "page": {
+    "home": { "title": "Agastya Healthcare Hospital" },
+    "dashboard": { "title": "Dashboard" },
+    "terms": { "title": "Terms & Conditions" },
+    "privacy": { "title": "Privacy Notice (India)" },
+    "blog": { "title": "Wellness Blog" },
+    "blogArticle": { "title": "Article" },
+    "chat": { "title": "Chat" },
+    "profile": { "title": "Profile" },
+    "appointment": { "title": "Appointment" },
+    "patientDashboard": {
+      "title": "Patient Dashboard",
+      "introGuidance": "Review upcoming care highlights and schedule follow-up appointments quickly."
+    },
+    "doctorOverview": { "title": "Doctor Overview" },
+    "doctorEducation": {
+      "title": "Doctor Education",
+      "doctorsOnly": "Education is available for doctor users only."
+    }
+  },
+  "errors": {
+    "notFound": "Page not found: {package}/{page}",
+    "notFoundTitle": "Page not found"
+  },
+  "locale": {
+    "setTitle": "Setting language…"
+  },
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "submit": "Submit",
+    "selectPlaceholder": "Select…",
+    "previous": "Previous",
+    "next": "Next",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "menu": "Menu",
+    "chooseDate": "Choose date",
+    "dateFormatYmd": "yyyy-mm-dd",
+    "start": "Start",
+    "end": "End",
+    "remove": "Remove",
+    "days": {
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday",
+      "sun": "Sunday"
+    }
+  },
+  "home": {
+    "hero": {
+      "title": "Your Health, Our Priority",
+      "subtitle": "Experience compassionate care with state-of-the-art medical facilities. Our team of expert physicians is dedicated to your wellbeing.",
+      "ctaPrimary": "Schedule Visit",
+      "featuredVideoTitle": "Featured video from Agastya Healthcare"
+    },
+    "section": {
+      "doctors": {
+        "heading": "Meet Our Expert Doctors",
+        "subheading": "Our team of highly qualified and experienced medical professionals"
+      },
+      "services": {
+        "heading": "Our Medical Services",
+        "subheading": "Comprehensive healthcare services delivered with excellence and compassion"
+      },
+      "highlights": {
+        "heading": "Why Choose Agastya Healthcare?"
+      },
+      "contact": {
+        "heading": "Get In Touch"
+      }
+    },
+    "services": {
+      "pediatrics": {
+        "name": "Pediatrics",
+        "description": "Gentle and comprehensive care for children of all ages"
+      }
+    },
+    "doctors": {
+      "swati": {
+        "name": "Dr. Swati Pandey",
+        "speciality": "Pediatrics Specialist",
+        "degree": "MBBS, DNB Pediatrics, DCH (CMC Ludhiana)",
+        "experience": "5+ years experience"
+      }
+    },
+    "highlights": {
+      "tech": {
+        "title": "Advanced Technology",
+        "detail": "Latest medical equipment and diagnostic tools"
+      },
+      "team": {
+        "title": "Expert Medical Team",
+        "detail": "Board-certified physicians and specialists"
+      },
+      "care": {
+        "title": "Patient-Centered Care",
+        "detail": "Personalized treatment plans for every patient"
+      }
+    },
+    "contact": {
+      "whatsapp": "WhatsApp Only: 6360895190",
+      "email": "EmailId: pedsforpeople{'@'}gmail.com"
+    }
+  },
+  "blog": {
+    "heading": "Wellness & curiosity",
+    "subheading": "Short reads to spark questions and better habits — not medical advice. For personal decisions, speak with your clinician.",
+    "loading": "Loading articles…",
+    "empty": "No articles to show yet.",
+    "card": {
+      "readMoreHint": "Open the article page for the full story, examples, and practical context.",
+      "openArticle": "Open article page"
+    },
+    "article": {
+      "backAll": "← All articles",
+      "loading": "Loading article…"
+    },
+    "source": {
+      "legacyList": "Data returned as a plain list (legacy API). Source attribution may be incomplete.",
+      "llm": "Teasers from an AI model. Refresh may reuse server cache.",
+      "staticFallback": "Curated static teasers.",
+      "staticFallbackVerbose": "Showing curated static teasers (used when AI output was empty or could not be parsed). Reusing a recent server result so the page loads faster—this is normal.",
+      "hospitalApi": "Teasers from the hospital blog API."
+    },
+    "dynamic": {
+      "defaultCategory": "Wellness",
+      "unableLoadArticles": "Unable to load articles.",
+      "missingArticleAddress": "Missing article address.",
+      "reference": "Reference",
+      "minRead": "min read",
+      "firstQuestion": "What is the first thing you would want to explore about “{title}”?",
+      "followupQuestion": "What questions could you bring to a routine visit after reading the full article?"
+    }
+  },
+  "toast": {
+    "prescriptionImageLimit": "Can not upload more than two images, please upload latest two images of prescription",
+    "profileSaved": "Profile saved.",
+    "languageSaved": "Language saved.",
+    "profileViewLoginRequired": "Please log in to view your profile.",
+    "profileLoadFailed": "Could not load profile.",
+    "profileSaveLoginRequired": "Please log in to save your profile.",
+    "localeLoginRequired": "Please log in to continue.",
+    "localeUnsupported": "Unsupported language.",
+    "deactivateLoginRequired": "Please log in first.",
+    "accountDeactivated": "Your account has been deactivated.",
+    "profileSaveFailed": "Save failed.",
+    "deactivateFailed": "Could not deactivate account.",
+    "slotsForbiddenDoctor": "You cannot load slots for this doctor.",
+    "slotsLoadFailed": "Could not load available time slots. Try again."
+  },
+  "appointment": {
+    "doctorLoadFailed": "Unable to load doctors. Please try again.",
+    "slotNoneForDate": "No time slots are available for this doctor on the selected date. Please choose a different doctor or date.",
+    "slotNoneFutureToday": "No future time slots are available today. Please choose a later date.",
+    "form": {
+      "patientName": "Patient Name *",
+      "patientNamePlaceholder": "Your Name",
+      "email": "Email Address *",
+      "emailPlaceholder": "youremail{'@'}example.com",
+      "phone": "Phone Number *",
+      "phonePlaceholder": "Phone Number",
+      "ageYears": "Patient Age (years) *",
+      "agePlaceholder": "Digits only, e.g. 25 or 72",
+      "ageMax20Placeholder": "Age in numbers, max 20",
+      "department": "Department *",
+      "doctorSelectDepartment": "Doctor (select department first) *",
+      "doctor": "Doctor *",
+      "preferredDate": "Preferred Date *",
+      "preferredTimeSlot": "Preferred Time Slot *",
+      "additionalNotes": "Additional Notes",
+      "notesPlaceholder": "Tell us about your symptoms or concerns...",
+      "priorDocs": "Prior documents / scans (optional, up to 2 images)",
+      "saveChanges": "Save changes",
+      "backToDashboard": "Back to dashboard"
+    }
+  },
+  "form": {
+    "gender": {
+      "male": "Male",
+      "female": "Female"
+    },
+    "role": {
+      "patient": "Patient",
+      "doctorApproval": "Doctor (Admin Approval Required)",
+      "adminApproval": "Admin (Admin Approval Required)"
+    }
+  },
+  "prescription": {
+    "form": {
+      "consultationMode": "Consultation mode *",
+      "consultationDateTime": "Consultation date & time *",
+      "clinicName": "Clinic / hospital name *",
+      "clinicPhone": "Clinic phone *",
+      "clinicAddress": "Clinic address *",
+      "doctorDisplayName": "Doctor display name *",
+      "qualifications": "Qualifications *",
+      "smcName": "State Medical Council *",
+      "smcReg": "SMC registration number *",
+      "patientName": "Patient name *",
+      "patientAgeOrDob": "Patient age or DOB *",
+      "patientGender": "Patient Gender *",
+      "patientPhone": "Patient phone *",
+      "patientAddress": "Patient address",
+      "medicines": "Medicines *",
+      "generalAdvice": "General advice",
+      "generalAdvicePlaceholder": "Diet, hydration, rest, warning signs, and when to seek urgent care.",
+      "followUpAdvice": "Follow-up advice",
+      "followUpAdvicePlaceholder": "Follow-up date/time, investigations, and escalation instructions.",
+      "legalNotice": "Legal: this tool does not replace counsel-approved telemedicine, schedule (H/H1/X), or CA/eSign workflows. The current signer is a non-evidentiary placeholder until a licensed ASP is integrated.",
+      "saveDraft": "Save draft",
+      "validate": "Validate",
+      "finalizePending": "Finalize (eSign pending)"
+    },
+    "options": {
+      "consultation": {
+        "video": "Video",
+        "audio": "Audio",
+        "inPerson": "In person"
+      },
+      "sex": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      }
+    }
+  },
+  "dashboard": {
+    "nav": {
+      "appointments": "Appointments",
+      "workingSlots": "Set working time slots",
+      "administration": "Administration"
+    },
+    "filters": {
+      "heading": "⚙️ Filters",
+      "toggleTitle": "Toggle filters",
+      "clearTitle": "Clear filters",
+      "status": "Status",
+      "date": "Date",
+      "doctor": "Doctor",
+      "department": "Department",
+      "doctorOptionAll": "All Doctors",
+      "statusOptionAll": "All Appointments",
+      "statusOptionCompleted": "Completed",
+      "statusOptionCancelled": "Cancelled",
+      "statusOptionRemovedAdmin": "Removed (admin)"
+    },
+    "appointments": {
+      "title": "Appointments",
+      "loading": "Loading appointments…",
+      "empty": "No appointments found for the selected filters."
+    },
+    "workingSlots": {
+      "title": "Set working time slots",
+      "helper": "Weekly hours use the hospital time zone configured on the server. Add multiple windows in one day for lunch breaks (gaps).",
+      "save": "Save schedule",
+      "slotLength": "Slot length",
+      "minutes15": "15 min",
+      "minutes30": "30 min",
+      "addWindow": "Add window",
+      "dayOffNotBookable": "Day off — not bookable.",
+      "copyThisDay": "Copy this day's setup to other days",
+      "copyHint": "Copies slot length, on/off, and all time windows. Use quick actions or pick days below.",
+      "copyMonFriTitle": "Monday through Friday (except this day if it is a weekday)",
+      "copyMonFri": "Copy to Mon-Fri",
+      "copySatSunTitle": "Saturday and Sunday (except this day if it is a weekend day)",
+      "copySatSun": "Copy to Sat-Sun",
+      "copyAllOtherTitle": "All other days of the week",
+      "copyAllOther": "Copy to all other days",
+      "copySelected": "Copy to selected days"
+    },
+    "admin": {
+      "title": "Administration",
+      "pendingHeading": "Pending registrations (doctor or admin)",
+      "pendingEmpty": "No pending requests.",
+      "approveTitle": "Approve",
+      "doctorsHeading": "Doctors",
+      "deactivateTitle": "Deactivate",
+      "registerHeading": "Register a new doctor",
+      "createDoctorTitle": "Create doctor account",
+      "form": {
+        "email": "Email",
+        "password": "Password",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "address": "Address",
+        "gender": "Gender",
+        "mobile": "Mobile",
+        "department": "Department",
+        "qualifications": "Qualifications",
+        "smcName": "State Medical Council",
+        "smcRegistrationNumber": "SMC registration #"
+      }
+    }
+  },
+  "chat": {
+    "title": "Health Assistant",
+    "quick": {
+      "setAppointment": "Set An Appointment",
+      "userProfile": "User Profile"
+    },
+    "widget": {
+      "me": "Me",
+      "support": "Support",
+      "patient": "Patient",
+      "mode": {
+        "smartAi": "Smart AI",
+        "humanSupport": "Human Support"
+      },
+      "generalGuidance": "General health guidance only",
+      "safetyNoticeTitle": "Safety notice",
+      "safetyNoticeBody": "This is general guidance, not medical diagnosis. For emergencies, contact your nearest emergency service immediately.",
+      "iUnderstand": "I understand",
+      "processingRequest": "Health Assistant is processing your request...",
+      "incomingRequestTitle": "Incoming chat request",
+      "incomingRequestSubtitle": "An admin can accept to start a 1:1 chat.",
+      "waitingAcceptance": "Waiting for acceptance",
+      "reject": "Reject",
+      "accept": "Accept",
+      "starting": "Starting...",
+      "waitingAdmin": "Waiting for Admin...",
+      "startChat": "Start a Chat",
+      "adminHintPrefix": "When a patient clicks",
+      "adminHintMiddle": "their request appears here with",
+      "adminHintSuffix": "You do not need to click Start a Chat first.",
+      "supportWarning": "You’ll be connected to support. Please don’t share passwords or sensitive info.",
+      "queuedMessages": "Queued messages (will send after admin accepts)",
+      "sayHi": "Say hi—support will respond here.",
+      "sending": "sending…",
+      "message": "Message",
+      "edit": "Edit",
+      "assistantTyping": "Health Assistant is typing",
+      "assistantProcessing": "Health Assistant is processing",
+      "clickUnderstand": "Please click I understand to continue...",
+      "tellSymptoms": "Tell Health Assistant your symptoms...",
+      "typeMessage": "Type a message…",
+      "send": "Send",
+      "quickPrompts": {
+        "fever": "I have fever for 2 days",
+        "coldCough": "I have cold and cough",
+        "stomachPain": "I have stomach pain after eating",
+        "childCough": "My child has cough"
+      },
+      "quickPills": {
+        "fever": "Fever 🤒",
+        "coldCough": "Cold & cough 🤧",
+        "stomachPain": "Stomach pain 🤢",
+        "childCough": "Child Cough 👶"
+      }
+    }
+  },
+  "education": {
+    "doctorStudio": "Doctor Studio",
+    "flashcardsTitle": "Education Flashcards",
+    "flashcardsSubtitle": "Pick a topic or type your focus area. Cards are generated in a clinical learning format.",
+    "cardsCount": "{count} cards",
+    "startTopic": "Start with a key topic",
+    "addFocus": "Add your focus",
+    "focusPlaceholder": "Example: Build flashcards on pediatric fever workup with red flags and initial investigations.",
+    "generationHintPrefix": "Generation runs automatically after a brief typing pause. Clicking",
+    "generationHintSuffix": "copies that card topic here.",
+    "searchInDetail": "Search in detail",
+    "searching": "Searching…",
+    "front": "Front",
+    "backLabel": "Back",
+    "detailedNotes": "Detailed notes",
+    "emptyState": "Choose a topic or type a prompt to generate study cards.",
+    "back": "← Back",
+    "levels": {
+      "mbbs": "Foundational concepts and first principles",
+      "md": "Mechanisms, depth, evidence-based framing and clinical nuance",
+      "dm": "Super-specialist depth and edge-case analysis"
+    },
+    "explainer": {
+      "title": "Medical Concept Explainer",
+      "subtitle": "Adaptive explanations calibrated for MBBS → MD/DNB → DM",
+      "medicalConcept": "Medical Concept",
+      "conceptPlaceholder": "Concept",
+      "ragContext": "RAG Context / Flashcard Context",
+      "selectedConceptDetail": "Selected concept detail",
+      "generatingDetail": "Generating detailed explanation...",
+      "noDetailYet": "No detailed notes yet. Use Search in detail from a card to generate this view."
+    }
+  },
+  "serverCopy": {
+    "acceptLanguageHint": "APIs should honor Accept-Language (e.g. hi, en) for server-rendered copy or return stable codes for client translation."
+  }
+}

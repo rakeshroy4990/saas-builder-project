@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { PageConfig } from '../../core/types/PageConfig';
 import { useActionEngine } from '../../composables/useActionEngine';
 import { useAppStore } from '../../store/useAppStore';
@@ -14,6 +15,7 @@ const props = defineProps<{
 }>();
 
 const { execute } = useActionEngine(props.pageConfig);
+const { t } = useI18n();
 const appStore = useAppStore(pinia);
 const flipped = ref<Set<string>>(new Set());
 const selectedCardId = ref<string>('');
@@ -159,15 +161,15 @@ onBeforeUnmount(() => {
   >
     <div v-if="detailMode" class="explainer-shell">
       <div class="explainer-back-row">
-        <button type="button" class="explainer-back-btn" @click="backToFlashcards">← Back</button>
+        <button type="button" class="explainer-back-btn" @click="backToFlashcards">{{ t('education.back') }}</button>
       </div>
 
       <div class="explainer-header">
         <div class="explainer-header-top">
           <div class="explainer-logo">🩺</div>
-          <h2 class="explainer-title">Medical Concept Explainer</h2>
+          <h2 class="explainer-title">{{ t('education.explainer.title') }}</h2>
         </div>
-        <p class="explainer-subtitle">Adaptive explanations calibrated for MBBS → MD/DNB → DM</p>
+        <p class="explainer-subtitle">{{ t('education.explainer.subtitle') }}</p>
       </div>
 
       <div class="explainer-level-bar">
@@ -183,10 +185,10 @@ onBeforeUnmount(() => {
           <span class="level-desc">
             {{
               lvl === 'MBBS'
-                ? 'Foundational concepts and first principles'
+                ? t('education.levels.mbbs')
                 : lvl === 'MD'
-                  ? 'Mechanisms, depth, evidence-based framing and clinical nuance'
-                  : 'Super-specialist depth and edge-case analysis'
+                  ? t('education.levels.md')
+                  : t('education.levels.dm')
             }}
           </span>
         </button>
@@ -195,21 +197,21 @@ onBeforeUnmount(() => {
       <div class="explainer-input-card">
         <div class="explainer-input-row">
           <div class="explainer-input-group">
-            <label class="explainer-label">Medical Concept</label>
+            <label class="explainer-label">{{ t('education.explainer.medicalConcept') }}</label>
             <input
               type="text"
               :value="selectedCard?.front ?? draftText"
               readonly
               class="explainer-input"
-              placeholder="Concept"
+              :placeholder="t('education.explainer.conceptPlaceholder')"
             />
           </div>
           <div class="explainer-input-group is-wide">
-            <label class="explainer-label">RAG Context / Flashcard Context</label>
+            <label class="explainer-label">{{ t('education.explainer.ragContext') }}</label>
             <textarea
               readonly
               class="explainer-textarea"
-              :value="selectedCard ? `Front: ${selectedCard.front}\nBack: ${selectedCard.back}` : ''"
+              :value="selectedCard ? `${t('education.front')}: ${selectedCard.front}\n${t('education.backLabel')}: ${selectedCard.back}` : ''"
             />
           </div>
         </div>
@@ -218,12 +220,12 @@ onBeforeUnmount(() => {
       <div class="explainer-output-card">
         <div class="explainer-output-header">
           <span class="explainer-badge">{{ explainerLevel }}</span>
-          <span class="explainer-concept">{{ selectedCard?.front ?? 'Selected concept detail' }}</span>
+          <span class="explainer-concept">{{ selectedCard?.front ?? t('education.explainer.selectedConceptDetail') }}</span>
         </div>
 
         <div v-if="detailLoadingCardId === selectedCardId" class="explainer-loading" aria-live="polite">
           <span class="spinner" />
-          Generating detailed explanation...
+          {{ t('education.explainer.generatingDetail') }}
         </div>
 
         <p
@@ -232,7 +234,7 @@ onBeforeUnmount(() => {
         >
           {{
             detailByCardId[selectedDetailKey]
-              || 'No detailed notes yet. Use Search in detail from a card to generate this view.'
+              || t('education.explainer.noDetailYet')
           }}
         </p>
       </div>
@@ -241,19 +243,19 @@ onBeforeUnmount(() => {
     <template v-else>
     <header class="flex flex-wrap items-center justify-between gap-3 border-b border-emerald-100/80 pb-4">
       <div class="space-y-1">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">Doctor Studio</p>
-        <h2 class="text-3xl font-semibold leading-tight text-slate-900">Education Flashcards</h2>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">{{ t('education.doctorStudio') }}</p>
+        <h2 class="text-3xl font-semibold leading-tight text-slate-900">{{ t('education.flashcardsTitle') }}</h2>
         <p class="text-sm text-slate-600">
-          Pick a topic or type your focus area. Cards are generated in a clinical learning format.
+          {{ t('education.flashcardsSubtitle') }}
         </p>
       </div>
       <div class="rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-700 backdrop-blur">
-        {{ flashcards.length }} cards
+        {{ t('education.cardsCount', { count: flashcards.length }) }}
       </div>
     </header>
 
     <div class="space-y-3">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Start with a key topic</p>
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.startTopic') }}</p>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="topic in topics"
@@ -274,19 +276,19 @@ onBeforeUnmount(() => {
 
     <div class="space-y-2">
       <label for="doctor-education-draft" class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Add your focus
+        {{ t('education.addFocus') }}
       </label>
       <textarea
         id="doctor-education-draft"
         :value="draftText"
         rows="4"
         class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
-        placeholder="Example: Build flashcards on pediatric fever workup with red flags and initial investigations."
+        :placeholder="t('education.focusPlaceholder')"
         @input="onDraftInput"
       />
       <p class="text-xs text-slate-500">
-        Generation runs automatically after a brief typing pause. Clicking <span class="font-semibold text-emerald-700">Search in detail</span>
-        copies that card topic here.
+        {{ t('education.generationHintPrefix') }} <span class="font-semibold text-emerald-700">{{ t('education.searchInDetail') }}</span>
+        {{ t('education.generationHintSuffix') }}
       </p>
     </div>
 
@@ -315,7 +317,7 @@ onBeforeUnmount(() => {
           @click="toggleFlip(card.id)"
         >
           <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
-            {{ flipped.has(card.id) ? 'Back' : 'Front' }}
+            {{ flipped.has(card.id) ? t('education.backLabel') : t('education.front') }}
           </p>
           <p class="text-sm leading-6 text-slate-800">
             {{ flipped.has(card.id) ? card.back : card.front }}
@@ -329,7 +331,7 @@ onBeforeUnmount(() => {
             :disabled="detailLoadingCardId === card.id"
             @click="searchCardDetail(card)"
           >
-            {{ detailLoadingCardId === card.id ? 'Searching…' : 'Search in detail' }}
+            {{ detailLoadingCardId === card.id ? t('education.searching') : t('education.searchInDetail') }}
           </button>
         </div>
 
@@ -338,7 +340,7 @@ onBeforeUnmount(() => {
           class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
           aria-live="polite"
         >
-          <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">Detailed notes</p>
+          <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">{{ t('education.detailedNotes') }}</p>
           <p class="whitespace-pre-wrap text-sm leading-6 text-slate-700">
             {{ detailByCardId[card.id] }}
           </p>
@@ -347,7 +349,7 @@ onBeforeUnmount(() => {
     </div>
 
     <p v-if="!loading && !error && flashcards.length === 0" class="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-500">
-      Choose a topic or type a prompt to generate study cards.
+      {{ t('education.emptyState') }}
     </p>
     </template>
   </section>

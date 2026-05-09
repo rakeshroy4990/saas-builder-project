@@ -79,6 +79,7 @@ function clearAuthSessionUi(): void {
   appStore.setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', '');
   appStore.setProperty('hospital', 'AuthSession', 'fullName', '');
   appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
+  appStore.setProperty('hospital', 'AuthSession', 'preferredLocale', '');
   clearPersistedAuthSessionProfile();
   clearLoginSessionId();
 }
@@ -257,6 +258,16 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error) => {
+    const requestUrl = String(error.config?.url ?? '');
+    const status = error.response?.status as number | undefined;
+    const isChatSupportOpenForbidden = requestUrl.includes(URLRegistry.paths.chatSupportOpen) && status === 403;
+    if (isChatSupportOpenForbidden) {
+      void logClient('INFO', 'Ignoring expected forbidden support-open request', {
+        status,
+        url: requestUrl
+      });
+      return Promise.reject(error);
+    }
     void logClient('ERROR', 'HTTP request failed', {
       status: error.response?.status,
       url: error.config?.url,
@@ -280,16 +291,27 @@ apiClient.interceptors.response.use(
     }
     const popupStore = usePopupStore(pinia);
     const toastStore = useToastStore(pinia);
-    const requestUrl = String(error.config?.url ?? '');
     const isLoginRequest =
       requestUrl.includes(URLRegistry.paths.login) || requestUrl.includes(URLRegistry.paths.googleLogin);
     const isLogoutRequest = requestUrl.includes(URLRegistry.paths.logout);
     const isRefreshRequest = requestUrl.includes(URLRegistry.paths.refresh);
     const isDoctorDirectoryRequest = requestUrl.includes(URLRegistry.paths.doctorGet);
     const isSmartAiRequest = requestUrl.includes(URLRegistry.paths.hospitalAiChat);
+    const isChatSupportOpenRequest = requestUrl.includes(URLRegistry.paths.chatSupportOpen);
     const isMultipartUpload = typeof FormData !== 'undefined' && error.config?.data instanceof FormData;
     const authPayload = readUnauthorizedPayload(error.response?.data);
-    const status = error.response?.status as number | undefined;
+
+    // Network / transport failures (e.g. backend down) for non-critical background calls should not
+    // interrupt the UI with a toast/popup. Callers can still handle the rejection if they want.
+    const isNetworkFailure = !status;
+    const isLogsBatchRequest = requestUrl.includes(URLRegistry.paths.logsBatch);
+    const isTelemetryIngestRequest =
+      requestUrl.includes(URLRegistry.paths.telemetrySessionEvent) ||
+      requestUrl.includes(URLRegistry.paths.telemetrySessionEvents);
+    const isHeroYoutubeRequest = requestUrl.includes(URLRegistry.paths.youtubeHeroVideo);
+    if (isNetworkFailure && (isLogsBatchRequest || isTelemetryIngestRequest || isHeroYoutubeRequest)) {
+      return Promise.reject(error);
+    }
 
     if (authPayload.isUnauthorized) {
       void emitSessionExpiredTelemetryAndFlush(error.response?.status).finally(() =>
@@ -319,7 +341,8 @@ apiClient.interceptors.response.use(
         isRefreshRequest ||
         isDoctorDirectoryRequest ||
         isMultipartUpload ||
-        isSmartAiRequest
+        isSmartAiRequest ||
+        isChatSupportOpenRequest
       ) {
         if (isSmartAiRequest) {
           toastStore.show('Health Assistant is temporarily unavailable. Please try again shortly.', 'error');

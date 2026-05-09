@@ -39,6 +39,7 @@ export const hospitalTermsPage: PageConfig = {
   packageName: 'hospital',
   pageId: 'terms',
   title: 'Terms & Conditions',
+  titleKey: 'page.terms.title',
   initializeActions: [{ actionId: 'set-home-header-active' }],
   container: {
     layoutTemplate: 'hosp.page.root',
@@ -166,11 +167,10 @@ export const hospitalTermsPage: PageConfig = {
           ]
         }
       },
-      hospitalSiteFooter(
-        'hospital-terms-footer',
-        'Agastya Healthcare | Pediatric and family care you can trust.',
-        { termsPageId: '' }
-      )
+      hospitalSiteFooter('hospital-terms-footer', '', {
+        termsPageId: '',
+        taglineI18nKey: 'footer.tagline.termsPage'
+      })
     ]
   }
 };

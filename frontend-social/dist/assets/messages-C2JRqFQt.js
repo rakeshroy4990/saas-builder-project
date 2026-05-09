@@ -1,0 +1,1 @@
+var e={language:`भाषा`,languageHint:`भाषा चुनें`,home:`होम`},t={notFoundTitle:`पृष्ठ नहीं मिला`},n={setTitle:`भाषा सेट हो रही है…`},r={nav:e,errors:t,locale:n};export{r as default,t as errors,n as locale,e as nav};

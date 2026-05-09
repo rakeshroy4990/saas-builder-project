@@ -9,6 +9,23 @@ body {
   color: #0f172a;
 }
 
+/*
+ * Hindi UI: devanagari-friendly face only. Do not increase root font-size here — `lang="hi"` is set on
+ * `<html>`, and Tailwind sizing uses `rem`, so even ~105% reads as a global “zoom” vs English.
+ */
+html:lang(hi) {
+  font-family:
+    'Noto Sans Devanagari',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
 @keyframes hospSidebarCloseRightToLeft {
   from {
     transform: translateX(0);

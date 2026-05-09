@@ -14,6 +14,7 @@ import { initFirebaseAnalytics } from './services/analytics/firebaseAnalytics'
 import { initSessionSummaryNavigation } from './services/analytics/sessionSummary'
 import { initSentry } from './services/observability/sentry'
 import * as Sentry from '@sentry/vue'
+import { applyPreferredLocaleFromAuthSession, i18n, initI18n } from './i18n'
 
 async function start() {
   startLogSyncScheduler()
@@ -29,8 +30,10 @@ async function start() {
     await logClient('WARN', 'Firebase Analytics init skipped', { reason: String(err) })
   })
   await hydrateUiMetadataFromServer().catch(() => {})
+  await initI18n()
+  await applyPreferredLocaleFromAuthSession()
   await logClient('INFO', 'FlexShell UI startup complete')
-  const app = createApp(App).use(pinia).use(router)
+  const app = createApp(App).use(pinia).use(router).use(i18n)
   initSentry(app, router)
   app.mount('#app')
 }

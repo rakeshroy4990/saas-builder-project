@@ -16,6 +16,7 @@ from config.settings import (
     is_postgres_persistence,
 )
 from db.text_search_index import ensure_text_index
+from db.image_store import ensure_bucket_exists
 from ingestion.pdf_tracker import ensure_registry_indexes
 
 if SENTRY_ENABLED and SENTRY_DSN:
@@ -52,6 +53,7 @@ async def startup() -> None:
         from db.postgres_backend import ensure_postgres_schema
 
         ensure_postgres_schema()
+        ensure_bucket_exists()
     else:
         ensure_text_index()
         ensure_cache_ttl_index()

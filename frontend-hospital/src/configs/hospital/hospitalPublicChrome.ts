@@ -33,7 +33,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                     type: 'button',
                     config: {
                       text: '☰',
-                      title: 'Menu',
+                      titleI18nKey: 'nav.menu',
                       styles: {
                         utilityClasses:
                           'inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 lg:invisible'
@@ -55,7 +55,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                     type: 'image',
                     config: {
                       src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/logo_oz0zzd.jpg',
-                      alt: 'Agastya Healthcare logo',
+                      altI18nKey: 'hospital.logoAlt',
                       styles: { styleTemplate: 'hosp.header.logo' },
                       click: {
                         actionId: 'set-home-header-active',
@@ -70,7 +70,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                     id: 'hospital-public-header-title',
                     type: 'text',
                     config: {
-                      text: 'Agastya Healthcare',
+                      i18nKey: 'hospital.brandTitle',
                       styles: { styleTemplate: 'hosp.header.title' },
                       plainClick: true,
                       click: {
@@ -105,7 +105,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Home',
+                i18nKey: 'nav.home',
                 styles: {
                   styleTemplate: 'hosp.header.menuButton',
                   utilityClasses: 'bg-emerald-100 text-emerald-700'
@@ -126,7 +126,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Home',
+                i18nKey: 'nav.home',
                 styles: { styleTemplate: 'hosp.header.menuButton' },
                 click: {
                   actionId: 'set-home-header-active',
@@ -144,7 +144,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Dashboard',
+                i18nKey: 'nav.dashboard',
                 styles: {
                   styleTemplate: 'hosp.header.menuButton',
                   utilityClasses: 'bg-emerald-100 text-emerald-700'
@@ -162,7 +162,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Dashboard',
+                i18nKey: 'nav.dashboard',
                 styles: { styleTemplate: 'hosp.header.menuButton' },
                 click: {
                   actionId: 'set-dashboard-header-active',
@@ -181,7 +181,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Education',
+                i18nKey: 'nav.education',
                 styles: {
                   styleTemplate: 'hosp.header.menuButton',
                   utilityClasses: 'bg-emerald-100 text-emerald-700'
@@ -203,7 +203,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Education',
+                i18nKey: 'nav.education',
                 styles: { styleTemplate: 'hosp.header.menuButton' },
                 click: {
                   actionId: 'set-education-header-active',
@@ -221,7 +221,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Blog',
+                i18nKey: 'nav.blog',
                 styles: {
                   styleTemplate: 'hosp.header.menuButton',
                   utilityClasses: 'bg-emerald-100 text-emerald-700'
@@ -242,7 +242,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Blog',
+                i18nKey: 'nav.blog',
                 styles: { styleTemplate: 'hosp.header.menuButton' },
                 click: {
                   actionId: 'set-blog-header-active',
@@ -260,6 +260,11 @@ const hospitalPublicHeader: ComponentDefinition = {
           layoutTemplate: 'hosp.header.actions',
           children: [
             {
+              id: 'hospital-public-header-language',
+              type: 'language-switcher',
+              config: {}
+            },
+            {
               id: 'hospital-public-header-login',
               type: 'button',
               condition: {
@@ -273,7 +278,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                text: 'Login/Register',
+                i18nKey: 'nav.loginRegister',
                 styles: { styleTemplate: 'hosp.header.authButton' },
                 click: { actionId: 'open-login-popup' }
               }
@@ -299,7 +304,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                       mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
                       styles: { styleTemplate: 'hosp.header.userButton' },
                       trailingVisual: 'chevron-down',
-                      title: 'Account menu — profile, account status, sign out',
+                      titleI18nKey: 'nav.accountMenuTitle',
                       click: { actionId: 'toggle-profile-header-menu' }
                     }
                   },
@@ -313,6 +318,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                       }
                     },
                     config: {
+                      layout: { type: 'flex', flex: ['flex', 'flex-col', 'items-stretch', 'gap-1'] },
                       styles: {
                         utilityClasses:
                           'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
@@ -322,8 +328,8 @@ const hospitalPublicHeader: ComponentDefinition = {
                           id: 'hospital-public-header-user-menu-profile',
                           type: 'button',
                           config: {
-                            text: 'Profile',
-                            styles: { styleTemplate: 'hosp.header.menuButton' },
+                            i18nKey: 'nav.profile',
+                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
                             click: {
                               actionId: 'set-profile-page-section',
                               data: { section: 'profile' },
@@ -338,8 +344,8 @@ const hospitalPublicHeader: ComponentDefinition = {
                           id: 'hospital-public-header-user-menu-inactive',
                           type: 'button',
                           config: {
-                            text: 'Inactive Account',
-                            styles: { styleTemplate: 'hosp.header.menuButton' },
+                            i18nKey: 'nav.inactiveAccount',
+                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
                             click: {
                               actionId: 'set-profile-page-section',
                               data: { section: 'inactive' },
@@ -354,9 +360,9 @@ const hospitalPublicHeader: ComponentDefinition = {
                           id: 'hospital-public-header-user-menu-logout',
                           type: 'button',
                           config: {
-                            text: 'Sign out',
-                            pendingLabel: 'Signing out…',
-                            styles: { styleTemplate: 'hosp.header.menuButton' },
+                            i18nKey: 'nav.signOut',
+                            pendingI18nKey: 'nav.signingOut',
+                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
                             click: { actionId: 'logout-user' }
                           }
                         }
@@ -385,13 +391,13 @@ const hospitalPublicHeader: ComponentDefinition = {
                     config: {
                       mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
                       mappingMaxLength: 50,
-                      textFallback: 'Account',
+                      textFallbackI18nKey: 'nav.account',
                       trailingVisual: 'chevron-down',
                       styles: {
                         styleTemplate: 'hosp.header.userMenuTriggerMobile',
                         utilityClasses: 'min-w-0 max-w-[18ch] sm:max-w-[22ch] truncate'
                       },
-                      title: 'Account menu — profile, account status, sign out',
+                      titleI18nKey: 'nav.accountMenuTitle',
                       click: { actionId: 'toggle-profile-header-menu' }
                     }
                   },
@@ -405,6 +411,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                       }
                     },
                     config: {
+                      layout: { type: 'flex', flex: ['flex', 'flex-col', 'items-stretch', 'gap-1'] },
                       styles: {
                         utilityClasses:
                           'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
@@ -414,8 +421,8 @@ const hospitalPublicHeader: ComponentDefinition = {
                           id: 'hospital-public-header-user-menu-profile-mobile',
                           type: 'button',
                           config: {
-                            text: 'Profile',
-                            styles: { styleTemplate: 'hosp.header.menuButton' },
+                            i18nKey: 'nav.profile',
+                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
                             click: {
                               actionId: 'set-profile-page-section',
                               data: { section: 'profile' },
@@ -430,8 +437,8 @@ const hospitalPublicHeader: ComponentDefinition = {
                           id: 'hospital-public-header-user-menu-inactive-mobile',
                           type: 'button',
                           config: {
-                            text: 'Inactive Account',
-                            styles: { styleTemplate: 'hosp.header.menuButton' },
+                            i18nKey: 'nav.inactiveAccount',
+                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
                             click: {
                               actionId: 'set-profile-page-section',
                               data: { section: 'inactive' },
@@ -446,9 +453,9 @@ const hospitalPublicHeader: ComponentDefinition = {
                           id: 'hospital-public-header-user-menu-logout-mobile',
                           type: 'button',
                           config: {
-                            text: 'Sign out',
-                            pendingLabel: 'Signing out…',
-                            styles: { styleTemplate: 'hosp.header.menuButton' },
+                            i18nKey: 'nav.signOut',
+                            pendingI18nKey: 'nav.signingOut',
+                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
                             click: { actionId: 'logout-user' }
                           }
                         }
@@ -463,7 +470,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               type: 'button',
               disabledCondition: disabledWhenLoggedInAsDoctor,
               config: {
-                text: 'Book Now',
+                i18nKey: 'nav.bookNow',
                 styles: { styleTemplate: 'hosp.header.ctaButton' },
                 click: { actionId: 'open-appointment-popup' }
               }
@@ -497,7 +504,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          text: 'Home',
+          i18nKey: 'nav.home',
           styles: { styleTemplate: 'hosp.header.menuButtonActive' },
           click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
         }
@@ -512,7 +519,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          text: 'Home',
+          i18nKey: 'nav.home',
           styles: { styleTemplate: 'hosp.header.menuButton' },
           click: {
             actionId: 'set-home-header-active',
@@ -530,7 +537,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          text: 'Dashboard',
+          i18nKey: 'nav.dashboard',
           styles: { styleTemplate: 'hosp.header.menuButtonActive' },
           click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
         }
@@ -545,7 +552,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          text: 'Dashboard',
+          i18nKey: 'nav.dashboard',
           styles: { styleTemplate: 'hosp.header.menuButton' },
           click: {
             actionId: 'set-dashboard-header-active',
@@ -564,7 +571,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          text: 'Education',
+          i18nKey: 'nav.education',
           styles: { styleTemplate: 'hosp.header.menuButtonActive' },
           click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'doctor-education' } }
         }
@@ -580,7 +587,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          text: 'Education',
+          i18nKey: 'nav.education',
           styles: { styleTemplate: 'hosp.header.menuButton' },
           click: {
             actionId: 'set-education-header-active',
@@ -598,7 +605,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          text: 'Blog',
+          i18nKey: 'nav.blog',
           styles: { styleTemplate: 'hosp.header.menuButtonActive' },
           click: {
             actionId: 'set-blog-header-active',
@@ -616,7 +623,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          text: 'Blog',
+          i18nKey: 'nav.blog',
           styles: { styleTemplate: 'hosp.header.menuButton' },
           click: {
             actionId: 'set-blog-header-active',
@@ -639,6 +646,8 @@ export type HospitalSiteFooterOptions = {
   termsPageId?: string;
   /** DPDP / health-data privacy notice. Pass empty string to hide. Default `privacy` when omitted. */
   privacyPageId?: string;
+  /** When set, footer tagline uses `vue-i18n` (`i18nKey`); `tagline` is ignored for display. */
+  taglineI18nKey?: string;
 };
 
 export function hospitalSiteFooter(
@@ -651,14 +660,20 @@ export function hospitalSiteFooter(
   const showTermsLink = termsPageId.length > 0;
   const showPrivacyLink = privacyPageId.length > 0;
 
+  const taglineFromI18n = Boolean(options?.taglineI18nKey && options.taglineI18nKey.trim().length > 0);
   const children: ComponentDefinition[] = [
     {
       id: `${footerRootId}-text`,
       type: 'text',
-      config: {
-        text: tagline,
-        styles: { utilityClasses: 'text-xs text-slate-500 text-center' }
-      }
+      config: taglineFromI18n
+        ? {
+            i18nKey: options!.taglineI18nKey!.trim(),
+            styles: { utilityClasses: 'text-xs text-slate-500 text-center' }
+          }
+        : {
+            text: tagline,
+            styles: { utilityClasses: 'text-xs text-slate-500 text-center' }
+          }
     }
   ];
 
@@ -669,7 +684,7 @@ export function hospitalSiteFooter(
         id: `${footerRootId}-terms-link`,
         type: 'button',
         config: {
-          text: 'Terms & Conditions',
+          i18nKey: 'footer.terms',
           styles: { styleTemplate: 'hosp.popup.linkButton' },
           click: {
             actionType: 'navigate',
@@ -683,7 +698,7 @@ export function hospitalSiteFooter(
         id: `${footerRootId}-privacy-link`,
         type: 'button',
         config: {
-          text: 'Privacy Notice (India)',
+          i18nKey: 'footer.privacyIndia',
           styles: { styleTemplate: 'hosp.popup.linkButton' },
           click: {
             actionType: 'navigate',

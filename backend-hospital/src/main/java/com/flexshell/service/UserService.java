@@ -13,9 +13,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class UserService {
+    private static final Set<String> ALLOWED_UI_LOCALES = Set.of("en", "hi");
+
     private final ObjectProvider<UserAccess> userAccessProvider;
 
     public UserService(ObjectProvider<UserAccess> userAccessProvider) {
@@ -68,6 +71,14 @@ public class UserService {
         user.setGender(gender);
         user.setMobileNumber(mobile);
         user.setDepartment(department);
+
+        if (request.getPreferredLocale() != null && !request.getPreferredLocale().isBlank()) {
+            String localeNorm = request.getPreferredLocale().trim().toLowerCase();
+            if (!ALLOWED_UI_LOCALES.contains(localeNorm)) {
+                throw new IllegalArgumentException("Unsupported language. Use one of: en, hi");
+            }
+            user.setPreferredLocale(localeNorm);
+        }
 
         if (UserRole.DOCTOR.equals(user.getRole())) {
             // Only apply non-blank values so clients that echo "" for unchanged fields do not wipe Mongo.
@@ -170,7 +181,8 @@ public class UserService {
                 saved.getRole() == null ? UserRole.PATIENT.name() : saved.getRole().name(),
                 saved.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : saved.getRoleStatus().name(),
                 saved.getRequestedRole() == null ? null : saved.getRequestedRole().name(),
-                saved.getRoleRejectedReason());
+                saved.getRoleRejectedReason(),
+                saved.getPreferredLocale());
     }
 
     private static String nz(String s) {

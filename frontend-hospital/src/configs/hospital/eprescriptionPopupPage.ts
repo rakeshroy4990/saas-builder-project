@@ -11,7 +11,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-consult-mode',
         type: 'dropdown',
         config: {
-          label: 'Consultation mode *',
+          labelI18nKey: 'prescription.form.consultationMode',
           mapping: { packageName: 'hospital', key: 'PrescriptionConsultationModeOptions', property: 'list' },
           valueMapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'consultationMode' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'consultationMode' } },
@@ -22,7 +22,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-consult-dt',
         type: 'input',
         config: {
-          label: 'Consultation date & time *',
+          labelI18nKey: 'prescription.form.consultationDateTime',
           inputType: 'datetime-local',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'consultationDateTime' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'consultationDateTime' } },
@@ -33,7 +33,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-clinic-name',
         type: 'input',
         config: {
-          label: 'Clinic / hospital name *',
+          labelI18nKey: 'prescription.form.clinicName',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'clinicName' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'clinicName' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -43,7 +43,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-clinic-phone',
         type: 'input',
         config: {
-          label: 'Clinic phone *',
+          labelI18nKey: 'prescription.form.clinicPhone',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'clinicPhone' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'clinicPhone' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -53,7 +53,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-clinic-address',
         type: 'input',
         config: {
-          label: 'Clinic address *',
+          labelI18nKey: 'prescription.form.clinicAddress',
           inputType: 'textarea',
           rows: 3,
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'clinicAddress' },
@@ -65,7 +65,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-dr-name',
         type: 'input',
         config: {
-          label: 'Doctor display name *',
+          labelI18nKey: 'prescription.form.doctorDisplayName',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'prescriberDisplayName' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'prescriberDisplayName' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -75,7 +75,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-dr-qual',
         type: 'input',
         config: {
-          label: 'Qualifications *',
+          labelI18nKey: 'prescription.form.qualifications',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'prescriberQualifications' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'prescriberQualifications' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -85,7 +85,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-smc',
         type: 'input',
         config: {
-          label: 'State Medical Council *',
+          labelI18nKey: 'prescription.form.smcName',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'smcName' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'smcName' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -95,7 +95,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-smc-reg',
         type: 'input',
         config: {
-          label: 'SMC registration number *',
+          labelI18nKey: 'prescription.form.smcReg',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'smcReg' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'smcReg' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -105,7 +105,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-pt-name',
         type: 'input',
         config: {
-          label: 'Patient name *',
+          labelI18nKey: 'prescription.form.patientName',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'patientName' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'patientName' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -115,7 +115,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-pt-age',
         type: 'input',
         config: {
-          label: 'Patient age or DOB *',
+          labelI18nKey: 'prescription.form.patientAgeOrDob',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'patientAgeOrDob' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'patientAgeOrDob' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -125,7 +125,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-pt-sex',
         type: 'dropdown',
         config: {
-          label: 'Patient Gender *',
+          labelI18nKey: 'prescription.form.patientGender',
           mapping: { packageName: 'hospital', key: 'PrescriptionPatientSexOptions', property: 'list' },
           valueMapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'patientSex' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'patientSex' } },
@@ -136,7 +136,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-pt-phone',
         type: 'input',
         config: {
-          label: 'Patient phone *',
+          labelI18nKey: 'prescription.form.patientPhone',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'patientPhone' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'patientPhone' } },
           styles: { styleTemplate: 'hosp.form.input' }
@@ -146,7 +146,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-pt-address',
         type: 'input',
         config: {
-          label: 'Patient address',
+          labelI18nKey: 'prescription.form.patientAddress',
           inputType: 'textarea',
           rows: 3,
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'patientAddress' },
@@ -158,7 +158,7 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-meds',
         type: 'medicine-list-editor',
         config: {
-          label: 'Medicines *',
+          labelI18nKey: 'prescription.form.medicines',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'medicinesJson' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'medicinesJson' } },
           styles: { utilityClasses: 'md:col-span-2' }
@@ -168,10 +168,10 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-gen',
         type: 'input',
         config: {
-          label: 'General advice',
+          labelI18nKey: 'prescription.form.generalAdvice',
           inputType: 'textarea',
           rows: 4,
-          placeholder: 'Diet, hydration, rest, warning signs, and when to seek urgent care.',
+          placeholderI18nKey: 'prescription.form.generalAdvicePlaceholder',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'generalAdvice' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'generalAdvice' } },
           styles: { styleTemplate: 'hosp.form.textarea', utilityClasses: 'md:col-span-2' }
@@ -181,10 +181,10 @@ const eprescriptionFormGrid: ComponentDefinition = {
         id: 'hospital-eprx-follow',
         type: 'input',
         config: {
-          label: 'Follow-up advice',
+          labelI18nKey: 'prescription.form.followUpAdvice',
           inputType: 'textarea',
           rows: 4,
-          placeholder: 'Follow-up date/time, investigations, and escalation instructions.',
+          placeholderI18nKey: 'prescription.form.followUpAdvicePlaceholder',
           mapping: { packageName: 'hospital', key: 'PrescriptionEditor', property: 'followUpAdvice' },
           change: { actionId: 'set-prescription-editor-field', data: { field: 'followUpAdvice' } },
           styles: { styleTemplate: 'hosp.form.textarea', utilityClasses: 'md:col-span-2' }
@@ -228,7 +228,7 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
             {
               id: 'hospital-eprx-popup-title',
               type: 'text',
-              config: { text: 'E-Prescription', styles: { styleTemplate: 'hosp.popup.header.title' } }
+              config: { i18nKey: 'popup.eprescription', styles: { styleTemplate: 'hosp.popup.header.title' } }
             },
             {
               id: 'hospital-eprx-popup-close',
@@ -246,7 +246,7 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
         id: 'hospital-eprx-legal',
         type: 'text',
         config: {
-          text: 'Legal: this tool does not replace counsel-approved telemedicine, schedule (H/H1/X), or CA/eSign workflows. The current signer is a non-evidentiary placeholder until a licensed ASP is integrated.',
+          i18nKey: 'prescription.form.legalNotice',
           styles: { utilityClasses: 'rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950' }
         }
       },
@@ -261,7 +261,7 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
               id: 'hospital-eprx-save',
               type: 'button',
               config: {
-                text: 'Save draft',
+                i18nKey: 'prescription.form.saveDraft',
                 styles: { styleTemplate: 'hosp.popup.button.secondary', utilityClasses: 'min-w-[180px] justify-center' },
                 click: { actionId: 'save-eprescription-draft' }
               }
@@ -270,7 +270,7 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
               id: 'hospital-eprx-validate',
               type: 'button',
               config: {
-                text: 'Validate',
+                i18nKey: 'prescription.form.validate',
                 styles: { styleTemplate: 'hosp.popup.button.secondary', utilityClasses: 'min-w-[180px] justify-center' },
                 click: { actionId: 'validate-eprescription' }
               }
@@ -279,7 +279,7 @@ export const hospitalEprescriptionPopupPage: PageConfig = {
               id: 'hospital-eprx-finalize',
               type: 'button',
               config: {
-                text: 'Finalize (eSign pending)',
+                i18nKey: 'prescription.form.finalizePending',
                 styles: { styleTemplate: 'hosp.popup.button.primary', utilityClasses: 'min-w-[180px] justify-center' },
                 click: { actionId: 'finalize-eprescription' }
               }

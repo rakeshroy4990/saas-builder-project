@@ -3,7 +3,10 @@ import { useAppStore } from '../../../../store/useAppStore';
 import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
+import { i18n } from '../../../../i18n';
 import { pickString } from './strings';
+
+const tr = (key: string): string => String((i18n.global as any).t(key));
 
 function parseTimeToMinutes(raw: string): number | null {
   const text = String(raw ?? '').trim();
@@ -276,13 +279,14 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
       ? (existingFilters.doctorOptions as Array<{ id?: string; value?: string; label?: string }>)
       : [];
     const mergedDoctorOptions = [
-      { id: 'all', value: '', label: 'All Doctors' },
+      { id: 'all', value: '', label: tr('dashboard.filters.doctorOptionAll'), labelI18nKey: 'dashboard.filters.doctorOptionAll' },
       ...existingDoctorOptions
         .filter((option) => String(option.value ?? '').trim())
         .map((option) => ({
           id: String(option.id ?? option.value ?? '').trim(),
           value: String(option.value ?? '').trim(),
-          label: String(option.label ?? option.value ?? '').trim()
+          label: String(option.label ?? option.value ?? '').trim(),
+          labelI18nKey: String((option as { labelI18nKey?: unknown }).labelI18nKey ?? '').trim() || undefined
         })),
       ...doctorMap.values()
     ].filter((option, index, arr) => {

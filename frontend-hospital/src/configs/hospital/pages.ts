@@ -17,6 +17,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'home',
     title: 'Agastya Healthcare Hospital',
+    titleKey: 'page.home.title',
     initializeActions: [
       { actionId: 'set-home-header-active' },
       { actionId: 'load-home-content' },
@@ -78,7 +79,12 @@ export const hospitalPages: PageConfig[] = [
                             type: 'button',
                             disabledCondition: disabledWhenLoggedInAsDoctor,
                             config: {
-                              text: 'Schedule Visit',
+                              mapping: {
+                                packageName: 'hospital',
+                                key: 'HomeContent',
+                                path: 'hero',
+                                property: 'ctaPrimary'
+                              },
                               styles: { styleTemplate: 'hosp.button.primary' },
                               click: { actionId: 'open-appointment-popup' }
                             }
@@ -149,7 +155,7 @@ export const hospitalPages: PageConfig[] = [
                           property: 'videoKind'
                         },
                         styles: { styleTemplate: 'hosp.hero.youtube' },
-                        title: 'Featured video from Agastya Healthcare'
+                        titleI18nKey: 'home.hero.featuredVideoTitle'
                       }
                     }
                   ]
@@ -167,13 +173,26 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-home-doctors-heading',
                 type: 'text',
-                config: { text: 'Meet Our Expert Doctors', styles: { styleTemplate: 'hosp.section.heading' } }
+                config: {
+                  mapping: {
+                    packageName: 'hospital',
+                    key: 'HomeContent',
+                    path: 'sections',
+                    property: 'doctors.heading'
+                  },
+                  styles: { styleTemplate: 'hosp.section.heading' }
+                }
               },
               {
                 id: 'hospital-home-doctors-subheading',
                 type: 'text',
                 config: {
-                  text: 'Our team of highly qualified and experienced medical professionals',
+                  mapping: {
+                    packageName: 'hospital',
+                    key: 'HomeContent',
+                    path: 'sections',
+                    property: 'doctors.subheading'
+                  },
                   styles: { styleTemplate: 'hosp.section.subheading' }
                 }
               },
@@ -228,13 +247,26 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-home-services-heading',
                 type: 'text',
-                config: { text: 'Our Medical Services', styles: { styleTemplate: 'hosp.section.heading' } }
+                config: {
+                  mapping: {
+                    packageName: 'hospital',
+                    key: 'HomeContent',
+                    path: 'sections',
+                    property: 'services.heading'
+                  },
+                  styles: { styleTemplate: 'hosp.section.heading' }
+                }
               },
               {
                 id: 'hospital-home-services-subheading',
                 type: 'text',
                 config: {
-                  text: 'Comprehensive healthcare services delivered with excellence and compassion',
+                  mapping: {
+                    packageName: 'hospital',
+                    key: 'HomeContent',
+                    path: 'sections',
+                    property: 'services.subheading'
+                  },
                   styles: { styleTemplate: 'hosp.section.subheading' }
                 }
               },
@@ -288,7 +320,15 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-home-highlights-heading',
                 type: 'text',
-                config: { text: 'Why Choose Agastya Healthcare?', styles: { styleTemplate: 'hosp.section.heading' } }
+                config: {
+                  mapping: {
+                    packageName: 'hospital',
+                    key: 'HomeContent',
+                    path: 'sections',
+                    property: 'highlights.heading'
+                  },
+                  styles: { styleTemplate: 'hosp.section.heading' }
+                }
               },
               {
                 id: 'hospital-home-highlights-list',
@@ -380,7 +420,15 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-home-contact-heading',
                 type: 'text',
-                config: { text: 'Get In Touch', styles: { styleTemplate: 'hosp.section.heading' } }
+                config: {
+                  mapping: {
+                    packageName: 'hospital',
+                    key: 'HomeContent',
+                    path: 'sections',
+                    property: 'contact.heading'
+                  },
+                  styles: { styleTemplate: 'hosp.section.heading' }
+                }
               },
               {
                 id: 'hospital-home-contact-phone',
@@ -412,10 +460,9 @@ export const hospitalPages: PageConfig[] = [
             ]
           }
         },
-        hospitalSiteFooter(
-          'hospital-home-footer',
-          'Agastya Healthcare | Pediatric and family care you can trust.'
-        )
+        hospitalSiteFooter('hospital-home-footer', '', {
+          taglineI18nKey: 'footer.tagline.home'
+        })
       ]
     }
   },
@@ -423,6 +470,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'dashboard',
     title: 'Dashboard',
+    titleKey: 'page.dashboard.title',
     initializeActions: [
       { actionId: 'set-dashboard-header-active' },
       { actionId: 'load-home-content' },
@@ -432,621 +480,7 @@ export const hospitalPages: PageConfig[] = [
     container: {
       layoutTemplate: 'hosp.page.root',
       children: [
-        {
-          id: 'hospital-dashboard-header',
-          type: 'container',
-          config: {
-            layoutTemplate: 'hosp.header.shell',
-            styles: { styleTemplate: 'hosp.header.card' },
-            children: [
-              {
-                id: 'hospital-dashboard-header-lead',
-                type: 'container',
-                config: {
-                  layoutTemplate: 'hosp.header.lead',
-                  children: [
-                    {
-                      id: 'hospital-dashboard-header-mobile-menu-slot',
-                      type: 'container',
-                      config: {
-                        styles: { utilityClasses: 'w-10 shrink-0 flex items-center justify-center' },
-                        children: [
-                          {
-                            id: 'hospital-dashboard-header-mobile-menu-toggle-left',
-                            type: 'button',
-                            config: {
-                              text: '☰',
-                              title: 'Menu',
-                              styles: {
-                                utilityClasses:
-                                  'inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 lg:invisible'
-                              },
-                              click: { actionId: 'toggle-header-menu' }
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-brand',
-                      type: 'container',
-                      config: {
-                        layoutTemplate: 'hosp.header.brand',
-                        children: [
-                          {
-                            id: 'hospital-dashboard-header-logo',
-                            type: 'image',
-                            config: {
-                              src: 'https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/logo_oz0zzd.jpg',
-                              alt: 'Agastya Healthcare logo',
-                              styles: { styleTemplate: 'hosp.header.logo' },
-                              click: {
-                                actionId: 'set-home-header-active',
-                                onSuccess: {
-                                  actionType: 'navigate',
-                                  navigate: { packageName: 'hospital', pageId: 'home' }
-                                }
-                              }
-                            }
-                          },
-                          {
-                            id: 'hospital-dashboard-header-title',
-                            type: 'text',
-                            config: {
-                              text: 'Agastya Healthcare',
-                              styles: { styleTemplate: 'hosp.header.title' },
-                              plainClick: true,
-                              click: {
-                                actionId: 'set-home-header-active',
-                                onSuccess: {
-                                  actionType: 'navigate',
-                                  navigate: { packageName: 'hospital', pageId: 'home' }
-                                }
-                              }
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                id: 'hospital-dashboard-header-nav',
-                type: 'container',
-                config: {
-                  layoutTemplate: 'hosp.header.nav',
-                  styles: { utilityClasses: 'hidden lg:flex items-center gap-4' },
-                  children: [
-                    {
-                      id: 'hospital-dashboard-header-nav-home-active',
-                      type: 'button',
-                      condition: {
-                        expression: "activeMenu === 'HOME'",
-                        mappings: {
-                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                        }
-                      },
-                      config: {
-                        text: 'Home',
-                        styles: {
-                          styleTemplate: 'hosp.header.menuButton',
-                          utilityClasses: 'bg-emerald-100 text-emerald-700'
-                        },
-                        click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-nav-home',
-                      type: 'button',
-                      condition: {
-                        expression: "activeMenu !== 'HOME'",
-                        mappings: {
-                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                        }
-                      },
-                      config: {
-                        text: 'Home',
-                        styles: { styleTemplate: 'hosp.header.menuButton' },
-                        click: {
-                          actionId: 'set-home-header-active',
-                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-                        }
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-nav-dashboard-active',
-                      type: 'button',
-                      condition: {
-                        expression: "activeMenu === 'DASHBOARD'",
-                        mappings: {
-                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                        }
-                      },
-                      config: {
-                        text: 'Dashboard',
-                        styles: {
-                          styleTemplate: 'hosp.header.menuButton',
-                          utilityClasses: 'bg-emerald-100 text-emerald-700'
-                        },
-                        click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-nav-dashboard',
-                      type: 'button',
-                      condition: {
-                        expression: "activeMenu !== 'DASHBOARD'",
-                        mappings: {
-                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                        }
-                      },
-                      config: {
-                        text: 'Dashboard',
-                        styles: { styleTemplate: 'hosp.header.menuButton' },
-                        click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-nav-education-active',
-                      type: 'button',
-                      condition: {
-                        expression:
-                          "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu === 'EDUCATION'",
-                        mappings: {
-                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
-                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                        }
-                      },
-                      config: {
-                        text: 'Education',
-                        styles: {
-                          styleTemplate: 'hosp.header.menuButton',
-                          utilityClasses: 'bg-emerald-100 text-emerald-700'
-                        },
-                        click: {
-                          actionId: 'set-education-header-active',
-                          onSuccess: {
-                            actionType: 'navigate',
-                            navigate: { packageName: 'hospital', pageId: 'doctor-education' }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-nav-education',
-                      type: 'button',
-                      condition: {
-                        expression:
-                          "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu !== 'EDUCATION'",
-                        mappings: {
-                          role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
-                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                        }
-                      },
-                      config: {
-                        text: 'Education',
-                        styles: { styleTemplate: 'hosp.header.menuButton' },
-                        click: {
-                          actionId: 'set-education-header-active',
-                          onSuccess: {
-                            actionType: 'navigate',
-                            navigate: { packageName: 'hospital', pageId: 'doctor-education' }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-nav-blog-active',
-                      type: 'button',
-                      condition: {
-                        expression: "activeMenu === 'BLOG'",
-                        mappings: {
-                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                        }
-                      },
-                      config: {
-                        text: 'Blog',
-                        styles: {
-                          styleTemplate: 'hosp.header.menuButton',
-                          utilityClasses: 'bg-emerald-100 text-emerald-700'
-                        },
-                        click: {
-                          actionId: 'set-blog-header-active',
-                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
-                        }
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-nav-blog',
-                      type: 'button',
-                      condition: {
-                        expression: "activeMenu !== 'BLOG'",
-                        mappings: {
-                          activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                        }
-                      },
-                      config: {
-                        text: 'Blog',
-                        styles: { styleTemplate: 'hosp.header.menuButton' },
-                        click: {
-                          actionId: 'set-blog-header-active',
-                          onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                id: 'hospital-dashboard-header-actions',
-                type: 'container',
-                config: {
-                  layoutTemplate: 'hosp.header.actions',
-                  children: [
-                    {
-                      id: 'hospital-dashboard-header-login',
-                      type: 'button',
-                      condition: {
-                        expression: "!userId || String(userId).trim().length === 0",
-                        mappings: {
-                          userId: {
-                            packageName: 'hospital',
-                            key: 'AuthSession',
-                            property: 'userId'
-                          }
-                        }
-                      },
-                      config: {
-                        text: 'Login/Register',
-                        styles: { styleTemplate: 'hosp.header.authButton' },
-                        click: { actionId: 'open-login-popup' }
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-user-anchor',
-                      type: 'container',
-                      condition: {
-                        expression: "userId && String(userId).trim().length > 0",
-                        mappings: {
-                          userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
-                        }
-                      },
-                      config: {
-                        styles: { utilityClasses: 'relative hidden md:block' },
-                        rootAttrs: { 'data-profile-menu-root': true },
-                        children: [
-                          {
-                            id: 'hospital-dashboard-header-user-display',
-                            type: 'button',
-                            config: {
-                              mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                              styles: { styleTemplate: 'hosp.header.userButton' },
-                              trailingVisual: 'chevron-down',
-                              title: 'Account menu — profile, account status, sign out',
-                              click: { actionId: 'toggle-profile-header-menu' }
-                            }
-                          },
-                          {
-                            id: 'hospital-dashboard-header-user-menu',
-                            type: 'container',
-                            condition: {
-                              expression: 'profileMenuOpen',
-                              mappings: {
-                                profileMenuOpen: { packageName: 'hospital', key: 'HeaderUiState', property: 'profileMenuOpen' }
-                              }
-                            },
-                            config: {
-                              styles: {
-                                utilityClasses:
-                                  'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
-                              },
-                              children: [
-                                {
-                                  id: 'hospital-dashboard-header-user-menu-profile',
-                                  type: 'button',
-                                  config: {
-                                    text: 'Profile',
-                                    styles: { styleTemplate: 'hosp.header.menuButton' },
-                                    click: {
-                                      actionId: 'set-profile-page-section',
-                                      data: { section: 'profile' },
-                                      onSuccess: {
-                                        actionId: 'set-profile-header-active',
-                                        onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
-                                      }
-                                    }
-                                  }
-                                },
-                                {
-                                  id: 'hospital-dashboard-header-user-menu-inactive',
-                                  type: 'button',
-                                  config: {
-                                    text: 'Inactive Account',
-                                    styles: { styleTemplate: 'hosp.header.menuButton' },
-                                    click: {
-                                      actionId: 'set-profile-page-section',
-                                      data: { section: 'inactive' },
-                                      onSuccess: {
-                                        actionId: 'set-profile-header-active',
-                                        onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
-                                      }
-                                    }
-                                  }
-                                },
-                                {
-                                  id: 'hospital-dashboard-header-user-menu-logout',
-                                  type: 'button',
-                                  config: {
-                                    text: 'Sign out',
-                                    pendingLabel: 'Signing out…',
-                                    styles: { styleTemplate: 'hosp.header.menuButton' },
-                                    click: { actionId: 'logout-user' }
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-user-anchor-mobile',
-                      type: 'container',
-                      condition: {
-                        expression: "userId && String(userId).trim().length > 0",
-                        mappings: {
-                          userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
-                        }
-                      },
-                      config: {
-                        styles: { utilityClasses: 'relative md:hidden' },
-                        rootAttrs: { 'data-profile-menu-root': true },
-                        children: [
-                          {
-                            id: 'hospital-dashboard-header-user-display-mobile',
-                            type: 'button',
-                            config: {
-                              mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                              mappingMaxLength: 50,
-                              textFallback: 'Account',
-                              trailingVisual: 'chevron-down',
-                              styles: {
-                                styleTemplate: 'hosp.header.userMenuTriggerMobile',
-                                utilityClasses: 'min-w-0 max-w-[18ch] sm:max-w-[22ch] truncate'
-                              },
-                              title: 'Account menu — profile, account status, sign out',
-                              click: { actionId: 'toggle-profile-header-menu' }
-                            }
-                          },
-                          {
-                            id: 'hospital-dashboard-header-user-menu-mobile',
-                            type: 'container',
-                            condition: {
-                              expression: 'profileMenuOpen',
-                              mappings: {
-                                profileMenuOpen: { packageName: 'hospital', key: 'HeaderUiState', property: 'profileMenuOpen' }
-                              }
-                            },
-                            config: {
-                              styles: {
-                                utilityClasses:
-                                  'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
-                              },
-                              children: [
-                                {
-                                  id: 'hospital-dashboard-header-user-menu-profile-mobile',
-                                  type: 'button',
-                                  config: {
-                                    text: 'Profile',
-                                    styles: { styleTemplate: 'hosp.header.menuButton' },
-                                    click: {
-                                      actionId: 'set-profile-page-section',
-                                      data: { section: 'profile' },
-                                      onSuccess: {
-                                        actionId: 'set-profile-header-active',
-                                        onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
-                                      }
-                                    }
-                                  }
-                                },
-                                {
-                                  id: 'hospital-dashboard-header-user-menu-inactive-mobile',
-                                  type: 'button',
-                                  config: {
-                                    text: 'Inactive Account',
-                                    styles: { styleTemplate: 'hosp.header.menuButton' },
-                                    click: {
-                                      actionId: 'set-profile-page-section',
-                                      data: { section: 'inactive' },
-                                      onSuccess: {
-                                        actionId: 'set-profile-header-active',
-                                        onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
-                                      }
-                                    }
-                                  }
-                                },
-                                {
-                                  id: 'hospital-dashboard-header-user-menu-logout-mobile',
-                                  type: 'button',
-                                  config: {
-                                    text: 'Sign out',
-                                    pendingLabel: 'Signing out…',
-                                    styles: { styleTemplate: 'hosp.header.menuButton' },
-                                    click: { actionId: 'logout-user' }
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      id: 'hospital-dashboard-header-cta',
-                      type: 'button',
-                      disabledCondition: disabledWhenLoggedInAsDoctor,
-                      config: {
-                        text: 'Book Now',
-                        styles: { styleTemplate: 'hosp.header.ctaButton' },
-                        click: { actionId: 'open-appointment-popup' }
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          id: 'hospital-dashboard-mobile-menu-panel',
-          type: 'container',
-          condition: {
-            expression: 'headerMenuOpen !== false',
-            mappings: {
-              headerMenuOpen: { packageName: 'hospital', key: 'ResponsiveUiState', property: 'headerMenuOpen' }
-            }
-          },
-          config: {
-            styles: { utilityClasses: 'lg:hidden rounded-xl border border-slate-200 bg-white px-3 py-2' },
-            children: [
-              {
-                id: 'hospital-dashboard-mobile-menu-home-active',
-                type: 'button',
-                condition: {
-                  expression: "activeMenu === 'HOME'",
-                  mappings: {
-                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                  }
-                },
-                config: {
-                  text: 'Home',
-                  styles: { styleTemplate: 'hosp.header.menuButtonActive' },
-                  click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-                }
-              },
-              {
-                id: 'hospital-dashboard-mobile-menu-home',
-                type: 'button',
-                condition: {
-                  expression: "activeMenu !== 'HOME'",
-                  mappings: {
-                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                  }
-                },
-                config: {
-                  text: 'Home',
-                  styles: { styleTemplate: 'hosp.header.menuButton' },
-                  click: {
-                    actionId: 'set-home-header-active',
-                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-                  }
-                }
-              },
-              {
-                id: 'hospital-dashboard-mobile-menu-dashboard-active',
-                type: 'button',
-                condition: {
-                  expression: "activeMenu === 'DASHBOARD'",
-                  mappings: {
-                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                  }
-                },
-                config: {
-                  text: 'Dashboard',
-                  styles: { styleTemplate: 'hosp.header.menuButtonActive' },
-                  click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
-                }
-              },
-              {
-                id: 'hospital-dashboard-mobile-menu-dashboard',
-                type: 'button',
-                condition: {
-                  expression: "activeMenu !== 'DASHBOARD'",
-                  mappings: {
-                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                  }
-                },
-                config: {
-                  text: 'Dashboard',
-                  styles: { styleTemplate: 'hosp.header.menuButton' },
-                  click: { actionId: 'set-dashboard-header-active' }
-                }
-              },
-              {
-                id: 'hospital-dashboard-mobile-menu-education-active',
-                type: 'button',
-                condition: {
-                  expression: "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu === 'EDUCATION'",
-                  mappings: {
-                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
-                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                  }
-                },
-                config: {
-                  text: 'Education',
-                  styles: { styleTemplate: 'hosp.header.menuButtonActive' },
-                  click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'doctor-education' } }
-                }
-              },
-              {
-                id: 'hospital-dashboard-mobile-menu-education',
-                type: 'button',
-                condition: {
-                  expression: "String(role ?? '').toUpperCase() === 'DOCTOR' && activeMenu !== 'EDUCATION'",
-                  mappings: {
-                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
-                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                  }
-                },
-                config: {
-                  text: 'Education',
-                  styles: { styleTemplate: 'hosp.header.menuButton' },
-                  click: {
-                    actionId: 'set-education-header-active',
-                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'doctor-education' } }
-                  }
-                }
-              },
-              {
-                id: 'hospital-dashboard-mobile-menu-blog-active',
-                type: 'button',
-                condition: {
-                  expression: "activeMenu === 'BLOG'",
-                  mappings: {
-                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                  }
-                },
-                config: {
-                  text: 'Blog',
-                  styles: { styleTemplate: 'hosp.header.menuButtonActive' },
-                  click: {
-                    actionId: 'set-blog-header-active',
-                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
-                  }
-                }
-              },
-              {
-                id: 'hospital-dashboard-mobile-menu-blog',
-                type: 'button',
-                condition: {
-                  expression: "activeMenu !== 'BLOG'",
-                  mappings: {
-                    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                  }
-                },
-                config: {
-                  text: 'Blog',
-                  styles: { styleTemplate: 'hosp.header.menuButton' },
-                  click: {
-                    actionId: 'set-blog-header-active',
-                    onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
-                  }
-                }
-              }
-            ]
-          }
-        },
+        ...hospitalPublicChromeTop,
         {
           id: 'hospital-dashboard-content-shell',
           type: 'container',
@@ -1073,7 +507,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Appointments',
+                        i18nKey: 'dashboard.nav.appointments',
                         styles: {
                           utilityClasses:
                             'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
@@ -1100,7 +534,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Appointments',
+                        i18nKey: 'dashboard.nav.appointments',
                         styles: {
                           utilityClasses:
                             'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -1129,7 +563,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Set working time slots',
+                        i18nKey: 'dashboard.nav.workingSlots',
                         styles: {
                           utilityClasses:
                             'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
@@ -1161,7 +595,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Set working time slots',
+                        i18nKey: 'dashboard.nav.workingSlots',
                         styles: {
                           utilityClasses:
                             'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -1193,7 +627,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Administration',
+                        i18nKey: 'dashboard.nav.administration',
                         styles: {
                           utilityClasses:
                             'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
@@ -1223,7 +657,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Administration',
+                        i18nKey: 'dashboard.nav.administration',
                         styles: {
                           utilityClasses:
                             'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -1271,7 +705,10 @@ export const hospitalPages: PageConfig[] = [
                           {
                             id: 'hospital-dashboard-main-title',
                             type: 'text',
-                            config: { text: 'Appointments', styles: { styleTemplate: 'hosp.section.heading' } }
+                            config: {
+                              i18nKey: 'dashboard.appointments.title',
+                              styles: { styleTemplate: 'hosp.section.heading' }
+                            }
                           },
                           {
                             id: 'hospital-dashboard-main-total',
@@ -1288,8 +725,8 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-dashboard-filter-toggle-mobile',
                       type: 'button',
                       config: {
-                        text: '⚙️ Filters',
-                        title: 'Toggle filters',
+                        i18nKey: 'dashboard.filters.heading',
+                        titleI18nKey: 'dashboard.filters.toggleTitle',
                         styles: {
                           utilityClasses:
                             'inline-flex lg:hidden w-fit rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700'
@@ -1317,7 +754,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-status-mobile',
                             type: 'dropdown',
                             config: {
-                              label: 'Status',
+                              labelI18nKey: 'dashboard.filters.status',
                               mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'statusOptions' },
                               styles: { styleTemplate: 'hosp.form.input' },
                               change: { actionId: 'set-dashboard-filter-status' }
@@ -1327,7 +764,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-date-mobile',
                             type: 'input',
                             config: {
-                              label: 'Date',
+                              labelI18nKey: 'dashboard.filters.date',
                               inputType: 'date',
                               styles: { styleTemplate: 'hosp.form.input' },
                               change: { actionId: 'set-dashboard-filter-date' }
@@ -1337,7 +774,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-doctor-mobile',
                             type: 'dropdown',
                             config: {
-                              label: 'Doctor',
+                              labelI18nKey: 'dashboard.filters.doctor',
                               mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'doctorOptions' },
                               styles: { styleTemplate: 'hosp.form.input' },
                               change: { actionId: 'set-dashboard-filter-doctor' }
@@ -1347,7 +784,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-department-mobile',
                             type: 'dropdown',
                             config: {
-                              label: 'Department',
+                              labelI18nKey: 'dashboard.filters.department',
                               mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'departmentOptions' },
                               styles: { styleTemplate: 'hosp.form.input' },
                               change: { actionId: 'set-dashboard-filter-department' }
@@ -1364,7 +801,7 @@ export const hospitalPages: PageConfig[] = [
                                   type: 'button',
                                   config: {
                                     text: '↺',
-                                    title: 'Clear filters',
+                                    titleI18nKey: 'dashboard.filters.clearTitle',
                                     styles: {
                                       utilityClasses:
                                         'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-600 bg-white text-xl font-semibold text-emerald-700'
@@ -1390,7 +827,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-status',
                             type: 'dropdown',
                             config: {
-                              label: 'Status',
+                              labelI18nKey: 'dashboard.filters.status',
                               mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'statusOptions' },
                               styles: { styleTemplate: 'hosp.form.input' },
                               change: { actionId: 'set-dashboard-filter-status' }
@@ -1400,7 +837,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-date',
                             type: 'input',
                             config: {
-                              label: 'Date',
+                              labelI18nKey: 'dashboard.filters.date',
                               inputType: 'date',
                               styles: { styleTemplate: 'hosp.form.input' },
                               change: { actionId: 'set-dashboard-filter-date' }
@@ -1410,7 +847,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-doctor',
                             type: 'dropdown',
                             config: {
-                              label: 'Doctor',
+                              labelI18nKey: 'dashboard.filters.doctor',
                               mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'doctorOptions' },
                               styles: { styleTemplate: 'hosp.form.input' },
                               change: { actionId: 'set-dashboard-filter-doctor' }
@@ -1420,7 +857,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-filter-department',
                             type: 'dropdown',
                             config: {
-                              label: 'Department',
+                              labelI18nKey: 'dashboard.filters.department',
                               mapping: { packageName: 'hospital', key: 'DashboardFilters', property: 'departmentOptions' },
                               styles: { styleTemplate: 'hosp.form.input' },
                               change: { actionId: 'set-dashboard-filter-department' }
@@ -1437,7 +874,7 @@ export const hospitalPages: PageConfig[] = [
                                   type: 'button',
                                   config: {
                                     text: '↺',
-                                    title: 'Clear filters',
+                                    titleI18nKey: 'dashboard.filters.clearTitle',
                                     styles: {
                                       utilityClasses:
                                         'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-600 bg-white text-xl font-semibold text-emerald-700'
@@ -1461,7 +898,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Loading appointments...',
+                        i18nKey: 'dashboard.appointments.loading',
                         styles: { utilityClasses: 'text-sm font-medium text-slate-600' }
                       }
                     },
@@ -1490,7 +927,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'No appointments found for the selected filters.',
+                        i18nKey: 'dashboard.appointments.empty',
                         styles: { utilityClasses: 'text-sm text-slate-500' }
                       }
                     },
@@ -1738,7 +1175,7 @@ export const hospitalPages: PageConfig[] = [
                                     }
                                   },
                                   config: {
-                                    text: 'Previous',
+                                    i18nKey: 'common.previous',
                                     styles: { styleTemplate: 'hosp.button.secondary' },
                                     click: { actionId: 'dashboard-prev-page' }
                                   }
@@ -1753,7 +1190,7 @@ export const hospitalPages: PageConfig[] = [
                                     }
                                   },
                                   config: {
-                                    text: 'Next',
+                                    i18nKey: 'common.next',
                                     styles: { styleTemplate: 'hosp.button.secondary' },
                                     click: { actionId: 'dashboard-next-page' }
                                   }
@@ -1768,7 +1205,7 @@ export const hospitalPages: PageConfig[] = [
                                     }
                                   },
                                   config: {
-                                    text: 'Next',
+                                    i18nKey: 'common.next',
                                     disabled: true,
                                     styles: { styleTemplate: 'hosp.popup.button.disabled' }
                                   }
@@ -1806,7 +1243,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-title',
                                   type: 'text',
                                   config: {
-                                    text: 'Administration',
+                                    i18nKey: 'dashboard.admin.title',
                                     styles: { styleTemplate: 'hosp.section.heading', utilityClasses: 'text-2xl' }
                                   }
                                 },
@@ -1815,7 +1252,7 @@ export const hospitalPages: PageConfig[] = [
                                   type: 'button',
                                   config: {
                                     text: '🔄',
-                                    title: 'Refresh',
+                                    titleI18nKey: 'common.refresh',
                                     styles: {
                                       utilityClasses:
                                         'rounded-md border border-slate-300 px-2.5 py-1.5 text-base leading-none text-slate-700 hover:bg-slate-50'
@@ -1848,7 +1285,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-admin-pending-heading',
                             type: 'text',
                             config: {
-                              text: 'Pending registrations (doctor or admin)',
+                              i18nKey: 'dashboard.admin.pendingHeading',
                               styles: { styleTemplate: 'hosp.section.subheading' }
                             }
                           },
@@ -1867,7 +1304,7 @@ export const hospitalPages: PageConfig[] = [
                               }
                             },
                             config: {
-                              text: 'No pending requests.',
+                              i18nKey: 'dashboard.admin.pendingEmpty',
                               styles: { utilityClasses: 'text-sm text-slate-500' }
                             }
                           },
@@ -1905,7 +1342,7 @@ export const hospitalPages: PageConfig[] = [
                                     type: 'button',
                                     config: {
                                       text: '✅',
-                                      title: 'Approve',
+                                      titleI18nKey: 'dashboard.admin.approveTitle',
                                       styles: {
                                         utilityClasses:
                                           'rounded-md border border-emerald-600 px-2.5 py-1.5 text-base leading-none text-emerald-800 hover:bg-emerald-50'
@@ -1924,7 +1361,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-admin-doctors-heading',
                             type: 'text',
                             config: {
-                              text: 'Doctors',
+                              i18nKey: 'dashboard.admin.doctorsHeading',
                               styles: { styleTemplate: 'hosp.section.subheading' }
                             }
                           },
@@ -1961,7 +1398,7 @@ export const hospitalPages: PageConfig[] = [
                                     },
                                     config: {
                                       text: '🚫',
-                                      title: 'Deactivate',
+                                      titleI18nKey: 'dashboard.admin.deactivateTitle',
                                       styles: {
                                         utilityClasses:
                                           'rounded-md border border-rose-400 px-2.5 py-1.5 text-base leading-none text-rose-700 hover:bg-rose-50'
@@ -1980,7 +1417,7 @@ export const hospitalPages: PageConfig[] = [
                             id: 'hospital-dashboard-admin-register-heading',
                             type: 'text',
                             config: {
-                              text: 'Register a new doctor',
+                              i18nKey: 'dashboard.admin.registerHeading',
                               styles: { styleTemplate: 'hosp.section.subheading' }
                             }
                           },
@@ -1994,7 +1431,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-email',
                                   type: 'input',
                                   config: {
-                                    label: 'Email',
+                                    labelI18nKey: 'dashboard.admin.form.email',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'emailId' }
                                   }
@@ -2003,7 +1440,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-password',
                                   type: 'input',
                                   config: {
-                                    label: 'Password',
+                                    labelI18nKey: 'dashboard.admin.form.password',
                                     inputType: 'password',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'password' },
@@ -2013,7 +1450,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-first',
                                   type: 'input',
                                   config: {
-                                    label: 'First name',
+                                    labelI18nKey: 'dashboard.admin.form.firstName',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'firstName' },
                                   }
@@ -2022,7 +1459,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-last',
                                   type: 'input',
                                   config: {
-                                    label: 'Last name',
+                                    labelI18nKey: 'dashboard.admin.form.lastName',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'lastName' },
                                   }
@@ -2031,7 +1468,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-address',
                                   type: 'input',
                                   config: {
-                                    label: 'Address',
+                                    labelI18nKey: 'dashboard.admin.form.address',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'address' },
                                   }
@@ -2040,7 +1477,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-gender',
                                   type: 'input',
                                   config: {
-                                    label: 'Gender',
+                                    labelI18nKey: 'dashboard.admin.form.gender',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'gender' },
                                   }
@@ -2049,7 +1486,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-mobile',
                                   type: 'input',
                                   config: {
-                                    label: 'Mobile',
+                                    labelI18nKey: 'dashboard.admin.form.mobile',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'mobileNumber' },
                                   }
@@ -2058,7 +1495,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-dept',
                                   type: 'input',
                                   config: {
-                                    label: 'Department',
+                                    labelI18nKey: 'dashboard.admin.form.department',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'department' },
                                   }
@@ -2067,7 +1504,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-qual',
                                   type: 'input',
                                   config: {
-                                    label: 'Qualifications',
+                                    labelI18nKey: 'dashboard.admin.form.qualifications',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: {
                                       packageName: 'hospital',
@@ -2080,7 +1517,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-smc',
                                   type: 'input',
                                   config: {
-                                    label: 'State Medical Council',
+                                    labelI18nKey: 'dashboard.admin.form.smcName',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: { packageName: 'hospital', key: 'AdminDoctorRegisterForm', property: 'smcName' },
                                   }
@@ -2089,7 +1526,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-admin-reg-regno',
                                   type: 'input',
                                   config: {
-                                    label: 'SMC registration #',
+                                    labelI18nKey: 'dashboard.admin.form.smcRegistrationNumber',
                                     styles: { styleTemplate: 'hosp.form.input' },
                                     mapping: {
                                       packageName: 'hospital',
@@ -2106,7 +1543,7 @@ export const hospitalPages: PageConfig[] = [
                             type: 'button',
                             config: {
                               text: '➕',
-                              title: 'Create doctor account',
+                              titleI18nKey: 'dashboard.admin.createDoctorTitle',
                               styles: {
                                 utilityClasses:
                                   'rounded-md border border-emerald-600 px-2.5 py-1.5 text-base leading-none text-emerald-800 hover:bg-emerald-50'
@@ -2144,7 +1581,7 @@ export const hospitalPages: PageConfig[] = [
                                   id: 'hospital-dashboard-schedule-title',
                                   type: 'text',
                                   config: {
-                                    text: 'Set working time slots',
+                                    i18nKey: 'dashboard.workingSlots.title',
                                     styles: { styleTemplate: 'hosp.section.heading', utilityClasses: 'text-2xl' }
                                   }
                                 }
@@ -2175,7 +1612,7 @@ export const hospitalPages: PageConfig[] = [
                               }
                             },
                             config: {
-                              label: 'Doctor',
+                              labelI18nKey: 'dashboard.filters.doctor',
                               mapping: { packageName: 'hospital', key: 'DoctorScheduleAdminDoctors', property: 'list' },
                               valueMapping: { packageName: 'hospital', key: 'DoctorScheduleUi', property: 'selectedDoctorId' },
                               change: { actionId: 'set-working-slots-doctor' },
@@ -2206,7 +1643,7 @@ export const hospitalPages: PageConfig[] = [
                               }
                             },
                             config: {
-                              text: 'Loading…',
+                              i18nKey: 'common.loading',
                               styles: { utilityClasses: 'text-sm text-slate-600' }
                             }
                           },
@@ -2232,10 +1669,9 @@ export const hospitalPages: PageConfig[] = [
             ]
           }
         },
-        hospitalSiteFooter(
-          'hospital-dashboard-footer',
-          'Agastya Healthcare Dashboard | Manage appointments efficiently.'
-        )
+        hospitalSiteFooter('hospital-dashboard-footer', '', {
+          taglineI18nKey: 'footer.tagline.dashboard'
+        })
       ]
     }
   },
@@ -2243,6 +1679,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'patient-dashboard',
     title: 'Patient Dashboard',
+    titleKey: 'page.patientDashboard.title',
     initializeActions: [{ actionId: 'set-dashboard-header-active' }, { actionId: 'load-home-content' }],
     container: {
       layoutTemplate: 'hosp.page.root',
@@ -2257,7 +1694,10 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-patient-dashboard-intro',
                 type: 'text',
-                config: { text: 'Patient Dashboard', styles: { styleTemplate: 'hosp.section.heading' } }
+                config: {
+                  i18nKey: 'page.patientDashboard.title',
+                  styles: { styleTemplate: 'hosp.section.heading' }
+                }
               },
               {
                 id: 'hospital-patient-dashboard-next-steps',
@@ -2270,7 +1710,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-patient-dashboard-guidance',
                       type: 'text',
                       config: {
-                        text: 'Review upcoming care highlights and schedule follow-up appointments quickly.',
+                        i18nKey: 'page.patientDashboard.introGuidance',
                         styles: { styleTemplate: 'hosp.section.subheading' }
                       }
                     },
@@ -2304,10 +1744,9 @@ export const hospitalPages: PageConfig[] = [
             ]
           }
         },
-        hospitalSiteFooter(
-          'hospital-patient-dashboard-footer',
-          'Agastya Healthcare | Your patient dashboard and care updates.'
-        )
+        hospitalSiteFooter('hospital-patient-dashboard-footer', '', {
+          taglineI18nKey: 'footer.tagline.patientDashboard'
+        })
       ]
     }
   },
@@ -2315,6 +1754,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'doctor-overview',
     title: 'Doctor Overview',
+    titleKey: 'page.doctorOverview.title',
     initializeActions: [{ actionId: 'set-home-header-active' }, { actionId: 'load-home-content' }],
     container: {
       layoutTemplate: 'hosp.page.root',
@@ -2329,7 +1769,10 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-doctor-overview-intro',
                 type: 'text',
-                config: { text: 'Doctor Overview', styles: { styleTemplate: 'hosp.section.heading' } }
+                config: {
+                  i18nKey: 'page.doctorOverview.title',
+                  styles: { styleTemplate: 'hosp.section.heading' }
+                }
               },
               {
                 id: 'hospital-doctor-overview-list',
@@ -2373,10 +1816,9 @@ export const hospitalPages: PageConfig[] = [
             ]
           }
         },
-        hospitalSiteFooter(
-          'hospital-doctor-overview-footer',
-          'Agastya Healthcare | Meet our care team and specialists.'
-        )
+        hospitalSiteFooter('hospital-doctor-overview-footer', '', {
+          taglineI18nKey: 'footer.tagline.doctorOverview'
+        })
       ]
     }
   },
@@ -2384,6 +1826,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'doctor-education',
     title: 'Doctor Education',
+    titleKey: 'page.doctorEducation.title',
     initializeActions: [{ actionId: 'set-education-header-active' }, { actionId: 'init-doctor-education' }],
     container: {
       layoutTemplate: 'hosp.page.root',
@@ -2422,7 +1865,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-doctor-education-access-denied-text',
                       type: 'text',
                       config: {
-                        text: 'Education is available for doctor users only.',
+                        i18nKey: 'page.doctorEducation.doctorsOnly',
                         styles: { utilityClasses: 'text-sm font-medium text-slate-700' }
                       }
                     }
@@ -2432,10 +1875,9 @@ export const hospitalPages: PageConfig[] = [
             ]
           }
         },
-        hospitalSiteFooter(
-          'hospital-doctor-education-footer',
-          'Agastya Healthcare | Clinical flashcards for continuous medical learning.'
-        )
+        hospitalSiteFooter('hospital-doctor-education-footer', '', {
+          taglineI18nKey: 'footer.tagline.doctorEducation'
+        })
       ]
     }
   },
@@ -2443,6 +1885,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'blog',
     title: 'Wellness Blog',
+    titleKey: 'page.blog.title',
     initializeActions: [{ actionId: 'set-blog-header-active' }, { actionId: 'load-blog-previews' }],
     container: {
       layoutTemplate: 'hosp.page.root',
@@ -2458,7 +1901,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-blog-heading',
                 type: 'text',
                 config: {
-                  text: 'Wellness & curiosity',
+                  i18nKey: 'blog.heading',
                   styles: { styleTemplate: 'hosp.section.heading', utilityClasses: 'text-3xl' }
                 }
               },
@@ -2466,7 +1909,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-blog-sub',
                 type: 'text',
                 config: {
-                  text: 'Short reads to spark questions and better habits — not medical advice. For personal decisions, speak with your clinician.',
+                  i18nKey: 'blog.subheading',
                   styles: { utilityClasses: 'text-sm text-slate-600 max-w-3xl' }
                 }
               },
@@ -2499,7 +1942,7 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  text: 'Loading articles…',
+                  i18nKey: 'blog.loading',
                   styles: { utilityClasses: 'text-sm text-slate-500' }
                 }
               },
@@ -2573,7 +2016,7 @@ export const hospitalPages: PageConfig[] = [
                         id: 'hospital-blog-card-read-more-hint',
                         type: 'text',
                         config: {
-                          text: 'Open the article page for the full story, examples, and practical context.',
+                          i18nKey: 'blog.card.readMoreHint',
                           styles: { utilityClasses: 'text-xs text-slate-500 italic' }
                         }
                       },
@@ -2590,7 +2033,7 @@ export const hospitalPages: PageConfig[] = [
                               id: 'hospital-blog-card-open-page',
                               type: 'button',
                               config: {
-                                text: 'Open article page',
+                                i18nKey: 'blog.card.openArticle',
                                 styles: {
                                   utilityClasses:
                                     'inline-flex text-sm font-semibold text-slate-700 hover:text-slate-900 underline underline-offset-2'
@@ -2621,14 +2064,16 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  text: 'No articles to show yet.',
+                  i18nKey: 'blog.empty',
                   styles: { utilityClasses: 'text-sm text-slate-500' }
                 }
               }
             ]
           }
         },
-        hospitalSiteFooter('hospital-blog-footer', 'Agastya Healthcare | Wellness stories for curious readers.')
+        hospitalSiteFooter('hospital-blog-footer', '', {
+          taglineI18nKey: 'footer.tagline.blog'
+        })
       ]
     }
   },
@@ -2636,6 +2081,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'blog-article',
     title: 'Article',
+    titleKey: 'page.blogArticle.title',
     initializeActions: [{ actionId: 'set-blog-header-active' }, { actionId: 'load-blog-article-preview' }],
     container: {
       layoutTemplate: 'hosp.page.root',
@@ -2651,7 +2097,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-blog-article-back',
                 type: 'button',
                 config: {
-                  text: '← All articles',
+                  i18nKey: 'blog.article.backAll',
                   styles: { utilityClasses: 'self-start text-sm font-semibold text-emerald-700 hover:text-emerald-800' },
                   click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
                 }
@@ -2666,7 +2112,7 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  text: 'Loading article…',
+                  i18nKey: 'blog.article.loading',
                   styles: { utilityClasses: 'text-sm text-slate-500' }
                 }
               },
@@ -2738,10 +2184,9 @@ export const hospitalPages: PageConfig[] = [
             ]
           }
         },
-        hospitalSiteFooter(
-          'hospital-blog-article-footer',
-          'Agastya Healthcare | Wellness stories for curious readers.'
-        )
+        hospitalSiteFooter('hospital-blog-article-footer', '', {
+          taglineI18nKey: 'footer.tagline.blogArticle'
+        })
       ]
     }
   },
@@ -2761,7 +2206,7 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-blog-readmore-title',
                 type: 'text',
-                config: { text: 'Article preview', styles: { styleTemplate: 'hosp.popup.header.title' } }
+                config: { i18nKey: 'popup.articlePreview', styles: { styleTemplate: 'hosp.popup.header.title' } }
               },
               {
                 id: 'hospital-blog-readmore-close',
@@ -2841,7 +2286,7 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-login-popup-title',
                 type: 'text',
-                config: { text: 'Login', styles: { styleTemplate: 'hosp.popup.header.title' } }
+                config: { i18nKey: 'popup.login', styles: { styleTemplate: 'hosp.popup.header.title' } }
               },
               {
                 id: 'hospital-login-popup-close',
@@ -2889,13 +2334,13 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-login-popup-identity-label',
                       type: 'text',
-                      config: { text: 'Email *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'popup.loginForm.emailLabel', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-login-popup-identity',
                       type: 'input',
                       config: {
-                        placeholder: 'youremail@example.com',
+                        placeholderI18nKey: 'popup.loginForm.emailPlaceholder',
                         styles: { styleTemplate: 'hosp.form.input' },
                         labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                         change: { actionId: 'set-auth-identity' }
@@ -2931,14 +2376,17 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-login-popup-password-label',
                       type: 'text',
-                      config: { text: 'Password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: {
+                        i18nKey: 'popup.loginForm.passwordLabel',
+                        styles: { styleTemplate: 'hosp.form.inlineLabel' }
+                      }
                     },
                     {
                       id: 'hospital-login-popup-password',
                       type: 'input',
                       config: {
                         inputType: 'password',
-                        placeholder: 'Enter password',
+                        placeholderI18nKey: 'popup.loginForm.passwordPlaceholder',
                         styles: { styleTemplate: 'hosp.form.input' },
                         labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                         change: { actionId: 'set-auth-password' }
@@ -2975,7 +2423,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-login-popup-cancel',
                       type: 'button',
                       config: {
-                        text: 'Cancel',
+                        i18nKey: 'common.cancel',
                         styles: { styleTemplate: 'hosp.popup.button.secondary' },
                         click: { actionType: 'closePopup' }
                       }
@@ -3005,7 +2453,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Login',
+                        i18nKey: 'popup.login',
                         disabled: true,
                         styles: { styleTemplate: 'hosp.popup.button.disabled' }
                       }
@@ -3035,7 +2483,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       },
                       config: {
-                        text: 'Login',
+                        i18nKey: 'popup.login',
                         styles: { styleTemplate: 'hosp.popup.button.primary' },
                         click: {
                           actionId: 'auth-login',
@@ -3075,7 +2523,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-login-popup-or-text',
                       type: 'text',
                       config: {
-                        text: 'or',
+                        i18nKey: 'popup.loginForm.or',
                         styles: { styleTemplate: 'hosp.form.infoText', utilityClasses: 'text-center w-full' }
                       }
                     },
@@ -3084,8 +2532,8 @@ export const hospitalPages: PageConfig[] = [
                       type: 'button',
                       config: {
                         iconPreset: 'google',
-                        text: 'Sign In With Google',
-                        title: 'Sign In With Google',
+                        i18nKey: 'popup.loginForm.googleSignIn',
+                        titleI18nKey: 'popup.loginForm.googleSignIn',
                         styles: {
                           styleTemplate: 'hosp.popup.button.secondary',
                           utilityClasses: 'w-full max-w-xs gap-3'
@@ -3114,7 +2562,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-login-popup-reset-password-link',
                       type: 'button',
                       config: {
-                        text: 'Reset / Forgot Password',
+                        i18nKey: 'popup.loginForm.resetForgotPassword',
                         styles: { styleTemplate: 'hosp.popup.linkButton' },
                         click: {
                           actionId: 'open-reset-password-popup'
@@ -3125,7 +2573,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-login-popup-register-link',
                       type: 'button',
                       config: {
-                        text: 'New user? Register',
+                        i18nKey: 'popup.loginForm.newUserRegister',
                         styles: { styleTemplate: 'hosp.popup.linkButton' },
                         click: {
                           actionId: 'open-register-popup'
@@ -3133,6 +2581,95 @@ export const hospitalPages: PageConfig[] = [
                       }
                     }
                   ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    packageName: 'hospital',
+    pageId: 'locale-onboarding-popup',
+    title: 'Choose language',
+    container: {
+      layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-5'] },
+      children: [
+        {
+          id: 'hospital-locale-onboarding-header',
+          type: 'container',
+          config: {
+            layoutTemplate: 'hosp.popup.header',
+            children: [
+              {
+                id: 'hospital-locale-onboarding-title',
+                type: 'text',
+                config: { i18nKey: 'popup.chooseLanguage', styles: { styleTemplate: 'hosp.popup.header.title' } }
+              },
+              {
+                id: 'hospital-locale-onboarding-header-spacer',
+                type: 'container',
+                config: {
+                  styles: { utilityClasses: 'w-8 shrink-0' },
+                  children: []
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'hospital-locale-onboarding-subtitle',
+          type: 'text',
+          config: {
+            i18nKey: 'popup.chooseLanguageHint',
+            styles: {
+              utilityClasses: 'text-center text-sm text-slate-600 leading-relaxed max-w-md mx-auto px-1'
+            }
+          }
+        },
+        {
+          id: 'hospital-locale-onboarding-buttons',
+          type: 'container',
+          config: {
+            layout: { type: 'flex', flex: ['flex', 'flex-col', 'sm:flex-row', 'gap-3', 'w-full', 'max-w-lg', 'mx-auto'] },
+            children: [
+              {
+                id: 'hospital-locale-onboarding-en',
+                type: 'button',
+                config: {
+                  text: 'English',
+                  styles: {
+                    styleTemplate: 'hosp.popup.button.primary',
+                    utilityClasses: 'w-full sm:flex-1 min-h-[48px] text-base'
+                  },
+                  click: {
+                    actionId: 'save-preferred-locale',
+                    data: { locale: 'en' },
+                    onSuccess: {
+                      actionType: 'closePopup',
+                      onSuccess: { actionId: 'run-dashboard-init-if-present' }
+                    }
+                  }
+                }
+              },
+              {
+                id: 'hospital-locale-onboarding-hi',
+                type: 'button',
+                config: {
+                  text: 'हिंदी',
+                  styles: {
+                    styleTemplate: 'hosp.popup.button.secondary',
+                    utilityClasses: 'w-full sm:flex-1 min-h-[48px] text-base'
+                  },
+                  click: {
+                    actionId: 'save-preferred-locale',
+                    data: { locale: 'hi' },
+                    onSuccess: {
+                      actionType: 'closePopup',
+                      onSuccess: { actionId: 'run-dashboard-init-if-present' }
+                    }
+                  }
                 }
               }
             ]
@@ -3157,7 +2694,7 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-register-popup-title',
                 type: 'text',
-                config: { text: 'Register', styles: { styleTemplate: 'hosp.popup.header.title' } }
+                config: { i18nKey: 'popup.register', styles: { styleTemplate: 'hosp.popup.header.title' } }
               },
               {
                 id: 'hospital-register-popup-close',
@@ -3325,8 +2862,8 @@ export const hospitalPages: PageConfig[] = [
                             type: 'radio-group',
                             config: {
                               options: [
-                                { label: 'Male', value: 'male' },
-                                { label: 'Female', value: 'female' }
+                                { label: 'Male', labelI18nKey: 'form.gender.male', value: 'male' },
+                                { label: 'Female', labelI18nKey: 'form.gender.female', value: 'female' }
                               ],
                               change: { actionId: 'set-register-gender' }
                             }
@@ -3384,9 +2921,19 @@ export const hospitalPages: PageConfig[] = [
                             type: 'dropdown',
                             config: {
                               options: [
-                                { id: 'role-patient', label: 'Patient', value: 'PATIENT' },
-                                { id: 'role-doctor', label: 'Doctor (Admin Approval Required)', value: 'DOCTOR' },
-                                { id: 'role-admin', label: 'Admin (Admin Approval Required)', value: 'ADMIN' }
+                                { id: 'role-patient', label: 'Patient', labelI18nKey: 'form.role.patient', value: 'PATIENT' },
+                                {
+                                  id: 'role-doctor',
+                                  label: 'Doctor (Admin Approval Required)',
+                                  labelI18nKey: 'form.role.doctorApproval',
+                                  value: 'DOCTOR'
+                                },
+                                {
+                                  id: 'role-admin',
+                                  label: 'Admin (Admin Approval Required)',
+                                  labelI18nKey: 'form.role.adminApproval',
+                                  value: 'ADMIN'
+                                }
                               ],
                               labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                               change: { actionId: 'set-register-role' },
@@ -3845,7 +3392,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-reset-password-popup-title',
                 type: 'text',
                 config: {
-                  text: 'Reset password',
+                  i18nKey: 'popup.resetPassword',
                   styles: { styleTemplate: 'hosp.popup.header.title' }
                 }
               },
@@ -4109,7 +3656,10 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-register-success-title',
                 type: 'text',
-                config: { text: 'Registration Successful', styles: { styleTemplate: 'hosp.popup.header.title' } }
+                config: {
+                  i18nKey: 'popup.registrationSuccess',
+                  styles: { styleTemplate: 'hosp.popup.header.title' }
+                }
               }
             ]
           }
@@ -4159,7 +3709,10 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-popup-title',
                 type: 'text',
-                config: { text: 'Book an Appointment', styles: { styleTemplate: 'hosp.popup.header.title' } }
+                config: {
+                  i18nKey: 'popup.bookAppointment',
+                  styles: { styleTemplate: 'hosp.popup.header.title' }
+                }
               },
               {
                 id: 'hospital-popup-close',
@@ -4191,8 +3744,8 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-full-name',
                 type: 'input',
                 config: {
-                  label: 'Patient Name *',
-                  placeholder: 'Your Name',
+                  labelI18nKey: 'appointment.form.patientName',
+                  placeholderI18nKey: 'appointment.form.patientNamePlaceholder',
                   mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'patientName' },
                   change: { actionId: 'set-appointment-patient-field', data: { field: 'patientName' } },
                   styles: { styleTemplate: 'hosp.form.input' }
@@ -4202,8 +3755,8 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-email',
                 type: 'input',
                 config: {
-                  label: 'Email Address *',
-                  placeholder: 'youremail@example.com',
+                  labelI18nKey: 'appointment.form.email',
+                  placeholderI18nKey: 'appointment.form.emailPlaceholder',
                   mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'patientEmail' },
                   change: { actionId: 'set-appointment-patient-field', data: { field: 'patientEmail' } },
                   styles: { styleTemplate: 'hosp.form.input' }
@@ -4213,8 +3766,8 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-phone',
                 type: 'input',
                 config: {
-                  label: 'Phone Number *',
-                  placeholder: 'Phone Number',
+                  labelI18nKey: 'appointment.form.phone',
+                  placeholderI18nKey: 'appointment.form.phonePlaceholder',
                   mapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'patientPhone' },
                   change: { actionId: 'set-appointment-patient-field', data: { field: 'patientPhone' } },
                   styles: { styleTemplate: 'hosp.form.input' }
@@ -4224,8 +3777,8 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-age',
                 type: 'input',
                 config: {
-                  label: 'Patient Age (years) *',
-                  placeholder: 'Age in numbers, max 20',
+                  labelI18nKey: 'appointment.form.ageYears',
+                  placeholderI18nKey: 'appointment.form.ageMax20Placeholder',
                   inputType: 'text',
                   inputMode: 'numeric',
                   pattern: '[0-9]*',
@@ -4240,7 +3793,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-appointment-department',
                 type: 'dropdown',
                 config: {
-                  label: 'Department *',
+                  labelI18nKey: 'appointment.form.department',
                   mapping: { packageName: 'hospital', key: 'AppointmentDepartments', property: 'list' },
                   change: { actionId: 'set-appointment-department' },
                   styles: { styleTemplate: 'hosp.form.input' }
@@ -4260,7 +3813,7 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  label: 'Doctor (select department first) *',
+                  labelI18nKey: 'appointment.form.doctorSelectDepartment',
                   disabled: true,
                   options: [],
                   styles: { styleTemplate: 'hosp.form.input' }
@@ -4280,7 +3833,7 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  label: 'Doctor *',
+                  labelI18nKey: 'appointment.form.doctor',
                   mapping: { packageName: 'hospital', key: 'AppointmentDoctors', property: 'list' },
                   change: { actionId: 'set-appointment-doctor' },
                   styles: { styleTemplate: 'hosp.form.input' }
@@ -4318,7 +3871,7 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  label: 'Preferred Date *',
+                  labelI18nKey: 'appointment.form.preferredDate',
                   disabled: true,
                   min: todayDateInputValue,
                   unavailableDatesMapping: {
@@ -4346,7 +3899,7 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  label: 'Preferred Date *',
+                  labelI18nKey: 'appointment.form.preferredDate',
                   min: todayDateInputValue,
                   unavailableDatesMapping: {
                     packageName: 'hospital',
@@ -4378,7 +3931,7 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  label: 'Preferred Time Slot *',
+                  labelI18nKey: 'appointment.form.preferredTimeSlot',
                   disabled: true,
                   mapping: { packageName: 'hospital', key: 'AppointmentTimeSlots', property: 'list' },
                   styles: { styleTemplate: 'hosp.form.input' }
@@ -4400,7 +3953,7 @@ export const hospitalPages: PageConfig[] = [
                   }
                 },
                 config: {
-                  label: 'Preferred Time Slot *',
+                  labelI18nKey: 'appointment.form.preferredTimeSlot',
                   mapping: { packageName: 'hospital', key: 'AppointmentTimeSlots', property: 'list' },
                   valueMapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'preferredTimeSlot' },
                   change: { actionId: 'set-appointment-time-slot' },
@@ -4431,10 +3984,10 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-notes',
                 type: 'input',
                 config: {
-                  label: 'Additional Notes',
+                  labelI18nKey: 'appointment.form.additionalNotes',
                   inputType: 'textarea',
                   rows: 5,
-                  placeholder: 'Tell us about your symptoms or concerns...',
+                  placeholderI18nKey: 'appointment.form.notesPlaceholder',
                   change: { actionId: 'set-appointment-notes' },
                   styles: { styleTemplate: 'hosp.form.textarea' }
                 }
@@ -4443,8 +3996,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-popup-prescription-upload',
                 type: 'input',
                 config: {
-                  label:
-                    'Prior documents / scans (optional, up to 2 images)',
+                  labelI18nKey: 'appointment.form.priorDocs',
                   inputType: 'file',
                   accept: 'image/*',
                   multiple: true,
@@ -4532,7 +4084,10 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-appointment-success-title',
                 type: 'text',
-                config: { text: 'Appointment Created', styles: { styleTemplate: 'hosp.popup.header.title' } }
+                config: {
+                  i18nKey: 'popup.appointmentCreated',
+                  styles: { styleTemplate: 'hosp.popup.header.title' }
+                }
               }
             ]
           }
@@ -4588,7 +4143,7 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-receipts-popup-title',
                 type: 'text',
-                config: { text: 'Receipts', styles: { styleTemplate: 'hosp.popup.header.title' } }
+                config: { i18nKey: 'popup.receipts', styles: { styleTemplate: 'hosp.popup.header.title' } }
               },
               {
                 id: 'hospital-receipts-popup-close',
@@ -4712,6 +4267,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'chat',
     title: 'Chat',
+    titleKey: 'page.chat.title',
     initializeActions: [{ actionId: 'set-home-header-active' }, { actionId: 'chat-connect' }],
     container: {
       layoutTemplate: 'hosp.page.root',
@@ -4744,7 +4300,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-chat-page-quick-appointment',
                       type: 'button',
                       config: {
-                        text: 'Set An Appointment',
+                        i18nKey: 'chat.quick.setAppointment',
                         styles: {
                           utilityClasses:
                             'w-full sm:flex-1 min-w-0 rounded-lg border border-emerald-600 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50'
@@ -4756,7 +4312,7 @@ export const hospitalPages: PageConfig[] = [
                       id: 'hospital-chat-page-quick-profile',
                       type: 'button',
                       config: {
-                        text: 'User Profile',
+                        i18nKey: 'chat.quick.userProfile',
                         styles: {
                           utilityClasses:
                             'w-full sm:flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -4792,10 +4348,9 @@ export const hospitalPages: PageConfig[] = [
             ]
           }
         },
-        hospitalSiteFooter(
-          'hospital-chat-footer',
-          'Agastya Healthcare | Questions? Our team is here to help.'
-        )
+        hospitalSiteFooter('hospital-chat-footer', '', {
+          taglineI18nKey: 'footer.tagline.chat'
+        })
       ]
     }
   },
@@ -4803,6 +4358,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'chat-popup',
     title: 'Chat',
+    titleKey: 'page.chat.title',
     initializeActions: [{ actionId: 'chat-connect' }],
     container: {
       layout: {
@@ -4821,7 +4377,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-chat-popup-title',
                 type: 'text',
                 config: {
-                  text: 'Health Assistant',
+                  i18nKey: 'chat.title',
                   styles: { utilityClasses: 'text-base font-semibold text-slate-900' }
                 }
               },
@@ -4858,7 +4414,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-chat-popup-quick-appointment',
                 type: 'button',
                 config: {
-                  text: 'Set An Appointment',
+                  i18nKey: 'chat.quick.setAppointment',
                   styles: {
                     utilityClasses:
                       'w-full sm:flex-1 min-w-0 rounded-lg border border-emerald-600 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50'
@@ -4870,7 +4426,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-chat-popup-quick-profile',
                 type: 'button',
                 config: {
-                  text: 'User Profile',
+                  i18nKey: 'chat.quick.userProfile',
                   styles: {
                     utilityClasses:
                       'w-full sm:flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -4924,6 +4480,7 @@ export const hospitalPages: PageConfig[] = [
     packageName: 'hospital',
     pageId: 'doctor-working-slots',
     title: 'Set working time slots',
+    titleKey: 'dashboard.workingSlots.title',
     initializeActions: [
       { actionId: 'set-dashboard-nav-working-slots' },
       { actionId: 'set-dashboard-header-active' },
@@ -4965,7 +4522,7 @@ export const hospitalPages: PageConfig[] = [
               {
                 id: 'hospital-video-call-popup-title',
                 type: 'text',
-                config: { text: 'Video Call', styles: { styleTemplate: 'hosp.popup.header.title' } }
+                config: { i18nKey: 'popup.videoCall', styles: { styleTemplate: 'hosp.popup.header.title' } }
               },
               {
                 id: 'hospital-video-call-popup-close',

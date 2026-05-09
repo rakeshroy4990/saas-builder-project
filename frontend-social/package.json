@@ -14,9 +14,11 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@saas-builder/i18n-contract": "file:../packages/i18n-contract",
     "axios": "^1.15.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.32",
+    "vue-i18n": "^11.4.2",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {

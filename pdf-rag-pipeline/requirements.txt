@@ -12,3 +12,6 @@ pydantic
 pytest
 sentry-sdk[fastapi]==2.58.0
 pytesseract
+Pillow
+boto3
+botocore

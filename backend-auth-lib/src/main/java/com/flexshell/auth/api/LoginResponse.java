@@ -70,6 +70,9 @@ public class LoginResponse {
     @JsonProperty("RoleRejectedReason")
     private String roleRejectedReason;
 
+    @JsonProperty("PreferredLocale")
+    private String preferredLocale;
+
     public LoginResponse() {
     }
 
@@ -287,6 +290,14 @@ public class LoginResponse {
 
     public void setRoleRejectedReason(String roleRejectedReason) {
         this.roleRejectedReason = roleRejectedReason;
+    }
+
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
     }
 }
 

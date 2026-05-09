@@ -1,0 +1,1 @@
+var e={language:`Language`,languageHint:`Select interface language`,home:`Home`},t={notFoundTitle:`Page not found`},n={setTitle:`Setting language…`},r={nav:e,errors:t,locale:n};export{r as default,t as errors,n as locale,e as nav};

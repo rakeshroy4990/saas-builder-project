@@ -1,97 +1,91 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 import logging
-
-from api.schemas import IngestHealthResponse, IngestResponse, IngestStatusResponse
+import os
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from pydantic import BaseModel
+from config.settings import PDF_DIR
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from auth.dependencies import require_admin
 from auth.models import TokenPayload
-from config.settings import PDF_DIR
-from ingestion.pdf_tracker import (
-    get_unprocessed_pdfs,
-    list_pdfs,
-    registry_count_status,
-    registry_count_total,
-    registry_find_failed,
-    registry_find_recent,
-)
-from workers.async_ingest_worker import process_all_pending
+from ingestion.pdf_tracker import compute_file_hash, registry_find_recent, list_pdfs
+from ingestion.ingest import process_pdf
+from typing import Optional
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
-log = logging.getLogger("pdf_rag.ingest")
+
+
+class IngestRequest(BaseModel):
+    filepath: str
+
+
+class IngestResponse(BaseModel):
+    status: str
+    triggered_by: str = ""
+    message: str = ""
+    file_hash: Optional[str] = None
 
 
 @router.post("/ingest", response_model=IngestResponse, response_model_by_alias=True)
 async def ingest(
     background_tasks: BackgroundTasks,
-    pdf_dir: str = PDF_DIR,
+    filepath: str = PDF_DIR,
     force: bool = False,
     user: TokenPayload = Depends(require_admin),
 ):
-    all_pdfs = list_pdfs(pdf_dir)
-    if not all_pdfs:
-        raise HTTPException(
-            status_code=400,
-            detail=f"No PDF files found in pdf_dir='{pdf_dir}'. Add *.pdf files or fix PDF_DIR."
-        )
-    log.info("Ingest requested by sub=%s email=%s pdf_dir=%s force=%s", user.sub, user.email, pdf_dir, force)
-    background_tasks.add_task(process_all_pending, pdf_dir, force)
-    return IngestResponse(status="ingestion started", triggered_by=user.email)
+    if os.path.isdir(filepath):
+        # directory passed — process all PDFs in it
+        all_pdfs = list_pdfs(filepath)
+        if not all_pdfs:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No PDF files found in '{filepath}'."
+            )
+        for pdf in all_pdfs:
+            background_tasks.add_task(process_pdf, pdf, force)  # was filepath, should be pdf
+        message = f"Batch ingestion started for {len(all_pdfs)} PDFs in {filepath}"
+    elif os.path.isfile(filepath):
+        # single file passed
+        background_tasks.add_task(process_pdf, filepath, force)
+        message = f"Ingestion started for {filepath}"
+    else:
+        raise HTTPException(status_code=404, detail=f"Path not found: {filepath}")
 
+    logger.info("Ingest requested by sub=%s email=%s filepath=%s force=%s", user.sub, user.email, filepath, force)
 
-@router.get("/ingest/status", response_model=IngestStatusResponse, response_model_by_alias=True)
-async def ingest_status(
-    pdf_dir: str = PDF_DIR,
-    failed_limit: int = 10,
-    recent_limit: int = 10,
-    _: TokenPayload = Depends(require_admin),
-):
-    safe_limit = max(1, min(failed_limit, 100))
-    safe_recent_limit = max(1, min(recent_limit, 100))
-
-    failed_rows = registry_find_failed(safe_limit)
-    failures = [
-        {
-            "file_hash": str(row.get("_id", "")),
-            "filename": str(row.get("filename", "")),
-            "filepath": str(row.get("filepath", "")),
-            "error": str(row.get("error", "")),
-        }
-        for row in failed_rows
-    ]
-
-    recent_rows = registry_find_recent(safe_recent_limit)
-    recent_files = [
-        {
-            "file_hash": str(row.get("_id", "")),
-            "filename": str(row.get("filename", "")),
-            "filepath": str(row.get("filepath", "")),
-            "status": str(row.get("status", "")),
-            "chunks_count": int(row.get("chunks_count", 0) or 0),
-            "error": str(row.get("error", "") if row.get("error") is not None else ""),
-            "prefilter_stats": row.get("prefilter_stats"),
-        }
-        for row in recent_rows
-    ]
-
-    return IngestStatusResponse(
-        total_registry_records=registry_count_total(),
-        processed=registry_count_status("processed"),
-        processing=registry_count_status("processing"),
-        failed=registry_count_status("failed"),
-        pending_files=len(get_unprocessed_pdfs(pdf_dir)),
-        recent_failures=failures,
-        recent_files=recent_files,
+    return IngestResponse(
+        status="ingestion started",
+        triggered_by=user.email,
+        message=message
     )
 
 
-@router.get("/ingest/health", response_model=IngestHealthResponse, response_model_by_alias=True)
-async def ingest_health(
-    pdf_dir: str = PDF_DIR,
-    _: TokenPayload = Depends(require_admin),
-):
-    return IngestHealthResponse(
-        total_registry_records=registry_count_total(),
-        processed=registry_count_status("processed"),
-        processing=registry_count_status("processing"),
-        failed=registry_count_status("failed"),
-        pending_files=len(get_unprocessed_pdfs(pdf_dir)),
+@router.get("/ingest/{file_hash}/status")
+async def ingest_status(file_hash: str):
+    recent = registry_find_recent(limit=100)
+    match = next(
+        (r for r in recent if r.get("file_hash") == file_hash or r.get("_id") == file_hash),
+        None,
     )
+    if match is None:
+        raise HTTPException(status_code=404, detail="File hash not found")
+    return match
+
+
+@router.get("/ingest/{file_hash}/image-diagnostics")
+async def ingest_image_diagnostics(file_hash: str):
+    recent = registry_find_recent(limit=200)
+    match = next(
+        (r for r in recent if r.get("file_hash") == file_hash or r.get("_id") == file_hash),
+        None,
+    )
+    if match is None:
+        raise HTTPException(status_code=404, detail="File hash not found")
+    return {
+        "file_hash": file_hash,
+        "filename": match.get("filename"),
+        "filepath": match.get("filepath"),
+        "status": match.get("status"),
+        "image_stats": match.get("image_stats", {}),
+        "prefilter_stats": match.get("prefilter_stats", {}),
+        "ingested_at": match.get("ingested_at"),
+    }

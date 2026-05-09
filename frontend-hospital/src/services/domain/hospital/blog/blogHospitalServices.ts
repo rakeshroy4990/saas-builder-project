@@ -8,6 +8,9 @@ import { apiClient } from '../../../http/apiClient';
 import { hospitalBlogPreviewBySlugPath, URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
+import { i18n } from '../../../../i18n';
+
+const tr = (key: string, params?: Record<string, unknown>): string => String((i18n.global as any).t(key, params));
 
 function envelopeData(root: unknown): unknown {
   const row = (root ?? {}) as Record<string, unknown>;
@@ -51,8 +54,8 @@ function buildCuriosityQuestionsBlock(questions: string[], title: string): strin
   while (q.length < 2) {
     q.push(
       q.length === 0
-        ? `What is the first thing you would want to explore about “${title}”?`
-        : 'What questions could you bring to a routine visit after reading the full article?'
+        ? tr('blog.dynamic.firstQuestion', { title })
+        : tr('blog.dynamic.followupQuestion')
     );
   }
   return q
@@ -74,8 +77,7 @@ function parseBlogPayload(raw: unknown): {
     return {
       posts,
       contentSource: 'unknown',
-      contentSourceDetail:
-        'Data returned as a plain list (legacy API). Source attribution may be incomplete.',
+      contentSourceDetail: tr('blog.source.legacyList'),
       servedFromCache: false
     };
   }
@@ -87,15 +89,18 @@ function parseBlogPayload(raw: unknown): {
     .filter((post) => isSubstantialBlogPost(post));
   const contentSource = pickString(o, ['ContentSource', 'contentSource']).trim();
   let contentSourceDetail = pickString(o, ['ContentSourceDetail', 'contentSourceDetail']).trim();
+  if (contentSourceDetail.includes('Showing curated static teasers')) {
+    contentSourceDetail = tr('blog.source.staticFallbackVerbose');
+  }
   const servedRaw = o.ServedFromCache ?? o.servedFromCache;
   const servedFromCache = servedRaw === true || servedRaw === 'true';
   if (!contentSourceDetail) {
     contentSourceDetail =
       contentSource === 'llm'
-        ? 'Teasers from an AI model. Refresh may reuse server cache.'
+        ? tr('blog.source.llm')
         : contentSource === 'static_fallback'
-          ? 'Curated static teasers.'
-          : 'Teasers from the hospital blog API.';
+          ? tr('blog.source.staticFallback')
+          : tr('blog.source.hospitalApi');
   }
   return { posts, contentSource, contentSourceDetail, servedFromCache };
 }
@@ -109,7 +114,7 @@ function normalizePreview(entry: unknown, idx: number): Record<string, unknown> 
   const article = pickString(row, ['Article', 'article']).trim();
   if (article.length > teaser.length) teaser = article;
   if (body.length > teaser.length) teaser = body;
-  const category = pickString(row, ['Category', 'category']).trim() || 'Wellness';
+  const category = pickString(row, ['Category', 'category']).trim() || tr('blog.dynamic.defaultCategory');
   const readRaw = row.ReadTimeMinutes ?? row.readTimeMinutes;
   const readTime =
     typeof readRaw === 'number' && Number.isFinite(readRaw)
@@ -158,8 +163,8 @@ export const blogHospitalServices: ServiceDefinition[] = [
       } catch (error) {
         const message = isAxiosError(error)
           ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||
-            'Unable to load articles.'
-          : 'Unable to load articles.';
+            tr('blog.dynamic.unableLoadArticles')
+          : tr('blog.dynamic.unableLoadArticles');
         appStore.setData('hospital', 'BlogPreviews', {
           loading: false,
           error: message,
@@ -187,9 +192,9 @@ export const blogHospitalServices: ServiceDefinition[] = [
           ? String(Math.round(readRaw))
           : String(readRaw ?? '5').trim() || '5';
       const metaLine = category
-        ? `${category} · ${readTimeMinutes} min read`
-        : `${readTimeMinutes} min read`;
-      const slugLine = slug ? `Reference: ${slug}` : '';
+        ? `${category} · ${readTimeMinutes} ${tr('blog.dynamic.minRead')}`
+        : `${readTimeMinutes} ${tr('blog.dynamic.minRead')}`;
+      const slugLine = slug ? `${tr('blog.dynamic.reference')}: ${slug}` : '';
       const appStore = useAppStore(pinia);
       appStore.setData('hospital', 'BlogReadMore', {
         title,
@@ -228,7 +233,7 @@ export const blogHospitalServices: ServiceDefinition[] = [
       if (!slug) {
         appStore.setData('hospital', 'BlogArticleView', {
           loading: false,
-          error: 'Missing article address.',
+          error: tr('blog.dynamic.missingArticleAddress'),
           title: '',
           teaser: '',
           slug: '',
@@ -245,8 +250,8 @@ export const blogHospitalServices: ServiceDefinition[] = [
         const readTime = Number(post.readTimeMinutes ?? 0) || 0;
         const category = String(post.category ?? '').trim();
         const metaLine = category
-          ? `${category} · ${readTime} min read`
-          : `${readTime} min read`;
+          ? `${category} · ${readTime} ${tr('blog.dynamic.minRead')}`
+          : `${readTime} ${tr('blog.dynamic.minRead')}`;
         appStore.setData('hospital', 'BlogArticleView', {
           loading: false,
           error: '',

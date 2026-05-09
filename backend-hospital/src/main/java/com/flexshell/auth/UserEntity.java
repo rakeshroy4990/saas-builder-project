@@ -56,6 +56,9 @@ public class UserEntity {
     private String roleDecisionBy;
     @Field("RoleRejectedReason")
     private String roleRejectedReason;
+    /** BCP-47 language tag for UI (e.g. en, hi); empty until the user chooses. */
+    @Field("PreferredLocale")
+    private String preferredLocale;
 
     public String getId() {
         return id;
@@ -247,6 +250,14 @@ public class UserEntity {
 
     public void setRoleRejectedReason(String roleRejectedReason) {
         this.roleRejectedReason = roleRejectedReason;
+    }
+
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
     }
 }
 

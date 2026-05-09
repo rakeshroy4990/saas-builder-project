@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAsyncBusy } from '@saas-builder/vue-async-ui';
 import type { ComponentDefinition } from '../../core/types/ComponentDefinition';
 import type { PageConfig } from '../../core/types/PageConfig';
@@ -16,7 +17,8 @@ import { useAppStore } from '../../store/useAppStore';
 /** `text` from `mapping`, optional truncation via `mappingMaxLength`, `textFallback` when empty; `truncatedTitle` = full string when truncated. */
 function resolveMappedDisplayFields(
   mapping: MappingConfig,
-  config: Record<string, unknown>
+  config: Record<string, unknown>,
+  translate?: (key: string) => string
 ): { text: string; truncatedTitle?: string } {
   const raw = resolveMapping(mapping);
   let full = raw == null ? '' : String(raw).trim();
@@ -28,11 +30,32 @@ function resolveMappedDisplayFields(
     s = s.slice(0, maxLen);
   }
   if (!s) {
-    const fb = config.textFallback;
-    s = typeof fb === 'string' && fb.trim().length > 0 ? fb.trim() : '';
+    const fbik = typeof config.textFallbackI18nKey === 'string' ? config.textFallbackI18nKey.trim() : '';
+    if (fbik && translate) {
+      s = translate(fbik);
+    } else {
+      const fb = config.textFallback;
+      s = typeof fb === 'string' && fb.trim().length > 0 ? fb.trim() : '';
+    }
   }
   const truncatedTitle = maxLen != null && full.length > s.length ? full : undefined;
   return { text: s, truncatedTitle };
+}
+
+function mergeLabelPlaceholderI18n(
+  cfg: Record<string, unknown>,
+  translate: (key: string) => string
+): Record<string, unknown> {
+  const lk = typeof cfg.labelI18nKey === 'string' ? cfg.labelI18nKey.trim() : '';
+  const pk = typeof cfg.placeholderI18nKey === 'string' ? cfg.placeholderI18nKey.trim() : '';
+  let next = { ...cfg };
+  if (lk) {
+    next = { ...next, label: translate(lk) };
+  }
+  if (pk) {
+    next = { ...next, placeholder: translate(pk) };
+  }
+  return next;
 }
 
 const props = defineProps<{
@@ -55,6 +78,7 @@ const elementHtmlId = computed(() =>
 const { execute } = useActionEngine(props.pageConfig);
 const asyncBusy = useAsyncBusy();
 const appStore = useAppStore();
+const { t, locale } = useI18n();
 const component = computed(() => ComponentRegistry.get(props.definition.type));
 const isVisible = computed(() => {
   // Nested keys (e.g. HomeContent.hero.videoId) are not always tracked through getData() alone.
@@ -92,10 +116,15 @@ const resolveTemplateObject = (value: unknown): unknown => {
 
 const resolvedConfig = computed(() => {
   void appStore.dataRevision;
+  void locale.value;
   const config = resolveTemplateObject(props.definition.config ?? {}) as Record<string, unknown>;
 
   if (props.definition.type === 'text' && config.mapping) {
-    const { text, truncatedTitle } = resolveMappedDisplayFields(config.mapping as MappingConfig, config);
+    const { text, truncatedTitle } = resolveMappedDisplayFields(
+      config.mapping as MappingConfig,
+      config,
+      (key) => t(key)
+    );
     const out: Record<string, unknown> = { ...config, text };
     if (truncatedTitle) {
       out.title = truncatedTitle;
@@ -106,10 +135,27 @@ const resolvedConfig = computed(() => {
   if (props.definition.type === 'button') {
     let out: Record<string, unknown> = { ...config };
     if (config.mapping) {
-      const { text, truncatedTitle } = resolveMappedDisplayFields(config.mapping as MappingConfig, config);
+      const { text, truncatedTitle } = resolveMappedDisplayFields(
+        config.mapping as MappingConfig,
+        config,
+        (key) => t(key)
+      );
       const explicitTitle =
         typeof config.title === 'string' && config.title.trim().length > 0 ? config.title.trim() : undefined;
       out = { ...out, text, title: truncatedTitle ?? explicitTitle };
+    } else {
+      const ik = typeof config.i18nKey === 'string' ? config.i18nKey.trim() : '';
+      if (ik) {
+        out = { ...out, text: t(ik) };
+      }
+    }
+    const tik = typeof config.titleI18nKey === 'string' ? config.titleI18nKey.trim() : '';
+    if (tik) {
+      out = { ...out, title: t(tik) };
+    }
+    const pik = typeof config.pendingI18nKey === 'string' ? config.pendingI18nKey.trim() : '';
+    if (pik) {
+      out = { ...out, pendingLabel: t(pik) };
     }
     const dc = props.definition.disabledCondition;
     if (dc && evaluateCondition(dc, props.context)) {
@@ -129,7 +175,7 @@ const resolvedConfig = computed(() => {
       const v = resolveMapping(vm);
       out = { ...out, value: v == null ? '' : String(v) };
     }
-    return out;
+    return mergeLabelPlaceholderI18n(out, t);
   }
 
   if (props.definition.type === 'list' && config.mapping) {
@@ -147,11 +193,16 @@ const resolvedConfig = computed(() => {
     const aspectMapped = config.aspectModeMapping
       ? resolveMapping(config.aspectModeMapping as MappingConfig)
       : config.aspectMode;
-    return {
+    let out: Record<string, unknown> = {
       ...config,
       videoId: mapped == null ? '' : String(mapped).trim(),
       aspectMode: aspectMapped == null ? 'auto' : String(aspectMapped).trim().toLowerCase()
     };
+    const ytIk = typeof config.titleI18nKey === 'string' ? config.titleI18nKey.trim() : '';
+    if (ytIk) {
+      out = { ...out, title: t(ytIk) };
+    }
+    return out;
   }
 
   if ((props.definition.type === 'input' || props.definition.type === 'medicine-list-editor') && config.mapping) {
@@ -161,12 +212,15 @@ const resolvedConfig = computed(() => {
       const mappedDates = resolveMapping(config.unavailableDatesMapping as MappingConfig);
       out = { ...out, unavailableDates: Array.isArray(mappedDates) ? mappedDates : [] };
     }
-    return out;
+    return mergeLabelPlaceholderI18n(out, t);
   }
 
   if (props.definition.type === 'input' && config.unavailableDatesMapping) {
     const mappedDates = resolveMapping(config.unavailableDatesMapping as MappingConfig);
-    return { ...config, unavailableDates: Array.isArray(mappedDates) ? mappedDates : [] };
+    return mergeLabelPlaceholderI18n(
+      { ...config, unavailableDates: Array.isArray(mappedDates) ? mappedDates : [] },
+      t
+    );
   }
 
   if (props.definition.type === 'date-picker') {
@@ -183,15 +237,36 @@ const resolvedConfig = computed(() => {
       const mappedCounts = resolveMapping(config.slotCountsMapping as MappingConfig);
       out = { ...out, slotCounts: Array.isArray(mappedCounts) ? mappedCounts : [] };
     }
-    return out;
+    return mergeLabelPlaceholderI18n(out, t);
   }
 
   if (props.definition.type === 'checkbox' && config.mapping) {
     const mapped = resolveMapping(config.mapping as MappingConfig);
-    return { ...config, checked: Boolean(mapped) };
+    return mergeLabelPlaceholderI18n({ ...config, checked: Boolean(mapped) }, t);
   }
 
-  return config;
+  let final: Record<string, unknown> = config;
+
+  if (props.definition.type === 'text') {
+    const ik = typeof final.i18nKey === 'string' ? final.i18nKey.trim() : '';
+    if (ik && !final.mapping) {
+      final = { ...final, text: t(ik) };
+    }
+  }
+
+  if (props.definition.type === 'image') {
+    const ak = typeof final.altI18nKey === 'string' ? final.altI18nKey.trim() : '';
+    if (ak) {
+      final = { ...final, alt: t(ak) };
+    }
+  }
+
+  const mergeLabelTypes = ['input', 'dropdown', 'checkbox', 'date-picker', 'medicine-list-editor'];
+  if (mergeLabelTypes.includes(props.definition.type)) {
+    final = mergeLabelPlaceholderI18n(final, t);
+  }
+
+  return final;
 });
 
 const displayConfig = computed(() => {
