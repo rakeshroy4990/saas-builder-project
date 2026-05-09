@@ -14,3 +14,10 @@ client_secret_*.json
 backend-hospital-cloudrun.yaml
 pdf-rag-pipeline-cloudrun.yaml
 backend-hospital/backend-hospital-cloudrun.yaml
+
+# Python virtual environments (never commit — site-packages can exceed GitHub 100MB limit)
+.venv/
+venv/
+ENV/
+env/
+**/.venv/
