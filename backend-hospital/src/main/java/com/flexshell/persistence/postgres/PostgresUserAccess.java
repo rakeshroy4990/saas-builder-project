@@ -37,7 +37,11 @@ public class PostgresUserAccess implements UserAccess {
 
     @Override
     public UserEntity save(UserEntity entity) {
-        Optional<UserJpaEntity> existing = userJpaRepository.findById(entity.getId());
+        Optional<UserJpaEntity> existing = Optional.empty();
+        String id = entity.getId();
+        if (id != null && !id.isBlank()) {
+            existing = userJpaRepository.findById(id);
+        }
         UserJpaEntity saved = userJpaRepository.save(UserEntityMapper.toJpa(entity, existing.orElse(null)));
         return UserEntityMapper.fromJpa(saved);
     }
@@ -78,7 +82,9 @@ public class PostgresUserAccess implements UserAccess {
 
     @Override
     public Page<UserEntity> findByRoleStatus(RoleRequestStatus roleStatus, Pageable pageable) {
-        return userJpaRepository.findByRoleStatus(roleStatus, pageable).map(UserEntityMapper::fromJpa);
+        return userJpaRepository
+                .findByRoleStatusAndDeletedFalseAndRequestedRoleIsNotNull(roleStatus, pageable)
+                .map(UserEntityMapper::fromJpa);
     }
 
     @Override

@@ -24,6 +24,10 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, String> 
 
     Page<UserJpaEntity> findByRoleStatus(RoleRequestStatus roleStatus, Pageable pageable);
 
+    /** Moderation queue: privileged signups awaiting approval (soft-deleted rows excluded). */
+    Page<UserJpaEntity> findByRoleStatusAndDeletedFalseAndRequestedRoleIsNotNull(
+            RoleRequestStatus roleStatus, Pageable pageable);
+
     Page<UserJpaEntity> findByRole(UserRole role, Pageable pageable);
 
     @Query(

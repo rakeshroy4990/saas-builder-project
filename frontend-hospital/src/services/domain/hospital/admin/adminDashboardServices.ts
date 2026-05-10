@@ -9,9 +9,32 @@ import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { loadDashboardAppointmentsPage } from '../shared/dashboardAppointments';
 
-function envelopeData(root: unknown): unknown {
-  const row = (root ?? {}) as Record<string, unknown>;
-  return row.Data ?? row.data ?? root;
+/**
+ * Normalizes list API payloads: supports StandardApiResponse/Data, auth-lib envelopes, nested data,
+ * and Spring Page-style { content: [...] }.
+ */
+function coerceApiArray(root: unknown): unknown[] {
+  let cur: unknown = root;
+  for (let depth = 0; depth < 8; depth++) {
+    if (Array.isArray(cur)) {
+      return cur;
+    }
+    if (cur != null && typeof cur === 'object') {
+      const row = cur as Record<string, unknown>;
+      const nested = row.Data ?? row.data ?? row.Payload ?? row.payload;
+      if (nested !== undefined && nested !== cur) {
+        cur = nested;
+        continue;
+      }
+      const pageContent = row.content ?? row.Content;
+      if (Array.isArray(pageContent)) {
+        return pageContent;
+      }
+      return [];
+    }
+    return [];
+  }
+  return [];
 }
 
 export const adminDashboardHospitalServices: ServiceDefinition[] = [
@@ -26,8 +49,7 @@ export const adminDashboardHospitalServices: ServiceDefinition[] = [
       let pendingList: unknown[] = [];
       try {
         const pendingRes = await apiClient.get(URLRegistry.paths.adminRoleRequests, { params: { page: 0, size: 50 } });
-        const pendingRaw = envelopeData(pendingRes.data);
-        pendingList = Array.isArray(pendingRaw) ? pendingRaw : [];
+        pendingList = coerceApiArray(pendingRes.data);
       } catch (error) {
         const message = isAxiosError(error)
           ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||
@@ -39,8 +61,7 @@ export const adminDashboardHospitalServices: ServiceDefinition[] = [
       let doctorsList: unknown[] = [];
       try {
         const doctorsRes = await apiClient.get(URLRegistry.paths.adminDoctors, { params: { page: 0, size: 100 } });
-        const doctorsRaw = envelopeData(doctorsRes.data);
-        doctorsList = Array.isArray(doctorsRaw) ? doctorsRaw : [];
+        doctorsList = coerceApiArray(doctorsRes.data);
       } catch (error) {
         const message = isAxiosError(error)
           ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||

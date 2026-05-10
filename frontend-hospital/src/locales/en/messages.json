@@ -71,6 +71,24 @@
       "newUserRegister": "New user? Register"
     }
   },
+  "register": {
+    "validation": {
+      "missingFields": "Please fill in: {fields}",
+      "separator": ", ",
+      "mustAcceptTerms": "You must accept the Terms & Conditions to register.",
+      "tryLater": "Registration could not be completed right now. Please try again in a moment."
+    },
+    "fields": {
+      "firstName": "First name",
+      "emailId": "Email",
+      "password": "Password",
+      "gender": "Gender",
+      "mobileNumber": "Mobile number",
+      "qualifications": "Qualifications",
+      "smcName": "State Medical Council",
+      "smcRegistrationNumber": "SMC registration number"
+    }
+  },
   "page": {
     "home": { "title": "Agastya Healthcare Hospital" },
     "dashboard": { "title": "Dashboard" },

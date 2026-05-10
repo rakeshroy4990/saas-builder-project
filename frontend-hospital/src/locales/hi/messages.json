@@ -71,6 +71,24 @@
       "newUserRegister": "नए यूज़र? रजिस्टर करें"
     }
   },
+  "register": {
+    "validation": {
+      "missingFields": "कृपया ये भरें: {fields}",
+      "separator": ", ",
+      "mustAcceptTerms": "रजिस्टर करने के लिए नियम व शर्तें स्वीकार करना आवश्यक है।",
+      "tryLater": "अभी रजिस्ट्रेशन पूरा नहीं हो सका। कृपया थोड़ी देर बाद फिर से कोशिश करें।"
+    },
+    "fields": {
+      "firstName": "पहला नाम",
+      "emailId": "ईमेल",
+      "password": "पासवर्ड",
+      "gender": "लिंग",
+      "mobileNumber": "मोबाइल नंबर",
+      "qualifications": "योग्यता",
+      "smcName": "राज्य चिकित्सा परिषद",
+      "smcRegistrationNumber": "एसएमसी पंजीकरण संख्या"
+    }
+  },
   "page": {
     "home": { "title": "अगस्त्य हेल्थकेयर अस्पताल" },
     "dashboard": { "title": "डैशबोर्ड" },

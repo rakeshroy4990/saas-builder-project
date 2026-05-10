@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,9 +61,24 @@ public class AdminDoctorManagementService {
         String gender = request.getGender() == null ? "" : request.getGender().trim();
         String mobileNumber = request.getMobileNumber() == null ? "" : request.getMobileNumber().trim();
         String department = request.getDepartment() == null ? "" : request.getDepartment().trim();
-        if (firstName.isEmpty() || lastName.isEmpty() || email.isEmpty() || rawPassword.isEmpty()
-                || address.isEmpty() || gender.isEmpty() || mobileNumber.isEmpty()) {
-            throw new IllegalArgumentException("First name, last name, email, password, address, gender, and mobile are required");
+        List<String> missingRequired = new ArrayList<>();
+        if (firstName.isEmpty()) {
+            missingRequired.add("FirstName");
+        }
+        if (email.isEmpty()) {
+            missingRequired.add("EmailId");
+        }
+        if (rawPassword.isEmpty()) {
+            missingRequired.add("Password");
+        }
+        if (gender.isEmpty()) {
+            missingRequired.add("Gender");
+        }
+        if (mobileNumber.isEmpty()) {
+            missingRequired.add("MobileNumber");
+        }
+        if (!missingRequired.isEmpty()) {
+            throw new IllegalArgumentException("Missing required fields: " + String.join(", ", missingRequired));
         }
 
         try {

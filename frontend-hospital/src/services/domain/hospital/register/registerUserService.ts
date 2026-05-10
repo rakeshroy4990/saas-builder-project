@@ -1,12 +1,35 @@
 import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition';
+import type { Composer } from 'vue-i18n';
 import { isAxiosError } from 'axios';
 import { useAppStore } from '../../../../store/useAppStore';
 import { pinia } from '../../../../store/pinia';
+import { i18n } from '../../../../i18n';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
+
+type RegisterFieldKey =
+  | 'firstName'
+  | 'emailId'
+  | 'password'
+  | 'gender'
+  | 'mobileNumber'
+  | 'qualifications'
+  | 'smcName'
+  | 'smcRegistrationNumber';
+
+function registerComposer(): Composer {
+  return i18n.global as Composer;
+}
+
+function formatMissingRegisterFields(keys: RegisterFieldKey[]): string {
+  const c = registerComposer();
+  const sep = c.t('register.validation.separator');
+  const labels = keys.map((k) => c.t(`register.fields.${k}`));
+  return c.t('register.validation.missingFields', { fields: labels.join(sep) });
+}
 
 export const registerUserHospitalServices: ServiceDefinition[] = [
   {
@@ -33,24 +56,33 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
           'hospital',
           'RegisterForm',
           'registerError',
-          'You must accept the Terms & Conditions to register.'
+          registerComposer().t('register.validation.mustAcceptTerms')
         );
         return { responseCode: 'REGISTER_FAILED', message: 'Terms not accepted' };
       }
-      if (!firstName || !lastName || !emailId || !password || !address || !gender || !mobileNumber) {
+      const missing: RegisterFieldKey[] = [];
+      if (!firstName) missing.push('firstName');
+      if (!emailId) missing.push('emailId');
+      if (!password) missing.push('password');
+      if (!gender) missing.push('gender');
+      if (!mobileNumber) missing.push('mobileNumber');
+      if (missing.length > 0) {
         trackEvent('register_failed', { reason: 'missing_required_fields' });
-        useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', 'All fields are required.');
-        return { responseCode: 'REGISTER_FAILED', message: 'Missing registration details' };
+        const msg = formatMissingRegisterFields(missing);
+        useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', msg);
+        return { responseCode: 'REGISTER_FAILED', message: msg };
       }
-      if (role === 'DOCTOR' && (!qualifications || !smcName || !smcRegistrationNumber)) {
-        trackEvent('register_failed', { reason: 'missing_doctor_fields' });
-        useAppStore(pinia).setProperty(
-          'hospital',
-          'RegisterForm',
-          'registerError',
-          'Qualifications, State Medical Council, and SMC registration number are required for Doctor role.'
-        );
-        return { responseCode: 'REGISTER_FAILED', message: 'Missing doctor registration details' };
+      if (role === 'DOCTOR') {
+        const doctorMissing: RegisterFieldKey[] = [];
+        if (!qualifications) doctorMissing.push('qualifications');
+        if (!smcName) doctorMissing.push('smcName');
+        if (!smcRegistrationNumber) doctorMissing.push('smcRegistrationNumber');
+        if (doctorMissing.length > 0) {
+          trackEvent('register_failed', { reason: 'missing_doctor_fields' });
+          const msg = formatMissingRegisterFields(doctorMissing);
+          useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', msg);
+          return { responseCode: 'REGISTER_FAILED', message: msg };
+        }
       }
 
       try {
@@ -96,17 +128,17 @@ export const registerUserHospitalServices: ServiceDefinition[] = [
         trackEvent('register_success', { role, roleStatus: roleStatus || 'APPROVED' });
         return ok();
       } catch (error) {
-        const message = isAxiosError(error)
-          ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message', 'error']).trim()
-          : '';
-        useAppStore(pinia).setProperty(
-          'hospital',
-          'RegisterForm',
-          'registerError',
-          message || 'Unable to register right now. Please try again.'
-        );
+        const payload = isAxiosError(error)
+          ? ((error.response?.data ?? {}) as Record<string, unknown>)
+          : {};
+        const message = pickString(payload, ['Message', 'message', 'error', 'ErrorMessage']).trim();
+        const errorCode = pickString(payload, ['ErrorCode', 'errorCode']).trim();
+        const fallbackMsg = registerComposer().t('register.validation.tryLater');
+        const shown =
+          !message || errorCode === 'AUTH_INTERNAL_ERROR' ? fallbackMsg : message;
+        useAppStore(pinia).setProperty('hospital', 'RegisterForm', 'registerError', shown);
         trackEvent('register_failed', { reason: 'request_failed' });
-        return { responseCode: 'REGISTER_FAILED', message: message || 'Registration failed' };
+        return { responseCode: 'REGISTER_FAILED', message: shown };
       }
     }
   }

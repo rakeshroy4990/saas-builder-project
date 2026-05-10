@@ -2,14 +2,16 @@ package com.flexshell.auth.api;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
     @JsonAlias({"FirstName"})
     @NotBlank(message = "FirstName is required")
     private String firstName;
 
+    /** Optional; stored as empty string when omitted. */
     @JsonAlias({"LastName"})
-    @NotBlank(message = "LastName is required")
+    @Size(max = 256, message = "LastName must be at most 256 characters")
     private String lastName;
 
     @JsonAlias({"EmailId"})
@@ -20,8 +22,9 @@ public class RegisterRequest {
     @NotBlank(message = "Password is required")
     private String password;
 
+    /** Optional; stored as empty string when omitted. */
     @JsonAlias({"Address"})
-    @NotBlank(message = "Address is required")
+    @Size(max = 2048, message = "Address must be at most 2048 characters")
     private String address;
 
     @JsonAlias({"Gender"})

@@ -37,6 +37,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -539,8 +540,26 @@ public class AuthService implements AuthFacade {
         String mobileNumber = request.getMobileNumber() == null ? "" : request.getMobileNumber().trim();
         String department = request.getDepartment() == null ? "" : request.getDepartment().trim();
         UserRole requestedRole = normalizeRequestedRole(request.getRole());
-        if (firstName.isEmpty() || lastName.isEmpty() || email.isEmpty() || rawPassword.isEmpty() || address.isEmpty() || gender.isEmpty() || mobileNumber.isEmpty()) {
-            return Optional.empty();
+        List<String> missingRequired = new ArrayList<>();
+        if (firstName.isEmpty()) {
+            missingRequired.add("FirstName");
+        }
+        if (email.isEmpty()) {
+            missingRequired.add("EmailId");
+        }
+        if (rawPassword.isEmpty()) {
+            missingRequired.add("Password");
+        }
+        if (gender.isEmpty()) {
+            missingRequired.add("Gender");
+        }
+        if (mobileNumber.isEmpty()) {
+            missingRequired.add("MobileNumber");
+        }
+        if (!missingRequired.isEmpty()) {
+            throw new AuthApiException(
+                    "Missing required fields: " + String.join(", ", missingRequired),
+                    "AUTH_VALIDATION_FAILED");
         }
 
         passwordPolicy.validateOrThrow(rawPassword);
@@ -591,7 +610,15 @@ public class AuthService implements AuthFacade {
             log.info("Privileged role request created email={} requestedRole={}", email, requestedRole);
         }
 
-        UserEntity saved = users.save(user);
+        UserEntity saved;
+        try {
+            saved = users.save(user);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Registration declined due to data constraint email={}: {}", email, ex.getMessage());
+            throw new AuthApiException(
+                    "An account already exists for this email address.",
+                    "AUTH_ACCOUNT_EXISTS");
+        }
         sendWelcomeRegistrationEmail(saved);
         return Optional.of(new RegisterResponse(
                 saved.getId(),

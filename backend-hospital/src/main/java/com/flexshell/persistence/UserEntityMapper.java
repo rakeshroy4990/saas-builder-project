@@ -48,7 +48,13 @@ public final class UserEntityMapper {
         if (j.getExternalId() == null) {
             j.setExternalId(UUID.randomUUID());
         }
-        j.setId(e.getId());
+        String entityId = e.getId();
+        if (entityId != null && !entityId.isBlank()) {
+            j.setId(entityId);
+        } else if (j.getId() == null || j.getId().isBlank()) {
+            // Postgres PK has no server default; new rows must get a stable id (same as external UUID).
+            j.setId(j.getExternalId().toString());
+        }
         j.setUsername(e.getUsername());
         j.setEmail(e.getEmail());
         j.setFirstName(e.getFirstName());
