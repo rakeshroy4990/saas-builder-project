@@ -7,18 +7,27 @@ from typing import Optional, TypedDict
 from config.settings import CACHE_TTL_HOURS, is_postgres_persistence
 
 
-def _cache_key(query: str, audience: str = "", user_id: str = "") -> str:
+def _cache_key(
+    query: str,
+    audience: str = "",
+    user_id: str = "",
+    *,
+    book_name: str = "",
+    include_outdated_books: bool = False,
+) -> str:
     normalized = query.lower().strip()
     scope = str(audience or "").strip().lower()
     actor = str(user_id or "").strip().lower()
+    book = str(book_name or "").strip().lower()
+    outdated_flag = "1" if include_outdated_books else "0"
     if scope and actor:
-        payload = f"{scope}::{actor}::{normalized}"
+        payload = f"{scope}::{actor}::{book}::{outdated_flag}::{normalized}"
     elif scope:
-        payload = f"{scope}::{normalized}"
+        payload = f"{scope}::{book}::{outdated_flag}::{normalized}"
     elif actor:
-        payload = f"{actor}::{normalized}"
+        payload = f"{actor}::{book}::{outdated_flag}::{normalized}"
     else:
-        payload = normalized
+        payload = f"{book}::{outdated_flag}::{normalized}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -27,8 +36,21 @@ class CachedQueryResult(TypedDict):
     follow_up_questions: list[str]
 
 
-def get_cached(query: str, audience: str = "", user_id: str = "") -> Optional[CachedQueryResult]:
-    key = _cache_key(query, audience, user_id)
+def get_cached(
+    query: str,
+    audience: str = "",
+    user_id: str = "",
+    *,
+    book_name: str = "",
+    include_outdated_books: bool = False,
+) -> Optional[CachedQueryResult]:
+    key = _cache_key(
+        query,
+        audience,
+        user_id,
+        book_name=book_name,
+        include_outdated_books=include_outdated_books,
+    )
     if is_postgres_persistence():
         from db import postgres_backend as pg
 
@@ -63,12 +85,21 @@ def set_cache(
     audience: str = "",
     follow_up_questions: Optional[list[str]] = None,
     user_id: str = "",
+    *,
+    book_name: str = "",
+    include_outdated_books: bool = False,
 ) -> None:
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=CACHE_TTL_HOURS)
     scope = str(audience or "").strip().lower()
     actor = str(user_id or "").strip()
-    key = _cache_key(query, audience, actor)
+    key = _cache_key(
+        query,
+        audience,
+        actor,
+        book_name=book_name,
+        include_outdated_books=include_outdated_books,
+    )
 
     if is_postgres_persistence():
         from db import postgres_backend as pg

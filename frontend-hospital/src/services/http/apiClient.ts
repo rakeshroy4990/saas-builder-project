@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 import * as Sentry from '@sentry/vue';
 import type { Router } from 'vue-router';
 import { usePopupStore } from '../../store/usePopupStore';
@@ -21,6 +21,8 @@ import { clearLoginSessionId } from '../logging/loginSessionContext';
 import { useAppStore } from '../../store/useAppStore';
 import { flushSessionTelemetryQueue, ingestSessionTelemetry } from '../analytics/sessionTelemetry';
 import { emitLoggedInSessionSummary, SessionSummaryKind } from '../analytics/sessionSummary';
+import { stashPendingHttpReplay } from '../domain/hospital/auth/postLoginHttpReplay';
+import { localizeTimeoutErrorMessageIfNeeded } from './httpUserFacingErrors';
 
 let appRouter: Router | null = null;
 
@@ -65,6 +67,21 @@ function normalizeAuthUserMessage(raw: string): string {
   return t;
 }
 
+function resolvePayloadMessage(payload: unknown): string {
+  const row = (payload ?? {}) as Record<string, unknown>;
+  return normalizeAuthUserMessage(String(row.message ?? row.Message ?? '').trim());
+}
+
+/** Matches explicit please-login copy and close variants from APIs. */
+function isPleaseLoginUserMessage(message: string): boolean {
+  const normalized = normalizeAuthUserMessage(message.trim());
+  const n = normalized.toLowerCase();
+  return (
+    n === PLEASE_LOGIN_MESSAGE.toLowerCase() ||
+    (n.includes('not logged') && n.includes('login'))
+  );
+}
+
 function clearAuthSessionUi(): void {
   const appStore = useAppStore(pinia);
   appStore.setProperty('hospital', 'AuthSession', 'userId', '');
@@ -100,7 +117,11 @@ function setLoginErrorMessage(message: string): void {
   appStore.setProperty('hospital', 'AuthForm', 'authError', message);
 }
 
-function performLocalLogoutAndRedirect(message = DEFAULT_AUTH_UNAUTHORIZED_MESSAGE): void {
+function performLocalLogoutAndRedirect(
+  message = DEFAULT_AUTH_UNAUTHORIZED_MESSAGE,
+  axiosConfig?: AxiosRequestConfig
+): void {
+  stashPendingHttpReplay(axiosConfig);
   clearAuthToken();
   clearAuthSessionUi();
   setLoginErrorMessage(message);
@@ -251,9 +272,15 @@ apiClient.interceptors.response.use(
       });
     }
     const authPayload = readUnauthorizedPayload(response.data);
-    if (authPayload.isUnauthorized) {
-      void emitSessionExpiredTelemetryAndFlush(401).finally(() => performLocalLogoutAndRedirect(authPayload.message));
-      return Promise.reject(new Error(authPayload.message));
+    const payloadMsgOk = resolvePayloadMessage(response.data);
+    if (authPayload.isUnauthorized || isPleaseLoginUserMessage(payloadMsgOk)) {
+      const msg = isPleaseLoginUserMessage(payloadMsgOk)
+        ? payloadMsgOk || PLEASE_LOGIN_MESSAGE
+        : authPayload.message;
+      void emitSessionExpiredTelemetryAndFlush(401).finally(() =>
+        performLocalLogoutAndRedirect(msg, response.config)
+      );
+      return Promise.reject(new Error(msg));
     }
     return response;
   },
@@ -268,6 +295,7 @@ apiClient.interceptors.response.use(
       });
       return Promise.reject(error);
     }
+    localizeTimeoutErrorMessageIfNeeded(error);
     void logClient('ERROR', 'HTTP request failed', {
       status: error.response?.status,
       url: error.config?.url,
@@ -300,6 +328,7 @@ apiClient.interceptors.response.use(
     const isChatSupportOpenRequest = requestUrl.includes(URLRegistry.paths.chatSupportOpen);
     const isMultipartUpload = typeof FormData !== 'undefined' && error.config?.data instanceof FormData;
     const authPayload = readUnauthorizedPayload(error.response?.data);
+    const payloadMsgErr = resolvePayloadMessage(error.response?.data);
 
     // Network / transport failures (e.g. backend down) for non-critical background calls should not
     // interrupt the UI with a toast/popup. Callers can still handle the rejection if they want.
@@ -313,9 +342,12 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (authPayload.isUnauthorized) {
+    if (authPayload.isUnauthorized || isPleaseLoginUserMessage(payloadMsgErr)) {
+      const msg = isPleaseLoginUserMessage(payloadMsgErr)
+        ? payloadMsgErr || PLEASE_LOGIN_MESSAGE
+        : authPayload.message;
       void emitSessionExpiredTelemetryAndFlush(error.response?.status).finally(() =>
-        performLocalLogoutAndRedirect(authPayload.message)
+        performLocalLogoutAndRedirect(msg, error.config)
       );
       return Promise.reject(error);
     }
@@ -335,6 +367,22 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401 || error.response?.status === 403) {
+      const bodyMsg401403 = normalizeAuthUserMessage(
+        String(error.response?.data?.message ?? error.response?.data?.Message ?? '').trim()
+      );
+      const forceLoginPopup =
+        isPleaseLoginUserMessage(bodyMsg401403) &&
+        !isLoginRequest &&
+        !isLogoutRequest &&
+        !isRefreshRequest;
+
+      if (forceLoginPopup) {
+        void emitSessionExpiredTelemetryAndFlush(error.response?.status).finally(() =>
+          performLocalLogoutAndRedirect(bodyMsg401403 || PLEASE_LOGIN_MESSAGE, error.config)
+        );
+        return Promise.reject(error);
+      }
+
       if (
         isLoginRequest ||
         isLogoutRequest ||
@@ -364,8 +412,7 @@ apiClient.interceptors.response.use(
             String(error.response?.data?.message ?? error.response?.data?.Message ?? '').trim()
           ) || DEFAULT_AUTH_UNAUTHORIZED_MESSAGE;
         void emitSessionExpiredTelemetryAndFlush(401).finally(() => {
-          popupStore.openError(new Error(message));
-          performLocalLogoutAndRedirect(message);
+          performLocalLogoutAndRedirect(message, originalRequest as AxiosRequestConfig);
         });
       } else {
         popupStore.openError(new Error('You do not have permission to perform this action.'));
@@ -378,8 +425,21 @@ apiClient.interceptors.response.use(
       popupStore.openError(new Error('Server error. Please try again later.'));
     } else {
       const data = error.response?.data as { Message?: string; message?: string } | undefined;
-      const message = data?.Message ?? data?.message ?? error.message;
-      toastStore.show(String(message), 'error');
+      const rawToastMsg = String(data?.Message ?? data?.message ?? error.message ?? '');
+      const normalizedToast = normalizeAuthUserMessage(rawToastMsg.trim());
+      if (
+        isPleaseLoginUserMessage(normalizedToast) &&
+        error.config &&
+        !isLoginRequest &&
+        !isLogoutRequest &&
+        !isRefreshRequest
+      ) {
+        void emitSessionExpiredTelemetryAndFlush(error.response?.status).finally(() =>
+          performLocalLogoutAndRedirect(normalizedToast || PLEASE_LOGIN_MESSAGE, error.config)
+        );
+        return Promise.reject(error);
+      }
+      toastStore.show(rawToastMsg || normalizedToast, 'error');
     }
 
     return Promise.reject(error);

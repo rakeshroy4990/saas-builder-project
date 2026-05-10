@@ -14,6 +14,9 @@ from PIL import Image
 
 from config.settings import (
     MARKER_DISABLE_MULTIPROCESSING,
+    MARKER_IMAGE_BLOCKLIST_AHASHES,
+    MARKER_IMAGE_BLOCKLIST_HAMMING_MAX,
+    MARKER_LOG_IMAGE_AHASH,
     MARKER_USE_LLM,
 )
 
@@ -21,9 +24,38 @@ LOG = logging.getLogger(__name__)
 
 PAGE_MARK_RE = re.compile(r"^\{(\d+)\}-+\s*$", re.MULTILINE)
 
+_MARKDOWN_HEADING_LINE = re.compile(r"^\s{0,3}(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
+
 MIN_IMG_AREA = 15_000
+
+
+def extract_segment_heading(segment: str) -> str | None:
+    """First markdown heading in a Marker segment (# … through ###### …)."""
+    m = _MARKDOWN_HEADING_LINE.search(segment or "")
+    if not m:
+        return None
+    title = (m.group(2) or "").strip()
+    title = re.sub(r"\*+", "", title).strip()
+    if not title:
+        return None
+    return title[:512]
 MAX_ASPECT_RATIO = 24.0
 JUNK_BLACK_RATIO = 0.92
+
+
+def _average_hash_u64(img: Image.Image) -> int:
+    gray = img.convert("L").resize((8, 8), Image.Resampling.LANCZOS)
+    pixels = list(gray.getdata())
+    avg = sum(pixels) / len(pixels)
+    bits = 0
+    for i, p in enumerate(pixels):
+        if p >= avg:
+            bits |= 1 << i
+    return bits
+
+
+def _hamming_u64(a: int, b: int) -> int:
+    return (a ^ b).bit_count()
 
 
 def _safe_marker_image_filename(name: str) -> str:
@@ -86,6 +118,19 @@ def keep_marker_image(path: Path, dropped: dict[str, int]) -> bool:
         if lo > 0 and hi / lo > MAX_ASPECT_RATIO:
             dropped["extreme_aspect"] = dropped.get("extreme_aspect", 0) + 1
             return False
+        ahash_cache: int | None = None
+        if MARKER_IMAGE_BLOCKLIST_AHASHES:
+            ahash_cache = _average_hash_u64(img)
+            for ref in MARKER_IMAGE_BLOCKLIST_AHASHES:
+                if _hamming_u64(ahash_cache, ref) <= MARKER_IMAGE_BLOCKLIST_HAMMING_MAX:
+                    dropped["blocklist_ahash"] = dropped.get("blocklist_ahash", 0) + 1
+                    if MARKER_LOG_IMAGE_AHASH:
+                        LOG.info(
+                            "[MarkerImage] dropped blocklist ahash=%016x file=%s",
+                            ahash_cache,
+                            path.name,
+                        )
+                    return False
         gray = img.convert("L")
         pixels = list(gray.getdata())
         dark = sum(1 for p in pixels if p < 40)
@@ -96,6 +141,9 @@ def keep_marker_image(path: Path, dropped: dict[str, int]) -> bool:
         if pixels and light / len(pixels) > 0.97 and area > 2_500_000:
             dropped["mostly_white_large"] = dropped.get("mostly_white_large", 0) + 1
             return False
+        if MARKER_LOG_IMAGE_AHASH:
+            hx = ahash_cache if ahash_cache is not None else _average_hash_u64(img)
+            LOG.info("[MarkerImage] kept ahash=%016x file=%s", hx, path.name)
         return True
     except Exception:
         dropped["pil_error"] = dropped.get("pil_error", 0) + 1

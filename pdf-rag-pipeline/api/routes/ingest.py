@@ -1,28 +1,50 @@
 import logging
 import os
-from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel
-from config.settings import PDF_DIR
+from pathlib import Path
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+
+from api.schemas import IngestResponse, MarkerIngestRequest, MarkerIngestResponse
 from auth.dependencies import require_admin
 from auth.models import TokenPayload
-from ingestion.pdf_tracker import compute_file_hash, registry_find_recent, list_pdfs
+from config.settings import PDF_DIR, is_postgres_persistence
 from ingestion.ingest import process_pdf
-from typing import Optional
+from ingestion.marker_worker import process_marker_job, schedule_marker_ingest
+from ingestion.pdf_tracker import list_pdfs, registry_find_recent
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-class IngestRequest(BaseModel):
-    filepath: str
+def _resolve_pdf_under_pdf_dir(pdf_name: str) -> Path:
+    raw = (pdf_name or "").strip().strip('"').strip("'")
+    if not raw:
+        raise HTTPException(status_code=400, detail="PdfName is required")
+    root = Path(PDF_DIR)
+    if not root.is_dir():
+        raise HTTPException(status_code=400, detail=f"PDF_DIR is not a directory: {PDF_DIR}")
 
+    direct = root / raw
+    if direct.is_file():
+        return direct
+    if not raw.lower().endswith(".pdf"):
+        with_suffix = root / f"{raw}.pdf"
+        if with_suffix.is_file():
+            return with_suffix
 
-class IngestResponse(BaseModel):
-    status: str
-    triggered_by: str = ""
-    message: str = ""
-    file_hash: Optional[str] = None
+    raw_l = raw.lower()
+    pdfs = sorted(root.glob("*.pdf"), key=lambda p: p.name.lower())
+    for p in pdfs:
+        if p.stem.lower() == raw_l or p.name.lower() == raw_l:
+            return p
+    for p in pdfs:
+        if raw_l in p.stem.lower():
+            return p
+    raise HTTPException(
+        status_code=404,
+        detail=f"No PDF matching {raw!r} under {root}",
+    )
 
 
 @router.post("/ingest", response_model=IngestResponse, response_model_by_alias=True)
@@ -33,18 +55,16 @@ async def ingest(
     user: TokenPayload = Depends(require_admin),
 ):
     if os.path.isdir(filepath):
-        # directory passed — process all PDFs in it
         all_pdfs = list_pdfs(filepath)
         if not all_pdfs:
             raise HTTPException(
                 status_code=400,
-                detail=f"No PDF files found in '{filepath}'."
+                detail=f"No PDF files found in '{filepath}'.",
             )
         for pdf in all_pdfs:
-            background_tasks.add_task(process_pdf, pdf, force)  # was filepath, should be pdf
+            background_tasks.add_task(process_pdf, pdf, force)
         message = f"Batch ingestion started for {len(all_pdfs)} PDFs in {filepath}"
     elif os.path.isfile(filepath):
-        # single file passed
         background_tasks.add_task(process_pdf, filepath, force)
         message = f"Ingestion started for {filepath}"
     else:
@@ -55,7 +75,67 @@ async def ingest(
     return IngestResponse(
         status="ingestion started",
         triggered_by=user.email,
-        message=message
+        message=message,
+    )
+
+
+@router.post("/ingest/marker", response_model=MarkerIngestResponse, response_model_by_alias=True)
+async def ingest_marker(
+    background_tasks: BackgroundTasks,
+    body: MarkerIngestRequest,
+    user: TokenPayload = Depends(require_admin),
+):
+    """
+    Queue Marker + embedding ingest for a PDF under ``PDF_DIR``.
+
+    JSON body uses PascalCase keys: ``PdfName`` and ``BookName`` (required), optional ``BookStatus`` / ``Status``,
+    optional ``PagesCsv``, optional ``Pages``.
+    """
+    if not is_postgres_persistence():
+        raise HTTPException(
+            status_code=400,
+            detail="Marker vector ingest requires APP_PERSISTENCE_PROVIDER=postgres and DATABASE_URL.",
+        )
+    path = _resolve_pdf_under_pdf_dir(body.pdf_name)
+    try:
+        summary = schedule_marker_ingest(
+            str(path.resolve()),
+            pages_query=body.pages,
+            pages_csv=body.pages_csv,
+            book_name=body.book_name,
+            book_status=body.book_status,
+        )
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"PDF not found: {path}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    job_id = int(summary["job_id"])
+    background_tasks.add_task(process_marker_job, job_id)
+    logger.info(
+        "Marker ingest scheduled sub=%s email=%s job_id=%s file=%s",
+        user.sub,
+        user.email,
+        job_id,
+        path.name,
+    )
+    return MarkerIngestResponse(
+        status="marker_ingest_started",
+        triggered_by=user.email,
+        job_id=int(summary["job_id"]),
+        file_hash=str(summary["file_hash"]),
+        total_pages=int(summary["total_pages"]),
+        batch_count=int(summary["batch_count"]),
+        batch_size=int(summary["batch_size"]),
+        filepath=str(summary["filepath"]),
+        filename=str(summary["filename"]),
+        pages_queued_one_based=list(summary["pages_queued_one_based"]),
+        pages_skipped_as_already_ingested_one_based=list(
+            summary.get("pages_skipped_as_already_ingested_one_based") or []
+        ),
+        pages_explicitly_requested_one_based=list(
+            summary.get("pages_explicitly_requested_one_based") or []
+        ),
     )
 
 

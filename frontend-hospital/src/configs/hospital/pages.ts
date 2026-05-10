@@ -1836,7 +1836,10 @@ export const hospitalPages: PageConfig[] = [
           id: 'hospital-doctor-education-main',
           type: 'container',
           config: {
-            styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col gap-6' },
+            styles: {
+              utilityClasses:
+                'mx-auto flex w-full min-w-0 max-w-6xl flex-1 min-h-0 flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6'
+            },
             children: [
               {
                 id: 'hospital-doctor-education-flashcards',

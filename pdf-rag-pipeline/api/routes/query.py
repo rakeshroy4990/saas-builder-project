@@ -17,5 +17,8 @@ async def query(body: QueryRequest, user: TokenPayload = Depends(get_current_use
         user_roles=user.roles,
         conversation_id=body.conversation_id,
         history=body.history,
+        book_name=body.book_name,
+        include_outdated_books=body.include_outdated_books,
+        retrieval_question=body.retrieval_question,
     )
     return QueryResponse.model_validate(result)

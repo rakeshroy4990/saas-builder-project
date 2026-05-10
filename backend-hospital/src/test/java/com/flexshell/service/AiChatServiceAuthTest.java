@@ -18,6 +18,8 @@ class AiChatServiceAuthTest {
         PdfRagQueryAdapter ragAdapter = mock(PdfRagQueryAdapter.class);
         SmartAiQuotaService quota = new SmartAiQuotaService(10_000, Integer.MAX_VALUE, null, QuotaTestDoubles.emptyPgDailyUsage());
         AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), quota);
-        assertThrows(SecurityException.class, () -> service.reply("", new AiChatRequest("Hello", null, List.of()), "Bearer token", List.of("ROLE_USER")));
+        assertThrows(
+                SecurityException.class,
+                () -> service.reply("", new AiChatRequest("Hello", null, List.of(), null, null), "Bearer token", List.of("ROLE_USER")));
     }
 }

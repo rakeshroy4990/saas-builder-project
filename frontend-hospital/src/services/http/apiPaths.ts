@@ -57,6 +57,10 @@ export const SERVER_PATHS = {
   /** Mint RTC / vendor session after hospital call permission checks. */
   hospitalVideoSession: '/api/hospital/video/session',
   hospitalAiChat: '/api/hospital/ai/chat',
+  /** GET — clinical catalog proxied to pdf-rag `rag_pdf_registry` book names. */
+  hospitalEducationBooks: '/api/hospital/education/books',
+  /** GET `?BookName=&Limit=` — top section headings from Marker-ingested chunks. */
+  hospitalEducationKeyTopics: '/api/hospital/education/key-topics',
   /** GET `?limit=` — public LLM-generated wellness blog teasers (cached on server). */
   hospitalBlogPreviews: '/api/hospital/blog/previews',
   /** GET/PUT user by id: pass `userId` query param; PUT profile update uses registration-shaped JSON; PUT `inactive=true` deactivates. */

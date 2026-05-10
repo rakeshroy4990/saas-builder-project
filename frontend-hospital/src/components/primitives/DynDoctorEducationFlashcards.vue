@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { PageConfig } from '../../core/types/PageConfig';
 import { useActionEngine } from '../../composables/useActionEngine';
@@ -7,6 +7,31 @@ import { useAppStore } from '../../store/useAppStore';
 import { pinia } from '../../store/pinia';
 
 type Flashcard = { id: string; front: string; back: string };
+type ExplainerSection = { heading: string; body: string };
+
+/** Turn "1) Foo: bar … 2) Baz: qux" style explainer text into scannable sections. */
+function parseExplainerDetail(raw: string): ExplainerSection[] {
+  const text = String(raw ?? '').replace(/\r\n/g, '\n').trim();
+  if (!text) return [];
+  const re = /(\d+)\)\s*(.+?):\s*/g;
+  const hits: { index: number; end: number; heading: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    hits.push({
+      index: m.index,
+      end: m.index + m[0].length,
+      heading: `${m[1]}) ${m[2].trim()}`
+    });
+  }
+  if (hits.length === 0) return [{ heading: '', body: text }];
+  const out: ExplainerSection[] = [];
+  for (let i = 0; i < hits.length; i++) {
+    const bodyEnd = i + 1 < hits.length ? hits[i + 1].index : text.length;
+    const body = text.slice(hits[i].end, bodyEnd).trim();
+    out.push({ heading: hits[i].heading, body });
+  }
+  return out;
+}
 
 const props = defineProps<{
   pageConfig: PageConfig;
@@ -21,8 +46,6 @@ const flipped = ref<Set<string>>(new Set());
 const selectedCardId = ref<string>('');
 const detailMode = ref(false);
 const explainerLevel = ref<'MBBS' | 'MD' | 'DM'>('MBBS');
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-let generationSeq = 0;
 
 const education = computed(() => {
   return (appStore.getData('hospital', 'DoctorEducationUiState') ?? {}) as Record<string, unknown>;
@@ -34,6 +57,15 @@ const topics = computed(() => {
     ? raw.map((item) => String(item ?? '').trim()).filter(Boolean)
     : [];
 });
+
+const books = computed(() => {
+  const raw = education.value.books;
+  return Array.isArray(raw)
+    ? raw.map((item) => String(item ?? '').trim()).filter(Boolean)
+    : [];
+});
+
+const selectedBook = computed(() => String(education.value.selectedBook ?? '').trim());
 
 const selectedTopic = computed(() => String(education.value.selectedTopic ?? '').trim());
 const draftText = computed(() => String(education.value.draftText ?? ''));
@@ -73,39 +105,47 @@ const flashcards = computed<Flashcard[]>(() => {
     .filter((card): card is Flashcard => card !== null);
 });
 
-function scheduleGeneration() {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  const seq = ++generationSeq;
-  debounceTimer = setTimeout(async () => {
-    const currentDraft = String(draftText.value ?? '').trim();
-    const currentTopic = String(selectedTopic.value ?? '').trim();
-    if (!currentDraft && !currentTopic) return;
-    if (!currentTopic && currentDraft.length < 3) return;
-    if (seq !== generationSeq) return;
-    await execute({
-      actionId: 'generate-doctor-education-flashcards',
-      data: { draftText: currentDraft, topic: currentTopic }
-    });
-    flipped.value = new Set();
-  }, 850);
-}
+const focusSummary = computed(() => String(education.value.focusSummary ?? '').trim());
+
+const explainerDetailRaw = computed(() => {
+  const key = selectedDetailKey.value;
+  if (!key) return '';
+  return String(detailByCardId.value[key] ?? '').trim();
+});
+
+const explainerSections = computed(() => parseExplainerDetail(explainerDetailRaw.value));
+
+/** Same rules as the former debounced generator: need a topic and/or a minimally useful prompt. */
+const canSubmitFlashcards = computed(() => {
+  const topic = selectedTopic.value.trim();
+  const draft = draftText.value.trim();
+  if (topic.length > 0) return true;
+  return draft.length >= 3;
+});
 
 async function onDraftInput(event: Event) {
   const value = (event.target as HTMLTextAreaElement).value;
   await execute({ actionId: 'set-doctor-education-draft', data: { value } });
-  scheduleGeneration();
+}
+
+async function submitFlashcards() {
+  const currentDraft = draftText.value.trim();
+  const currentTopic = selectedTopic.value.trim();
+  if (!currentTopic && currentDraft.length < 3) return;
+  flipped.value = new Set();
+  await execute({
+    actionId: 'generate-doctor-education-flashcards',
+    data: { draftText: currentDraft, topic: currentTopic }
+  });
+}
+
+async function onBookFilterChange(event: Event) {
+  const value = (event.target as HTMLSelectElement).value;
+  await execute({ actionId: 'set-doctor-education-book', data: { book: value } });
 }
 
 async function chooseTopic(topic: string) {
   await execute({ actionId: 'set-doctor-education-topic', data: { topic } });
-  await execute({
-    actionId: 'generate-doctor-education-flashcards',
-    data: {
-      topic,
-      draftText: String((appStore.getData('hospital', 'DoctorEducationUiState') as Record<string, unknown> | undefined)?.draftText ?? '')
-    }
-  });
-  flipped.value = new Set();
 }
 
 function toggleFlip(cardId: string) {
@@ -118,7 +158,6 @@ function toggleFlip(cardId: string) {
 async function searchCardDetail(card: Flashcard) {
   selectedCardId.value = card.id;
   detailMode.value = true;
-  await execute({ actionId: 'set-doctor-education-draft', data: { value: card.front } });
   await execute({
     actionId: 'generate-doctor-education-card-detail',
     data: { cardId: card.id, front: card.front, back: card.back, level: explainerLevel.value }
@@ -149,15 +188,12 @@ onMounted(async () => {
   await execute({ actionId: 'init-doctor-education' });
 });
 
-onBeforeUnmount(() => {
-  if (debounceTimer) clearTimeout(debounceTimer);
-});
 </script>
 
 <template>
   <section
     :id="htmlId"
-    class="space-y-6 rounded-3xl border border-emerald-100 bg-[radial-gradient(circle_at_top_left,_#f0fdf4,_#ffffff_45%,_#ecfeff_100%)] p-4 shadow-[0_20px_60px_-25px_rgba(16,185,129,0.35)] sm:p-6"
+    class="max-w-full min-w-0 space-y-6 overflow-x-hidden rounded-3xl border border-emerald-100 bg-[radial-gradient(circle_at_top_left,_#f0fdf4,_#ffffff_45%,_#ecfeff_100%)] p-4 shadow-[0_20px_60px_-25px_rgba(16,185,129,0.35)] sm:p-6"
   >
     <div v-if="detailMode" class="explainer-shell">
       <div class="explainer-back-row">
@@ -208,11 +244,18 @@ onBeforeUnmount(() => {
           </div>
           <div class="explainer-input-group is-wide">
             <label class="explainer-label">{{ t('education.explainer.ragContext') }}</label>
-            <textarea
-              readonly
-              class="explainer-textarea"
-              :value="selectedCard ? `${t('education.front')}: ${selectedCard.front}\n${t('education.backLabel')}: ${selectedCard.back}` : ''"
-            />
+            <div
+              class="explainer-context-readonly"
+              role="textbox"
+              aria-readonly="true"
+              :aria-label="t('education.explainer.ragContext')"
+            >
+              {{
+                selectedCard
+                  ? `${t('education.front')}: ${selectedCard.front}\n${t('education.backLabel')}: ${selectedCard.back}`
+                  : ''
+              }}
+            </div>
           </div>
         </div>
       </div>
@@ -228,14 +271,20 @@ onBeforeUnmount(() => {
           {{ t('education.explainer.generatingDetail') }}
         </div>
 
-        <p
-          v-else
-          class="explainer-output-body"
-        >
-          {{
-            detailByCardId[selectedDetailKey]
-              || t('education.explainer.noDetailYet')
-          }}
+        <div v-else-if="explainerDetailRaw" class="explainer-output-sections">
+          <template v-if="explainerSections.length === 1 && !explainerSections[0].heading">
+            <p class="explainer-output-body">{{ explainerSections[0].body }}</p>
+          </template>
+          <template v-else>
+            <section v-for="(sec, idx) in explainerSections" :key="idx" class="explainer-detail-block">
+              <h4 v-if="sec.heading" class="explainer-detail-title">{{ sec.heading }}</h4>
+              <p class="explainer-detail-text">{{ sec.body }}</p>
+            </section>
+          </template>
+        </div>
+
+        <p v-else class="explainer-output-body explainer-output-placeholder">
+          {{ t('education.explainer.noDetailYet') }}
         </p>
       </div>
     </div>
@@ -253,6 +302,24 @@ onBeforeUnmount(() => {
         {{ t('education.cardsCount', { count: flashcards.length }) }}
       </div>
     </header>
+
+    <div
+      v-if="books.length > 0"
+      class="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white/70 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <label for="doctor-education-book-filter" class="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {{ t('education.filterBook') }}
+      </label>
+      <select
+        id="doctor-education-book-filter"
+        class="w-full min-w-[12rem] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100 sm:ml-auto sm:max-w-md"
+        :value="selectedBook"
+        @change="onBookFilterChange"
+      >
+        <option value="">{{ t('education.allBooks') }}</option>
+        <option v-for="b in books" :key="b" :value="b">{{ b }}</option>
+      </select>
+    </div>
 
     <div class="space-y-3">
       <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.startTopic') }}</p>
@@ -286,10 +353,29 @@ onBeforeUnmount(() => {
         :placeholder="t('education.focusPlaceholder')"
         @input="onDraftInput"
       />
+      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <button
+          type="button"
+          class="inline-flex w-full items-center justify-center rounded-xl border border-emerald-300 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-300 disabled:text-slate-600 sm:w-auto sm:min-w-[11rem]"
+          :disabled="!canSubmitFlashcards || loading"
+          @click="submitFlashcards"
+        >
+          {{ loading ? t('education.submitFlashcardsLoading') : t('education.submitFlashcards') }}
+        </button>
+      </div>
       <p class="text-xs text-slate-500">
-        {{ t('education.generationHintPrefix') }} <span class="font-semibold text-emerald-700">{{ t('education.searchInDetail') }}</span>
-        {{ t('education.generationHintSuffix') }}
+        {{ t('education.generationHint') }}
       </p>
+    </div>
+
+    <div
+      v-if="focusSummary"
+      class="rounded-2xl border border-teal-100 bg-white/95 p-4 shadow-sm ring-1 ring-emerald-50"
+    >
+      <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+        {{ t('education.focusSummaryTitle') }}
+      </p>
+      <div class="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{{ focusSummary }}</div>
     </div>
 
     <div v-if="loading" aria-live="polite" class="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -357,22 +443,35 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .explainer-shell {
-  background: #060910;
-  color: #dde4f0;
-  border: 1px solid #1e2535;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
   border-radius: 18px;
-  padding: 18px;
+  padding: 14px;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  box-shadow: 0 12px 40px -20px rgba(15, 118, 110, 0.25);
+}
+@media (min-width: 640px) {
+  .explainer-shell {
+    padding: 18px;
+  }
 }
 .explainer-back-row {
   margin-bottom: 14px;
 }
 .explainer-back-btn {
-  border: 1px solid #1e2535;
-  background: #0e1117;
-  color: #c8d4e8;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
   border-radius: 10px;
   font-size: 12px;
   padding: 6px 10px;
+}
+.explainer-back-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
 }
 .explainer-header {
   margin-bottom: 18px;
@@ -389,44 +488,62 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #4fc3f7, #ce93d8);
+  background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
+  border: 1px solid #d1fae5;
 }
 .explainer-title {
-  font-size: 20px;
+  font-size: clamp(16px, 4.5vw, 20px);
   font-weight: 800;
+  line-height: 1.25;
+  word-break: break-word;
+  color: #0f172a;
 }
 .explainer-subtitle {
   font-size: 11px;
-  color: #5a6a8a;
+  color: #64748b;
+  line-height: 1.45;
 }
 .explainer-level-bar {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 10px;
   margin-bottom: 16px;
+}
+@media (min-width: 640px) {
+  .explainer-level-bar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
 }
 .explainer-level-btn {
   text-align: left;
-  border: 1px solid #1e2535;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
-  background: #0e1117;
-  padding: 10px 8px;
+  background: #fafafa;
+  color: #0f172a;
+  padding: 12px 10px;
+  min-width: 0;
+  width: 100%;
+}
+.explainer-level-btn:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
 }
 .explainer-level-btn.active-mbbs {
-  border-color: #4fc3f7;
-  background: rgba(79, 195, 247, 0.08);
+  border-color: #38bdf8;
+  background: #f0f9ff;
 }
 .explainer-level-btn.active-md {
-  border-color: #81c784;
-  background: rgba(129, 199, 132, 0.08);
+  border-color: #34d399;
+  background: #ecfdf5;
 }
 .explainer-level-btn.active-dnb {
-  border-color: #ffb74d;
-  background: rgba(255, 183, 77, 0.08);
+  border-color: #fb923c;
+  background: #fff7ed;
 }
 .explainer-level-btn.active-dm {
-  border-color: #ce93d8;
-  background: rgba(206, 147, 216, 0.08);
+  border-color: #c084fc;
+  background: #faf5ff;
 }
 .level-tag {
   display: block;
@@ -434,15 +551,21 @@ onBeforeUnmount(() => {
   font-weight: 800;
   letter-spacing: 1px;
   margin-bottom: 3px;
+  color: #0f172a;
 }
 .level-desc {
-  font-size: 10px;
-  color: #5a6a8a;
+  display: block;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #475569;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: auto;
 }
 .explainer-input-card,
 .explainer-output-card {
-  background: #0e1117;
-  border: 1px solid #1e2535;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
   padding: 14px;
 }
@@ -455,73 +578,143 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 .explainer-input-group {
-  flex: 1;
-  min-width: 170px;
+  flex: 1 1 100%;
+  min-width: 0;
 }
-.explainer-input-group.is-wide {
-  flex: 1.5;
+@media (min-width: 640px) {
+  .explainer-input-group {
+    flex: 1;
+    min-width: 170px;
+  }
+  .explainer-input-group.is-wide {
+    flex: 1.5;
+    min-width: 0;
+  }
 }
 .explainer-label {
   display: block;
   margin-bottom: 6px;
   font-size: 10px;
-  color: #5a6a8a;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 1.4px;
 }
-.explainer-input,
-.explainer-textarea {
+.explainer-input {
   width: 100%;
-  border: 1px solid #1e2535;
-  background: #161b24;
-  color: #dde4f0;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 12px;
 }
-.explainer-textarea {
-  min-height: 72px;
+.explainer-context-readonly {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 88px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .explainer-output-header {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid #1e2535;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border-bottom: 1px solid #e2e8f0;
   padding-bottom: 10px;
   margin-bottom: 10px;
 }
+@media (min-width: 640px) {
+  .explainer-output-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+}
 .explainer-badge {
+  flex-shrink: 0;
   font-size: 11px;
   font-weight: 800;
-  border: 1px solid rgba(79, 195, 247, 0.3);
-  color: #4fc3f7;
-  background: rgba(79, 195, 247, 0.08);
+  border: 1px solid #99f6e4;
+  color: #0f766e;
+  background: #ccfbf1;
   border-radius: 6px;
   padding: 4px 10px;
 }
 .explainer-concept {
   font-size: 15px;
   font-weight: 700;
+  min-width: 0;
+  width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: #0f172a;
 }
 .explainer-output-body {
   white-space: pre-wrap;
   line-height: 1.8;
-  color: #c8d4e8;
+  color: #334155;
   font-size: 13px;
+}
+.explainer-output-placeholder {
+  color: #94a3b8;
+  font-style: italic;
+}
+.explainer-output-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.explainer-detail-block {
+  margin: 0;
+  padding: 12px 12px 12px 14px;
+  border-left: 3px solid #99f6e4;
+  border-radius: 0 10px 10px 0;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  border-right: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+}
+.explainer-detail-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f766e;
+  letter-spacing: 0.02em;
+}
+.explainer-detail-text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.75;
+  color: #334155;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .explainer-loading {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #9aaac0;
+  color: #64748b;
   font-size: 12px;
 }
 .spinner {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 2px solid #1e2535;
-  border-top-color: #4fc3f7;
+  border: 2px solid #e2e8f0;
+  border-top-color: #059669;
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin {

@@ -260,110 +260,215 @@ const hospitalPublicHeader: ComponentDefinition = {
           layoutTemplate: 'hosp.header.actions',
           children: [
             {
-              id: 'hospital-public-header-language',
-              type: 'language-switcher',
-              config: {}
-            },
-            {
-              id: 'hospital-public-header-login',
-              type: 'button',
-              condition: {
-                expression: "!userId || String(userId).trim().length === 0",
-                mappings: {
-                  userId: {
-                    packageName: 'hospital',
-                    key: 'AuthSession',
-                    property: 'userId'
-                  }
-                }
-              },
-              config: {
-                i18nKey: 'nav.loginRegister',
-                styles: { styleTemplate: 'hosp.header.authButton' },
-                click: { actionId: 'open-login-popup' }
-              }
-            },
-            {
-              id: 'hospital-public-header-user-anchor',
+              id: 'hospital-public-header-actions-cluster',
               type: 'container',
-              condition: {
-                expression: "userId && String(userId).trim().length > 0",
-                mappings: {
-                  userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
-                }
-              },
               config: {
-                // lg hid the name on iPad/tablet (<1024px); md matches tablet portrait/landscape.
-                styles: { utilityClasses: 'relative hidden md:block' },
-                rootAttrs: { 'data-profile-menu-root': true },
+                styles: {
+                  utilityClasses:
+                    'flex min-w-0 w-full flex-row flex-wrap items-center gap-2 md:w-auto md:flex-nowrap'
+                },
                 children: [
                   {
-                    id: 'hospital-public-header-user-display',
-                    type: 'button',
-                    config: {
-                      mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                      styles: { styleTemplate: 'hosp.header.userButton' },
-                      trailingVisual: 'chevron-down',
-                      titleI18nKey: 'nav.accountMenuTitle',
-                      click: { actionId: 'toggle-profile-header-menu' }
-                    }
+                    id: 'hospital-public-header-language',
+                    type: 'language-switcher',
+                    config: {}
                   },
                   {
-                    id: 'hospital-public-header-user-menu',
-                    type: 'container',
+                    id: 'hospital-public-header-login',
+                    type: 'button',
                     condition: {
-                      expression: 'profileMenuOpen',
+                      expression: "!userId || String(userId).trim().length === 0",
                       mappings: {
-                        profileMenuOpen: { packageName: 'hospital', key: 'HeaderUiState', property: 'profileMenuOpen' }
+                        userId: {
+                          packageName: 'hospital',
+                          key: 'AuthSession',
+                          property: 'userId'
+                        }
                       }
                     },
                     config: {
-                      layout: { type: 'flex', flex: ['flex', 'flex-col', 'items-stretch', 'gap-1'] },
-                      styles: {
-                        utilityClasses:
-                          'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
-                      },
+                      i18nKey: 'nav.loginRegister',
+                      styles: { styleTemplate: 'hosp.header.authButton' },
+                      click: { actionId: 'open-login-popup' }
+                    }
+                  },
+                  {
+                    id: 'hospital-public-header-user-anchor',
+                    type: 'container',
+                    condition: {
+                      expression: "userId && String(userId).trim().length > 0",
+                      mappings: {
+                        userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
+                      }
+                    },
+                    config: {
+                      // lg hid the name on iPad/tablet (<1024px); md matches tablet portrait/landscape.
+                      styles: { utilityClasses: 'relative hidden md:block' },
+                      rootAttrs: { 'data-profile-menu-root': true },
                       children: [
                         {
-                          id: 'hospital-public-header-user-menu-profile',
+                          id: 'hospital-public-header-user-display',
                           type: 'button',
                           config: {
-                            i18nKey: 'nav.profile',
-                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
-                            click: {
-                              actionId: 'set-profile-page-section',
-                              data: { section: 'profile' },
-                              onSuccess: {
-                                actionId: 'set-profile-header-active',
-                                onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
-                              }
-                            }
+                            mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
+                            styles: { styleTemplate: 'hosp.header.userButton' },
+                            trailingVisual: 'chevron-down',
+                            titleI18nKey: 'nav.accountMenuTitle',
+                            click: { actionId: 'toggle-profile-header-menu' }
                           }
                         },
                         {
-                          id: 'hospital-public-header-user-menu-inactive',
+                          id: 'hospital-public-header-user-menu',
+                          type: 'container',
+                          condition: {
+                            expression: 'profileMenuOpen',
+                            mappings: {
+                              profileMenuOpen: { packageName: 'hospital', key: 'HeaderUiState', property: 'profileMenuOpen' }
+                            }
+                          },
+                          config: {
+                            layout: { type: 'flex', flex: ['flex', 'flex-col', 'items-stretch', 'gap-1'] },
+                            styles: {
+                              utilityClasses:
+                                'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
+                            },
+                            children: [
+                              {
+                                id: 'hospital-public-header-user-menu-profile',
+                                type: 'button',
+                                config: {
+                                  i18nKey: 'nav.profile',
+                                  styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
+                                  click: {
+                                    actionId: 'set-profile-page-section',
+                                    data: { section: 'profile' },
+                                    onSuccess: {
+                                      actionId: 'set-profile-header-active',
+                                      onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                id: 'hospital-public-header-user-menu-inactive',
+                                type: 'button',
+                                config: {
+                                  i18nKey: 'nav.inactiveAccount',
+                                  styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
+                                  click: {
+                                    actionId: 'set-profile-page-section',
+                                    data: { section: 'inactive' },
+                                    onSuccess: {
+                                      actionId: 'set-profile-header-active',
+                                      onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                id: 'hospital-public-header-user-menu-logout',
+                                type: 'button',
+                                config: {
+                                  i18nKey: 'nav.signOut',
+                                  pendingI18nKey: 'nav.signingOut',
+                                  styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
+                                  click: { actionId: 'logout-user' }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    id: 'hospital-public-header-user-anchor-mobile',
+                    type: 'container',
+                    condition: {
+                      expression: "userId && String(userId).trim().length > 0",
+                      mappings: {
+                        userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
+                      }
+                    },
+                    config: {
+                      styles: { utilityClasses: 'relative md:hidden' },
+                      rootAttrs: { 'data-profile-menu-root': true },
+                      children: [
+                        {
+                          id: 'hospital-public-header-user-display-mobile',
                           type: 'button',
                           config: {
-                            i18nKey: 'nav.inactiveAccount',
-                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
-                            click: {
-                              actionId: 'set-profile-page-section',
-                              data: { section: 'inactive' },
-                              onSuccess: {
-                                actionId: 'set-profile-header-active',
-                                onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
-                              }
-                            }
+                            mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
+                            mappingMaxLength: 50,
+                            textFallbackI18nKey: 'nav.account',
+                            trailingVisual: 'chevron-down',
+                            styles: {
+                              styleTemplate: 'hosp.header.userMenuTriggerMobile',
+                              utilityClasses: 'min-w-0 max-w-[18ch] sm:max-w-[22ch] truncate'
+                            },
+                            titleI18nKey: 'nav.accountMenuTitle',
+                            click: { actionId: 'toggle-profile-header-menu' }
                           }
                         },
                         {
-                          id: 'hospital-public-header-user-menu-logout',
-                          type: 'button',
+                          id: 'hospital-public-header-user-menu-mobile',
+                          type: 'container',
+                          condition: {
+                            expression: 'profileMenuOpen',
+                            mappings: {
+                              profileMenuOpen: { packageName: 'hospital', key: 'HeaderUiState', property: 'profileMenuOpen' }
+                            }
+                          },
                           config: {
-                            i18nKey: 'nav.signOut',
-                            pendingI18nKey: 'nav.signingOut',
-                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
-                            click: { actionId: 'logout-user' }
+                            layout: { type: 'flex', flex: ['flex', 'flex-col', 'items-stretch', 'gap-1'] },
+                            styles: {
+                              utilityClasses:
+                                'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
+                            },
+                            children: [
+                              {
+                                id: 'hospital-public-header-user-menu-profile-mobile',
+                                type: 'button',
+                                config: {
+                                  i18nKey: 'nav.profile',
+                                  styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
+                                  click: {
+                                    actionId: 'set-profile-page-section',
+                                    data: { section: 'profile' },
+                                    onSuccess: {
+                                      actionId: 'set-profile-header-active',
+                                      onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                id: 'hospital-public-header-user-menu-inactive-mobile',
+                                type: 'button',
+                                config: {
+                                  i18nKey: 'nav.inactiveAccount',
+                                  styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
+                                  click: {
+                                    actionId: 'set-profile-page-section',
+                                    data: { section: 'inactive' },
+                                    onSuccess: {
+                                      actionId: 'set-profile-header-active',
+                                      onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                id: 'hospital-public-header-user-menu-logout-mobile',
+                                type: 'button',
+                                config: {
+                                  i18nKey: 'nav.signOut',
+                                  pendingI18nKey: 'nav.signingOut',
+                                  styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
+                                  click: { actionId: 'logout-user' }
+                                }
+                              }
+                            ]
                           }
                         }
                       ]
@@ -373,106 +478,22 @@ const hospitalPublicHeader: ComponentDefinition = {
               }
             },
             {
-              id: 'hospital-public-header-user-anchor-mobile',
+              id: 'hospital-public-header-actions-cta-row',
               type: 'container',
-              condition: {
-                expression: "userId && String(userId).trim().length > 0",
-                mappings: {
-                  userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' }
-                }
-              },
               config: {
-                styles: { utilityClasses: 'relative md:hidden' },
-                rootAttrs: { 'data-profile-menu-root': true },
+                styles: { utilityClasses: 'flex w-full shrink-0 justify-end md:w-auto' },
                 children: [
                   {
-                    id: 'hospital-public-header-user-display-mobile',
+                    id: 'hospital-public-header-cta',
                     type: 'button',
+                    disabledCondition: disabledWhenLoggedInAsDoctor,
                     config: {
-                      mapping: { packageName: 'hospital', key: 'AuthSession', property: 'userDisplayName' },
-                      mappingMaxLength: 50,
-                      textFallbackI18nKey: 'nav.account',
-                      trailingVisual: 'chevron-down',
-                      styles: {
-                        styleTemplate: 'hosp.header.userMenuTriggerMobile',
-                        utilityClasses: 'min-w-0 max-w-[18ch] sm:max-w-[22ch] truncate'
-                      },
-                      titleI18nKey: 'nav.accountMenuTitle',
-                      click: { actionId: 'toggle-profile-header-menu' }
-                    }
-                  },
-                  {
-                    id: 'hospital-public-header-user-menu-mobile',
-                    type: 'container',
-                    condition: {
-                      expression: 'profileMenuOpen',
-                      mappings: {
-                        profileMenuOpen: { packageName: 'hospital', key: 'HeaderUiState', property: 'profileMenuOpen' }
-                      }
-                    },
-                    config: {
-                      layout: { type: 'flex', flex: ['flex', 'flex-col', 'items-stretch', 'gap-1'] },
-                      styles: {
-                        utilityClasses:
-                          'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
-                      },
-                      children: [
-                        {
-                          id: 'hospital-public-header-user-menu-profile-mobile',
-                          type: 'button',
-                          config: {
-                            i18nKey: 'nav.profile',
-                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
-                            click: {
-                              actionId: 'set-profile-page-section',
-                              data: { section: 'profile' },
-                              onSuccess: {
-                                actionId: 'set-profile-header-active',
-                                onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          id: 'hospital-public-header-user-menu-inactive-mobile',
-                          type: 'button',
-                          config: {
-                            i18nKey: 'nav.inactiveAccount',
-                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
-                            click: {
-                              actionId: 'set-profile-page-section',
-                              data: { section: 'inactive' },
-                              onSuccess: {
-                                actionId: 'set-profile-header-active',
-                                onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'profile' } }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          id: 'hospital-public-header-user-menu-logout-mobile',
-                          type: 'button',
-                          config: {
-                            i18nKey: 'nav.signOut',
-                            pendingI18nKey: 'nav.signingOut',
-                            styles: { styleTemplate: 'hosp.header.menuButton', utilityClasses: 'w-full justify-start text-left' },
-                            click: { actionId: 'logout-user' }
-                          }
-                        }
-                      ]
+                      i18nKey: 'nav.bookNow',
+                      styles: { styleTemplate: 'hosp.header.ctaButton' },
+                      click: { actionId: 'open-appointment-popup' }
                     }
                   }
                 ]
-              }
-            },
-            {
-              id: 'hospital-public-header-cta',
-              type: 'button',
-              disabledCondition: disabledWhenLoggedInAsDoctor,
-              config: {
-                i18nKey: 'nav.bookNow',
-                styles: { styleTemplate: 'hosp.header.ctaButton' },
-                click: { actionId: 'open-appointment-popup' }
               }
             }
           ]

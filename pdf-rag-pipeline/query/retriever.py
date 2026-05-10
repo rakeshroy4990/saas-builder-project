@@ -260,11 +260,21 @@ def _run_text_pipeline_backend(
     candidate_limit: int,
     min_score: float,
     apply_score_filter: bool,
+    *,
+    book_name: Optional[str] = None,
+    include_outdated_books: bool = False,
 ) -> list[dict]:
     if is_postgres_persistence():
         from db import postgres_backend as pg
 
-        return pg.chunks_text_search(match, candidate_limit, min_score, apply_score_filter)
+        return pg.chunks_text_search(
+            match,
+            candidate_limit,
+            min_score,
+            apply_score_filter,
+            book_name=book_name,
+            include_outdated_books=include_outdated_books,
+        )
 
     assert db is not None
     mongo_db = db
@@ -296,6 +306,9 @@ def retrieve_top_chunks(
     min_score: float = 0.5,
     chapter_topics: Optional[list[str]] = None,
     audience: Optional[str] = None,
+    *,
+    book_name: Optional[str] = None,
+    include_outdated_books: bool = False,
 ) -> list[dict]:
     from db.mongo_client import get_db
 
@@ -319,17 +332,26 @@ def retrieve_top_chunks(
 
     candidate_limit = max(top_k * 5, 20)
 
+    def run_backend(match_dict: dict) -> list[dict]:
+        return _run_text_pipeline_backend(
+            db,
+            match_dict,
+            candidate_limit,
+            min_score,
+            True,
+            book_name=book_name,
+            include_outdated_books=include_outdated_books,
+        )
+
     def build_match(text_search: str) -> dict:
         m: dict = {"$text": {"$search": text_search}}
         if source_filter:
             m["source_file"] = source_filter
         if chapter_topics:
             m["metadata.chapter_topic"] = {"$in": chapter_topics}
-        if audience in {"layman", "expert"}:
-            m["metadata.audience"] = audience
         return m
 
-    results = _run_text_pipeline_backend(db, build_match(retrieval_query), candidate_limit, min_score, True)
+    results = run_backend(build_match(retrieval_query))
     LOG.info(
         "[RAG][RETRIEVER] query=%s retrieval_query=%s keywords=%s min_score=%s chapter_topics=%s audience=%s candidates_with_score_filter=%s",
         query,
@@ -347,14 +369,14 @@ def retrieve_top_chunks(
         and anchor_retrieval_query.strip() != broad_retrieval_query.strip()
     ):
         LOG.info("[RAG][RETRIEVER] anchor_search_empty_retrying_broad")
-        results = _run_text_pipeline_backend(db, build_match(broad_retrieval_query), candidate_limit, min_score, True)
+        results = run_backend(build_match(broad_retrieval_query))
         LOG.info("[RAG][RETRIEVER] after_broad_retry candidates=%s", len(results))
-    if not results and (chapter_topics or audience in {"layman", "expert"}):
-        # Fallback for old chunks without metadata filters.
+    if not results and chapter_topics:
+        # Fallback for old chunks without chapter_topic metadata.
         relaxed_match: dict = {"$text": {"$search": retrieval_query}}
         if source_filter:
             relaxed_match["source_file"] = source_filter
-        results = _run_text_pipeline_backend(db, relaxed_match, candidate_limit, min_score, True)
+        results = run_backend(relaxed_match)
         LOG.info(
             "[RAG][RETRIEVER] relaxed_topic_filter candidates_with_score_filter=%s",
             len(results),
@@ -364,7 +386,13 @@ def retrieve_top_chunks(
         if source_filter:
             relaxed_no_meta["source_file"] = source_filter
         results = _run_text_pipeline_backend(
-            db, relaxed_no_meta, candidate_limit, min_score, apply_score_filter=False
+            db,
+            relaxed_no_meta,
+            candidate_limit,
+            min_score,
+            apply_score_filter=False,
+            book_name=book_name,
+            include_outdated_books=include_outdated_books,
         )
         LOG.info("[RAG][RETRIEVER] fallback_without_score_filter candidates=%s", len(results))
     if not results:

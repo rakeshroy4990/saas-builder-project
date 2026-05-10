@@ -81,6 +81,8 @@ public class SmartAiQuotaService {
 
     int estimateRequestInputTokens(AiChatRequest request) {
         int sum = estimateTokensForText(request.message());
+        sum += estimateTokensForText(request.bookName());
+        sum += estimateTokensForText(request.retrievalQuestion());
         List<AiChatMessageDto> history = request.history();
         if (history == null || history.isEmpty()) {
             return sum;

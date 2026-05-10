@@ -4,7 +4,7 @@ import logging
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 
-from api.routes import ingest, query
+from api.routes import education, ingest, query
 from cache.query_cache import ensure_cache_ttl_index
 from config.settings import (
     APP_LOG_LEVEL,
@@ -62,3 +62,4 @@ async def startup() -> None:
 
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
 app.include_router(ingest.router, prefix="/api/v1", tags=["Ingest"])
+app.include_router(education.router, prefix="/api/v1", tags=["Education"])

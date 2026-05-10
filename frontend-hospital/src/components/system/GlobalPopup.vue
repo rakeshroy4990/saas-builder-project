@@ -11,6 +11,7 @@ import { pageRegistryRevision } from '../../core/registry/pageRegistryRevision';
 import { hospitalPages } from '../../configs/hospital/pages';
 import { pinia } from '../../store/pinia';
 import { ActionEngine } from '../../core/engine/ActionEngine';
+import { messageLooksLikeRequestTimeout } from '../../services/http/httpUserFacingErrors';
 
 const popupStore = usePopupStore(pinia);
 const router = useRouter();
@@ -96,6 +97,9 @@ const normalizedPopupErrorMessage = computed(() => {
     return t('popup.error.generic');
   }
   const lower = raw.toLowerCase();
+  if (messageLooksLikeRequestTimeout(raw)) {
+    return t('popup.error.requestTimeout');
+  }
   if (lower.includes('network') || lower.includes('failed to fetch') || lower.includes('timeout')) {
     return t('popup.error.network');
   }

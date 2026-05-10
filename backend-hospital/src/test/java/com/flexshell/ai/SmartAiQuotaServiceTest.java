@@ -18,7 +18,9 @@ class SmartAiQuotaServiceTest {
         AiChatRequest request = new AiChatRequest(
                 pad,
                 null,
-                List.of(new AiChatMessageDto("user", pad), new AiChatMessageDto("assistant", pad))
+                List.of(new AiChatMessageDto("user", pad), new AiChatMessageDto("assistant", pad)),
+                null,
+                null
         );
         SmartAiQuotaService svc = new SmartAiQuotaService(15, 299, null, QuotaTestDoubles.emptyPgDailyUsage());
         assertThrows(SmartAiQuotaExceededException.class, () -> svc.assertWithinTokenBudget(request));

@@ -6,8 +6,10 @@ import { router } from '../../../../router/index';
 import { ok } from '../shared/response';
 import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
 import { consumeDeferredPostLoginAction } from '../auth/postLoginAction';
+import { takePendingHttpReplay } from '../auth/postLoginHttpReplay';
 import { ServiceRegistry } from '../../../../core/registry/ServiceRegistry';
 import { runDashboardInitIfPresent } from './runDashboardInitIfPresent';
+import { apiClient } from '../../../http/apiClient';
 
 function resolveHeaderMenuOpenState(responsive: Record<string, unknown>): boolean {
   return responsive.headerMenuOpen !== false;
@@ -268,6 +270,21 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'execute-post-login-action',
     execute: async () => {
+      const replay = takePendingHttpReplay();
+      const hadReplay = !!replay;
+      if (replay) {
+        try {
+          await apiClient.request({
+            method: replay.method,
+            url: replay.url,
+            params: replay.params,
+            data: replay.data
+          });
+        } catch {
+          /* apiClient may toast / redirect again */
+        }
+      }
+
       const deferredAction = consumeDeferredPostLoginAction();
       if (deferredAction) {
         const deferredService = ServiceRegistry.getInstance().get(
@@ -275,17 +292,27 @@ export const navigationHospitalServices: ServiceDefinition[] = [
           deferredAction.actionId
         );
         if (!deferredService) {
+          if (!hadReplay) window.location.reload();
+          else await runDashboardInitIfPresent();
           return ok({ resumed: false });
         }
         try {
           await deferredService.execute({ data: deferredAction.data ?? {} });
         } catch {
+          if (!hadReplay) window.location.reload();
+          else await runDashboardInitIfPresent();
           return ok({ resumed: false });
         }
         await runDashboardInitIfPresent();
         return ok({ resumed: true });
       }
-      await runDashboardInitIfPresent();
+
+      if (hadReplay) {
+        await runDashboardInitIfPresent();
+        return ok({ resumed: true });
+      }
+
+      window.location.reload();
       return ok({ resumed: false });
     }
   },

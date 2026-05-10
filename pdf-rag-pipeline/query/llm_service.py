@@ -218,17 +218,47 @@ def _prompt_preview(prompt: str, preview_chars: int) -> str:
     return prompt[:preview_chars] + "\n... [truncated]"
 
 
+def _is_flashcard_generation_task(query: str) -> bool:
+    """
+    Doctor Education sends a long instruction block that must yield plain-text SUMMARY + CARDS.
+    The default expert prompt asks for strict JSON only, which strips that structure from answers.
+    """
+    ql = str(query or "").lower()
+    return "flashcard" in ql and "summary" in ql and "cards" in ql
+
+
 def _build_prompt(query: str, chunks: list[dict], audience: str = "layman") -> str:
     context = "\n\n".join(
         [f"[Source: {c['source_file']}, Page {c['page_num']}]\n{c['text']}" for c in chunks]
     )
     if audience == "expert":
+        if _is_flashcard_generation_task(query):
+            return f"""You are a medical education assistant for healthcare professionals.
+
+Use ONLY the CONTEXT excerpts for clinical facts (drugs, doses, classifications, investigations, counselling); do not invent content unsupported by CONTEXT.
+
+Depth must match a guideline-style teaching answer—as detailed as you would give for the same topic under CONTEXT without the flashcard format: keep named agents, indications, age cautions, and enumerated categories (e.g. suppressants vs expectorants vs mucolytics vs bronchodilators) when CONTEXT provides them. Do not collapse CONTEXT into generic bullets just to sound brief.
+
+The QUESTION defines SUMMARY then CARDS layout and per-field length hints; stay inside those caps where they exist, but prioritize clinical fidelity to CONTEXT over vague summaries. Spread dense CONTEXT across SUMMARY bullets and card backs rather than dropping textbook detail.
+
+Follow the QUESTION’s structural rules exactly (SUMMARY header and lines, blank line, CARDS header, Card N, Front/Back).
+
+Output plain text only. Do not wrap the response in JSON or markdown code fences.
+
+CONTEXT:
+{context}
+
+QUESTION:
+{query}
+
+YOUR RESPONSE:"""
         return f"""You are a medical information assistant for healthcare professionals.
 
 Guidelines:
 - Provide clinically accurate, structured, and detailed information
 - Use medical terminology (no simplification unless necessary)
 - Focus on pathophysiology, diagnosis, and management
+- When the context includes diagnostic criteria, classification tables, or enumerated major/minor features, include them explicitly
 - Do NOT include emotional language, reassurance, or personal advice
 - Do NOT address the user directly as a patient
 - Keep tone objective and educational
@@ -261,7 +291,8 @@ Guidelines:
 - Use simple, clear, non-technical language
 - Be empathetic and supportive in tone
 - Explain the condition, symptoms, and general next steps
-- Avoid overwhelming details
+- When the context includes lists, tables, or diagnostic criteria (e.g. major/minor features), summarize those points clearly instead of omitting them
+- Prefer short headings or bullets for long source lists so the answer stays readable
 - Encourage consulting a doctor for diagnosis/treatment
 - Do NOT provide definitive diagnosis
 - Use ONLY the provided context; do not add external facts
@@ -464,7 +495,9 @@ def _coerce_structured_output(raw: str, audience: str) -> dict:
             parsed_obj = {}
     except Exception:
         parsed_obj = {}
-    body = _strip_next_options_block(str(parsed_obj.get("answer") if parsed_obj else raw)).strip()
+    ans = parsed_obj.get("answer") if isinstance(parsed_obj, dict) else None
+    body_source = raw if ans is None else ans
+    body = _strip_next_options_block(str(body_source)).strip()
     if not body:
         body = INSUFFICIENT_EXPERT_MESSAGE if audience == "expert" else INSUFFICIENT_LAYMAN_MESSAGE
     if audience != "expert" and "i am not a doctor" not in body.lower():
@@ -474,6 +507,21 @@ def _coerce_structured_output(raw: str, audience: str) -> dict:
 
 
 def _finalize_answer(raw: str, query: str, chunks: list[dict], audience: str) -> dict:
+    if audience == "expert" and _is_flashcard_generation_task(query):
+        text = str(raw or "").strip()
+        if text.startswith("{") or '"answer"' in text[:1200]:
+            try:
+                obj = json.loads(_extract_json_object(text))
+                if isinstance(obj, dict):
+                    inner = obj.get("answer")
+                    if isinstance(inner, str) and inner.strip():
+                        text = inner.strip()
+            except Exception:
+                pass
+        text = _strip_next_options_block(text).strip()
+        if not text:
+            text = INSUFFICIENT_EXPERT_MESSAGE
+        return {"answer": text, "follow_up_questions": _default_follow_ups_for_audience(audience)}
     return _coerce_structured_output(raw, audience)
 
 

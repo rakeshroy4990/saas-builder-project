@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import boto3
 from botocore.exceptions import ClientError
@@ -94,3 +95,83 @@ def delete_images_for_file(file_hash: str) -> None:
             logger.info(f"[ImageStore] Deleted {len(keys)} images for {file_hash}")
     except Exception as e:
         logger.warning(f"[ImageStore] Delete failed for {file_hash}: {e}")
+
+
+_MARKER_PAGE_RE = re.compile(r"marker/p(\d+)_b\d+_img\d+\.")
+
+
+def _marker_object_key(
+    file_hash: str,
+    batch_index: int,
+    seq_img: int,
+    page_hint: int,
+    ext: str,
+) -> str:
+    ext = (ext or "png").lower()
+    if ext == "jpeg":
+        ext = "jpg"
+    if ext not in {"png", "jpg", "webp", "gif"}:
+        ext = "png"
+    return f"{file_hash}/marker/p{page_hint}_b{batch_index}_img{seq_img}.{ext}"
+
+
+def build_marker_image_url(
+    file_hash: str,
+    batch_index: int,
+    seq_img: int,
+    page_hint: int,
+    ext: str = "png",
+) -> str:
+    key = _marker_object_key(file_hash, batch_index, seq_img, page_hint, ext)
+    base = os.environ["SUPABASE_URL"].rstrip("/")
+    return f"{base}/storage/v1/object/public/{BUCKET}/{key}"
+
+
+def upload_marker_image(
+    file_hash: str,
+    batch_index: int,
+    seq_img: int,
+    page_hint: int,
+    img_bytes: bytes,
+    ext: str = "png",
+) -> str | None:
+    ext = (ext or "png").lower()
+    if ext == "jpeg":
+        ext = "jpg"
+    if ext not in {"png", "jpg", "webp", "gif"}:
+        ext = "png"
+    key = _marker_object_key(file_hash, batch_index, seq_img, page_hint, ext)
+    ctype = "image/jpeg" if ext == "jpg" else f"image/{ext}"
+    s3 = _get_s3()
+    try:
+        s3.put_object(Bucket=BUCKET, Key=key, Body=img_bytes, ContentType=ctype)
+        return build_marker_image_url(file_hash, batch_index, seq_img, page_hint, ext)
+    except Exception as e:
+        logger.warning("[ImageStore] Marker upload failed for %s: %s", key, e)
+        return None
+
+
+def delete_marker_images_for_page_range(file_hash: str, p0: int, p1: int) -> None:
+    """Delete Marker pipeline figures whose key encodes PDF page_hint in [p0, p1] (0-based)."""
+    s3 = _get_s3()
+    prefix = f"{file_hash}/marker/"
+    try:
+        paginator = s3.get_paginator("list_objects_v2")
+        to_delete: list[str] = []
+        for page in paginator.paginate(Bucket=BUCKET, Prefix=prefix):
+            for o in page.get("Contents", []) or []:
+                key = o.get("Key") or ""
+                m = _MARKER_PAGE_RE.search(key)
+                if not m:
+                    continue
+                ph = int(m.group(1))
+                if p0 <= ph <= p1:
+                    to_delete.append(key)
+        if not to_delete:
+            return
+        for i in range(0, len(to_delete), 900):
+            batch = to_delete[i : i + 900]
+            s3.delete_objects(Bucket=BUCKET, Delete={"Objects": [{"Key": k} for k in batch]})
+        logger.info("[ImageStore] Deleted %s marker images for %s pages %s–%s", len(to_delete), file_hash, p0, p1)
+    except Exception as e:
+        logger.warning("[ImageStore] Marker delete failed for %s: %s", file_hash, e)

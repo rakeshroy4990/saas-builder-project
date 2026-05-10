@@ -3,6 +3,7 @@ Background Marker ingest: batched PDF slices → Marker → filters → S3 → e
 """
 from __future__ import annotations
 
+import json
 import logging
 import tempfile
 from typing import Optional
@@ -21,6 +22,7 @@ from db.image_store import (
 from ingestion.chunker import chunk_text
 from ingestion.marker_pipeline import (
     convert_pdf_with_marker,
+    extract_segment_heading,
     keep_marker_image,
     split_paginated_markdown,
     split_pdf_page_range,
@@ -31,6 +33,35 @@ from query.audience_classifier import infer_source_audience
 from query.embedding_service import embed_texts_same_order
 
 LOG = logging.getLogger(__name__)
+
+
+def _marker_job_ingest_meta_dict(job: dict) -> dict:
+    raw = job.get("ingest_meta")
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+    if isinstance(raw, dict):
+        return raw
+    return {}
+
+
+def _registry_book_kwargs_from_job(job: dict) -> dict[str, Optional[str]]:
+    """Fields for pdf_registry_mark from job.ingest_meta (Marker POST body)."""
+    meta = _marker_job_ingest_meta_dict(job)
+    bn = str(meta.get("book_name") or "").strip() or None
+    bs_raw = meta.get("book_status")
+    bs: Optional[str] = None
+    if isinstance(bs_raw, str) and bs_raw.strip():
+        low = bs_raw.strip().lower()
+        bs = "OutDated" if low == "outdated" else bs_raw.strip()
+    kw: dict[str, Optional[str]] = {}
+    if bn is not None:
+        kw["book_name"] = bn
+    if bs is not None:
+        kw["book_status"] = bs
+    return kw
 
 
 def _merge_intervals(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
@@ -142,6 +173,8 @@ def _run_single_batch(
     filename: str,
     source_audience: str,
     batch_row: dict,
+    *,
+    book_name: Optional[str] = None,
 ) -> dict:
     """Process one ingest batch row; return marker_stats summary."""
     batch_index = int(batch_row["batch_index"])
@@ -181,6 +214,7 @@ def _run_single_batch(
 
         for seg_idx, (rel_page, segment) in enumerate(segments):
             abs_page = _absolute_page(page_start, rel_page)
+            section_heading = extract_segment_heading(segment)
             chunks = chunk_text(segment)
             if not chunks and segment.strip():
                 chunks = [segment.strip()[:12_000]]
@@ -192,6 +226,8 @@ def _run_single_batch(
                 meta = {
                     "audience": source_audience,
                     "chapter_topic": topic,
+                    "section_heading": section_heading,
+                    "book_name": book_name,
                     "batch_index": batch_index,
                     "marker_rel_page": rel_page,
                     "segment_index": seg_idx,
@@ -233,6 +269,7 @@ def _run_single_batch(
                 meta_img = {
                     "audience": source_audience,
                     "chapter_topic": None,
+                    "book_name": book_name,
                     "batch_index": batch_index,
                     "image_name": str(name),
                 }
@@ -300,7 +337,8 @@ def process_marker_job(job_id: int) -> None:
     filename = job["filename"]
     LOG.info("[MarkerJob] start id=%s file_hash=%s file=%s", job_id, file_hash, filename)
 
-    mark_status(file_hash, "processing", filename=filename, filepath=filepath, error=None)
+    book_kw = _registry_book_kwargs_from_job(job)
+    mark_status(file_hash, "processing", filename=filename, filepath=filepath, error=None, **book_kw)
     pg.marker_job_update(job_id, "processing", error=None)
 
     batches = pg.marker_batches_for_job(job_id)
@@ -319,6 +357,8 @@ def process_marker_job(job_id: int) -> None:
         LOG.warning("[MarkerJob] cleanup warning: %s", exc)
 
     source_audience = infer_source_audience(filename)
+    meta_job = _marker_job_ingest_meta_dict(job)
+    book_label = str(meta_job.get("book_name") or "").strip() or None
     failed_any = False
     last_error: str | None = None
 
@@ -326,7 +366,14 @@ def process_marker_job(job_id: int) -> None:
         bid = int(b["id"])
         pg.marker_batch_update(bid, "processing", error=None, marker_stats=None)
         try:
-            stats = _run_single_batch(filepath, file_hash, filename, source_audience, b)
+            stats = _run_single_batch(
+                filepath,
+                file_hash,
+                filename,
+                source_audience,
+                b,
+                book_name=book_label,
+            )
             pg.marker_batch_update(bid, "done", error=None, marker_stats=stats)
             LOG.info("[MarkerJob] batch id=%s index=%s done stats=%s", bid, b.get("batch_index"), stats)
         except Exception as exc:
@@ -337,7 +384,7 @@ def process_marker_job(job_id: int) -> None:
 
     if failed_any:
         pg.marker_job_update(job_id, "failed", error=last_error or "batch_failure")
-        mark_status(file_hash, "failed", filename=filename, filepath=filepath, error=last_error)
+        mark_status(file_hash, "failed", filename=filename, filepath=filepath, error=last_error, **book_kw)
         return
 
     total_items = pg.retrieval_count_for_file_hash(file_hash)
@@ -350,6 +397,7 @@ def process_marker_job(job_id: int) -> None:
         error=None,
         chunks_count=int(total_items),
         ingested_at=datetime.now(timezone.utc),
+        **book_kw,
     )
     LOG.info("[MarkerJob] completed id=%s retrieval_items=%s", job_id, total_items)
 
@@ -358,9 +406,12 @@ def schedule_marker_ingest(
     filepath: str,
     pages_query: Optional[list[int]] = None,
     pages_csv: Optional[str] = None,
+    *,
+    book_name: str,
+    book_status: Optional[str] = None,
 ) -> dict:
     """
-    Create rag_ingest_jobs row + batch rows for Marker pipeline.
+    Create rag_marker_jobs row + rag_marker_batches rows for the Marker pipeline.
     Caller starts BackgroundTasks with process_marker_job(job_id).
 
     Optional page filters (1-based): repeat query param ``pages`` and/or ``pagesCsv`` like ``1,5-8``.
@@ -385,10 +436,16 @@ def schedule_marker_ingest(
 
     explicit = merge_pages_query_params(pages_query, pages_csv, total_pages)
 
+    bname = str(book_name or "").strip()
+    if not bname:
+        raise ValueError("book_name is required for Marker ingest")
+
     ingest_meta: dict = {
         "document_total_pages": total_pages,
         "pages_explicitly_requested_one_based": [],
         "pages_skipped_as_already_ingested_one_based": [],
+        "book_name": bname,
+        "book_status": book_status,
     }
 
     if explicit is not None:

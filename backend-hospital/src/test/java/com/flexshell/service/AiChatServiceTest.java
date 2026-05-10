@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +29,11 @@ class AiChatServiceTest {
         PdfRagQueryAdapter ragAdapter = mock(PdfRagQueryAdapter.class);
         AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota());
 
-        AiChatResponse response = service.reply("user-1", new AiChatRequest("I have chest pain", null, List.of()), "Bearer token", List.of("ROLE_USER"));
+        AiChatResponse response = service.reply(
+                "user-1",
+                new AiChatRequest("I have chest pain", null, List.of(), null, null),
+                "Bearer token",
+                List.of("ROLE_USER"));
         assertTrue(response.escalated());
         assertTrue(response.reply().contains("urgent medical attention"));
     }
@@ -37,11 +41,23 @@ class AiChatServiceTest {
     @Test
     void enforcesDisclaimerOnProviderReply() {
         PdfRagQueryAdapter ragAdapter = mock(PdfRagQueryAdapter.class);
-        when(ragAdapter.query(anyString(), anyString(), anyList(), anyString(), anyString(), anyList()))
+        when(ragAdapter.query(
+                        anyString(),
+                        anyString(),
+                        anyList(),
+                        anyString(),
+                        anyString(),
+                        anyList(),
+                        nullable(String.class),
+                        nullable(String.class)))
                 .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Paracetamol may help fever and body ache.", "rag", List.of()));
         AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota());
 
-        AiChatResponse response = service.reply("user-1", new AiChatRequest("Can I take paracetamol?", "conv-1", List.of()), "Bearer token", List.of("ROLE_USER"));
+        AiChatResponse response = service.reply(
+                "user-1",
+                new AiChatRequest("Can I take paracetamol?", "conv-1", List.of(), null, null),
+                "Bearer token",
+                List.of("ROLE_USER"));
         assertTrue(response.reply().contains(AiSafetyPolicy.DISCLAIMER_LINE));
         assertTrue(response.reply().toLowerCase().contains("not a doctor"));
         assertEquals("rag_layman", response.mode());
@@ -50,11 +66,23 @@ class AiChatServiceTest {
     @Test
     void marksModeAsRagCacheWhenSourceIsCache() {
         PdfRagQueryAdapter ragAdapter = mock(PdfRagQueryAdapter.class);
-        when(ragAdapter.query(anyString(), anyString(), anyList(), anyString(), anyString(), anyList()))
+        when(ragAdapter.query(
+                        anyString(),
+                        anyString(),
+                        anyList(),
+                        anyString(),
+                        anyString(),
+                        anyList(),
+                        nullable(String.class),
+                        nullable(String.class)))
                 .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Not enough information in knowledge base.", "cache", List.of()));
         AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota());
 
-        AiChatResponse response = service.reply("user-1", new AiChatRequest("I have dengue", null, List.of()), "Bearer token", List.of("ROLE_DOCTOR"));
+        AiChatResponse response = service.reply(
+                "user-1",
+                new AiChatRequest("I have dengue", null, List.of(), null, null),
+                "Bearer token",
+                List.of("ROLE_DOCTOR"));
         assertEquals("rag_cache_expert", response.mode());
     }
 }

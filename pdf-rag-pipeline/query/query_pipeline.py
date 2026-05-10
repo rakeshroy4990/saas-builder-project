@@ -1,10 +1,16 @@
 from cache.query_cache import get_cached, set_cache
 from config.settings import (
+    IMAGE_CONTEXT_PAGE_WINDOW,
+    MAX_CHUNKS,
     MAX_CONTEXT_TOKENS,
     MIN_CHUNKS_REQUIRED,
     RAG_LOG_FULL_PROMPT,
     RAG_LOG_PROMPT_PREVIEW_CHARS,
+    RAG_USE_VECTOR_RETRIEVAL,
     TEXT_SEARCH_MIN_SCORE,
+    VECTOR_CONTEXT_MAX_TEXT_CHUNKS,
+    VECTOR_TOP_K_IMAGE,
+    is_postgres_persistence,
 )
 from query.context_assembler import assemble_context, context_tokens, trim_chunks
 from query.audience_classifier import infer_user_audience
@@ -19,6 +25,11 @@ import re
 from typing import List, Optional
 
 LOG = logging.getLogger(__name__)
+
+_DEFINITION_QUERY_RE = re.compile(
+    r"^\s*(what\s+is|what\s+are|define|definition\s+of|tell\s+me\s+about|describe)\b",
+    re.IGNORECASE,
+)
 
 INSUFFICIENT_EXPERT_MESSAGE = "Insufficient data in provided context."
 INSUFFICIENT_LAYMAN_MESSAGE = "I don't have enough information to answer this."
@@ -93,6 +104,26 @@ def _insufficient_message_for_audience(audience: str) -> str:
     return INSUFFICIENT_EXPERT_MESSAGE if audience == "expert" else INSUFFICIENT_LAYMAN_MESSAGE
 
 
+def _images_from_vector_api(api_images: list[dict]) -> list[dict]:
+    """Shape vector-retrieved figure metadata for the query API response."""
+    out: list[dict] = []
+    for i, img in enumerate(api_images):
+        url = str(img.get("url") or "").strip()
+        if not url:
+            continue
+        ph = int(img.get("page_hint") or 0)
+        out.append({
+            "img_index": i,
+            "page": ph,
+            "ext": "png",
+            "caption": str(img.get("caption") or "").strip(),
+            "image_data": "",
+            "url": url,
+            "source_file": str(img.get("source_file") or ""),
+        })
+    return out
+
+
 def _answer_body_without_followups(answer: str) -> str:
     raw = str(answer or "")
     m = re.search(r"(?im)\n\s*Next options:\s*", raw)
@@ -133,6 +164,27 @@ def _chunk_text_for_log(text: str) -> str:
     if preview_chars == 0 or len(raw) <= preview_chars:
         return raw
     return raw[:preview_chars] + "... [truncated]"
+
+
+def _is_broad_definition_query(q: str) -> bool:
+    return bool(_DEFINITION_QUERY_RE.search(str(q or "").strip()))
+
+
+def _chunk_text_for_llm(text: str, query: str, *, from_vector: bool) -> str:
+    """
+    FTS chunks use tight keyword focus to drop noise. Vector/Marker chunks already rank well;
+    aggressive focus destroys tables and diagnostic criteria (e.g. major/minor features).
+    """
+    raw = str(text or "")
+    if from_vector:
+        body = _strip_image_markers(raw).split("[medical_aliases]")[0]
+        body = re.sub(r"\s{2,}", " ", body).strip()
+        max_chars = 14_000
+        if len(body) > max_chars:
+            body = body[: max_chars - 24].rstrip() + "\n… [truncated]"
+        summary = _build_image_context_for_llm(_extract_images_from_chunk(raw))
+        return f"{body}{summary}".strip()
+    return _focus_chunk_text_for_query(raw, query)
 
 
 def _focus_chunk_text_for_query(text: str, query: str) -> str:
@@ -261,17 +313,34 @@ async def handle_query(
         user_roles: Optional[List[str]] = None,
         conversation_id: str = "default",
         history: Optional[list] = None,
+        *,
+        book_name: Optional[str] = None,
+        include_outdated_books: bool = False,
+        retrieval_question: Optional[str] = None,
 ) -> dict:
+    book_scope = str(book_name or "").strip()
     LOG.info(
-        "[RAG][QUERY] user_id=%s conversation_id=%s question=%s",
-        user_id or "", conversation_id or "default", user_query,
+        "[RAG][QUERY] user_id=%s conversation_id=%s book_name=%s include_outdated=%s question=%s",
+        user_id or "",
+        conversation_id or "default",
+        book_scope or "",
+        include_outdated_books,
+        user_query,
     )
-    audience         = infer_user_audience(user_roles or [])
-    effective_question = _build_effective_question(user_query, history)
-    cache_query_key  = _build_cache_query_key(user_query)
+    audience = infer_user_audience(user_roles or [])
+    rq = str(retrieval_question or "").strip()
+    retrieval_seed = rq if rq else user_query
+    effective_question = _build_effective_question(retrieval_seed, history)
+    cache_query_key = _build_cache_query_key(user_query)
 
     # ── Cache check ───────────────────────────────────────────────────────────
-    cached = get_cached(cache_query_key, audience=audience, user_id=user_id)
+    cached = get_cached(
+        cache_query_key,
+        audience=audience,
+        user_id=user_id,
+        book_name=book_scope,
+        include_outdated_books=include_outdated_books,
+    )
     if cached:
         LOG.info("[RAG][CACHE] hit question=%s audience=%s", user_query, audience)
         return {
@@ -295,23 +364,65 @@ async def handle_query(
         }
 
     # ── Retrieval ─────────────────────────────────────────────────────────────
-    max_chunks     = 2 if len(user_query) < 20 else 3
+    max_chunks = 2 if len(retrieval_seed) < 20 else 3
     allowed_topics = infer_allowed_topics(effective_question)
     LOG.info(
-        "[RAG][INTENT] question=%s allowed_topics=%s audience=%s",
-        user_query, allowed_topics, audience,
+        "[RAG][INTENT] question=%s retrieval_seed=%s allowed_topics=%s audience=%s",
+        user_query,
+        retrieval_seed,
+        allowed_topics,
+        audience,
     )
 
-    chunks = retrieve_top_chunks(
-        effective_question,
-        top_k=max_chunks,
-        min_score=TEXT_SEARCH_MIN_SCORE,
-        chapter_topics=allowed_topics,
-        audience=audience,
-    )
+    used_vector = False
+    api_images: list[dict] = []
+    chunks: list[dict] = []
+
+    if is_postgres_persistence() and RAG_USE_VECTOR_RETRIEVAL:
+        try:
+            from query.vector_retriever import (
+                build_llm_chunks_and_response_images,
+                build_optional_figure_summary_chunk,
+                filter_api_images_by_selected_chunks,
+                retrieve_vector_dual,
+            )
+
+            # Definition-style questions should pull all on-topic rows (e.g. criteria tables) even
+            # when page_topic_classifier labeled chunks with different `chapter_topic` strings.
+            vector_topics = None if _is_broad_definition_query(effective_question) else allowed_topics
+
+            text_hits, image_hits = retrieve_vector_dual(
+                effective_question,
+                chapter_topics=vector_topics,
+                audience=audience,
+                book_name=book_scope or None,
+                include_outdated_books=include_outdated_books,
+            )
+            llm_chunks, api_images = build_llm_chunks_and_response_images(text_hits, image_hits)
+            if len(llm_chunks) >= MIN_CHUNKS_REQUIRED:
+                chunks = llm_chunks
+                used_vector = True
+                LOG.info(
+                    "[RAG][RETRIEVE] vector hits text=%s image_pool=%s",
+                    len(text_hits),
+                    len(image_hits),
+                )
+        except Exception as exc:
+            LOG.warning("[RAG][VECTOR] retrieval skipped: %s", exc)
+
+    if not used_vector:
+        chunks = retrieve_top_chunks(
+            effective_question,
+            top_k=max_chunks,
+            min_score=TEXT_SEARCH_MIN_SCORE,
+            chapter_topics=allowed_topics,
+            audience=audience,
+            book_name=book_scope or None,
+            include_outdated_books=include_outdated_books,
+        )
     LOG.info(
-        "[RAG][RETRIEVE] question=%s retrieved=%s",
-        user_query, len(chunks),
+        "[RAG][RETRIEVE] question=%s retrieved=%s vector=%s",
+        user_query, len(chunks), used_vector,
     )
     if chunks:
         chunk_refs = [
@@ -331,7 +442,11 @@ async def handle_query(
         }
 
     # ── Context assembly ──────────────────────────────────────────────────────
-    selected            = assemble_context(chunks, max_chunks=max_chunks)
+    # Vector path already returns multiple ranked chunks; do not cap at 2–3 or tables vanish.
+    context_limit = max_chunks
+    if used_vector:
+        context_limit = max(max_chunks, MAX_CHUNKS, VECTOR_CONTEXT_MAX_TEXT_CHUNKS)
+    selected = assemble_context(chunks, max_chunks=context_limit)
     context_token_count = context_tokens(selected)
     LOG.info(
         "[RAG][CONTEXT] selected=%s context_tokens=%s max=%s",
@@ -350,33 +465,71 @@ async def handle_query(
             "source":              "insufficient_chunks",
         }
 
+    # ── Figures: only pages overlapping LLM-selected text (±window). Marker captions do not embed
+    # topic — global ANN picks arbitrary diagrams without this filter.
+    filtered_vector_images: list[dict] = []
+    if used_vector and api_images:
+        filtered_vector_images = filter_api_images_by_selected_chunks(
+            api_images,
+            selected,
+            page_window=IMAGE_CONTEXT_PAGE_WINDOW,
+            max_return=VECTOR_TOP_K_IMAGE,
+        )
+
+    fig_summary_chunk: Optional[dict] = None
+    if filtered_vector_images:
+        fig_summary_chunk = build_optional_figure_summary_chunk(filtered_vector_images)
+
+    selected_for_llm = list(selected)
+    if fig_summary_chunk:
+        selected_for_llm.append(fig_summary_chunk)
+        if context_tokens(selected_for_llm) > MAX_CONTEXT_TOKENS:
+            selected_for_llm.pop()
+
     # ── Collect ALL images across selected chunks ─────────────────────────────
     # New format keeps S3 URLs in chunk["images"]; old format used inline markers.
+    # Vector RAG returns figures via `api_images` (URLs from rag_retrieval_items).
     all_response_images: list[dict] = []
     seen_image_keys: set[str] = set()
 
-    for chunk in selected:
-        chunk_text_raw = chunk.get("text", "")
-        imgs = _extract_images_for_response(chunk)
-        LOG.info(
-            "[RAG][SELECTED_CHUNK] source=%s page=%s score=%s images=%s text=\n%s",
-            chunk.get("source_file", "unknown"),
-            chunk.get("page_num", "?"),
-            chunk.get("weighted_score", chunk.get("score", "")),
-            len(imgs),
-            _chunk_text_for_log(chunk_text_raw),
-        )
-        for img in imgs:
-            # Deduplicate: same image can appear in overlapping chunks
-            key = f"{chunk.get('page_num')}_{img['img_index']}"
-            if key not in seen_image_keys:
-                seen_image_keys.add(key)
-                all_response_images.append(img)
+    if used_vector and filtered_vector_images:
+        all_response_images = _images_from_vector_api(filtered_vector_images)
+        seen_image_keys = {str(i.get("url") or "") for i in all_response_images if i.get("url")}
+        for chunk in selected:
+            LOG.info(
+                "[RAG][SELECTED_CHUNK] source=%s page=%s score=%s images=%s text=\n%s",
+                chunk.get("source_file", "unknown"),
+                chunk.get("page_num", "?"),
+                chunk.get("weighted_score", chunk.get("score", "")),
+                0,
+                _chunk_text_for_log(chunk.get("text", "")),
+            )
+    else:
+        for chunk in selected:
+            chunk_text_raw = chunk.get("text", "")
+            imgs = _extract_images_for_response(chunk)
+            LOG.info(
+                "[RAG][SELECTED_CHUNK] source=%s page=%s score=%s images=%s text=\n%s",
+                chunk.get("source_file", "unknown"),
+                chunk.get("page_num", "?"),
+                chunk.get("weighted_score", chunk.get("score", "")),
+                len(imgs),
+                _chunk_text_for_log(chunk_text_raw),
+            )
+            for img in imgs:
+                key = f"{chunk.get('page_num')}_{img['img_index']}"
+                if key not in seen_image_keys:
+                    seen_image_keys.add(key)
+                    all_response_images.append(img)
 
-    # ── Focus text for LLM (strips raw base64, keeps captions) ───────────────
+    # ── Prepare text for LLM (vector: keep full excerpts; FTS: keyword focus) ─
     focused_selected = []
-    for chunk in selected:
-        focused_text = _focus_chunk_text_for_query(chunk.get("text", ""), effective_question)
+    for chunk in selected_for_llm:
+        focused_text = _chunk_text_for_llm(
+            chunk.get("text", ""),
+            effective_question,
+            from_vector=used_vector,
+        )
         focused_selected.append({**chunk, "text": focused_text})
         LOG.info(
             "[RAG][FOCUSED_CHUNK] source=%s page=%s focused_chars=%s images_in_chunk=%s",
@@ -403,6 +556,8 @@ async def handle_query(
             audience=audience,
             follow_up_questions=follow_up_questions,
             user_id=user_id,
+            book_name=book_scope,
+            include_outdated_books=include_outdated_books,
         )
         LOG.info("[RAG][CACHE] stored question=%s audience=%s", user_query, audience)
     else:
@@ -416,6 +571,6 @@ async def handle_query(
         "source":              "rag",
         "chunks_used":         len(selected),
         "context_tokens":      context_token_count,
-        "max_chunks":          max_chunks,
+        "max_chunks":          context_limit,
         "user_id":             user_id,
     }
