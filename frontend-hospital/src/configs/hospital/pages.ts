@@ -6,6 +6,7 @@ import { hospitalTermsPage } from './termsPage';
 import { hospitalPrivacyPage } from './privacyPage';
 import {
   disabledWhenLoggedInAsDoctor,
+  visibleWhenNotLoggedInAsDoctor,
   hospitalPublicChromeTop,
   hospitalSiteFooter
 } from './hospitalPublicChrome';
@@ -75,9 +76,9 @@ export const hospitalPages: PageConfig[] = [
                         layoutTemplate: 'hosp.form.actions',
                         children: [
                           {
-                            id: 'hospital-home-hero-primary-cta',
+                            id: 'hospital-home-hero-primary-cta-public',
                             type: 'button',
-                            disabledCondition: disabledWhenLoggedInAsDoctor,
+                            condition: visibleWhenNotLoggedInAsDoctor,
                             config: {
                               mapping: {
                                 packageName: 'hospital',
@@ -87,6 +88,27 @@ export const hospitalPages: PageConfig[] = [
                               },
                               styles: { styleTemplate: 'hosp.button.primary' },
                               click: { actionId: 'open-appointment-popup' }
+                            }
+                          },
+                          {
+                            id: 'hospital-home-hero-primary-cta-doctor',
+                            type: 'button',
+                            condition: disabledWhenLoggedInAsDoctor,
+                            config: {
+                              mapping: {
+                                packageName: 'hospital',
+                                key: 'HomeContent',
+                                path: 'hero',
+                                property: 'ctaPrimary'
+                              },
+                              styles: { styleTemplate: 'hosp.button.primary' },
+                              click: {
+                                actionId: 'set-education-header-active',
+                                onSuccess: {
+                                  actionType: 'navigate',
+                                  navigate: { packageName: 'hospital', pageId: 'doctor-education' }
+                                }
+                              }
                             }
                           },
                           // {

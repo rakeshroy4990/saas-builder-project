@@ -8,6 +8,13 @@ export const disabledWhenLoggedInAsDoctor: ConditionConfig = {
   }
 };
 
+export const visibleWhenNotLoggedInAsDoctor: ConditionConfig = {
+  expression: "String(role ?? '').toUpperCase() !== 'DOCTOR'",
+  mappings: {
+    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+  }
+};
+
 /** Shared site header + mobile menu (Home / Dashboard / Blog, auth, Book Now). */
 const hospitalPublicHeader: ComponentDefinition = {
   id: 'hospital-public-header',
@@ -486,7 +493,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                   {
                     id: 'hospital-public-header-cta',
                     type: 'button',
-                    disabledCondition: disabledWhenLoggedInAsDoctor,
+                    condition: visibleWhenNotLoggedInAsDoctor,
                     config: {
                       i18nKey: 'nav.bookNow',
                       styles: { styleTemplate: 'hosp.header.ctaButton' },

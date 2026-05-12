@@ -20,6 +20,8 @@ import { i18n } from '../../../../i18n';
 import { isSupportedLocale } from '@saas-builder/i18n-contract';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
+import type { Composer } from 'vue-i18n';
+import { refreshHospitalLocalizedUi } from '../i18n/refreshLocalizedUi';
 
 /**
  * Applies login API payload to Pinia, persistence, and post-login side effects (WebRTC, admin inbox).
@@ -99,6 +101,7 @@ export async function finalizeHospitalLoginSession(
   useAppStore(pinia).setProperty('hospital', 'AuthSession', 'fullName', fullName);
   useAppStore(pinia).setProperty('hospital', 'AuthSession', 'role', resolvedRole);
   useAppStore(pinia).setProperty('hospital', 'AuthSession', 'preferredLocale', preferredLocale);
+  refreshHospitalLocalizedUi(i18n.global as Composer);
   persistAuthSessionProfile({
     userId: canonicalUserId,
     userDisplayName: displayName,

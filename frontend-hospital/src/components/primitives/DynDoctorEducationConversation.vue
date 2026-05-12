@@ -48,6 +48,7 @@ const { execute } = useActionEngine(props.pageConfig);
 const { t } = useI18n();
 const appStore = useAppStore(pinia);
 const threadRef = ref<HTMLElement | null>(null);
+const questionTextareaRef = ref<HTMLTextAreaElement | null>(null);
 const showConversationControls = ref(false);
 const showQuickStarts = ref(true);
 const showSavedThreads = ref(false);
@@ -139,6 +140,11 @@ const activeSessionTitle = computed(() => activeSession.value?.title || t('educa
 const activeSessionMessageCount = computed(() => messages.value.filter((message) => !message.loading).length);
 const activeBookLabel = computed(() => activeSession.value?.bookName || selectedBook.value);
 
+async function focusQuestionTextarea(): Promise<void> {
+  await nextTick();
+  questionTextareaRef.value?.focus();
+}
+
 watch(
   () => messages.value.length,
   async () => {
@@ -176,6 +182,10 @@ onMounted(() => {
   }
 });
 
+onMounted(async () => {
+  await focusQuestionTextarea();
+});
+
 watch(
   [showQuickStarts, showSavedThreads],
   ([nextQuickStarts, nextSavedThreads]) => {
@@ -193,6 +203,15 @@ watch(
     }
   },
   { immediate: false }
+);
+
+watch(
+  () => uiMode.value,
+  async (mode) => {
+    if (mode === 'conversation') {
+      await focusQuestionTextarea();
+    }
+  }
 );
 
 async function onBookFilterChange(event: Event) {
@@ -408,6 +427,7 @@ async function onComposerKeydown(event: KeyboardEvent) {
             {{ t('education.conversation.inputPromptLabel') }}
           </label>
           <textarea
+            ref="questionTextareaRef"
             id="doctor-education-conversation-draft"
             :value="conversationDraft"
             rows="4"

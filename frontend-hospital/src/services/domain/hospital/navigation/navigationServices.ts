@@ -7,12 +7,34 @@ import { ok } from '../shared/response';
 import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
 import { consumeDeferredPostLoginAction } from '../auth/postLoginAction';
 import { takePendingHttpReplay } from '../auth/postLoginHttpReplay';
+import { maybeOpenLocaleOnboardingIfNeeded } from '../auth/localePreferenceGate';
 import { ServiceRegistry } from '../../../../core/registry/ServiceRegistry';
 import { runDashboardInitIfPresent } from './runDashboardInitIfPresent';
 import { apiClient } from '../../../http/apiClient';
 
 function resolveHeaderMenuOpenState(responsive: Record<string, unknown>): boolean {
   return responsive.headerMenuOpen !== false;
+}
+
+function isCurrentHomeRoute(): boolean {
+  const path = String(router.currentRoute.value?.path ?? window.location.pathname ?? '').trim();
+  return path === '/home' || path === '/';
+}
+
+async function fallbackPostLoginNavigation(hadReplay: boolean): Promise<{ resumed: boolean }> {
+  if (hadReplay) {
+    maybeOpenLocaleOnboardingIfNeeded();
+    await runDashboardInitIfPresent();
+    return { resumed: true };
+  }
+
+  if (isCurrentHomeRoute()) {
+    maybeOpenLocaleOnboardingIfNeeded();
+    return { resumed: true };
+  }
+
+  window.location.reload();
+  return { resumed: false };
 }
 
 export const navigationHospitalServices: ServiceDefinition[] = [
@@ -292,28 +314,25 @@ export const navigationHospitalServices: ServiceDefinition[] = [
           deferredAction.actionId
         );
         if (!deferredService) {
-          if (!hadReplay) window.location.reload();
-          else await runDashboardInitIfPresent();
-          return ok({ resumed: false });
+          return ok(await fallbackPostLoginNavigation(hadReplay));
         }
         try {
           await deferredService.execute({ data: deferredAction.data ?? {} });
         } catch {
-          if (!hadReplay) window.location.reload();
-          else await runDashboardInitIfPresent();
-          return ok({ resumed: false });
+          return ok(await fallbackPostLoginNavigation(hadReplay));
         }
+        maybeOpenLocaleOnboardingIfNeeded();
         await runDashboardInitIfPresent();
         return ok({ resumed: true });
       }
 
       if (hadReplay) {
+        maybeOpenLocaleOnboardingIfNeeded();
         await runDashboardInitIfPresent();
         return ok({ resumed: true });
       }
 
-      window.location.reload();
-      return ok({ resumed: false });
+      return ok(await fallbackPostLoginNavigation(hadReplay));
     }
   },
   {
