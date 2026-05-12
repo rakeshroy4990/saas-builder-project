@@ -242,15 +242,15 @@ async function onComposerKeydown(event: KeyboardEvent) {
   <section :id="htmlId" class="rounded-3xl border border-slate-200 bg-white/95 shadow-sm">
     <div class="px-4 py-4 sm:px-5">
       <div class="space-y-5">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div class="space-y-1">
+        <div class="flex items-start justify-between gap-3 min-w-0">
+          <div class="min-w-0 flex-1 space-y-1">
             <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
               {{ t('education.conversation.historyTitle') }}
             </p>
             <h3 class="text-xl font-semibold text-slate-900">{{ t('education.conversation.inputLabel') }}</h3>
           </div>
 
-          <div class="flex items-center justify-end">
+          <div class="shrink-0 flex items-center justify-end">
             <button
               type="button"
               class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100"

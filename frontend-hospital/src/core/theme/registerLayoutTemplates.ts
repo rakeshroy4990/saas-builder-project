@@ -188,10 +188,11 @@ export function registerLayoutTemplates(): void {
     flex: [
       'flex',
       'flex-col',
+      'gap-3',
+      'min-w-0',
       'md:flex-row',
       'md:items-center',
       'md:justify-between',
-      'gap-4',
       'sticky',
       'top-0',
       'z-20'
@@ -200,11 +201,11 @@ export function registerLayoutTemplates(): void {
   /** Hamburger + logo/title on one row (shell may stay `flex-col` on small screens). */
   LayoutTemplateRegistry.register('hosp.header.lead', {
     type: 'flex',
-    flex: ['flex', 'flex-row', 'items-center', 'gap-3', 'min-w-0', 'w-full', 'md:w-auto']
+    flex: ['flex', 'flex-row', 'items-center', 'gap-3', 'min-w-0', 'w-full', 'md:w-auto', 'md:flex-1']
   });
   LayoutTemplateRegistry.register('hosp.header.brand', {
     type: 'flex',
-    flex: ['flex', 'min-w-0', 'shrink-0', 'items-center', 'gap-3']
+    flex: ['flex', 'min-w-0', 'items-center', 'gap-2', 'sm:gap-3']
   });
   LayoutTemplateRegistry.register('hosp.header.nav', {
     type: 'flex',
@@ -224,17 +225,16 @@ export function registerLayoutTemplates(): void {
     type: 'flex',
     flex: [
       'flex',
-      'w-full',
       'min-w-0',
-      'flex-col',
+      'w-full',
+      'flex-row',
+      'flex-nowrap',
+      'items-center',
+      'justify-end',
       'gap-2',
+      'sm:gap-3',
       'md:w-auto',
-      'md:shrink-0',
-      'md:flex-row',
-      'md:flex-nowrap',
-      'md:items-center',
-      'md:justify-end',
-      'md:gap-2'
+      'md:shrink-0'
     ]
   });
   LayoutTemplateRegistry.register('hosp.hero.section', {

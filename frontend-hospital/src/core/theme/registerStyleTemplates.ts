@@ -267,10 +267,10 @@ export function registerStyleTemplates(): void {
     utilityClasses: 'rounded-2xl bg-white/95 backdrop-blur border border-slate-200 px-4 py-3 shadow-sm'
   });
   StyleTemplateRegistry.register('hosp.header.logo', {
-    utilityClasses: 'w-10 h-10 rounded-full object-cover'
+    utilityClasses: 'w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover'
   });
   StyleTemplateRegistry.register('hosp.header.title', {
-    utilityClasses: 'block whitespace-nowrap text-lg sm:text-xl font-extrabold text-slate-900'
+    utilityClasses: 'block min-w-0 truncate whitespace-nowrap text-base sm:text-lg md:text-xl font-extrabold text-slate-900'
   });
   StyleTemplateRegistry.register('hosp.header.menuButton', {
     utilityClasses: 'max-w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100'
@@ -284,7 +284,7 @@ export function registerStyleTemplates(): void {
   });
   StyleTemplateRegistry.register('hosp.header.authButton', {
     utilityClasses:
-      'inline-flex min-w-24 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100'
+      'inline-flex min-w-20 items-center justify-center rounded-lg px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 hover:bg-slate-100'
   });
   /** Mobile header username → opens profile menu; no pill/shading (matches Logout as plain text control). */
   StyleTemplateRegistry.register('hosp.header.userMenuTriggerMobile', {
@@ -293,7 +293,7 @@ export function registerStyleTemplates(): void {
   });
   StyleTemplateRegistry.register('hosp.header.ctaButton', {
     utilityClasses:
-      'shrink-0 rounded-lg bg-emerald-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-emerald-700'
+      'shrink-0 rounded-lg bg-emerald-600 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-emerald-700'
   });
   StyleTemplateRegistry.register('hosp.hero.title', {
     utilityClasses: 'block text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight'

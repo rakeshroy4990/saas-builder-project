@@ -265,7 +265,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               config: {
                 styles: {
                   utilityClasses:
-                    'flex min-w-0 w-full flex-row flex-wrap items-center gap-2 md:w-auto md:flex-nowrap'
+                    'flex min-w-0 w-auto shrink-0 flex-row flex-nowrap items-center gap-2 sm:gap-3'
                 },
                 children: [
                   {
@@ -481,7 +481,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               id: 'hospital-public-header-actions-cta-row',
               type: 'container',
               config: {
-                styles: { utilityClasses: 'flex w-full shrink-0 justify-end md:w-auto' },
+                styles: { utilityClasses: 'flex w-auto shrink-0 justify-end' },
                 children: [
                   {
                     id: 'hospital-public-header-cta',
