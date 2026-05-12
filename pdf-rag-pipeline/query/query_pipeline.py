@@ -108,15 +108,25 @@ def _images_from_vector_api(api_images: list[dict]) -> list[dict]:
     """Shape vector-retrieved figure metadata for the query API response."""
     out: list[dict] = []
     for i, img in enumerate(api_images):
-        url = str(img.get("url") or "").strip()
+        raw_url = str(img.get("url") or "").strip()
+        preview_url = str(img.get("page_preview_url") or "").strip()
+        crop_suspect = bool(img.get("crop_suspect"))
+        url = preview_url if crop_suspect and preview_url else raw_url
         if not url:
             continue
         ph = int(img.get("page_hint") or 0)
+        caption = str(img.get("caption") or "").strip()
+        if crop_suspect and preview_url:
+            reason = str(img.get("crop_suspect_reason") or "").strip()
+            note = "Showing full page preview because the extracted figure may be clipped"
+            if reason:
+                note = f"{note} ({reason})"
+            caption = f"{note}. {caption}".strip()
         out.append({
             "img_index": i,
             "page": ph,
             "ext": "png",
-            "caption": str(img.get("caption") or "").strip(),
+            "caption": caption,
             "image_data": "",
             "url": url,
             "source_file": str(img.get("source_file") or ""),
@@ -383,6 +393,7 @@ async def handle_query(
             from query.vector_retriever import (
                 build_llm_chunks_and_response_images,
                 build_optional_figure_summary_chunk,
+                collect_page_local_images_for_selected_chunks,
                 filter_api_images_by_selected_chunks,
                 retrieve_vector_dual,
             )
@@ -468,13 +479,19 @@ async def handle_query(
     # ── Figures: only pages overlapping LLM-selected text (±window). Marker captions do not embed
     # topic — global ANN picks arbitrary diagrams without this filter.
     filtered_vector_images: list[dict] = []
-    if used_vector and api_images:
-        filtered_vector_images = filter_api_images_by_selected_chunks(
-            api_images,
+    if used_vector:
+        filtered_vector_images = collect_page_local_images_for_selected_chunks(
             selected,
             page_window=IMAGE_CONTEXT_PAGE_WINDOW,
             max_return=VECTOR_TOP_K_IMAGE,
         )
+        if not filtered_vector_images and api_images:
+            filtered_vector_images = filter_api_images_by_selected_chunks(
+                api_images,
+                selected,
+                page_window=IMAGE_CONTEXT_PAGE_WINDOW,
+                max_return=VECTOR_TOP_K_IMAGE,
+            )
 
     fig_summary_chunk: Optional[dict] = None
     if filtered_vector_images:

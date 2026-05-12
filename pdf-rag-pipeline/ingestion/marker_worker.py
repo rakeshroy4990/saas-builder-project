@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import tempfile
 from typing import Optional
 from datetime import datetime, timezone
@@ -18,12 +19,16 @@ from db.image_store import (
     delete_images_for_file,
     delete_marker_images_for_page_range,
     upload_marker_image,
+    upload_marker_page_preview,
 )
 from ingestion.chunker import chunk_text
 from ingestion.marker_pipeline import (
     convert_pdf_with_marker,
+    extract_marker_image_description,
+    extract_segment_figure_descriptions,
     extract_segment_heading,
     keep_marker_image,
+    marker_image_crop_suspect,
     split_paginated_markdown,
     split_pdf_page_range,
 )
@@ -33,6 +38,8 @@ from query.audience_classifier import infer_source_audience
 from query.embedding_service import embed_texts_same_order
 
 LOG = logging.getLogger(__name__)
+
+_MARKER_IMAGE_REL_PAGE_RE = re.compile(r"(?:^|[_-])page[_-](\d+)(?:[_-]|$)", re.IGNORECASE)
 
 
 def _marker_job_ingest_meta_dict(job: dict) -> dict:
@@ -167,6 +174,76 @@ def _absolute_page(batch_page_start: int, marker_rel_page: int) -> int:
     return int(batch_page_start) + int(marker_rel_page)
 
 
+def _marker_image_page_hint(page_start: int, page_end: int, image_name: object) -> tuple[int, bool]:
+    """
+    Best-effort absolute PDF page for a Marker figure.
+
+    Marker image ids commonly look like ``_page_10_Picture_7.jpeg`` where the page
+    number is relative to the sliced batch PDF. If parsing fails, fall back to the
+    batch start page to preserve previous behavior.
+    """
+    raw = str(image_name or "").strip()
+    if raw:
+        m = _MARKER_IMAGE_REL_PAGE_RE.search(raw)
+        if m:
+            try:
+                abs_page = _absolute_page(page_start, int(m.group(1)))
+            except (TypeError, ValueError):
+                abs_page = page_start
+            if page_start <= abs_page <= page_end:
+                return abs_page, True
+    return page_start, False
+
+
+def _render_pdf_page_preview_bytes(doc: fitz.Document, page_index: int) -> bytes:
+    page = doc.load_page(int(page_index))
+    pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), alpha=False)
+    return pix.tobytes("png")
+
+
+def _build_marker_image_caption(
+    *,
+    filename: str,
+    page_hint_img: int,
+    image_name: object,
+    page_hint_from_name: bool,
+    page_start: int,
+    page_end: int,
+    image_description: str,
+) -> str:
+    if page_hint_from_name:
+        base = (
+            f"Medical textbook figure from {filename}. "
+            f"Approximate PDF page {page_hint_img + 1}. Image id: {image_name}."
+        )
+    else:
+        base = (
+            f"Medical textbook figure from {filename}. "
+            f"Original PDF pages ~{page_start + 1}–{page_end + 1}. Image id: {image_name}."
+        )
+    desc = str(image_description or "").strip()
+    if desc:
+        return f"{base} Description: {desc}"
+    return base
+
+
+def _page_linked_figure_description(
+    page_descriptions: dict[int, list[str]],
+    page_hint: int,
+    page_image_ordinals: dict[int, int],
+) -> str:
+    descriptions = [str(x).strip() for x in (page_descriptions.get(page_hint) or []) if str(x).strip()]
+    if not descriptions:
+        return ""
+    ordinal = int(page_image_ordinals.get(page_hint, 0))
+    page_image_ordinals[page_hint] = ordinal + 1
+    if len(descriptions) == 1:
+        return descriptions[0]
+    if ordinal < len(descriptions):
+        return descriptions[ordinal]
+    return descriptions[-1]
+
+
 def _run_single_batch(
     filepath: str,
     file_hash: str,
@@ -211,10 +288,16 @@ def _run_single_batch(
 
         text_jobs: list[dict] = []
         image_jobs: list[dict] = []
+        page_preview_url_cache: dict[int, str] = {}
+        page_figure_descriptions: dict[int, list[str]] = {}
+        page_image_ordinals: dict[int, int] = {}
 
         for seg_idx, (rel_page, segment) in enumerate(segments):
             abs_page = _absolute_page(page_start, rel_page)
             section_heading = extract_segment_heading(segment)
+            figure_descriptions = extract_segment_figure_descriptions(segment)
+            if figure_descriptions:
+                page_figure_descriptions.setdefault(abs_page, []).extend(figure_descriptions)
             chunks = chunk_text(segment)
             if not chunks and segment.strip():
                 chunks = [segment.strip()[:12_000]]
@@ -243,53 +326,94 @@ def _run_single_batch(
                     "metadata": meta,
                 })
 
-        fallback_page = page_start
         stats["images_detected"] = len(images_map)
-        for seq_img, (name, img_path) in enumerate(images_map.items()):
-            try:
-                dropped: dict[str, int] = {}
-                if not keep_marker_image(img_path, dropped):
-                    for k, v in dropped.items():
-                        stats["image_drop_reasons"][k] = stats["image_drop_reasons"].get(k, 0) + v
-                    continue
-                stats["images_kept"] += 1
-                img_bytes = img_path.read_bytes()
-                ext = img_path.suffix.lstrip(".").lower() or "png"
-                page_hint_img = fallback_page
-                url = upload_marker_image(file_hash, batch_index, seq_img, page_hint_img, img_bytes, ext=ext)
-                if not url:
-                    LOG.warning("[MarkerBatch] S3 upload failed for figure %s batch=%s", name, batch_index)
-                    continue
-                stats["images_uploaded"] += 1
-                caption = (
-                    f"Medical textbook figure from {filename}. "
-                    f"Original PDF pages ~{page_start + 1}–{page_end + 1}. Image id: {name}."
-                )
-                ck_img = f"i-p{page_hint_img}-n{seq_img}"
-                meta_img = {
-                    "audience": source_audience,
-                    "chapter_topic": None,
-                    "book_name": book_name,
-                    "batch_index": batch_index,
-                    "image_name": str(name),
-                }
-                image_jobs.append({
-                    "kind": "image",
-                    "file_hash": file_hash,
-                    "source_file": filename,
-                    "page_hint": page_hint_img,
-                    "chunk_key": ck_img,
-                    "content": caption,
-                    "embedding_text": caption,
-                    "image_url": url,
-                    "image_storage_key": None,
-                    "metadata": meta_img,
-                })
-            finally:
+        with fitz.open(str(filepath)) as source_doc:
+            for seq_img, (name, img_path) in enumerate(images_map.items()):
                 try:
-                    img_path.unlink(missing_ok=True)
-                except OSError:
-                    pass
+                    dropped: dict[str, int] = {}
+                    if not keep_marker_image(img_path, dropped):
+                        for k, v in dropped.items():
+                            stats["image_drop_reasons"][k] = stats["image_drop_reasons"].get(k, 0) + v
+                        continue
+                    stats["images_kept"] += 1
+                    img_bytes = img_path.read_bytes()
+                    ext = img_path.suffix.lstrip(".").lower() or "png"
+                    page_hint_img, page_hint_from_name = _marker_image_page_hint(page_start, page_end, name)
+                    crop_suspect, crop_reason = marker_image_crop_suspect(img_path)
+                    image_description = extract_marker_image_description(img_path)
+                    page_linked_description = _page_linked_figure_description(
+                        page_figure_descriptions,
+                        page_hint_img,
+                        page_image_ordinals,
+                    )
+                    if not image_description:
+                        image_description = page_linked_description
+
+                    url = upload_marker_image(file_hash, batch_index, seq_img, page_hint_img, img_bytes, ext=ext)
+                    if not url:
+                        LOG.warning("[MarkerBatch] S3 upload failed for figure %s batch=%s", name, batch_index)
+                        continue
+                    stats["images_uploaded"] += 1
+
+                    page_preview_url = page_preview_url_cache.get(page_hint_img, "")
+                    if not page_preview_url:
+                        try:
+                            preview_bytes = _render_pdf_page_preview_bytes(source_doc, page_hint_img)
+                            page_preview_url = (
+                                upload_marker_page_preview(file_hash, page_hint_img, preview_bytes, ext="png") or ""
+                            )
+                        except Exception as exc:
+                            LOG.warning(
+                                "[MarkerBatch] page preview render/upload failed page=%s file=%s: %s",
+                                page_hint_img,
+                                filename,
+                                exc,
+                            )
+                            page_preview_url = ""
+                        if page_preview_url:
+                            page_preview_url_cache[page_hint_img] = page_preview_url
+
+                    caption = _build_marker_image_caption(
+                        filename=filename,
+                        page_hint_img=page_hint_img,
+                        image_name=name,
+                        page_hint_from_name=page_hint_from_name,
+                        page_start=page_start,
+                        page_end=page_end,
+                        image_description=image_description,
+                    )
+                    ck_img = f"i-p{page_hint_img}-n{seq_img}"
+                    meta_img = {
+                        "audience": source_audience,
+                        "chapter_topic": None,
+                        "book_name": book_name,
+                        "batch_index": batch_index,
+                        "image_name": str(name),
+                        "marker_rel_page": (page_hint_img - page_start) if page_hint_from_name else None,
+                        "page_hint_source": "image_name" if page_hint_from_name else "batch_start_fallback",
+                        "page_preview_url": page_preview_url,
+                        "crop_suspect": crop_suspect,
+                        "crop_suspect_reason": crop_reason,
+                        "image_description": image_description,
+                        "page_linked_description": page_linked_description,
+                    }
+                    image_jobs.append({
+                        "kind": "image",
+                        "file_hash": file_hash,
+                        "source_file": filename,
+                        "page_hint": page_hint_img,
+                        "chunk_key": ck_img,
+                        "content": caption,
+                        "embedding_text": caption,
+                        "image_url": url,
+                        "image_storage_key": None,
+                        "metadata": meta_img,
+                    })
+                finally:
+                    try:
+                        img_path.unlink(missing_ok=True)
+                    except OSError:
+                        pass
 
         jobs = text_jobs + image_jobs
         if not jobs:

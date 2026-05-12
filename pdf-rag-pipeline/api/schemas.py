@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
@@ -159,6 +160,326 @@ class MarkerIngestResponse(BaseModel):
             "pages_explicitly_requested_one_based",
         ),
         serialization_alias="PagesExplicitlyRequestedOneBased",
+    )
+
+
+class MarkerDeleteBookRequest(BaseModel):
+    """Body for deleting all Marker ingest artifacts for one logical book label."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    book_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=512,
+        validation_alias=AliasChoices("BookName", "book_name"),
+        serialization_alias="BookName",
+        description="Logical book label previously used during Marker ingest.",
+    )
+
+    @field_validator("book_name", mode="before")
+    @classmethod
+    def _strip_delete_book_name(cls, v: object) -> object:
+        if v is None:
+            return v
+        return str(v).strip()
+
+
+class MarkerDeleteBookResponse(BaseModel):
+    """Response for deleting all Marker ingest artifacts for one logical book label."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    status: str = Field(
+        validation_alias=AliasChoices("Status", "status"),
+        serialization_alias="Status",
+    )
+    triggered_by: str = Field(
+        validation_alias=AliasChoices("TriggeredBy", "triggered_by"),
+        serialization_alias="TriggeredBy",
+    )
+    book_name: str = Field(
+        validation_alias=AliasChoices("BookName", "book_name"),
+        serialization_alias="BookName",
+    )
+    files_matched: int = Field(
+        validation_alias=AliasChoices("FilesMatched", "files_matched"),
+        serialization_alias="FilesMatched",
+    )
+    file_hashes: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("FileHashes", "file_hashes"),
+        serialization_alias="FileHashes",
+    )
+    rag_chunks_deleted: int = Field(
+        validation_alias=AliasChoices("RagChunksDeleted", "rag_chunks_deleted"),
+        serialization_alias="RagChunksDeleted",
+    )
+    retrieval_items_deleted: int = Field(
+        validation_alias=AliasChoices("RetrievalItemsDeleted", "retrieval_items_deleted"),
+        serialization_alias="RetrievalItemsDeleted",
+    )
+    marker_jobs_deleted: int = Field(
+        validation_alias=AliasChoices("MarkerJobsDeleted", "marker_jobs_deleted"),
+        serialization_alias="MarkerJobsDeleted",
+    )
+    marker_batches_deleted: int = Field(
+        validation_alias=AliasChoices("MarkerBatchesDeleted", "marker_batches_deleted"),
+        serialization_alias="MarkerBatchesDeleted",
+    )
+    registry_rows_deleted: int = Field(
+        validation_alias=AliasChoices("RegistryRowsDeleted", "registry_rows_deleted"),
+        serialization_alias="RegistryRowsDeleted",
+    )
+    image_objects_deleted: int = Field(
+        validation_alias=AliasChoices("ImageObjectsDeleted", "image_objects_deleted"),
+        serialization_alias="ImageObjectsDeleted",
+    )
+
+
+class MarkerBookInfoRequest(BaseModel):
+    """Body for fetching all known Marker ingest details for one logical book label."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    book_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=512,
+        validation_alias=AliasChoices("BookName", "book_name"),
+        serialization_alias="BookName",
+        description="Logical book label previously used during Marker ingest.",
+    )
+
+    @field_validator("book_name", mode="before")
+    @classmethod
+    def _strip_book_info_book_name(cls, v: object) -> object:
+        if v is None:
+            return v
+        return str(v).strip()
+
+
+class MarkerBookRegistryRow(BaseModel):
+    """Registry row snapshot for one file belonging to a logical book."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    file_hash: str = Field(validation_alias=AliasChoices("FileHash", "file_hash"), serialization_alias="FileHash")
+    filename: str = Field(validation_alias=AliasChoices("Filename", "filename"), serialization_alias="Filename")
+    filepath: str = Field(validation_alias=AliasChoices("Filepath", "filepath"), serialization_alias="Filepath")
+    status: str = Field(validation_alias=AliasChoices("Status", "status"), serialization_alias="Status")
+    book_status: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("BookStatus", "book_status"),
+        serialization_alias="BookStatus",
+    )
+    chunks_count: int = Field(
+        validation_alias=AliasChoices("ChunksCount", "chunks_count"),
+        serialization_alias="ChunksCount",
+    )
+    error: str = Field(
+        default="",
+        validation_alias=AliasChoices("Error", "error"),
+        serialization_alias="Error",
+    )
+    ingested_at: Optional[datetime] = Field(
+        default=None,
+        validation_alias=AliasChoices("IngestedAt", "ingested_at"),
+        serialization_alias="IngestedAt",
+    )
+    prefilter_stats: dict = Field(
+        default_factory=dict,
+        validation_alias=AliasChoices("PreFilterStats", "prefilter_stats"),
+        serialization_alias="PreFilterStats",
+    )
+    image_stats: dict = Field(
+        default_factory=dict,
+        validation_alias=AliasChoices("ImageStats", "image_stats"),
+        serialization_alias="ImageStats",
+    )
+
+
+class MarkerBookBatchRow(BaseModel):
+    """One queued / processed batch inside a Marker ingest job."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    batch_id: int = Field(validation_alias=AliasChoices("BatchId", "batch_id"), serialization_alias="BatchId")
+    batch_index: int = Field(
+        validation_alias=AliasChoices("BatchIndex", "batch_index"),
+        serialization_alias="BatchIndex",
+    )
+    page_start: int = Field(
+        validation_alias=AliasChoices("PageStart", "page_start"),
+        serialization_alias="PageStart",
+    )
+    page_end: int = Field(validation_alias=AliasChoices("PageEnd", "page_end"), serialization_alias="PageEnd")
+    status: str = Field(validation_alias=AliasChoices("Status", "status"), serialization_alias="Status")
+    error: str = Field(
+        default="",
+        validation_alias=AliasChoices("Error", "error"),
+        serialization_alias="Error",
+    )
+    marker_stats: dict = Field(
+        default_factory=dict,
+        validation_alias=AliasChoices("MarkerStats", "marker_stats"),
+        serialization_alias="MarkerStats",
+    )
+    created_at: Optional[datetime] = Field(
+        default=None,
+        validation_alias=AliasChoices("CreatedAt", "created_at"),
+        serialization_alias="CreatedAt",
+    )
+
+
+class MarkerBookJobRow(BaseModel):
+    """Marker ingest job plus nested batch rows for a logical book."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    job_id: int = Field(validation_alias=AliasChoices("JobId", "job_id"), serialization_alias="JobId")
+    file_hash: str = Field(validation_alias=AliasChoices("FileHash", "file_hash"), serialization_alias="FileHash")
+    filepath: str = Field(validation_alias=AliasChoices("Filepath", "filepath"), serialization_alias="Filepath")
+    filename: str = Field(validation_alias=AliasChoices("Filename", "filename"), serialization_alias="Filename")
+    total_pages: int = Field(
+        validation_alias=AliasChoices("TotalPages", "total_pages"),
+        serialization_alias="TotalPages",
+    )
+    batch_size: int = Field(
+        validation_alias=AliasChoices("BatchSize", "batch_size"),
+        serialization_alias="BatchSize",
+    )
+    status: str = Field(validation_alias=AliasChoices("Status", "status"), serialization_alias="Status")
+    error: str = Field(
+        default="",
+        validation_alias=AliasChoices("Error", "error"),
+        serialization_alias="Error",
+    )
+    ingest_meta: dict = Field(
+        default_factory=dict,
+        validation_alias=AliasChoices("IngestMeta", "ingest_meta"),
+        serialization_alias="IngestMeta",
+    )
+    created_at: Optional[datetime] = Field(
+        default=None,
+        validation_alias=AliasChoices("CreatedAt", "created_at"),
+        serialization_alias="CreatedAt",
+    )
+    updated_at: Optional[datetime] = Field(
+        default=None,
+        validation_alias=AliasChoices("UpdatedAt", "updated_at"),
+        serialization_alias="UpdatedAt",
+    )
+    batches: list[MarkerBookBatchRow] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("Batches", "batches"),
+        serialization_alias="Batches",
+    )
+
+
+class MarkerBookInfoResponse(BaseModel):
+    """Response for fetching all known ingest details for one logical book label."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    status: str = Field(
+        validation_alias=AliasChoices("Status", "status"),
+        serialization_alias="Status",
+    )
+    triggered_by: str = Field(
+        validation_alias=AliasChoices("TriggeredBy", "triggered_by"),
+        serialization_alias="TriggeredBy",
+    )
+    book_name: str = Field(
+        validation_alias=AliasChoices("BookName", "book_name"),
+        serialization_alias="BookName",
+    )
+    files_matched: int = Field(
+        validation_alias=AliasChoices("FilesMatched", "files_matched"),
+        serialization_alias="FilesMatched",
+    )
+    file_hashes: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("FileHashes", "file_hashes"),
+        serialization_alias="FileHashes",
+    )
+    total_chunks: int = Field(
+        validation_alias=AliasChoices("TotalChunks", "total_chunks"),
+        serialization_alias="TotalChunks",
+    )
+    retrieval_items_total: int = Field(
+        validation_alias=AliasChoices("RetrievalItemsTotal", "retrieval_items_total"),
+        serialization_alias="RetrievalItemsTotal",
+    )
+    retrieval_text_items: int = Field(
+        validation_alias=AliasChoices("RetrievalTextItems", "retrieval_text_items"),
+        serialization_alias="RetrievalTextItems",
+    )
+    retrieval_image_items: int = Field(
+        validation_alias=AliasChoices("RetrievalImageItems", "retrieval_image_items"),
+        serialization_alias="RetrievalImageItems",
+    )
+    marker_jobs_total: int = Field(
+        validation_alias=AliasChoices("MarkerJobsTotal", "marker_jobs_total"),
+        serialization_alias="MarkerJobsTotal",
+    )
+    marker_batches_total: int = Field(
+        validation_alias=AliasChoices("MarkerBatchesTotal", "marker_batches_total"),
+        serialization_alias="MarkerBatchesTotal",
+    )
+    registry_rows: list[MarkerBookRegistryRow] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("RegistryRows", "registry_rows"),
+        serialization_alias="RegistryRows",
+    )
+    jobs: list[MarkerBookJobRow] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("Jobs", "jobs"),
+        serialization_alias="Jobs",
+    )
+    key_topics: list["EducationKeyTopicRow"] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("KeyTopics", "key_topics"),
+        serialization_alias="KeyTopics",
+    )
+
+
+class MarkerIngestedBookPdfRow(BaseModel):
+    """One ingested PDF entry with its logical book label."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    book_name: str = Field(
+        validation_alias=AliasChoices("BookName", "book_name"),
+        serialization_alias="BookName",
+    )
+    pdf_name: str = Field(
+        validation_alias=AliasChoices("PdfName", "pdf_name"),
+        serialization_alias="PdfName",
+    )
+
+
+class MarkerIngestedBookPdfResponse(BaseModel):
+    """Response for listing all ingested BookName / PdfName pairs."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    status: str = Field(
+        validation_alias=AliasChoices("Status", "status"),
+        serialization_alias="Status",
+    )
+    triggered_by: str = Field(
+        validation_alias=AliasChoices("TriggeredBy", "triggered_by"),
+        serialization_alias="TriggeredBy",
+    )
+    total_records: int = Field(
+        validation_alias=AliasChoices("TotalRecords", "total_records"),
+        serialization_alias="TotalRecords",
+    )
+    items: list[MarkerIngestedBookPdfRow] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("Items", "items"),
+        serialization_alias="Items",
     )
 
 

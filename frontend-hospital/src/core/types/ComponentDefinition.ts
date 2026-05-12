@@ -23,7 +23,8 @@ export type ComponentType =
   | 'chat'
   | 'video-call'
   | 'doctor-schedule-editor'
-  | 'medicine-list-editor';
+  | 'medicine-list-editor'
+  | 'doctor-education-workspace';
 
 export interface LayoutConfig {
   type: 'flex' | 'grid';

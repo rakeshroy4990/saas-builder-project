@@ -4,10 +4,20 @@ from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
-from api.schemas import IngestResponse, MarkerIngestRequest, MarkerIngestResponse
+from api.schemas import (
+    MarkerBookInfoRequest,
+    MarkerBookInfoResponse,
+    IngestResponse,
+    MarkerIngestedBookPdfResponse,
+    MarkerDeleteBookRequest,
+    MarkerDeleteBookResponse,
+    MarkerIngestRequest,
+    MarkerIngestResponse,
+)
 from auth.dependencies import require_admin
 from auth.models import TokenPayload
 from config.settings import PDF_DIR, is_postgres_persistence
+from db.image_store import delete_images_for_file
 from ingestion.ingest import process_pdf
 from ingestion.marker_worker import process_marker_job, schedule_marker_ingest
 from ingestion.pdf_tracker import list_pdfs, registry_find_recent
@@ -136,6 +146,126 @@ async def ingest_marker(
         pages_explicitly_requested_one_based=list(
             summary.get("pages_explicitly_requested_one_based") or []
         ),
+    )
+
+
+@router.post("/ingest/marker/delete-book", response_model=MarkerDeleteBookResponse, response_model_by_alias=True)
+async def delete_marker_book_data(
+    body: MarkerDeleteBookRequest,
+    user: TokenPayload = Depends(require_admin),
+):
+    """
+    Delete all stored Marker ingest artifacts for one ``BookName`` so the book can be re-ingested cleanly.
+    """
+    if not is_postgres_persistence():
+        raise HTTPException(
+            status_code=400,
+            detail="Marker book deletion requires APP_PERSISTENCE_PROVIDER=postgres and DATABASE_URL.",
+        )
+    from db import postgres_backend as pg
+
+    try:
+        summary = pg.purge_marker_book_data(body.book_name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    image_objects_deleted = 0
+    for file_hash in summary.get("file_hashes") or []:
+        image_objects_deleted += int(delete_images_for_file(str(file_hash)))
+
+    logger.info(
+        "Marker book delete requested sub=%s email=%s book_name=%s files=%s",
+        user.sub,
+        user.email,
+        summary.get("book_name"),
+        summary.get("files_matched"),
+    )
+    return MarkerDeleteBookResponse(
+        status="marker_book_data_deleted",
+        triggered_by=user.email,
+        book_name=str(summary.get("book_name") or ""),
+        files_matched=int(summary.get("files_matched") or 0),
+        file_hashes=list(summary.get("file_hashes") or []),
+        rag_chunks_deleted=int(summary.get("rag_chunks_deleted") or 0),
+        retrieval_items_deleted=int(summary.get("retrieval_items_deleted") or 0),
+        marker_jobs_deleted=int(summary.get("marker_jobs_deleted") or 0),
+        marker_batches_deleted=int(summary.get("marker_batches_deleted") or 0),
+        registry_rows_deleted=int(summary.get("registry_rows_deleted") or 0),
+        image_objects_deleted=image_objects_deleted,
+    )
+
+
+@router.get("/ingest/marker/books-pdfs", response_model=MarkerIngestedBookPdfResponse, response_model_by_alias=True)
+async def list_marker_ingested_books_pdfs(
+    user: TokenPayload = Depends(require_admin),
+):
+    """
+    List all ingested ``BookName`` / ``PdfName`` pairs stored in the registry.
+    """
+    if not is_postgres_persistence():
+        raise HTTPException(
+            status_code=400,
+            detail="Marker ingested books/pdf catalog requires APP_PERSISTENCE_PROVIDER=postgres and DATABASE_URL.",
+        )
+    from db import postgres_backend as pg
+
+    rows = pg.pdf_registry_ingested_book_pdf_rows()
+    logger.info(
+        "Marker ingested books/pdfs requested sub=%s email=%s count=%s",
+        user.sub,
+        user.email,
+        len(rows),
+    )
+    return MarkerIngestedBookPdfResponse(
+        status="marker_ingested_books_pdfs_fetched",
+        triggered_by=user.email,
+        total_records=len(rows),
+        items=rows,
+    )
+
+
+@router.post("/ingest/marker/book-info", response_model=MarkerBookInfoResponse, response_model_by_alias=True)
+async def get_marker_book_info(
+    body: MarkerBookInfoRequest,
+    user: TokenPayload = Depends(require_admin),
+):
+    """
+    Fetch all known Marker ingest details for one ``BookName``.
+    """
+    if not is_postgres_persistence():
+        raise HTTPException(
+            status_code=400,
+            detail="Marker book info requires APP_PERSISTENCE_PROVIDER=postgres and DATABASE_URL.",
+        )
+    from db import postgres_backend as pg
+
+    try:
+        summary = pg.marker_book_info(body.book_name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    logger.info(
+        "Marker book info requested sub=%s email=%s book_name=%s files=%s",
+        user.sub,
+        user.email,
+        summary.get("book_name"),
+        summary.get("files_matched"),
+    )
+    return MarkerBookInfoResponse(
+        status="marker_book_info_fetched",
+        triggered_by=user.email,
+        book_name=str(summary.get("book_name") or ""),
+        files_matched=int(summary.get("files_matched") or 0),
+        file_hashes=list(summary.get("file_hashes") or []),
+        total_chunks=int(summary.get("total_chunks") or 0),
+        retrieval_items_total=int(summary.get("retrieval_items_total") or 0),
+        retrieval_text_items=int(summary.get("retrieval_text_items") or 0),
+        retrieval_image_items=int(summary.get("retrieval_image_items") or 0),
+        marker_jobs_total=int(summary.get("marker_jobs_total") or 0),
+        marker_batches_total=int(summary.get("marker_batches_total") or 0),
+        registry_rows=list(summary.get("registry_rows") or []),
+        jobs=list(summary.get("jobs") or []),
+        key_topics=list(summary.get("key_topics") or []),
     )
 
 

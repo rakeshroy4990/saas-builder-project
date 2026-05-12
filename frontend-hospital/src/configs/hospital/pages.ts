@@ -1827,7 +1827,11 @@ export const hospitalPages: PageConfig[] = [
     pageId: 'doctor-education',
     title: 'Doctor Education',
     titleKey: 'page.doctorEducation.title',
-    initializeActions: [{ actionId: 'set-education-header-active' }, { actionId: 'init-doctor-education' }],
+    initializeActions: [
+      { actionId: 'set-education-header-active' },
+      { actionId: 'init-doctor-education' },
+      { actionId: 'init-doctor-education-conversation' }
+    ],
     container: {
       layoutTemplate: 'hosp.page.root',
       children: [
@@ -1842,8 +1846,8 @@ export const hospitalPages: PageConfig[] = [
             },
             children: [
               {
-                id: 'hospital-doctor-education-flashcards',
-                type: 'doctor-education-flashcards',
+                id: 'hospital-doctor-education-workspace',
+                type: 'doctor-education-workspace',
                 condition: {
                   expression: "String(role ?? '').toUpperCase() === 'DOCTOR'",
                   mappings: {

@@ -561,6 +561,320 @@ def pdf_registry_distinct_book_names(*, active_only: bool = True) -> list[str]:
     return [str(r["bn"]).strip() for r in rows if r and r.get("bn")]
 
 
+def pdf_registry_ingested_book_pdf_rows() -> list[dict[str, Any]]:
+    """List ingested BookName / PdfName pairs from successfully processed registry rows."""
+    with get_pool().connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT
+                    BTRIM(book_name) AS book_name,
+                    BTRIM(filename) AS pdf_name
+                FROM rag_pdf_registry
+                WHERE status = 'processed'
+                  AND book_name IS NOT NULL
+                  AND BTRIM(book_name) <> ''
+                  AND filename IS NOT NULL
+                  AND BTRIM(filename) <> ''
+                ORDER BY BTRIM(book_name) ASC, BTRIM(filename) ASC
+                """
+            )
+            rows = cur.fetchall()
+    return [
+        {
+            "book_name": str(r.get("book_name") or "").strip(),
+            "pdf_name": str(r.get("pdf_name") or "").strip(),
+        }
+        for r in rows
+        if r and str(r.get("book_name") or "").strip() and str(r.get("pdf_name") or "").strip()
+    ]
+
+
+def purge_marker_book_data(book_name: str) -> dict[str, Any]:
+    """
+    Delete Marker/ingest DB artifacts for a logical book label.
+
+    Removes rows from:
+    - rag_chunks
+    - rag_retrieval_items
+    - rag_marker_jobs (rag_marker_batches cascade)
+    - rag_pdf_registry
+
+    Storage objects are removed by the API layer after this function returns the file hashes.
+    """
+    bn = str(book_name or "").strip()
+    if not bn:
+        raise ValueError("book_name is required")
+
+    with get_pool().connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT file_hash
+                FROM rag_pdf_registry
+                WHERE book_name IS NOT NULL AND BTRIM(book_name) = BTRIM(%s)
+                ORDER BY file_hash ASC
+                """,
+                (bn,),
+            )
+            registry_file_hashes = [str(r["file_hash"]) for r in cur.fetchall() if r and r.get("file_hash")]
+
+            cur.execute(
+                """
+                SELECT DISTINCT id, file_hash
+                FROM rag_marker_jobs
+                WHERE BTRIM(COALESCE(ingest_meta->>'book_name', '')) = BTRIM(%s)
+                """,
+                (bn,),
+            )
+            jobs_by_book = cur.fetchall()
+            file_hashes = sorted(
+                {
+                    *registry_file_hashes,
+                    *[str(r["file_hash"]) for r in jobs_by_book if r and r.get("file_hash")],
+                }
+            )
+
+            job_ids: list[int] = []
+            if file_hashes:
+                cur.execute(
+                    """
+                    SELECT DISTINCT id
+                    FROM rag_marker_jobs
+                    WHERE file_hash = ANY(%s::text[])
+                       OR BTRIM(COALESCE(ingest_meta->>'book_name', '')) = BTRIM(%s)
+                    ORDER BY id ASC
+                    """,
+                    (file_hashes, bn),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT DISTINCT id
+                    FROM rag_marker_jobs
+                    WHERE BTRIM(COALESCE(ingest_meta->>'book_name', '')) = BTRIM(%s)
+                    ORDER BY id ASC
+                    """,
+                    (bn,),
+                )
+            job_ids = [int(r["id"]) for r in cur.fetchall() if r and r.get("id") is not None]
+
+            marker_batches_deleted = 0
+            if job_ids:
+                cur.execute(
+                    "SELECT COUNT(*) AS c FROM rag_marker_batches WHERE job_id = ANY(%s::bigint[])",
+                    (job_ids,),
+                )
+                row = cur.fetchone()
+                marker_batches_deleted = int(row["c"]) if row else 0
+
+            rag_chunks_deleted = 0
+            retrieval_items_deleted = 0
+            registry_rows_deleted = 0
+            if file_hashes:
+                cur.execute("DELETE FROM rag_chunks WHERE file_hash = ANY(%s::text[])", (file_hashes,))
+                rag_chunks_deleted = cur.rowcount or 0
+
+                cur.execute("DELETE FROM rag_retrieval_items WHERE file_hash = ANY(%s::text[])", (file_hashes,))
+                retrieval_items_deleted = cur.rowcount or 0
+
+                cur.execute("DELETE FROM rag_pdf_registry WHERE file_hash = ANY(%s::text[])", (file_hashes,))
+                registry_rows_deleted = cur.rowcount or 0
+
+            marker_jobs_deleted = 0
+            if job_ids:
+                cur.execute("DELETE FROM rag_marker_jobs WHERE id = ANY(%s::bigint[])", (job_ids,))
+                marker_jobs_deleted = cur.rowcount or 0
+
+        conn.commit()
+
+    return {
+        "book_name": bn,
+        "file_hashes": file_hashes,
+        "files_matched": len(file_hashes),
+        "rag_chunks_deleted": int(rag_chunks_deleted),
+        "retrieval_items_deleted": int(retrieval_items_deleted),
+        "marker_jobs_deleted": int(marker_jobs_deleted),
+        "marker_batches_deleted": int(marker_batches_deleted),
+        "registry_rows_deleted": int(registry_rows_deleted),
+    }
+
+
+def marker_book_info(book_name: str) -> dict[str, Any]:
+    """
+    Fetch an admin-friendly summary of all known ingest artifacts for one logical book label.
+
+    Includes:
+    - registry rows (`rag_pdf_registry`)
+    - chunk / retrieval counts
+    - marker jobs and batches
+    - top key topics for the book
+    """
+    bn = str(book_name or "").strip()
+    if not bn:
+        raise ValueError("book_name is required")
+
+    with get_pool().connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT file_hash, filename, filepath, status, chunks_count, error,
+                       prefilter_stats, image_stats, book_name, book_status, ingested_at
+                FROM rag_pdf_registry
+                WHERE book_name IS NOT NULL AND BTRIM(book_name) = BTRIM(%s)
+                ORDER BY ingested_at DESC NULLS LAST, filename ASC, file_hash ASC
+                """,
+                (bn,),
+            )
+            registry_rows = [dict(r) for r in cur.fetchall()]
+            file_hashes = [str(r["file_hash"]) for r in registry_rows if r and r.get("file_hash")]
+
+            total_chunks = 0
+            retrieval_items_total = 0
+            retrieval_text_items = 0
+            retrieval_image_items = 0
+            if file_hashes:
+                cur.execute(
+                    "SELECT COUNT(*) AS c FROM rag_chunks WHERE file_hash = ANY(%s::text[])",
+                    (file_hashes,),
+                )
+                row = cur.fetchone()
+                total_chunks = int(row["c"]) if row else 0
+
+                cur.execute(
+                    """
+                    SELECT kind, COUNT(*)::bigint AS c
+                    FROM rag_retrieval_items
+                    WHERE file_hash = ANY(%s::text[])
+                    GROUP BY kind
+                    """,
+                    (file_hashes,),
+                )
+                for row in cur.fetchall():
+                    kind = str(row.get("kind") or "").strip().lower()
+                    count = int(row.get("c") or 0)
+                    retrieval_items_total += count
+                    if kind == "text":
+                        retrieval_text_items += count
+                    elif kind == "image":
+                        retrieval_image_items += count
+
+            if file_hashes:
+                cur.execute(
+                    """
+                    SELECT id, file_hash, filepath, filename, total_pages, batch_size, status, error,
+                           ingest_meta, created_at, updated_at
+                    FROM rag_marker_jobs
+                    WHERE file_hash = ANY(%s::text[])
+                       OR BTRIM(COALESCE(ingest_meta->>'book_name', '')) = BTRIM(%s)
+                    ORDER BY created_at DESC NULLS LAST, id DESC
+                    """,
+                    (file_hashes, bn),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT id, file_hash, filepath, filename, total_pages, batch_size, status, error,
+                           ingest_meta, created_at, updated_at
+                    FROM rag_marker_jobs
+                    WHERE BTRIM(COALESCE(ingest_meta->>'book_name', '')) = BTRIM(%s)
+                    ORDER BY created_at DESC NULLS LAST, id DESC
+                    """,
+                    (bn,),
+                )
+            raw_jobs = [dict(r) for r in cur.fetchall()]
+            job_ids = [int(r["id"]) for r in raw_jobs if r and r.get("id") is not None]
+
+            batches_by_job: dict[int, list[dict[str, Any]]] = {}
+            marker_batches_total = 0
+            if job_ids:
+                cur.execute(
+                    """
+                    SELECT id, job_id, batch_index, page_start, page_end, status, error, marker_stats, created_at
+                    FROM rag_marker_batches
+                    WHERE job_id = ANY(%s::bigint[])
+                    ORDER BY job_id ASC, batch_index ASC, id ASC
+                    """,
+                    (job_ids,),
+                )
+                for row in cur.fetchall():
+                    batch = dict(row)
+                    job_id = int(batch.get("job_id") or 0)
+                    batches_by_job.setdefault(job_id, []).append(
+                        {
+                            "batch_id": int(batch.get("id") or 0),
+                            "batch_index": int(batch.get("batch_index") or 0),
+                            "page_start": int(batch.get("page_start") or 0),
+                            "page_end": int(batch.get("page_end") or 0),
+                            "status": str(batch.get("status") or ""),
+                            "error": str(batch.get("error") or ""),
+                            "marker_stats": batch.get("marker_stats") if isinstance(batch.get("marker_stats"), dict) else {},
+                            "created_at": batch.get("created_at"),
+                        }
+                    )
+                    marker_batches_total += 1
+
+    jobs: list[dict[str, Any]] = []
+    for row in raw_jobs:
+        ingest_meta = row.get("ingest_meta")
+        if not isinstance(ingest_meta, dict):
+            ingest_meta = {}
+        jobs.append(
+            {
+                "job_id": int(row.get("id") or 0),
+                "file_hash": str(row.get("file_hash") or ""),
+                "filepath": str(row.get("filepath") or ""),
+                "filename": str(row.get("filename") or ""),
+                "total_pages": int(row.get("total_pages") or 0),
+                "batch_size": int(row.get("batch_size") or 0),
+                "status": str(row.get("status") or ""),
+                "error": str(row.get("error") or ""),
+                "ingest_meta": ingest_meta,
+                "created_at": row.get("created_at"),
+                "updated_at": row.get("updated_at"),
+                "batches": batches_by_job.get(int(row.get("id") or 0), []),
+            }
+        )
+
+    normalized_registry_rows: list[dict[str, Any]] = []
+    for row in registry_rows:
+        prefilter_stats = row.get("prefilter_stats")
+        if not isinstance(prefilter_stats, dict):
+            prefilter_stats = {}
+        image_stats = row.get("image_stats")
+        if not isinstance(image_stats, dict):
+            image_stats = {}
+        normalized_registry_rows.append(
+            {
+                "file_hash": str(row.get("file_hash") or ""),
+                "filename": str(row.get("filename") or ""),
+                "filepath": str(row.get("filepath") or ""),
+                "status": str(row.get("status") or ""),
+                "book_status": str(row.get("book_status") or "") or None,
+                "chunks_count": int(row.get("chunks_count") or 0),
+                "error": str(row.get("error") or ""),
+                "ingested_at": row.get("ingested_at"),
+                "prefilter_stats": prefilter_stats,
+                "image_stats": image_stats,
+            }
+        )
+
+    return {
+        "book_name": bn,
+        "files_matched": len(file_hashes),
+        "file_hashes": file_hashes,
+        "total_chunks": int(total_chunks),
+        "retrieval_items_total": int(retrieval_items_total),
+        "retrieval_text_items": int(retrieval_text_items),
+        "retrieval_image_items": int(retrieval_image_items),
+        "marker_jobs_total": len(jobs),
+        "marker_batches_total": int(marker_batches_total),
+        "registry_rows": normalized_registry_rows,
+        "jobs": jobs,
+        "key_topics": education_top_key_topics(book_name=bn, limit=20),
+    }
+
+
 def education_top_key_topics(
     *,
     book_name: Optional[str] = None,
@@ -755,7 +1069,7 @@ def retrieval_vector_search(
 
     sql = f"""
         WITH q AS (SELECT %s::vector AS v)
-        SELECT r.chunk_key, r.content, r.source_file, r.page_hint, r.metadata, r.image_url,
+        SELECT r.file_hash, r.chunk_key, r.content, r.source_file, r.page_hint, r.metadata, r.image_url,
                1 - (r.embedding <=> q.v) AS similarity,
                r.embedding <=> q.v AS distance
         FROM rag_retrieval_items r
@@ -783,6 +1097,7 @@ def retrieval_vector_search(
             meta = {}
         out.append(
             {
+                "file_hash": row.get("file_hash", ""),
                 "chunk_key": row.get("chunk_key", ""),
                 "content": row.get("content", ""),
                 "source_file": row.get("source_file", ""),
@@ -794,6 +1109,94 @@ def retrieval_vector_search(
             }
         )
     return out
+
+
+def retrieval_images_near_file_pages(
+    anchors: list[tuple[str, int]],
+    *,
+    page_window: int,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """
+    Fetch image rows that live near already-selected text pages.
+
+    This avoids relying on ANN ranking for figures whose captions are generic and lets
+    query-time image selection follow the text context the LLM actually used.
+    """
+    grouped: dict[str, set[int]] = {}
+    for file_hash, page_hint in anchors:
+        fh = str(file_hash or "").strip()
+        if not fh:
+            continue
+        grouped.setdefault(fh, set()).add(int(page_hint or 0))
+    if not grouped:
+        return []
+
+    win = max(0, int(page_window))
+    lim = max(1, int(limit))
+    where_parts: list[str] = []
+    params: list[Any] = []
+    for fh, pages in grouped.items():
+        for ph in sorted(pages):
+            where_parts.append("(file_hash = %s AND page_hint BETWEEN %s AND %s)")
+            params.extend([fh, ph - win, ph + win])
+    sql = f"""
+        SELECT file_hash, chunk_key, content, source_file, page_hint, metadata, image_url
+        FROM rag_retrieval_items
+        WHERE kind = 'image' AND ({' OR '.join(where_parts)})
+    """
+
+    with get_pool().connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(sql, params)
+            raw_rows = cur.fetchall()
+
+    def nearest_anchor_distance(file_hash: str, page_hint: int) -> int:
+        pages = grouped.get(file_hash) or {0}
+        return min(abs(page_hint - p) for p in pages)
+
+    deduped: dict[str, dict[str, Any]] = {}
+    for row in raw_rows:
+        meta = row.get("metadata")
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except json.JSONDecodeError:
+                meta = {}
+        if not isinstance(meta, dict):
+            meta = {}
+        file_hash = str(row.get("file_hash") or "").strip()
+        chunk_key = str(row.get("chunk_key") or "").strip()
+        image_url = str(row.get("image_url") or "").strip()
+        dedupe_key = image_url or f"{file_hash}:{chunk_key}"
+        entry = {
+            "file_hash": file_hash,
+            "chunk_key": chunk_key,
+            "content": row.get("content", ""),
+            "source_file": row.get("source_file", ""),
+            "page_hint": int(row.get("page_hint") or 0),
+            "metadata": meta,
+            "image_url": image_url,
+        }
+        prev = deduped.get(dedupe_key)
+        if prev is None:
+            deduped[dedupe_key] = entry
+            continue
+        if nearest_anchor_distance(file_hash, entry["page_hint"]) < nearest_anchor_distance(
+            str(prev.get("file_hash") or ""),
+            int(prev.get("page_hint") or 0),
+        ):
+            deduped[dedupe_key] = entry
+
+    rows = list(deduped.values())
+    rows.sort(
+        key=lambda row: (
+            nearest_anchor_distance(str(row.get("file_hash") or ""), int(row.get("page_hint") or 0)),
+            int(row.get("page_hint") or 0),
+            str(row.get("chunk_key") or ""),
+        )
+    )
+    return rows[:lim]
 
 
 # ── Marker job queue ──────────────────────────────────────────────────────────

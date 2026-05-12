@@ -6,6 +6,9 @@ public record AiChatResponse(
         String reply,
         boolean escalated,
         String mode,
-        List<String> followUpQuestions
+        List<String> followUpQuestions,
+        String source,
+        Integer chunksUsed,
+        List<AiChatFigureDto> images
 ) {
 }

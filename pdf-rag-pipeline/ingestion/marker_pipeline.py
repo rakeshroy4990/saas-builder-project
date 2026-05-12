@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 
 import fitz
-from PIL import Image
+from PIL import Image, ImageOps
 
 from config.settings import (
     MARKER_DISABLE_MULTIPROCESSING,
@@ -25,6 +25,10 @@ LOG = logging.getLogger(__name__)
 PAGE_MARK_RE = re.compile(r"^\{(\d+)\}-+\s*$", re.MULTILINE)
 
 _MARKDOWN_HEADING_LINE = re.compile(r"^\s{0,3}(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
+_FIGURE_CAPTION_START_RE = re.compile(
+    r"^\s*(fig(?:ure)?\.?\s*[A-Za-z0-9().-]+\s*[:.)-]?\s*.+)$",
+    re.IGNORECASE,
+)
 
 MIN_IMG_AREA = 15_000
 
@@ -39,6 +43,66 @@ def extract_segment_heading(segment: str) -> str | None:
     if not title:
         return None
     return title[:512]
+
+
+def _clean_marker_text_line(line: str) -> str:
+    cleaned = str(line or "").strip()
+    cleaned = re.sub(r"^[-*+]\s+", "", cleaned)
+    cleaned = re.sub(r"^>\s*", "", cleaned)
+    cleaned = re.sub(r"\*\*(.*?)\*\*", r"\1", cleaned)
+    cleaned = re.sub(r"\*(.*?)\*", r"\1", cleaned)
+    cleaned = re.sub(r"`(.*?)`", r"\1", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def extract_segment_figure_descriptions(segment: str) -> list[str]:
+    """
+    Pull figure captions/legends from Marker markdown for a single PDF page segment.
+
+    Many textbooks keep figure legends in the page text rather than inside the cropped image
+    itself. We preserve those captions separately so images on the same page can reuse them.
+    """
+    raw_lines = [str(line) for line in str(segment or "").splitlines()]
+    out: list[str] = []
+    seen: set[str] = set()
+    i = 0
+    while i < len(raw_lines):
+        cleaned = _clean_marker_text_line(raw_lines[i])
+        if not cleaned or not _FIGURE_CAPTION_START_RE.match(cleaned):
+            i += 1
+            continue
+
+        parts = [cleaned]
+        j = i + 1
+        follow_count = 0
+        while j < len(raw_lines) and follow_count < 2:
+            nxt = _clean_marker_text_line(raw_lines[j])
+            if not nxt:
+                break
+            if _FIGURE_CAPTION_START_RE.match(nxt):
+                break
+            if _MARKDOWN_HEADING_LINE.match(raw_lines[j]):
+                break
+            if nxt.startswith("|"):
+                break
+            if re.match(r"^(table|box|chapter)\b", nxt, flags=re.IGNORECASE):
+                break
+            alpha_count = sum(1 for ch in nxt if ch.isalpha())
+            if alpha_count < 3:
+                break
+            parts.append(nxt)
+            follow_count += 1
+            j += 1
+
+        merged = re.sub(r"\s+", " ", " ".join(parts)).strip()
+        if merged:
+            key = merged.lower()
+            if key not in seen:
+                seen.add(key)
+                out.append(merged[:420])
+        i = j if j > i + 1 else i + 1
+    return out
 MAX_ASPECT_RATIO = 24.0
 JUNK_BLACK_RATIO = 0.92
 
@@ -148,6 +212,153 @@ def keep_marker_image(path: Path, dropped: dict[str, int]) -> bool:
     except Exception:
         dropped["pil_error"] = dropped.get("pil_error", 0) + 1
         return False
+
+
+def marker_image_crop_suspect(path: Path) -> tuple[bool, str]:
+    """
+    Best-effort clipped-crop detector for Marker figures.
+
+    A healthy extracted figure usually has some whitespace margin around the crop.
+    When content strongly touches one or more image borders, Marker likely cut
+    through the original figure and the full PDF page preview is safer to show.
+    """
+    try:
+        img = Image.open(path).convert("L")
+        w, h = img.size
+        if w < 32 or h < 32:
+            return False, ""
+
+        edge_w = max(2, min(24, w // 40))
+        edge_h = max(2, min(24, h // 40))
+        regions = {
+            "left": img.crop((0, 0, edge_w, h)),
+            "right": img.crop((w - edge_w, 0, w, h)),
+            "top": img.crop((0, 0, w, edge_h)),
+            "bottom": img.crop((0, h - edge_h, w, h)),
+        }
+
+        def ink_ratio(region: Image.Image) -> float:
+            pixels = list(region.getdata())
+            if not pixels:
+                return 0.0
+            return sum(1 for p in pixels if p < 235) / len(pixels)
+
+        ratios = {name: ink_ratio(region) for name, region in regions.items()}
+        touching = [name for name, ratio in ratios.items() if ratio >= 0.12]
+        heavy = [name for name, ratio in ratios.items() if ratio >= 0.22]
+
+        reasons: list[str] = []
+        if len(touching) >= 2:
+            reasons.append("multi_edge_content")
+        if heavy:
+            reasons.append("heavy_edge_content")
+        return bool(reasons), ",".join(reasons)
+    except Exception:
+        return False, ""
+
+
+def _normalize_marker_ocr_text(raw: str, *, max_chars: int = 420) -> str:
+    text = str(raw or "").replace("\x0c", " ")
+    lines: list[str] = []
+    for line in text.splitlines():
+        cleaned = re.sub(r"\s+", " ", line).strip(" |-_:.")
+        if not cleaned:
+            continue
+        alpha_count = sum(1 for ch in cleaned if ch.isalpha())
+        if alpha_count < 3:
+            continue
+        lines.append(cleaned)
+    merged = re.sub(r"\s+", " ", " ".join(lines)).strip()
+    if not merged:
+        return ""
+    if len(merged) > max_chars:
+        merged = merged[: max_chars - 1].rstrip() + "…"
+    return merged
+
+
+def _is_caption_like_text(text: str) -> bool:
+    cleaned = str(text or "").strip()
+    if len(cleaned) < 24:
+        return False
+
+    tokens = re.findall(r"[A-Za-z][A-Za-z'.-]*", cleaned)
+    if len(tokens) < 4:
+        return False
+
+    long_tokens = [t for t in tokens if len(t) >= 3]
+    vowel_tokens = [t for t in long_tokens if re.search(r"[aeiouy]", t, flags=re.IGNORECASE)]
+    single_char_tokens = [t for t in tokens if len(t) == 1]
+    alpha_count = sum(1 for ch in cleaned if ch.isalpha())
+    non_space_count = sum(1 for ch in cleaned if not ch.isspace())
+    alpha_ratio = (alpha_count / non_space_count) if non_space_count else 0.0
+
+    if re.search(r"\b(fig(?:ure)?|chart|graph|measurement|classification|staging|score|algorithm)\b", cleaned, re.I):
+        return len(vowel_tokens) >= 3 and alpha_ratio >= 0.55
+
+    if len(vowel_tokens) < 5:
+        return False
+    if len(long_tokens) < max(4, len(tokens) // 2):
+        return False
+    if len(single_char_tokens) > max(2, len(tokens) // 3):
+        return False
+    if alpha_ratio < 0.65:
+        return False
+    return True
+
+
+def _ocr_marker_caption_region(img: Image.Image, *, config: str) -> str:
+    try:
+        import pytesseract
+    except Exception:
+        return ""
+    try:
+        gray = ImageOps.autocontrast(img.convert("L"))
+        bw = gray.point(lambda p: 255 if p > 180 else 0)
+        raw = pytesseract.image_to_string(bw, lang="eng", config=config)
+    except Exception:
+        return ""
+    cleaned = _normalize_marker_ocr_text(raw)
+    if not _is_caption_like_text(cleaned):
+        return ""
+    return cleaned
+
+
+def extract_marker_image_description(path: Path) -> str:
+    """
+    OCR the figure caption/legend embedded inside a Marker-extracted image.
+
+    Textbook figures commonly place the legend in the lower part of the image, so we
+    prefer OCR from the bottom region and fall back to the full image only when needed.
+    """
+    try:
+        img = Image.open(path).convert("RGB")
+    except Exception:
+        return ""
+
+    w, h = img.size
+    if w < 40 or h < 40:
+        return ""
+
+    bottom_crop_h = max(80, int(h * 0.34))
+    bottom_region = img.crop((0, max(0, h - bottom_crop_h), w, h))
+
+    candidates = [
+        _ocr_marker_caption_region(bottom_region, config="--psm 6"),
+        _ocr_marker_caption_region(bottom_region, config="--psm 11"),
+        _ocr_marker_caption_region(img, config="--psm 6"),
+    ]
+
+    def score(text: str) -> tuple[int, int]:
+        cleaned = text.strip()
+        return (
+            1 if re.search(r"\b(fig|figure)\b", cleaned, flags=re.IGNORECASE) else 0,
+            len(cleaned),
+        )
+
+    best = max((c for c in candidates if c), key=score, default="")
+    if len(best) < 18:
+        return ""
+    return best
 
 
 def convert_pdf_with_marker(

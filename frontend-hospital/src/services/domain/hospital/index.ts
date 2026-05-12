@@ -24,6 +24,7 @@ import { doctorScheduleHospitalServices } from './doctor/doctorScheduleHospitalS
 import { profileUserHospitalServices } from './profile/profileUserServices';
 import { prescriptionHospitalServices } from './prescription/prescriptionServices';
 import { doctorEducationHospitalServices } from './education/doctorEducationServices';
+import { doctorEducationConversationHospitalServices } from './education/doctorEducationConversationServices';
 import { blogHospitalServices } from './blog/blogHospitalServices';
 
 /**
@@ -56,5 +57,6 @@ export const hospitalServices: ServiceDefinition[] = [
   ...profileUserHospitalServices,
   ...prescriptionHospitalServices,
   ...doctorEducationHospitalServices,
+  ...doctorEducationConversationHospitalServices,
   ...blogHospitalServices
 ];

@@ -1,9 +1,11 @@
 import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition';
+import type { Composer } from 'vue-i18n';
 import type { AxiosResponse } from 'axios';
 import { isAxiosError } from 'axios';
 import { useAppStore } from '../../../../store/useAppStore';
 import { useToastStore } from '../../../../store/useToastStore';
 import { pinia } from '../../../../store/pinia';
+import { i18n } from '../../../../i18n';
 import { apiClient } from '../../../http/apiClient';
 import { isRequestTimeoutError, requestTimeoutMessage } from '../../../http/httpUserFacingErrors';
 import { URLRegistry } from '../../../http/URLRegistry';
@@ -29,6 +31,10 @@ type EducationState = {
 const EDU_CATALOG_CACHE_TTL_MS = 15 * 60 * 1000;
 const SS_EDU_BOOKS_KEY = 'agastya.edu.catalog.v1.books';
 const SS_EDU_TOPICS_PREFIX = 'agastya.edu.catalog.v1.topics.';
+
+function educationComposer(): Composer {
+  return i18n.global as Composer;
+}
 
 function topicsCacheKey(book: string): string {
   const seg = book.trim() === '' ? '_all' : book.trim().slice(0, 240);
@@ -592,7 +598,10 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
       const auth = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const role = String(auth.role ?? '').trim().toUpperCase();
       if (role !== 'DOCTOR') {
-        return { responseCode: 'DOCTOR_EDUCATION_FORBIDDEN', message: 'Only doctors can access Education.' };
+        return {
+          responseCode: 'DOCTOR_EDUCATION_FORBIDDEN',
+          message: educationComposer().t('page.doctorEducation.doctorsOnly')
+        };
       }
 
       const prev = getEducationState(appStore);
@@ -631,7 +640,7 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
         appStore.setData('hospital', 'DoctorEducationUiState', {
           ...latest,
           loading: false,
-          error: flashcards.length > 0 ? '' : 'Could not generate flashcards for this topic.',
+          error: flashcards.length > 0 ? '' : educationComposer().t('education.flashcardsGenerationFailed'),
           focusSummary,
           flashcards,
           aiRawReply: reply,
@@ -639,7 +648,7 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
         });
         return ok({ cards: flashcards.length });
       } catch (err: unknown) {
-        const exactMessage = extractApiErrorMessage(err, 'Education assistant is temporarily unavailable.');
+        const exactMessage = extractApiErrorMessage(err, educationComposer().t('education.flashcardsUnavailable'));
         const latest = getEducationState(appStore);
         appStore.setData('hospital', 'DoctorEducationUiState', {
           ...latest,
@@ -660,7 +669,10 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
       const auth = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const role = String(auth.role ?? '').trim().toUpperCase();
       if (role !== 'DOCTOR') {
-        return { responseCode: 'DOCTOR_EDUCATION_FORBIDDEN', message: 'Only doctors can access Education.' };
+        return {
+          responseCode: 'DOCTOR_EDUCATION_FORBIDDEN',
+          message: educationComposer().t('page.doctorEducation.doctorsOnly')
+        };
       }
 
       const cardId = String(request.data?.cardId ?? '').trim();
@@ -670,7 +682,10 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
       const levelGroup = normalizeLevelGroup(requestedLevel);
       const detailKey = `${cardId}::${levelGroup}`;
       if (!cardId || !front || !back) {
-        return { responseCode: 'DOCTOR_EDUCATION_DETAIL_FAILED', message: 'Missing card details.' };
+        return {
+          responseCode: 'DOCTOR_EDUCATION_DETAIL_FAILED',
+          message: educationComposer().t('education.missingCardDetails')
+        };
       }
 
       const prev = getEducationState(appStore);
@@ -702,12 +717,12 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
           detailLoadingCardId: '',
           detailByCardId: {
             ...byCard,
-            [detailKey]: detail || 'No additional detail found for this card.'
+            [detailKey]: detail || educationComposer().t('education.noAdditionalDetail')
           }
         });
         return ok();
       } catch (err: unknown) {
-        const exactMessage = extractApiErrorMessage(err, 'Could not fetch detailed card information right now.');
+        const exactMessage = extractApiErrorMessage(err, educationComposer().t('education.detailUnavailable'));
         const latest = getEducationState(appStore);
         appStore.setData('hospital', 'DoctorEducationUiState', {
           ...latest,

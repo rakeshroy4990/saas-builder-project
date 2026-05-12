@@ -49,7 +49,7 @@ public class AiChatService {
             String greetingReply = "Hello! I am the AI Symptom Triage Assistant. Please share your symptoms and how long you have had them, and I can provide general guidance.\n\n"
                     + AiSafetyPolicy.NON_DOCTOR_LINE + "\n\n"
                     + AiSafetyPolicy.DISCLAIMER_LINE;
-            return new AiChatResponse(greetingReply, false, "llm", List.of());
+            return new AiChatResponse(greetingReply, false, "llm", List.of(), null, null, List.of());
         }
         String audience = resolveAudience(userRoles);
         smartAiQuotaService.assertWithinTokenBudget(request);
@@ -60,7 +60,7 @@ public class AiChatService {
             AiSafetyPolicy.EscalationType escalationType =
                     escalationTypeOptional.orElse(AiSafetyPolicy.EscalationType.CARDIAC_RESPIRATORY);
             String escalationMessage = safetyPolicy.escalationReply(escalationType);
-            return new AiChatResponse(escalationMessage, true, escalationType.name().toLowerCase(), List.of());
+            return new AiChatResponse(escalationMessage, true, escalationType.name().toLowerCase(), List.of(), null, null, List.of());
         }
         List<AiChatMessageDto> history = request.history() == null ? List.of() : request.history();
         LOG.info("aiChat request actor={} messageLength={} historyCount={}", actor, messageLength, history.size());
@@ -84,7 +84,15 @@ public class AiChatService {
         List<String> followUpQuestions = ragResult == null || ragResult.followUpQuestions() == null
                 ? List.of()
                 : ragResult.followUpQuestions();
-        return new AiChatResponse(safeReply, false, mode, followUpQuestions);
+        return new AiChatResponse(
+                safeReply,
+                false,
+                mode,
+                followUpQuestions,
+                ragResult == null ? null : ragResult.source(),
+                ragResult == null ? null : ragResult.chunksUsed(),
+                ragResult == null || ragResult.images() == null ? List.of() : ragResult.images()
+        );
     }
 
     private static String resolveAudience(List<String> userRoles) {

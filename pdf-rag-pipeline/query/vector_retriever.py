@@ -117,6 +117,57 @@ def filter_api_images_by_selected_chunks(
     return out
 
 
+def collect_page_local_images_for_selected_chunks(
+    selected_chunks: list[dict],
+    *,
+    page_window: int | None = None,
+    max_return: int | None = None,
+) -> list[dict]:
+    """
+    Prefer figures stored near the selected text pages over ANN-ranked image candidates.
+
+    Marker figure captions are often generic, so once the LLM text context is chosen we can
+    fetch nearby figures directly from the same file(s) and return those to the API/UI.
+    """
+    if not selected_chunks:
+        return []
+    win = IMAGE_CONTEXT_PAGE_WINDOW if page_window is None else max(0, int(page_window))
+    mr = VECTOR_TOP_K_IMAGE if max_return is None else max(1, int(max_return))
+    anchors: list[tuple[str, int]] = []
+    for chunk in selected_chunks:
+        if str(chunk.get("chunk_key") or "") == "figure-context-summary":
+            continue
+        file_hash = str(chunk.get("file_hash") or "").strip()
+        if not file_hash:
+            continue
+        anchors.append((file_hash, int(chunk.get("page_num") or 0)))
+    if not anchors:
+        return []
+
+    page_local_rows = pg.retrieval_images_near_file_pages(anchors, page_window=win, limit=mr)
+    out: list[dict] = []
+    for row in page_local_rows:
+        url = str(row.get("image_url") or "").strip()
+        if not url:
+            continue
+        meta = row.get("metadata") or {}
+        if not isinstance(meta, dict):
+            meta = {}
+        out.append(
+            {
+                "url": url,
+                "caption": str(row.get("content") or "").strip(),
+                "page_hint": int(row.get("page_hint") or 0),
+                "source_file": row.get("source_file", ""),
+                "file_hash": row.get("file_hash", ""),
+                "page_preview_url": str(meta.get("page_preview_url") or "").strip(),
+                "crop_suspect": bool(meta.get("crop_suspect")),
+                "crop_suspect_reason": str(meta.get("crop_suspect_reason") or "").strip(),
+            }
+        )
+    return out
+
+
 def build_optional_figure_summary_chunk(api_images: list[dict]) -> Optional[dict]:
     """Compact chunk so the LLM sees only captions for figures we actually surface."""
     if not api_images:
@@ -222,6 +273,7 @@ def build_llm_chunks_and_response_images(
             break
         llm_chunks.append({
             "text":               body,
+            "file_hash":          row.get("file_hash", ""),
             "source_file":        row.get("source_file", ""),
             "page_num":           int(row.get("page_hint") or 0),
             "metadata":           row.get("metadata") or {},
@@ -243,12 +295,19 @@ def build_llm_chunks_and_response_images(
         url = row.get("image_url") or ""
         if not url:
             continue
+        meta = row.get("metadata") or {}
+        if not isinstance(meta, dict):
+            meta = {}
         api_images.append({
             "url":        url,
             "caption":    str(row.get("content") or "").strip(),
             "similarity": float(row.get("similarity") or 0),
             "page_hint":  int(row.get("page_hint") or 0),
             "source_file": row.get("source_file", ""),
+            "file_hash": row.get("file_hash", ""),
+            "page_preview_url": str(meta.get("page_preview_url") or "").strip(),
+            "crop_suspect": bool(meta.get("crop_suspect")),
+            "crop_suspect_reason": str(meta.get("crop_suspect_reason") or "").strip(),
         })
 
     return llm_chunks, api_images

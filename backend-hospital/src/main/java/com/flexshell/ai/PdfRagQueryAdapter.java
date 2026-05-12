@@ -1,5 +1,6 @@
 package com.flexshell.ai;
 
+import com.flexshell.controller.dto.AiChatFigureDto;
 import com.flexshell.controller.dto.AiChatMessageDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Component
@@ -252,6 +254,8 @@ public class PdfRagQueryAdapter {
                     source = response == null ? "" : String.valueOf(response.getOrDefault("source", "")).trim();
                 }
                 List<String> followUpQuestions = parseFollowUpQuestions(response);
+                Integer chunksUsed = parseIntegerField(response, "ChunksUsed", "chunks_used");
+                List<AiChatFigureDto> images = parseImages(response);
                 if (answer.isEmpty()) {
                     throw new AiProviderException(
                             AiProviderException.Kind.PROVIDER_FAILED,
@@ -261,7 +265,7 @@ public class PdfRagQueryAdapter {
                             "EMPTY_ANSWER"
                     );
                 }
-                return new RagQueryResult(answer, source, followUpQuestions);
+                return new RagQueryResult(answer, source, followUpQuestions, chunksUsed, images);
             } catch (RestClientResponseException ex) {
                 int statusCode = ex.getStatusCode().value();
                 boolean retryable = statusCode == 429 || statusCode == 503;
@@ -293,7 +297,13 @@ public class PdfRagQueryAdapter {
         }
     }
 
-    public record RagQueryResult(String answer, String source, List<String> followUpQuestions) {
+    public record RagQueryResult(
+            String answer,
+            String source,
+            List<String> followUpQuestions,
+            Integer chunksUsed,
+            List<AiChatFigureDto> images
+    ) {
     }
 
     @SuppressWarnings("unchecked")
@@ -314,6 +324,76 @@ public class PdfRagQueryAdapter {
                 .distinct()
                 .limit(6)
                 .collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<AiChatFigureDto> parseImages(Map<String, Object> response) {
+        if (response == null || response.isEmpty()) {
+            return List.of();
+        }
+        Object raw = response.get("Images");
+        if (!(raw instanceof List<?>)) {
+            raw = response.get("images");
+        }
+        if (!(raw instanceof List<?> items)) {
+            return List.of();
+        }
+        List<AiChatFigureDto> out = new ArrayList<>();
+        for (Object item : items) {
+            if (!(item instanceof Map<?, ?> rawMap)) {
+                continue;
+            }
+            Map<String, Object> map = rawMap.entrySet().stream()
+                    .filter(e -> e.getKey() != null)
+                    .collect(Collectors.toMap(
+                            e -> String.valueOf(e.getKey()),
+                            Map.Entry::getValue,
+                            (a, b) -> b,
+                            LinkedHashMap::new
+                    ));
+            out.add(new AiChatFigureDto(
+                    parseIntegerField(map, "ImgIndex", "img_index"),
+                    parseIntegerField(map, "Page", "page"),
+                    parseStringField(map, "Ext", "ext"),
+                    parseStringField(map, "Caption", "caption"),
+                    parseStringField(map, "ImageData", "image_data"),
+                    parseStringField(map, "Url", "url"),
+                    parseStringField(map, "SourceFile", "source_file")
+            ));
+        }
+        return out;
+    }
+
+    private static String parseStringField(Map<String, Object> response, String... keys) {
+        if (response == null || keys == null) {
+            return "";
+        }
+        for (String key : keys) {
+            Object raw = response.get(key);
+            String value = String.valueOf(raw == null ? "" : raw).trim();
+            if (!value.isEmpty()) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private static Integer parseIntegerField(Map<String, Object> response, String... keys) {
+        if (response == null || keys == null) {
+            return null;
+        }
+        for (String key : keys) {
+            Object raw = response.get(key);
+            if (raw == null) {
+                continue;
+            }
+            try {
+                return Integer.parseInt(String.valueOf(raw).trim());
+            } catch (NumberFormatException ignored) {
+                // continue
+            }
+        }
+        return null;
     }
 
     private static String resolveAudience(List<String> userRoles) {

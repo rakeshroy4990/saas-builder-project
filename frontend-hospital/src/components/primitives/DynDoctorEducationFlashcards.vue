@@ -46,6 +46,7 @@ const flipped = ref<Set<string>>(new Set());
 const selectedCardId = ref<string>('');
 const detailMode = ref(false);
 const explainerLevel = ref<'MBBS' | 'MD' | 'DM'>('MBBS');
+const showFlashcardControls = ref(false);
 
 const education = computed(() => {
   return (appStore.getData('hospital', 'DoctorEducationUiState') ?? {}) as Record<string, unknown>;
@@ -63,6 +64,12 @@ const books = computed(() => {
   return Array.isArray(raw)
     ? raw.map((item) => String(item ?? '').trim()).filter(Boolean)
     : [];
+});
+
+const uiMode = computed<'flashcards' | 'conversation'>(() => {
+  return String(education.value.uiMode ?? '').trim().toLowerCase() === 'flashcards'
+    ? 'flashcards'
+    : 'conversation';
 });
 
 const selectedBook = computed(() => String(education.value.selectedBook ?? '').trim());
@@ -142,6 +149,14 @@ async function submitFlashcards() {
 async function onBookFilterChange(event: Event) {
   const value = (event.target as HTMLSelectElement).value;
   await execute({ actionId: 'set-doctor-education-book', data: { book: value } });
+}
+
+async function onModeChange(event: Event) {
+  const value = String((event.target as HTMLSelectElement).value ?? '').trim().toLowerCase();
+  await execute({
+    actionId: 'set-doctor-education-mode',
+    data: { mode: value === 'conversation' ? 'conversation' : 'flashcards' }
+  });
 }
 
 async function chooseTopic(topic: string) {
@@ -298,10 +313,48 @@ onMounted(async () => {
           {{ t('education.flashcardsSubtitle') }}
         </p>
       </div>
-      <div class="rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-700 backdrop-blur">
-        {{ t('education.cardsCount', { count: flashcards.length }) }}
+      <div class="flex items-center gap-2">
+        <div class="rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-700 backdrop-blur">
+          {{ t('education.cardsCount', { count: flashcards.length }) }}
+        </div>
+        <button
+          type="button"
+          class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200 bg-white text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+          :aria-label="showFlashcardControls ? t('education.workspace.closeLayoutControls') : t('education.workspace.openLayoutControls')"
+          :title="showFlashcardControls ? t('education.workspace.closeLayoutControls') : t('education.workspace.openLayoutControls')"
+          @click="showFlashcardControls = !showFlashcardControls"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h10" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 7h2" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 12h4" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 12h8" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 17h8" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 17h4" />
+            <circle cx="15" cy="7" r="2" />
+            <circle cx="10" cy="12" r="2" />
+            <circle cx="14" cy="17" r="2" />
+          </svg>
+        </button>
       </div>
     </header>
+
+    <div
+      v-if="showFlashcardControls"
+      class="rounded-2xl border border-emerald-100 bg-white/80 px-4 py-3 shadow-sm"
+    >
+      <label class="flex w-full max-w-xs flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <span>{{ t('education.workspace.modeLabel') }}</span>
+        <select
+          class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+          :value="uiMode"
+          @change="onModeChange"
+        >
+          <option value="conversation">{{ t('education.workspace.modeConversation') }}</option>
+          <option value="flashcards">{{ t('education.workspace.modeFlashcards') }}</option>
+        </select>
+      </label>
+    </div>
 
     <div
       v-if="books.length > 0"
