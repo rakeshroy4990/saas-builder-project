@@ -3,7 +3,9 @@ from openai import OpenAI
 import json
 import logging
 import re
-from typing import Optional
+from typing import Iterator, Optional
+
+STREAM_FOLLOWUPS_MARKER = "\n@@FOLLOWUPS_JSON@@\n"
 
 from query.keyword_extractor import SHORT_MEDICAL_TERMS, extract_keywords
 
@@ -523,6 +525,89 @@ def _finalize_answer(raw: str, query: str, chunks: list[dict], audience: str) ->
             text = INSUFFICIENT_EXPERT_MESSAGE
         return {"answer": text, "follow_up_questions": _default_follow_ups_for_audience(audience)}
     return _coerce_structured_output(raw, audience)
+
+
+def _build_stream_plain_prompt(query: str, chunks: list[dict], audience: str) -> str:
+    """Prompt for token streaming: prose answer, then machine-readable follow-ups line."""
+    context = "\n\n".join(
+        [f"[Source: {c['source_file']}, Page {c['page_num']}]\n{c['text']}" for c in chunks]
+    )
+    if audience == "expert":
+        guide = """You are a medical information assistant for healthcare professionals.
+Use ONLY the CONTEXT for clinical facts. Be structured and detailed.
+Output the main answer as markdown or clear paragraphs (no JSON wrapper for the body).
+When finished with the clinical answer, output EXACTLY one line containing only:
+@@FOLLOWUPS_JSON@@
+Then on the next line output ONLY a JSON array of 2–4 short follow-up question strings (valid JSON, no markdown).
+If CONTEXT is insufficient, answer briefly with that limitation, still emit the marker and array (may be generic)."""
+    else:
+        guide = """You are a medical information assistant for patients.
+Use simple language, be empathetic, use ONLY the CONTEXT.
+Output the main answer as readable paragraphs or light markdown.
+When finished, output EXACTLY one line containing only:
+@@FOLLOWUPS_JSON@@
+Then on the next line output ONLY a JSON array of 2–3 short follow-up question strings (valid JSON).
+If CONTEXT is insufficient, say so briefly, still emit the marker and array."""
+
+    return f"""{guide}
+
+CONTEXT:
+{context}
+
+QUESTION:
+{query}
+
+YOUR RESPONSE:"""
+
+
+def iter_openai_chat_stream_tokens(prompt: str) -> Iterator[str]:
+    """Yield incremental text from OpenAI Chat Completions streaming."""
+    if not OPENAI_API_KEY:
+        return
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    stream = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
+        temperature=0.35,
+    )
+    for event in stream:
+        for choice in event.choices or []:
+            delta = getattr(choice.delta, "content", None) if choice.delta else None
+            if delta:
+                yield delta
+
+
+def finalize_streamed_llm_raw(raw: str, query: str, chunks: list[dict], audience: str) -> dict:
+    """Turn streamed plain text (optional FOLLOWUPS marker) into the same dict shape as answer_with_context."""
+    text = str(raw or "").strip()
+    follow_list: list[str] = []
+    body = text
+    if STREAM_FOLLOWUPS_MARKER in text:
+        parts = text.split(STREAM_FOLLOWUPS_MARKER, 1)
+        body = parts[0].strip()
+        tail = parts[1].strip() if len(parts) > 1 else ""
+        first_line = tail.split("\n", 1)[0].strip() if tail else ""
+        if first_line.startswith("["):
+            try:
+                parsed = json.loads(first_line)
+                if isinstance(parsed, list):
+                    follow_list = [str(x).strip() for x in parsed if str(x).strip()]
+            except Exception:
+                follow_list = []
+    if not follow_list:
+        follow_list = _default_follow_ups_for_audience(audience)
+    else:
+        follow_list = _parse_follow_up_questions(follow_list, audience)
+    if _looks_like_refusal(body) and (
+        _is_first_person_health_query(query) or _context_covers_query_terms(query, chunks)
+    ):
+        body = _build_contextual_fallback(query, chunks)
+    if not body:
+        body = INSUFFICIENT_EXPERT_MESSAGE if audience == "expert" else INSUFFICIENT_LAYMAN_MESSAGE
+    if audience != "expert" and "i am not a doctor" not in body.lower():
+        body = f"{body}\n\nI am not a doctor."
+    return {"answer": body.strip(), "follow_up_questions": follow_list}
 
 
 def answer_with_context(query: str, chunks: list[dict], audience: str = "layman") -> dict:

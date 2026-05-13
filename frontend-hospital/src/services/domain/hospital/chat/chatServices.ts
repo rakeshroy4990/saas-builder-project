@@ -4,7 +4,9 @@ import { useAppStore } from '../../../../store/useAppStore';
 import { useToastStore } from '../../../../store/useToastStore';
 import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
+import { postHospitalAiChatNdjson } from '../../../http/hospitalAiChatStream';
 import { URLRegistry } from '../../../http/URLRegistry';
+import { isRequestTimeoutError, requestTimeoutMessage } from '../../../http/httpUserFacingErrors';
 import { stompClient } from '../../../realtime/stompClient';
 import { logClient } from '../../../logging/clientLogger';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
@@ -70,6 +72,15 @@ function buildAiHistory(messagesByRoomId: Record<string, unknown>, roomId: strin
 function roleIsAdmin(appStore: HospitalAppStore): boolean {
   const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
   return String(authSession.role ?? '').trim().toUpperCase() === 'ADMIN';
+}
+
+function clearSmartAiSendTimeoutFlags(messages: unknown[]): unknown[] {
+  return messages.map((raw) => {
+    const msg = (raw ?? {}) as Record<string, unknown>;
+    if (!msg.sendFailedTimeout) return msg;
+    const { sendFailedTimeout: _t, ...rest } = msg;
+    return rest;
+  });
 }
 
 function roleIsExpert(appStore: HospitalAppStore): boolean {
@@ -590,9 +601,34 @@ export const chatHospitalServices: ServiceDefinition[] = [
       const now = new Date().toISOString();
       const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
       const existing = Array.isArray(messagesByRoomId[roomId]) ? (messagesByRoomId[roomId] as unknown[]) : [];
+      const lastRaw =
+        existing.length > 0 ? (existing[existing.length - 1] as Record<string, unknown>) : null;
+      const isTimeoutResend =
+        Boolean(lastRaw)
+        && String(lastRaw!.senderId ?? '').trim() === 'me'
+        && Boolean(lastRaw!.sendFailedTimeout)
+        && String(lastRaw!.body ?? '').trim() === body;
+      const clearedExisting = clearSmartAiSendTimeoutFlags(existing);
+      const baseForSend = isTimeoutResend ? clearedExisting.slice(0, -1) : clearedExisting;
       const withUserMessage = [
-        ...existing,
+        ...baseForSend,
         { roomId, senderId: 'me', body, clientMessageId, createdTimestamp: now, status: 'sent' }
+      ];
+      const historyBuildSource = { ...messagesByRoomId, [roomId]: withUserMessage };
+      const history = buildAiHistory(historyBuildSource, roomId);
+      const aiClientMessageId = crypto.randomUUID();
+      const aiNow = new Date().toISOString();
+      const withStreamingDraft = [
+        ...clearSmartAiSendTimeoutFlags(withUserMessage),
+        {
+          roomId,
+          senderId: 'ai',
+          body: '',
+          clientMessageId: aiClientMessageId,
+          createdTimestamp: aiNow,
+          status: 'sent',
+          aiStreaming: true
+        }
       ];
 
       appStore.setData('hospital', 'Chat', {
@@ -601,7 +637,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
         status: 'connected',
         activeRoomId: roomId,
         aiProcessing: true,
-        messagesByRoomId: { ...messagesByRoomId, [roomId]: withUserMessage }
+        messagesByRoomId: { ...messagesByRoomId, [roomId]: withStreamingDraft }
       });
 
       if (!roleIsExpert(appStore) && requiresEscalation(body)) {
@@ -612,7 +648,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
           trace_id: getOrCreateTraceId()
         });
         const escalated = [
-          ...withUserMessage,
+          ...clearSmartAiSendTimeoutFlags(withUserMessage),
           {
             roomId,
             senderId: 'ai',
@@ -633,40 +669,69 @@ export const chatHospitalServices: ServiceDefinition[] = [
       }
 
       try {
-        const history = buildAiHistory({ ...messagesByRoomId, [roomId]: withUserMessage }, roomId);
-        const response = await apiClient.post(URLRegistry.paths.hospitalAiChat, {
-          message: body,
-          history
-        });
-        const data = (response.data?.Data ?? response.data?.data ?? {}) as Record<string, unknown>;
+        const patchStreamingAiBody = (text: string, streaming: boolean) => {
+          const latestChat = getChatStore(appStore);
+          const latestByRoom = (latestChat.messagesByRoomId ?? {}) as Record<string, unknown>;
+          const roomMsgs = Array.isArray(latestByRoom[roomId]) ? [...(latestByRoom[roomId] as unknown[])] : [];
+          const idx = roomMsgs.findIndex(
+            (raw) =>
+              String((raw as { clientMessageId?: string }).clientMessageId ?? '').trim() === aiClientMessageId
+          );
+          if (idx < 0) return;
+          const next = roomMsgs.map((raw, i) => {
+            if (i !== idx) return raw;
+            const row = raw as Record<string, unknown>;
+            const { aiStreaming: _a, ...rest } = row;
+            return streaming ? { ...rest, body: text, aiStreaming: true } : { ...rest, body: text };
+          });
+          appStore.setData('hospital', 'Chat', {
+            ...latestChat,
+            messagesByRoomId: { ...latestByRoom, [roomId]: next }
+          });
+        };
 
-        const conversationHistory: ConversationMessage[] = (
-          (messagesByRoomId[roomId] ?? []) as Array<{ senderId: string; body: string }>
-        ).map((msg) => ({
-          role: msg.senderId === 'ai' ? 'assistant' : 'user',
-          content: msg.body
-        }));
-
-        const baseReply = normalizedAiReply(data.reply ?? data.message, body, conversationHistory);
-        const reply = composeReplyWithFollowUps(baseReply, data);
-        const nextMessages = [
-          ...withUserMessage,
+        let acc = '';
+        await postHospitalAiChatNdjson(
+          { message: body, history },
           {
-            roomId,
-            senderId: 'ai',
-            body: reply,
-            createdTimestamp: new Date().toISOString(),
-            status: 'sent'
-          }
-        ];
+            onDelta: (chunk) => {
+              acc += chunk;
+              patchStreamingAiBody(acc, true);
+            },
+            onComplete: (data) => {
+              const latestChat = getChatStore(appStore);
+              const latestByRoom = (latestChat.messagesByRoomId ?? {}) as Record<string, unknown>;
+              const conversationHistory: ConversationMessage[] = (
+                (latestByRoom[roomId] ?? []) as Array<{ senderId: string; body: string }>
+              ).map((msg) => ({
+                role: msg.senderId === 'ai' ? 'assistant' : 'user',
+                content: msg.body
+              }));
+              const baseReply = normalizedAiReply(
+                data.reply ?? data.message,
+                body,
+                conversationHistory
+              );
+              const reply = composeReplyWithFollowUps(baseReply, data);
+              patchStreamingAiBody(reply, false);
+            }
+          },
+          typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+            ? AbortSignal.timeout(180_000)
+            : undefined
+        );
+
         const latestChat = getChatStore(appStore);
         const latestByRoom = (latestChat.messagesByRoomId ?? {}) as Record<string, unknown>;
         appStore.setData('hospital', 'Chat', {
           ...latestChat,
           aiProcessing: false,
-          messagesByRoomId: { ...latestByRoom, [roomId]: nextMessages }
+          messagesByRoomId: { ...latestByRoom, [roomId]: latestByRoom[roomId] }
         });
-        void logClient('INFO', 'smart ai response received', { replyLength: reply.length });
+        const finalMsgs = (latestByRoom[roomId] ?? []) as unknown[];
+        const lastAi = finalMsgs.length > 0 ? (finalMsgs[finalMsgs.length - 1] as { body?: string }) : null;
+        const replyLen = String(lastAi?.body ?? '').length;
+        void logClient('INFO', 'smart ai response received', { replyLength: replyLen });
         trackEvent('chat_ai_reply_received', {
           domain: 'chat',
           status: 'success',
@@ -676,8 +741,38 @@ export const chatHospitalServices: ServiceDefinition[] = [
         return ok();
       } catch (error) {
         const latestChat = getChatStore(appStore);
-        appStore.setData('hospital', 'Chat', { ...latestChat, aiProcessing: false });
-        const status = isAxiosError(error) ? error.response?.status : undefined;
+        const latestByRoom = (latestChat.messagesByRoomId ?? {}) as Record<string, unknown>;
+        const roomMsgs = Array.isArray(latestByRoom[roomId]) ? [...(latestByRoom[roomId] as unknown[])] : [];
+        let working = roomMsgs;
+        const last = working.length > 0 ? (working[working.length - 1] as Record<string, unknown>) : null;
+        if (last && String(last.senderId ?? '').trim() === 'ai' && Boolean(last.aiStreaming)) {
+          working = working.slice(0, -1);
+        }
+        let patchedRoom = working;
+        if (isRequestTimeoutError(error) && patchedRoom.length > 0) {
+          let lastUserIdx = -1;
+          for (let i = patchedRoom.length - 1; i >= 0; i--) {
+            if (String((patchedRoom[i] as { senderId?: string }).senderId ?? '').trim() === 'me') {
+              lastUserIdx = i;
+              break;
+            }
+          }
+          if (lastUserIdx >= 0) {
+            patchedRoom = patchedRoom.map((raw, idx) =>
+              idx === lastUserIdx ? { ...(raw as Record<string, unknown>), sendFailedTimeout: true } : raw
+            );
+          }
+        }
+        appStore.setData('hospital', 'Chat', {
+          ...latestChat,
+          aiProcessing: false,
+          messagesByRoomId: { ...latestByRoom, [roomId]: patchedRoom }
+        });
+        const status = isAxiosError(error)
+          ? error.response?.status
+          : error && typeof error === 'object' && 'status' in error
+            ? Number((error as { status?: number }).status)
+            : undefined;
         const errorCode = String(
           (isAxiosError(error) ? error.response?.data?.ErrorCode : '') ?? ''
         ).trim().toUpperCase();
@@ -697,7 +792,12 @@ export const chatHospitalServices: ServiceDefinition[] = [
           trace_id: getOrCreateTraceId(),
           http_status: status
         });
-        toastStore.show('Smart AI is temporarily unavailable. Please try again shortly.', 'error');
+        const toastMsg = isRequestTimeoutError(error)
+          ? requestTimeoutMessage()
+          : 'Smart AI is temporarily unavailable. Please try again shortly.';
+        if (status !== 401) {
+          toastStore.show(toastMsg, 'error');
+        }
         return { responseCode: 'CHAT_AI_SEND_FAILED', message: 'AI service unavailable' };
       }
     }

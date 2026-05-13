@@ -488,7 +488,7 @@ class QueryRequest(BaseModel):
 
     question: str = Field(
         min_length=2,
-        max_length=4000,
+        max_length=16000,
         validation_alias=AliasChoices("Question", "question"),
         serialization_alias="Question",
     )
@@ -530,7 +530,7 @@ class QueryRequest(BaseModel):
     )
     retrieval_question: Optional[str] = Field(
         default=None,
-        max_length=2000,
+        max_length=8000,
         validation_alias=AliasChoices("RetrievalQuestion", "retrieval_question"),
         serialization_alias="RetrievalQuestion",
         description=(

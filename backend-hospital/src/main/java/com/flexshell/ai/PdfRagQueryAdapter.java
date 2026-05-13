@@ -1,5 +1,6 @@
 package com.flexshell.ai;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.controller.dto.AiChatFigureDto;
 import com.flexshell.controller.dto.AiChatMessageDto;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,12 +11,20 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Component
@@ -23,10 +32,14 @@ public class PdfRagQueryAdapter {
     private final boolean enabled;
     private final String baseUrl;
     private final String queryPath;
+    private final String queryStreamPath;
     private final String educationBooksPath;
     private final String educationKeyTopicsPath;
     private final int retryAttempts;
     private final long retryBackoffMs;
+    private final ObjectMapper objectMapper;
+    /** Shared client for NDJSON streaming to pdf-rag (avoids new TCP connect per request). */
+    private final HttpClient streamingHttpClient;
 
     public PdfRagQueryAdapter(
             @Value("${app.ai.rag.enabled:true}") boolean enabled,
@@ -35,15 +48,24 @@ public class PdfRagQueryAdapter {
             @Value("${app.ai.rag.education-books-path:/api/v1/education/books}") String educationBooksPath,
             @Value("${app.ai.rag.education-key-topics-path:/api/v1/education/key-topics}") String educationKeyTopicsPath,
             @Value("${app.ai.rag.retry-attempts:2}") int retryAttempts,
-            @Value("${app.ai.rag.retry-backoff-ms:600}") long retryBackoffMs
+            @Value("${app.ai.rag.retry-backoff-ms:600}") long retryBackoffMs,
+            @Value("${app.ai.rag.query-stream-path:}") String queryStreamPathOverride,
+            ObjectMapper objectMapper
     ) {
         this.enabled = enabled;
         this.baseUrl = baseUrl == null ? "" : baseUrl.trim();
         this.queryPath = queryPath == null ? "/api/v1/query" : queryPath.trim();
+        String qp = normalizeApiPath(this.queryPath);
+        String override = queryStreamPathOverride == null ? "" : queryStreamPathOverride.trim();
+        this.queryStreamPath = override.isEmpty() ? qp + "/stream" : normalizeApiPath(override);
         this.educationBooksPath = educationBooksPath == null ? "/api/v1/education/books" : educationBooksPath.trim();
         this.educationKeyTopicsPath = educationKeyTopicsPath == null ? "/api/v1/education/key-topics" : educationKeyTopicsPath.trim();
         this.retryAttempts = Math.max(retryAttempts, 0);
         this.retryBackoffMs = Math.max(retryBackoffMs, 0L);
+        this.objectMapper = objectMapper;
+        this.streamingHttpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(25))
+                .build();
     }
 
     /**
@@ -295,6 +317,115 @@ public class PdfRagQueryAdapter {
                 );
             }
         }
+    }
+
+    /**
+     * Calls pdf-rag {@code POST .../query/stream} and invokes {@code onLine} for each NDJSON line (no trailing newline).
+     * Retries are not applied (streaming bodies are not replay-safe).
+     */
+    public void streamQueryNdjson(
+            String message,
+            String conversationId,
+            List<AiChatMessageDto> history,
+            String actorUserId,
+            String authorizationHeader,
+            List<String> userRoles,
+            String bookName,
+            String retrievalQuestion,
+            java.util.function.Consumer<String> onLine
+    ) throws Exception {
+        if (!enabled) {
+            throw new AiProviderException(AiProviderException.Kind.CONFIG_MISSING, "RAG adapter is disabled.");
+        }
+        if (baseUrl.isBlank()) {
+            throw new AiProviderException(AiProviderException.Kind.CONFIG_MISSING, "RAG base URL is not configured.");
+        }
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            throw new SecurityException("Missing authorization header for RAG query");
+        }
+        String audience = resolveAudience(userRoles);
+        String json = objectMapper.writeValueAsString(
+                buildRagQueryPayload(message, conversationId, history, actorUserId, bookName, retrievalQuestion)
+        );
+        URI uri = URI.create(joinBaseAndPath(baseUrl, queryStreamPath));
+        HttpRequest.Builder rb = HttpRequest.newBuilder(uri)
+                .timeout(Duration.ofMinutes(12))
+                .header(HttpHeaders.AUTHORIZATION, authorizationHeader.trim())
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header("X-User-Audience", audience)
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8));
+        if (userRoles != null && !userRoles.isEmpty()) {
+            rb.header("X-User-Roles", userRoles.stream().collect(Collectors.joining(",")));
+        }
+        HttpResponse<InputStream> resp = streamingHttpClient.send(rb.build(), HttpResponse.BodyHandlers.ofInputStream());
+        int code = resp.statusCode();
+        if (code != 200) {
+            String errBody;
+            try (InputStream in = resp.body()) {
+                errBody = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            }
+            String friendlyMessage = code == 429
+                    ? "Smart AI is handling high traffic right now. Please try again in a moment."
+                    : cleanProviderMessage(errBody);
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    friendlyMessage,
+                    "pdf-rag",
+                    code,
+                    ""
+            );
+        }
+        try (InputStream raw = resp.body();
+             BufferedReader br = new BufferedReader(new InputStreamReader(raw, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (!line.isBlank()) {
+                    onLine.accept(line);
+                }
+            }
+        }
+    }
+
+    private static String joinBaseAndPath(String base, String path) {
+        String b = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+        String p = path.startsWith("/") ? path : "/" + path;
+        return b + p;
+    }
+
+    /**
+     * Same field extraction as {@link #query} for a single JSON object (e.g. stream {@code complete} payload).
+     */
+    public RagQueryResult toRagQueryResult(Map<String, Object> response) {
+        if (response == null || response.isEmpty()) {
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "RAG stream payload was empty.",
+                    "pdf-rag",
+                    null,
+                    "EMPTY_STREAM"
+            );
+        }
+        String answer = String.valueOf(response.getOrDefault("Answer", "")).trim();
+        if (answer.isEmpty()) {
+            answer = String.valueOf(response.getOrDefault("answer", "")).trim();
+        }
+        String source = String.valueOf(response.getOrDefault("Source", "")).trim();
+        if (source.isEmpty()) {
+            source = String.valueOf(response.getOrDefault("source", "")).trim();
+        }
+        List<String> followUpQuestions = parseFollowUpQuestions(response);
+        Integer chunksUsed = parseIntegerField(response, "ChunksUsed", "chunks_used");
+        List<AiChatFigureDto> images = parseImages(response);
+        if (answer.isEmpty()) {
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "RAG response did not include an answer.",
+                    "pdf-rag",
+                    null,
+                    "EMPTY_ANSWER"
+            );
+        }
+        return new RagQueryResult(answer, source, followUpQuestions, chunksUsed, images);
     }
 
     public record RagQueryResult(

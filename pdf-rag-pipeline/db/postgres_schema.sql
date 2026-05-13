@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS rag_retrieval_items (
     metadata            JSONB NOT NULL DEFAULT '{}'::jsonb,
     image_url           TEXT,
     image_storage_key   TEXT,
-    embedding           vector(1536) NOT NULL,
+    embedding           halfvec(3072) NOT NULL,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT (now() AT TIME ZONE 'utc'),
     CONSTRAINT rag_retrieval_items_file_chunk UNIQUE (file_hash, chunk_key)
 );
@@ -84,8 +84,8 @@ CREATE TABLE IF NOT EXISTS rag_retrieval_items (
 CREATE INDEX IF NOT EXISTS rag_retrieval_items_file_hash_idx ON rag_retrieval_items (file_hash);
 CREATE INDEX IF NOT EXISTS rag_retrieval_items_kind_idx ON rag_retrieval_items (kind);
 CREATE INDEX IF NOT EXISTS rag_retrieval_items_page_idx ON rag_retrieval_items (file_hash, page_hint);
-CREATE INDEX IF NOT EXISTS rag_retrieval_items_embedding_hnsw_idx
-    ON rag_retrieval_items USING hnsw (embedding vector_cosine_ops);
+-- Vector ANN index is managed in application startup so existing tables can be
+-- migrated from vector(...) to halfvec(3072) before index creation.
 CREATE INDEX IF NOT EXISTS rag_retrieval_items_metadata_book_name_idx
     ON rag_retrieval_items ((metadata->>'book_name'));
 

@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record AiChatRequest(
-        @NotBlank @Size(max = 2000) String message,
+        @NotBlank @Size(max = 16000) String message,
         @Size(max = 120) String conversationId,
         @Valid @Size(max = 12) List<AiChatMessageDto> history,
         /**
@@ -25,6 +25,6 @@ public record AiChatRequest(
          */
         @JsonProperty("RetrievalQuestion")
         @JsonAlias({"retrievalQuestion", "retrieval_question"})
-        @Size(max = 2000) String retrievalQuestion
+        @Size(max = 8000) String retrievalQuestion
 ) {
 }

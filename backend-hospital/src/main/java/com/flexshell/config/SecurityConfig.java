@@ -2,21 +2,27 @@ package com.flexshell.config;
 
 import com.flexshell.auth.security.BearerTokenAuthenticator;
 import com.flexshell.auth.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Configuration
 public class SecurityConfig {
+    private static final Logger LOG = LoggerFactory.getLogger(SecurityConfig.class);
     @Value("${app.auth.cookie.access-token-name:access_token}")
     private String accessTokenCookieName;
 
@@ -42,14 +48,47 @@ public class SecurityConfig {
                         .requestMatchers("/api/medical-department/get", "/api/medical-department/get/**").permitAll()
                         .requestMatchers("/api/youtube/hero-video").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/hospital/blog", "/api/hospital/blog/**").permitAll()
+                        // Spring Boot forwards failures to `/error`; must not require auth or the real error is masked.
+                        .requestMatchers("/error", "/error/**").permitAll()
                         .requestMatchers("/api/medical-department/create").authenticated()
                         .requestMatchers("/api/medical-department/createOrUpdate").authenticated()
                         .requestMatchers("/api/medical-department/update/**").authenticated()
                         .requestMatchers("/api/medical-department/delete/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated());
+                        .anyRequest().authenticated())
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            LOG.warn(
+                                    "security_unauthenticated method={} uri={} detail={}",
+                                    request.getMethod(),
+                                    request.getRequestURI(),
+                                    authException != null ? authException.getClass().getSimpleName() : "none"
+                            );
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                            response.getWriter().write("{\"message\":\"Authentication required\",\"code\":\"AUTH_REQUIRED\"}");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            LOG.warn(
+                                    "security_access_denied method={} uri={} detail={}",
+                                    request.getMethod(),
+                                    request.getRequestURI(),
+                                    accessDeniedException != null ? accessDeniedException.getClass().getSimpleName() : "none"
+                            );
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+                            response.getWriter().write("{\"message\":\"Forbidden\",\"code\":\"ACCESS_DENIED\"}");
+                        }));
 
         BearerTokenAuthenticator bearerTokenAuthenticator = bearerTokenAuthenticatorProvider.getIfAvailable();
+        if (bearerTokenAuthenticator == null) {
+            LOG.error(
+                    "BearerTokenAuthenticator bean is missing; JWT filter will not be registered. "
+                            + "Most /api/** routes require authentication and will return 403."
+            );
+        }
         if (bearerTokenAuthenticator != null) {
             JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(
                     bearerTokenAuthenticator,

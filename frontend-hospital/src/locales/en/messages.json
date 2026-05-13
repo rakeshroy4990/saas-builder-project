@@ -541,7 +541,9 @@
       "sending": "Sending…",
       "emptyQuestion": "Type a question to start the conversation.",
       "emptyAnswer": "No grounded answer was returned for this question.",
-      "unavailable": "Conversation assistant is temporarily unavailable."
+      "unavailable": "Conversation assistant is temporarily unavailable.",
+      "resendTitle": "Resend this question (same text)",
+      "resendAria": "Resend this question with the same wording"
     },
     "explainer": {
       "title": "Medical Concept Explainer",

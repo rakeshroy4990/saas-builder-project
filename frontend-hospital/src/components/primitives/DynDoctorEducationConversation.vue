@@ -5,6 +5,10 @@ import type { PageConfig } from '../../core/types/PageConfig';
 import { useActionEngine } from '../../composables/useActionEngine';
 import { useAppStore } from '../../store/useAppStore';
 import { pinia } from '../../store/pinia';
+import {
+  assistantDisplayBody,
+  assistantDisplayFollowUps
+} from '../../services/domain/hospital/education/educationAssistantPayload';
 
 type ConversationFigure = {
   imgIndex: number;
@@ -27,6 +31,8 @@ type ConversationMessage = {
   chunksUsed?: number;
   followUpQuestions?: string[];
   images?: ConversationFigure[];
+  /** After a failed request, resend button uses stronger styling until the next send. */
+  sendFailedTimeout?: boolean;
 };
 
 type ConversationSession = {
@@ -100,9 +106,13 @@ const sessions = computed<ConversationSession[]>(() => {
           error: String(msg.error ?? '').trim(),
           source: String(msg.source ?? '').trim(),
           chunksUsed: Number(msg.chunksUsed ?? 0) || undefined,
-          followUpQuestions: Array.isArray(msg.followUpQuestions)
-            ? msg.followUpQuestions.map((entry) => String(entry ?? '').trim()).filter(Boolean)
-            : [],
+          followUpQuestions: (() => {
+            const raw = msg.followUpQuestions ?? msg.follow_up_questions ?? msg.FollowUpQuestions;
+            return Array.isArray(raw)
+              ? raw.map((entry) => String(entry ?? '').trim()).filter(Boolean)
+              : [];
+          })(),
+          sendFailedTimeout: Boolean(msg.sendFailedTimeout),
           images: imagesRaw.map((image, index) => {
             const img = (image ?? {}) as Record<string, unknown>;
             return {
@@ -250,10 +260,40 @@ async function submitConversation(question?: string) {
   await execute({ actionId: 'submit-doctor-education-conversation', data: { question: value } });
 }
 
+async function resendUserQuestion(message: ConversationMessage) {
+  if (conversationLoading.value) return;
+  const value = String(message.content ?? '').trim();
+  if (!value) return;
+  await execute({
+    actionId: 'submit-doctor-education-conversation',
+    data: { question: value, replaceUserMessageId: message.id }
+  });
+}
+
 async function onComposerKeydown(event: KeyboardEvent) {
   if (event.key !== 'Enter' || event.shiftKey) return;
   event.preventDefault();
   await submitConversation();
+}
+
+function educationAssistantBody(message: ConversationMessage): string {
+  if (message.loading) return '';
+  if (message.role !== 'assistant') return message.content ?? '';
+  return assistantDisplayBody(message.content ?? '');
+}
+
+function educationAssistantFollowUps(message: ConversationMessage): string[] {
+  if (message.loading || message.role !== 'assistant') return [];
+  return assistantDisplayFollowUps(message.content ?? '', message.followUpQuestions);
+}
+
+function threadPreviewLine(message: ConversationMessage | undefined): string {
+  if (!message?.content?.trim()) return t('education.conversation.noMessagesYet');
+  if (message.role === 'assistant') {
+    const body = assistantDisplayBody(message.content).trim();
+    return body || t('education.conversation.noMessagesYet');
+  }
+  return message.content.trim();
 }
 </script>
 
@@ -407,7 +447,7 @@ async function onComposerKeydown(event: KeyboardEvent) {
                   <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-slate-900">{{ session.title }}</p>
                     <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
-                      {{ session.messages[session.messages.length - 1]?.content || t('education.conversation.noMessagesYet') }}
+                      {{ threadPreviewLine(session.messages[session.messages.length - 1]) }}
                     </p>
                   </div>
                   <span
@@ -467,13 +507,27 @@ async function onComposerKeydown(event: KeyboardEvent) {
             </div>
 
             <template v-for="message in messages" :key="message.id">
-              <div v-if="message.role === 'user'" class="flex justify-end">
+              <div v-if="message.role === 'user'" class="flex justify-end items-start gap-2">
                 <article class="max-w-3xl rounded-3xl bg-slate-900 px-4 py-3 text-sm leading-6 text-white shadow-sm">
                   <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-300">
                     {{ t('education.conversation.userLabel') }}
                   </p>
                   <p class="whitespace-pre-wrap">{{ message.content }}</p>
                 </article>
+                <button
+                  v-if="message.content.trim()"
+                  type="button"
+                  class="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border shadow-sm transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50"
+                  :class="message.sendFailedTimeout
+                    ? 'border-amber-200 bg-amber-50 text-amber-900 hover:border-amber-300 hover:bg-amber-100 focus:ring-amber-100'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:ring-sky-100'"
+                  :disabled="conversationLoading"
+                  :title="t('education.conversation.resendTitle')"
+                  :aria-label="t('education.conversation.resendAria')"
+                  @click="resendUserQuestion(message)"
+                >
+                  <span class="text-lg font-bold leading-none" aria-hidden="true">↻</span>
+                </button>
               </div>
 
               <div v-else class="flex justify-start">
@@ -509,7 +563,7 @@ async function onComposerKeydown(event: KeyboardEvent) {
                     <span class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
                     <span>{{ t('education.conversation.loadingAnswer') }}</span>
                   </div>
-                  <p v-else class="whitespace-pre-wrap text-sm leading-7 text-slate-800">{{ message.content }}</p>
+                  <p v-else class="whitespace-pre-wrap text-sm leading-7 text-slate-800">{{ educationAssistantBody(message) }}</p>
 
                   <div v-if="!message.loading && message.images && message.images.length > 0" class="mt-4 space-y-3">
                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.conversation.figuresTitle') }}</p>
@@ -540,11 +594,11 @@ async function onComposerKeydown(event: KeyboardEvent) {
                     </div>
                   </div>
 
-                  <div v-if="!message.loading && message.followUpQuestions && message.followUpQuestions.length > 0" class="mt-4 space-y-2">
+                  <div v-if="!message.loading && educationAssistantFollowUps(message).length > 0" class="mt-4 space-y-2">
                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.conversation.followUpTitle') }}</p>
                     <div class="flex flex-wrap gap-2">
                       <button
-                        v-for="followUp in message.followUpQuestions"
+                        v-for="followUp in educationAssistantFollowUps(message)"
                         :key="followUp"
                         type="button"
                         class="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-800 transition hover:bg-sky-50"

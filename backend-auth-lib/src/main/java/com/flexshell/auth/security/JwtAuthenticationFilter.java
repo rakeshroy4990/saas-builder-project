@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private static final Logger LOG = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private final BearerTokenAuthenticator authenticator;
     private final List<String> publicPathPrefixes;
     private final String accessTokenCookieName;
@@ -38,6 +41,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return publicPathPrefixes.stream().anyMatch(path::startsWith);
     }
 
+    /**
+     * Spring MVC runs {@code StreamingResponseBody} during an {@code ASYNC} servlet dispatch. The default
+     * {@link OncePerRequestFilter} skips async dispatches, so {@code SecurityContextHolder} is empty when
+     * {@code AuthorizationFilter} runs again — leading to {@code AuthorizationDeniedException}. Re-run this
+     * filter on async so the JWT (cookie or header) is applied before authorization.
+     */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -53,16 +67,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = readCookie(request, accessTokenCookieName);
         }
         if (token == null || token.isEmpty()) {
+            LOG.warn(
+                    "jwt_auth_missing_token method={} path={}",
+                    request.getMethod(),
+                    request.getRequestURI()
+            );
             unauthorized(response, "You are not logged in. Please login.");
             return;
         }
 
         try {
             Authentication authentication = authenticator.authenticate(token);
+            request.setAttribute(AuthRequestAttributes.RAW_ACCESS_TOKEN, token.trim());
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
         } catch (AuthTokenException ex) {
             SecurityContextHolder.clearContext();
+            LOG.warn(
+                    "jwt_auth_rejected method={} path={} reason={}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    ex.getMessage()
+            );
             unauthorized(response, ex.getMessage());
         }
     }

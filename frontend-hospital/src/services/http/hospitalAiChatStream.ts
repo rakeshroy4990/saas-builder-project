@@ -1,0 +1,150 @@
+import { getOrCreateTraceId } from '../logging/traceContext';
+import { ensureAccessTokenFreshForFetch, refreshHospitalAccessCookies, triggerHospitalReLoginFromFetch } from './apiClient';
+import { getApiBaseUrl, URLRegistry } from './URLRegistry';
+
+export type HospitalAiChatStreamHandlers = {
+  onReady?: (data: unknown) => void;
+  onDelta?: (chunk: string) => void;
+  onComplete?: (data: Record<string, unknown>) => void;
+};
+
+async function readHttpErrorDetail(res: Response): Promise<string> {
+  const text = await res.text().catch(() => '');
+  try {
+    const j = JSON.parse(text) as Record<string, unknown>;
+    const top = String(j.message ?? j.Message ?? '').trim();
+    if (top) return top;
+    const data = (j.data ?? j.Data) as Record<string, unknown> | undefined;
+    if (data && typeof data === 'object') {
+      const nested = String(data.message ?? data.Message ?? '').trim();
+      if (nested) return nested;
+    }
+  } catch {
+    // use raw text
+  }
+  const compact = text.replace(/\s+/g, ' ').trim();
+  return compact.slice(0, 800) || `HTTP ${res.status}`;
+}
+
+type NdjsonEvent = Record<string, unknown> & {
+  type?: string;
+  Type?: string;
+  data?: unknown;
+  Data?: unknown;
+  text?: string;
+  Text?: string;
+};
+
+function dispatchNdjsonLine(
+  line: string,
+  handlers: HospitalAiChatStreamHandlers,
+  sawComplete: { value: boolean }
+): void {
+  if (!line) return;
+  let obj: NdjsonEvent;
+  try {
+    obj = JSON.parse(line) as NdjsonEvent;
+  } catch {
+    return;
+  }
+  const t = String(obj.type ?? obj.Type ?? '')
+    .trim()
+    .toLowerCase();
+  const payload = obj.data !== undefined && obj.data !== null ? obj.data : obj.Data;
+
+  if (t === 'ready') handlers.onReady?.(payload);
+  if (t === 'delta') {
+    const chunk = typeof obj.text === 'string' ? obj.text : typeof obj.Text === 'string' ? obj.Text : '';
+    if (chunk) handlers.onDelta?.(chunk);
+  }
+  if (t === 'complete' && payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    sawComplete.value = true;
+    handlers.onComplete?.(payload as Record<string, unknown>);
+  }
+  if (t === 'error') {
+    const data = payload;
+    const msg =
+      data && typeof data === 'object' && data !== null && 'message' in data
+        ? String((data as { message?: string }).message ?? '').trim()
+        : '';
+    throw new Error(msg || 'hospital_ai_chat_stream_error');
+  }
+}
+
+/**
+ * POST `/api/hospital/ai/chat` with `Accept: application/x-ndjson` and consume newline-delimited JSON events.
+ */
+export async function postHospitalAiChatNdjson(
+  body: Record<string, unknown>,
+  handlers: HospitalAiChatStreamHandlers,
+  signal?: AbortSignal
+): Promise<void> {
+  await ensureAccessTokenFreshForFetch();
+  const url = `${getApiBaseUrl()}${URLRegistry.paths.hospitalAiChat}`;
+  const opts: RequestInit = {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/x-ndjson',
+      'X-Trace-Id': getOrCreateTraceId()
+    },
+    body: JSON.stringify(body),
+    signal
+  };
+  let res = await fetch(url, opts);
+  if (res.status === 401) {
+    await refreshHospitalAccessCookies();
+    res = await fetch(url, opts);
+  }
+  if (!res.ok) {
+    const detail = await readHttpErrorDetail(res);
+    if (res.status === 401) {
+      triggerHospitalReLoginFromFetch(detail);
+    }
+    throw Object.assign(new Error(`hospital_ai_chat_stream_${res.status}: ${detail}`), {
+      status: res.status,
+      body: detail
+    });
+  }
+  if (!res.body) {
+    throw new Error('hospital_ai_chat_stream_no_body');
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  const sawComplete = { value: false };
+
+  const drainBufferedLines = (): void => {
+    for (;;) {
+      const nl = buf.indexOf('\n');
+      if (nl < 0) break;
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      dispatchNdjsonLine(line, handlers, sawComplete);
+    }
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (value && value.byteLength > 0) {
+      buf += dec.decode(value, { stream: !done });
+    }
+    drainBufferedLines();
+    if (done) {
+      buf += dec.decode(new Uint8Array(), { stream: false });
+      drainBufferedLines();
+      const tail = buf.trim();
+      buf = '';
+      if (tail) {
+        dispatchNdjsonLine(tail, handlers, sawComplete);
+      }
+      if (!sawComplete.value) {
+        throw new Error(
+          'hospital_ai_chat_stream_incomplete: stream ended before a complete event (check NDJSON framing and proxies)'
+        );
+      }
+      break;
+    }
+  }
+}

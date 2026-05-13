@@ -1,5 +1,6 @@
 package com.flexshell.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.ai.AiSafetyPolicy;
 import com.flexshell.ai.PdfRagQueryAdapter;
 import com.flexshell.ai.SmartAiQuotaService;
@@ -27,7 +28,7 @@ class AiChatServiceTest {
     @Test
     void escalatesWithoutCallingProviderForEmergency() {
         PdfRagQueryAdapter ragAdapter = mock(PdfRagQueryAdapter.class);
-        AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota());
+        AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota(), new ObjectMapper());
 
         AiChatResponse response = service.reply(
                 "user-1",
@@ -50,8 +51,8 @@ class AiChatServiceTest {
                         anyList(),
                         nullable(String.class),
                         nullable(String.class)))
-                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Paracetamol may help fever and body ache.", "rag", List.of()));
-        AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota());
+                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Paracetamol may help fever and body ache.", "rag", List.of(), null, List.of()));
+        AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota(), new ObjectMapper());
 
         AiChatResponse response = service.reply(
                 "user-1",
@@ -75,8 +76,8 @@ class AiChatServiceTest {
                         anyList(),
                         nullable(String.class),
                         nullable(String.class)))
-                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Not enough information in knowledge base.", "cache", List.of()));
-        AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota());
+                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Not enough information in knowledge base.", "cache", List.of(), null, List.of()));
+        AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota(), new ObjectMapper());
 
         AiChatResponse response = service.reply(
                 "user-1",

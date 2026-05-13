@@ -128,6 +128,16 @@ function performLocalLogoutAndRedirect(
   navigateToLogin();
 }
 
+/**
+ * When a native {@code fetch} hits HTTP 401 (after any refresh retry), match axios behaviour:
+ * telemetry + clear session + login popup.
+ */
+export function triggerHospitalReLoginFromFetch(message?: string): void {
+  const raw = String(message ?? '').trim();
+  const msg = normalizeAuthUserMessage(raw) || PLEASE_LOGIN_MESSAGE;
+  void emitSessionExpiredTelemetryAndFlush(401).finally(() => performLocalLogoutAndRedirect(msg, undefined));
+}
+
 async function emitSessionExpiredTelemetryAndFlush(httpStatus?: number): Promise<void> {
   const traceId = getOrCreateTraceId();
   const dedupeKey = `flexshell-auth-expired-telemetry:${traceId}`;
@@ -193,6 +203,24 @@ async function refreshAccessToken(): Promise<boolean> {
   return refreshInFlight;
 }
 
+/**
+ * Matches axios request interceptor behavior for cookie-only auth: refresh access cookies when the
+ * TTL hint says the access JWT is expired or close to it. Call before native {@code fetch} to
+ * hospital APIs (fetch does not run axios interceptors).
+ */
+export async function ensureAccessTokenFreshForFetch(): Promise<void> {
+  if (isAuthTokenExpired()) {
+    await refreshAccessToken();
+  }
+}
+
+/**
+ * Attempt a refresh even when the TTL hint is not stale (e.g. after HTTP 401 on fetch).
+ */
+export async function refreshHospitalAccessCookies(): Promise<boolean> {
+  return refreshAccessToken();
+}
+
 function isRefreshRequestUrl(url: string): boolean {
   return url.includes(URLRegistry.paths.refresh);
 }
@@ -245,6 +273,12 @@ apiClient.interceptors.request.use(async (config) => {
     deleteHeader(config.headers, 'Content-Type');
     // Upload requests may take longer than default API calls.
     config.timeout = Math.max(config.timeout ?? 0, 120000);
+  }
+
+  const isHospitalAiChat = requestUrl.includes(URLRegistry.paths.hospitalAiChat);
+  if (isHospitalAiChat) {
+    // RAG + large embeddings can exceed the default 15s client timeout.
+    config.timeout = Math.max(config.timeout ?? 0, 180000);
   }
 
   // Access + refresh tokens are httpOnly cookies — no Authorization header. Refresh cookies when our TTL hint says we're close.

@@ -79,6 +79,8 @@ const CHAT_TEXT: Record<string, string> = {
   'chat.widget.tellSymptoms': 'Tell Health Assistant your symptoms...',
   'chat.widget.typeMessage': 'Type a message...',
   'chat.widget.send': 'Send',
+  'chat.widget.resend': 'Resend after timeout',
+  'chat.widget.resendAria': 'Resend this message after a timeout',
   'chat.widget.quickPrompts.fever': 'I have fever for 2 days',
   'chat.widget.quickPrompts.coldCough': 'I have cold and cough',
   'chat.widget.quickPrompts.stomachPain': 'I have stomach pain after eating',
@@ -400,6 +402,13 @@ const resendMessage = (m: any) => {
   if (!canSendNow.value) return;
   const body = String(m?.body ?? '').trim();
   if (!body) return;
+  if (smartAiMode.value && props.config?.aiSendMessageAction) {
+    emit('action', {
+      action: props.config.aiSendMessageAction,
+      payload: { roomId: 'smart-ai', body, clientMessageId: crypto.randomUUID() }
+    });
+    return;
+  }
   emit('action', {
     action: props.config?.sendMessageAction,
     payload: { roomId: activeRoomId.value, body, clientMessageId: crypto.randomUUID() }
@@ -610,7 +619,7 @@ const sendInlineEdit = (m: any) => {
             class="flex min-w-0"
           >
             <div
-              class="flex w-full min-w-0"
+              class="flex w-full min-w-0 items-start gap-2"
               :class="isMine(m) ? 'justify-end' : 'justify-start'"
             >
               <div class="min-w-0 max-w-[85%]">
@@ -690,6 +699,17 @@ const sendInlineEdit = (m: any) => {
                   </div>
                 </div>
               </div>
+              <button
+                v-if="smartAiMode && isMine(m) && m?.sendFailedTimeout"
+                type="button"
+                class="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 shadow-sm transition hover:border-amber-300 hover:bg-amber-100 focus:outline-none focus:ring-4 focus:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="!canSendNow"
+                :title="t('chat.widget.resend')"
+                :aria-label="t('chat.widget.resendAria')"
+                @click="resendMessage(m)"
+              >
+                <span class="text-lg font-bold leading-none" aria-hidden="true">↻</span>
+              </button>
             </div>
           </div>
 

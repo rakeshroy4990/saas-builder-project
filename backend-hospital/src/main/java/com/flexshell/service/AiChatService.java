@@ -1,5 +1,9 @@
 package com.flexshell.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flexshell.ai.AiProviderException;
 import com.flexshell.ai.AiSafetyPolicy;
 import com.flexshell.ai.PdfRagQueryAdapter;
 import com.flexshell.ai.SmartAiQuotaService;
@@ -9,9 +13,16 @@ import com.flexshell.controller.dto.AiChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -21,15 +32,18 @@ public class AiChatService {
     private final PdfRagQueryAdapter pdfRagQueryAdapter;
     private final AiSafetyPolicy safetyPolicy;
     private final SmartAiQuotaService smartAiQuotaService;
+    private final ObjectMapper objectMapper;
 
     public AiChatService(
             PdfRagQueryAdapter pdfRagQueryAdapter,
             AiSafetyPolicy safetyPolicy,
-            SmartAiQuotaService smartAiQuotaService
+            SmartAiQuotaService smartAiQuotaService,
+            ObjectMapper objectMapper
     ) {
         this.pdfRagQueryAdapter = pdfRagQueryAdapter;
         this.safetyPolicy = safetyPolicy;
         this.smartAiQuotaService = smartAiQuotaService;
+        this.objectMapper = objectMapper;
     }
 
     public AiChatResponse reply(String userId, AiChatRequest request, String authorizationHeader, List<String> userRoles) {
@@ -93,6 +107,124 @@ public class AiChatService {
                 ragResult == null ? null : ragResult.chunksUsed(),
                 ragResult == null || ragResult.images() == null ? List.of() : ragResult.images()
         );
+    }
+
+    /**
+     * NDJSON stream (one JSON object per line): {@code ready}, {@code delta}, then {@code complete} with the same
+     * field names as {@link AiChatResponse} (e.g. {@code reply}, {@code followUpQuestions}).
+     */
+    public StreamingResponseBody streamReply(String userId, AiChatRequest request, String authorizationHeader, List<String> userRoles) {
+        String actor = Objects.toString(userId, "").trim();
+        if (actor.isBlank()) {
+            LOG.warn("aiChat stream denied unauthenticated request");
+            throw new SecurityException("Not authenticated");
+        }
+        String message = Objects.toString(request.message(), "").trim();
+        int messageLength = message.length();
+        if (message.isBlank()) {
+            LOG.warn("aiChat stream invalid empty message actor={}", actor);
+            throw new IllegalArgumentException("Message is required");
+        }
+        String audience = resolveAudience(userRoles);
+        if (isGreetingOnly(message)) {
+            LOG.info("aiChat stream greeting actor={} messageLength={}", actor, messageLength);
+            String greetingReply = "Hello! I am the AI Symptom Triage Assistant. Please share your symptoms and how long you have had them, and I can provide general guidance.\n\n"
+                    + AiSafetyPolicy.NON_DOCTOR_LINE + "\n\n"
+                    + AiSafetyPolicy.DISCLAIMER_LINE;
+            AiChatResponse r = new AiChatResponse(greetingReply, false, "llm", List.of(), null, null, List.of());
+            return out -> writeNdjsonComplete(out, r);
+        }
+        smartAiQuotaService.assertWithinTokenBudget(request);
+        smartAiQuotaService.consumeDailyRequestOrThrow(actor);
+        if (!"expert".equalsIgnoreCase(audience) && safetyPolicy.requiresEscalation(message)) {
+            LOG.info("aiChat stream escalation actor={} messageLength={}", actor, messageLength);
+            Optional<AiSafetyPolicy.EscalationType> escalationTypeOptional = safetyPolicy.detectEscalationType(message);
+            AiSafetyPolicy.EscalationType escalationType =
+                    escalationTypeOptional.orElse(AiSafetyPolicy.EscalationType.CARDIAC_RESPIRATORY);
+            String escalationMessage = safetyPolicy.escalationReply(escalationType);
+            AiChatResponse r = new AiChatResponse(escalationMessage, true, escalationType.name().toLowerCase(), List.of(), null, null, List.of());
+            return out -> writeNdjsonComplete(out, r);
+        }
+        List<AiChatMessageDto> history = request.history() == null ? List.of() : request.history();
+        String conversationId = resolveConversationId(actor, request.conversationId());
+        LOG.info("aiChat stream request actor={} messageLength={} historyCount={}", actor, messageLength, history.size());
+        return outputStream -> {
+            try {
+                pdfRagQueryAdapter.streamQueryNdjson(
+                        message,
+                        conversationId,
+                        history,
+                        actor,
+                        authorizationHeader,
+                        userRoles,
+                        request.bookName(),
+                        request.retrievalQuestion(),
+                        line -> {
+                            try {
+                                writeTransformedNdjsonLine(outputStream, line, audience, message);
+                            } catch (IOException ex) {
+                                throw new UncheckedIOException(ex);
+                            }
+                        }
+                );
+            } catch (Exception ex) {
+                if (ex instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
+                if (ex instanceof RuntimeException re) {
+                    throw re;
+                }
+                throw new IllegalStateException(ex);
+            }
+        };
+    }
+
+    private void writeTransformedNdjsonLine(OutputStream outputStream, String line, String audience, String userMessage) throws IOException {
+        JsonNode root = objectMapper.readTree(line);
+        String type = root.path("type").asText("");
+        if ("error".equals(type)) {
+            String msg = root.path("data").path("message").asText("stream_error");
+            throw new AiProviderException(AiProviderException.Kind.PROVIDER_FAILED, msg, "pdf-rag", null, "STREAM");
+        }
+        if (!"complete".equals(type)) {
+            outputStream.write((line + "\n").getBytes(StandardCharsets.UTF_8));
+            outputStream.flush();
+            return;
+        }
+        JsonNode data = root.get("data");
+        if (data == null || !data.isObject()) {
+            outputStream.write((line + "\n").getBytes(StandardCharsets.UTF_8));
+            outputStream.flush();
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> dataMap = objectMapper.convertValue(data, Map.class);
+        PdfRagQueryAdapter.RagQueryResult rag = pdfRagQueryAdapter.toRagQueryResult(dataMap);
+        String safeReply = "expert".equalsIgnoreCase(audience)
+                ? rag.answer().trim()
+                : safetyPolicy.enforceSafeResponse(rag.answer(), userMessage);
+        boolean cache = "cache".equalsIgnoreCase(rag.source());
+        String mode = cache ? "rag_cache_" + audience.toLowerCase(Locale.ROOT) : "rag_" + audience.toLowerCase(Locale.ROOT);
+        AiChatResponse response = new AiChatResponse(
+                safeReply,
+                false,
+                mode,
+                rag.followUpQuestions() == null ? List.of() : rag.followUpQuestions(),
+                rag.source(),
+                rag.chunksUsed(),
+                rag.images() == null ? List.of() : rag.images()
+        );
+        writeNdjsonComplete(outputStream, response);
+    }
+
+    private void writeNdjsonComplete(OutputStream out, AiChatResponse r) throws IOException {
+        Map<String, Object> data = objectMapper.convertValue(r, new TypeReference<>() { });
+        Map<String, Object> wrapper = new LinkedHashMap<>();
+        wrapper.put("type", "complete");
+        wrapper.put("data", data);
+        objectMapper.writeValue(out, wrapper);
+        out.write('\n');
+        out.flush();
     }
 
     private static String resolveAudience(List<String> userRoles) {

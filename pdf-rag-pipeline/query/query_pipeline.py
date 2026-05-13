@@ -11,20 +11,56 @@ from config.settings import (
     VECTOR_CONTEXT_MAX_TEXT_CHUNKS,
     VECTOR_TOP_K_IMAGE,
     is_postgres_persistence,
+    LLM_PROVIDER,
 )
 from query.context_assembler import assemble_context, context_tokens, trim_chunks
 from query.audience_classifier import infer_user_audience
 from query.intent_classifier import infer_allowed_topics
 from query.keyword_extractor import extract_keywords
-from query.llm_service import answer_with_context
+from query.llm_service import (
+    answer_with_context,
+    finalize_streamed_llm_raw,
+    iter_openai_chat_stream_tokens,
+    _build_stream_plain_prompt,
+)
+from query import llm_service
 from query.retriever import retrieve_top_chunks
 from query.safety_layer import check_safety
 from db.image_store import build_public_image_url
+import asyncio
+import hashlib
 import logging
 import re
 from typing import List, Optional
 
 LOG = logging.getLogger(__name__)
+
+
+async def _emit_stream_payload(stream_queue: asyncio.Queue, payload: dict) -> None:
+    """Emit ready + chunked answer + complete for short-circuit / non-token-stream paths."""
+    await stream_queue.put(
+        (
+            "ready",
+            {
+                "source": str(payload.get("source") or ""),
+                "images": payload.get("images") or [],
+                "chunksUsed": int(payload.get("chunks_used") or 0) or None,
+            },
+        )
+    )
+    ans = str(payload.get("answer") or "")
+    step = 120
+    for i in range(0, len(ans), step):
+        await stream_queue.put(("delta", ans[i : i + step]))
+    if not ans:
+        await stream_queue.put(("delta", ""))
+    await stream_queue.put(("complete", payload))
+
+
+async def _return_with_stream(stream_queue: Optional[asyncio.Queue], payload: dict) -> dict:
+    if stream_queue is not None:
+        await _emit_stream_payload(stream_queue, payload)
+    return payload
 
 _DEFINITION_QUERY_RE = re.compile(
     r"^\s*(what\s+is|what\s+are|define|definition\s+of|tell\s+me\s+about|describe)\b",
@@ -315,6 +351,22 @@ def _build_cache_query_key(user_query: str) -> str:
     return str(user_query or "").strip()
 
 
+def _history_fingerprint(history: Optional[list]) -> str:
+    """
+    Hash recent dialogue so query-cache entries are not reused across different
+    conversation threads or after new assistant turns (same latest user text,
+    different context).
+    """
+    pairs = _history_pairs(history)[-12:]
+    if not pairs:
+        return hashlib.sha256(b"").hexdigest()
+    lines: list[str] = []
+    for role, content in pairs:
+        lines.append(f"{str(role).strip()}\x1f{str(content).strip()}")
+    blob = "\x1e".join(lines).encode("utf-8")
+    return hashlib.sha256(blob).hexdigest()
+
+
 # ── Main handler ──────────────────────────────────────────────────────────────
 
 async def handle_query(
@@ -327,6 +379,7 @@ async def handle_query(
         book_name: Optional[str] = None,
         include_outdated_books: bool = False,
         retrieval_question: Optional[str] = None,
+        stream_queue: Optional[asyncio.Queue] = None,
 ) -> dict:
     book_scope = str(book_name or "").strip()
     LOG.info(
@@ -342,6 +395,8 @@ async def handle_query(
     retrieval_seed = rq if rq else user_query
     effective_question = _build_effective_question(retrieval_seed, history)
     cache_query_key = _build_cache_query_key(user_query)
+    conv_key = str(conversation_id or "").strip()
+    hist_fp = _history_fingerprint(history)
 
     # ── Cache check ───────────────────────────────────────────────────────────
     cached = get_cached(
@@ -350,28 +405,60 @@ async def handle_query(
         user_id=user_id,
         book_name=book_scope,
         include_outdated_books=include_outdated_books,
+        conversation_id=conv_key,
+        history_fingerprint=hist_fp,
+        retrieval_question=rq,
     )
     if cached:
-        LOG.info("[RAG][CACHE] hit question=%s audience=%s", user_query, audience)
-        return {
-            "answer":              str(cached.get("answer", "")).strip(),
-            "follow_up_questions": cached.get("follow_up_questions", []),
-            "images":              [],
-            "source":              "cache",
-        }
+        LOG.info(
+            "[RAG][CACHE] hit conversation_id=%s audience=%s question_len=%s",
+            conv_key or "default",
+            audience,
+            len(user_query or ""),
+        )
+        return await _return_with_stream(
+            stream_queue,
+            {
+                "answer":              str(cached.get("answer", "")).strip(),
+                "follow_up_questions": cached.get("follow_up_questions", []),
+                "images":              [],
+                "source":              "cache",
+            },
+        )
     LOG.info("[RAG][CACHE] miss question=%s audience=%s", user_query, audience)
 
     # ── Safety ────────────────────────────────────────────────────────────────
     safety = check_safety(user_query)
     if not safety.safe:
-        return {"answer": safety.reason, "follow_up_questions": [], "images": [], "source": "safety_block"}
+        return await _return_with_stream(
+            stream_queue,
+            {"answer": safety.reason, "follow_up_questions": [], "images": [], "source": "safety_block"},
+        )
     if safety.escalate:
-        return {
-            "answer": "Your symptoms may indicate an emergency. Please call emergency services or visit the nearest hospital immediately.",
-            "follow_up_questions": [],
-            "images": [],
-            "source": "escalation",
-        }
+        return await _return_with_stream(
+            stream_queue,
+            {
+                "answer": "Your symptoms may indicate an emergency. Please call emergency services or visit the nearest hospital immediately.",
+                "follow_up_questions": [],
+                "images": [],
+                "source": "escalation",
+            },
+        )
+
+    # First byte to the client before retrieval/LLM (otherwise TTFB ≈ full retrieval + model time).
+    if stream_queue is not None:
+        await stream_queue.put(
+            (
+                "ready",
+                {
+                    "source":      "rag",
+                    "phase":       "retrieving",
+                    "images":      [],
+                    "chunks_used": None,
+                },
+            )
+        )
+        await asyncio.sleep(0)
 
     # ── Retrieval ─────────────────────────────────────────────────────────────
     max_chunks = 2 if len(retrieval_seed) < 20 else 3
@@ -445,12 +532,15 @@ async def handle_query(
 
     if not chunks or len(chunks) < MIN_CHUNKS_REQUIRED:
         LOG.warning("[RAG][INSUFFICIENT] query=%s chunks=%s", user_query, len(chunks))
-        return {
-            "answer":              _insufficient_message_for_audience(audience),
-            "follow_up_questions": [],
-            "images":              [],
-            "source":              "insufficient_chunks",
-        }
+        return await _return_with_stream(
+            stream_queue,
+            {
+                "answer":              _insufficient_message_for_audience(audience),
+                "follow_up_questions": [],
+                "images":              [],
+                "source":              "insufficient_chunks",
+            },
+        )
 
     # ── Context assembly ──────────────────────────────────────────────────────
     # Vector path already returns multiple ranked chunks; do not cap at 2–3 or tables vanish.
@@ -469,12 +559,15 @@ async def handle_query(
         LOG.info("[RAG][CONTEXT] trimmed selected=%s tokens=%s", len(selected), context_token_count)
 
     if len(selected) < MIN_CHUNKS_REQUIRED:
-        return {
-            "answer":              _insufficient_message_for_audience(audience),
-            "follow_up_questions": [],
-            "images":              [],
-            "source":              "insufficient_chunks",
-        }
+        return await _return_with_stream(
+            stream_queue,
+            {
+                "answer":              _insufficient_message_for_audience(audience),
+                "follow_up_questions": [],
+                "images":              [],
+                "source":              "insufficient_chunks",
+            },
+        )
 
     # ── Figures: only pages overlapping LLM-selected text (±window). Marker captions do not embed
     # topic — global ANN picks arbitrary diagrams without this filter.
@@ -559,7 +652,43 @@ async def handle_query(
     # ── LLM call ──────────────────────────────────────────────────────────────
     # focused_selected has base64 stripped — prompt stays compact.
     # Images are returned separately so the UI can render them.
-    llm_result         = answer_with_context(user_query, focused_selected, audience=audience)
+    want_token_stream = (
+        stream_queue is not None
+        and LLM_PROVIDER == "openai"
+        and not llm_service._is_flashcard_generation_task(user_query)
+    )
+    llm_result: dict
+    if want_token_stream:
+        await stream_queue.put(
+            (
+                "ready",
+                {
+                    "source":      "rag",
+                    "images":      all_response_images,
+                    "chunks_used": len(selected),
+                },
+            )
+        )
+        try:
+            prompt = _build_stream_plain_prompt(user_query, focused_selected, audience)
+            raw_parts: list[str] = []
+            for i, tok in enumerate(iter_openai_chat_stream_tokens(prompt)):
+                raw_parts.append(tok)
+                await stream_queue.put(("delta", tok))
+                if i % 4 == 0:
+                    await asyncio.sleep(0)
+            raw = "".join(raw_parts)
+            llm_result = finalize_streamed_llm_raw(raw, user_query, focused_selected, audience)
+        except Exception:
+            LOG.exception("[RAG][LLM_STREAM] failed; sync fallback")
+            llm_result = answer_with_context(user_query, focused_selected, audience=audience)
+            ans_fb = str(llm_result.get("answer", "") or "")
+            step = 160
+            for i in range(0, len(ans_fb), step):
+                await stream_queue.put(("delta", ans_fb[i : i + step]))
+    else:
+        llm_result = answer_with_context(user_query, focused_selected, audience=audience)
+
     answer             = str(llm_result.get("answer", "")).strip()
     follow_up_questions = llm_result.get("follow_up_questions")
     if not isinstance(follow_up_questions, list):
@@ -575,12 +704,20 @@ async def handle_query(
             user_id=user_id,
             book_name=book_scope,
             include_outdated_books=include_outdated_books,
+            conversation_id=conv_key,
+            history_fingerprint=hist_fp,
+            retrieval_question=rq,
         )
-        LOG.info("[RAG][CACHE] stored question=%s audience=%s", user_query, audience)
+        LOG.info(
+            "[RAG][CACHE] stored conversation_id=%s audience=%s question_len=%s",
+            conv_key or "default",
+            audience,
+            len(user_query or ""),
+        )
     else:
         LOG.info("[RAG][CACHE] skipped question=%s", user_query)
 
-    return {
+    result = {
         "answer":              answer,
         "follow_up_questions": follow_up_questions,
         # ↓ every image from every selected chunk, deduped, ready for the UI
@@ -591,3 +728,9 @@ async def handle_query(
         "max_chunks":          context_limit,
         "user_id":             user_id,
     }
+    if stream_queue is not None:
+        if want_token_stream:
+            await stream_queue.put(("complete", result))
+        else:
+            await _emit_stream_payload(stream_queue, result)
+    return result

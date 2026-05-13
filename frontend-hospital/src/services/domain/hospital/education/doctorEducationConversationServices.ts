@@ -7,9 +7,11 @@ import { useToastStore } from '../../../../store/useToastStore';
 import { pinia } from '../../../../store/pinia';
 import { i18n } from '../../../../i18n';
 import { apiClient } from '../../../http/apiClient';
+import { postHospitalAiChatNdjson } from '../../../http/hospitalAiChatStream';
 import { isRequestTimeoutError, requestTimeoutMessage } from '../../../http/httpUserFacingErrors';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
+import { assistantDisplayBody, assistantDisplayFollowUps, tryParseEmbeddedAssistantJson } from './educationAssistantPayload';
 
 type EducationViewMode = 'flashcards' | 'conversation';
 type ConversationFigure = {
@@ -32,6 +34,8 @@ type ConversationMessage = {
   chunksUsed?: number;
   followUpQuestions?: string[];
   images?: ConversationFigure[];
+  /** Set after a failed send; UI may emphasize the resend control until cleared on the next send. */
+  sendFailedTimeout?: boolean;
 };
 type ConversationSession = {
   id: string;
@@ -67,6 +71,23 @@ function readHospitalEnvelopeData<T>(response: AxiosResponse<unknown>): T | null
   return (root.Data ?? root.data) as T;
 }
 
+/** Some gateways double-encode `Data` as a JSON string, or return a bare JSON string body. */
+function normalizeApiPayloadRoot(input: unknown): Record<string, unknown> {
+  if (input && typeof input === 'object' && !Array.isArray(input)) {
+    return input as Record<string, unknown>;
+  }
+  if (typeof input === 'string') {
+    const embedded = tryParseEmbeddedAssistantJson(input);
+    if (embedded) {
+      return {
+        answer: embedded.answer,
+        follow_up_questions: embedded.followUpQuestions
+      };
+    }
+  }
+  return {};
+}
+
 function normalizeMode(raw: unknown): EducationViewMode {
   return String(raw ?? '').trim().toLowerCase() === 'flashcards' ? 'flashcards' : 'conversation';
 }
@@ -86,6 +107,13 @@ function normalizeConversationFigure(raw: unknown, fallbackIndex: number): Conve
   };
 }
 
+function readFollowUpList(row: Record<string, unknown>): string[] {
+  const raw =
+    row.followUpQuestions ?? row.follow_up_questions ?? row.FollowUpQuestions;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => String(item ?? '').trim()).filter(Boolean);
+}
+
 function normalizeConversationMessage(raw: unknown, fallbackIndex: number): ConversationMessage | null {
   const row = (raw ?? {}) as Record<string, unknown>;
   const role = String(row.role ?? '').trim().toLowerCase() === 'assistant' ? 'assistant' : 'user';
@@ -100,9 +128,8 @@ function normalizeConversationMessage(raw: unknown, fallbackIndex: number): Conv
     error: String(row.error ?? '').trim(),
     source: String(row.source ?? '').trim(),
     chunksUsed: Number(row.chunksUsed ?? 0) || undefined,
-    followUpQuestions: Array.isArray(row.followUpQuestions)
-      ? row.followUpQuestions.map((item) => String(item ?? '').trim()).filter(Boolean)
-      : [],
+    followUpQuestions: readFollowUpList(row),
+    sendFailedTimeout: Boolean(row.sendFailedTimeout),
     images: imagesRaw
       .map((item, idx) => normalizeConversationFigure(item, idx))
       .filter((item): item is ConversationFigure => item !== null)
@@ -156,27 +183,105 @@ function updateSessions(
   return sessions.map((session) => (session.id === sessionId ? updater(session) : session));
 }
 
-function extractConversationResponse(data: Record<string, unknown>): {
+function stripEducationSendTimeoutFlags(messages: ConversationMessage[]): ConversationMessage[] {
+  return messages.map((m) => {
+    if (!m.sendFailedTimeout) return m;
+    const { sendFailedTimeout: _flag, ...rest } = m;
+    return rest as ConversationMessage;
+  });
+}
+
+/** Remove the selected user message and every message after it (used when resending that question). */
+function truncateMessagesForResend(
+  messages: ConversationMessage[],
+  replaceUserMessageId: string
+): ConversationMessage[] {
+  const idx = messages.findIndex((m) => m.id === replaceUserMessageId);
+  if (idx < 0) return messages;
+  return messages.slice(0, idx);
+}
+
+/** Use inner `Data` when the caller passed the full hospital envelope by mistake. */
+function resolveChatPayloadRow(data: Record<string, unknown>): Record<string, unknown> {
+  const hasDirectText = ['reply', 'message', 'answer', 'Answer'].some((key) => {
+    const v = data[key];
+    return v !== undefined && v !== null && String(v).trim() !== '';
+  });
+  if (hasDirectText) return data;
+  const nested = data.Data ?? data.data;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+  return data;
+}
+
+function extractConversationResponse(data: unknown): {
   answer: string;
   source: string;
   chunksUsed?: number;
   followUpQuestions: string[];
   images: ConversationFigure[];
 } {
-  const rawFollowUps = data.followUpQuestions ?? data.follow_up_questions ?? data.FollowUpQuestions;
-  const followUpQuestions = Array.isArray(rawFollowUps)
+  const root = normalizeApiPayloadRoot(data);
+  const row = resolveChatPayloadRow(root);
+  const rawFollowUps =
+    row.followUpQuestions ?? row.follow_up_questions ?? row.FollowUpQuestions;
+  let followUpQuestions = Array.isArray(rawFollowUps)
     ? rawFollowUps.map((item) => String(item ?? '').trim()).filter(Boolean).slice(0, 6)
     : [];
-  const rawImages = data.images ?? data.Images;
+  const rawImages = row.images ?? row.Images;
   const images = Array.isArray(rawImages)
     ? rawImages
       .map((item, index) => normalizeConversationFigure(item, index))
       .filter((item): item is ConversationFigure => item !== null)
     : [];
-  const chunksUsed = Number(data.chunksUsed ?? data.ChunksUsed ?? 0) || undefined;
+  const chunksUsed = Number(row.chunksUsed ?? row.ChunksUsed ?? 0) || undefined;
+  let answer = String(row.reply ?? row.message ?? row.answer ?? row.Answer ?? '').trim();
+  const unwrapNested = (text: string): { text: string; extras: string[] } => {
+    const embedded = tryParseEmbeddedAssistantJson(text);
+    if (!embedded) return { text, extras: [] };
+    return { text: embedded.answer, extras: embedded.followUpQuestions };
+  };
+  let unwrapped = unwrapNested(answer);
+  answer = unwrapped.text;
+  if (followUpQuestions.length === 0 && unwrapped.extras.length > 0) {
+    followUpQuestions = unwrapped.extras;
+  }
+  if (answer.startsWith('{')) {
+    unwrapped = unwrapNested(answer);
+    if (unwrapped.extras.length > 0 || unwrapped.text !== answer) {
+      answer = unwrapped.text;
+      if (followUpQuestions.length === 0 && unwrapped.extras.length > 0) {
+        followUpQuestions = unwrapped.extras;
+      }
+    }
+  }
+  if (!answer) {
+    const topAnswer = String(root.answer ?? root.Answer ?? '').trim();
+    if (topAnswer) answer = topAnswer;
+  }
+  if (!answer && data && typeof data === 'object' && !Array.isArray(data)) {
+    const d = data as Record<string, unknown>;
+    const topAnswer = String(d.answer ?? d.Answer ?? '').trim();
+    if (topAnswer) answer = topAnswer;
+  }
+  if (followUpQuestions.length === 0) {
+    const topFu =
+      root.followUpQuestions ?? root.follow_up_questions ?? root.FollowUpQuestions;
+    if (Array.isArray(topFu)) {
+      followUpQuestions = topFu.map((item) => String(item ?? '').trim()).filter(Boolean).slice(0, 6);
+    }
+  }
+  if (followUpQuestions.length === 0 && data && typeof data === 'object' && !Array.isArray(data)) {
+    const d = data as Record<string, unknown>;
+    const topFu = d.followUpQuestions ?? d.follow_up_questions ?? d.FollowUpQuestions;
+    if (Array.isArray(topFu)) {
+      followUpQuestions = topFu.map((item) => String(item ?? '').trim()).filter(Boolean).slice(0, 6);
+    }
+  }
   return {
-    answer: String(data.reply ?? data.message ?? '').trim(),
-    source: String(data.source ?? data.Source ?? data.mode ?? '').trim(),
+    answer,
+    source: String(row.source ?? row.Source ?? row.mode ?? '').trim(),
     chunksUsed,
     followUpQuestions,
     images
@@ -220,6 +325,10 @@ function localizedConversationError(fallbackKey: string, error: unknown): string
     const payload = (error.response?.data ?? {}) as Record<string, unknown>;
     const exact = String(payload.Message ?? payload.message ?? error.message ?? '').trim();
     return exact || fallback;
+  }
+  if (error instanceof Error) {
+    const m = String(error.message ?? '').trim();
+    if (m) return m;
   }
   return fallback;
 }
@@ -353,6 +462,7 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
 
       const prev = getEducationState(appStore);
       const draft = String(request.data?.question ?? prev.conversationDraft ?? '').trim();
+      const replaceUserMessageId = String(request.data?.replaceUserMessageId ?? '').trim();
       if (!draft) {
         return {
           responseCode: 'DOCTOR_EDUCATION_CONVERSATION_EMPTY',
@@ -365,6 +475,10 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
       const sessionId = ensured.activeConversationId || ensured.conversationSessions[0]?.id || '';
       const activeSession = ensured.conversationSessions.find((session) => session.id === sessionId)
         ?? createConversationSession(selectedBook);
+      const stripped = stripEducationSendTimeoutFlags(activeSession.messages);
+      const baseMessages = replaceUserMessageId
+        ? truncateMessagesForResend(stripped, replaceUserMessageId)
+        : stripped;
       const userMessage: ConversationMessage = {
         id: `education-user-${crypto.randomUUID()}`,
         role: 'user',
@@ -378,13 +492,13 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
         createdAt: new Date().toISOString(),
         loading: true
       };
-      const hadPriorUserTurns = activeSession.messages.some((message) => message.role === 'user');
+      const hadPriorUserTurns = baseMessages.some((message) => message.role === 'user');
       const nextActiveSession: ConversationSession = {
         ...activeSession,
         title: hadPriorUserTurns ? activeSession.title : firstMeaningfulQuestionTitle(draft),
         updatedAt: new Date().toISOString(),
         bookName: selectedBook,
-        messages: [...activeSession.messages, userMessage, loadingMessage]
+        messages: [...baseMessages, userMessage, loadingMessage]
       };
       const nextSessions = ensured.conversationSessions.some((session) => session.id === nextActiveSession.id)
         ? updateSessions(ensured.conversationSessions, nextActiveSession.id, () => nextActiveSession)
@@ -402,48 +516,92 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
 
       try {
         const history = buildConversationHistory(nextActiveSession);
-        const response = await apiClient.post(
-          URLRegistry.paths.hospitalAiChat,
-          educationConversationPayload(draft, history, selectedBook, nextActiveSession.id)
+        let acc = '';
+        await postHospitalAiChatNdjson(
+          educationConversationPayload(draft, history, selectedBook, nextActiveSession.id),
+          {
+            onDelta: (ch) => {
+              acc += ch;
+              const latest = getEducationState(appStore);
+              const latestEnsured = ensureConversationState(latest);
+              const updatedSessions = updateSessions(
+                latestEnsured.conversationSessions,
+                nextActiveSession.id,
+                (session) => ({
+                  ...session,
+                  updatedAt: new Date().toISOString(),
+                  bookName: selectedBook,
+                  messages: session.messages.map((message) =>
+                    message.id !== loadingMessage.id
+                      ? message
+                      : {
+                          ...message,
+                          content:
+                            acc.trim() || educationComposer().t('education.conversation.loadingAnswer'),
+                          loading: true,
+                          error: ''
+                        }
+                  )
+                })
+              );
+              appStore.setData('hospital', 'DoctorEducationUiState', {
+                ...latest,
+                conversationLoading: true,
+                conversationError: '',
+                conversationSessions: updatedSessions
+              });
+            },
+            onComplete: (data) => {
+              const parsed = extractConversationResponse(data);
+              const rawAnswer = parsed.answer || educationComposer().t('education.conversation.emptyAnswer');
+              const displayBody = assistantDisplayBody(rawAnswer);
+              const finalContent = displayBody.trim() || educationComposer().t('education.conversation.emptyAnswer');
+              const followUps =
+                parsed.followUpQuestions.length > 0
+                  ? parsed.followUpQuestions
+                  : assistantDisplayFollowUps(rawAnswer, undefined);
+              const latest = getEducationState(appStore);
+              const latestEnsured = ensureConversationState(latest);
+              const updatedSessions = updateSessions(
+                latestEnsured.conversationSessions,
+                nextActiveSession.id,
+                (session) => ({
+                  ...session,
+                  title: session.messages.some((message) => message.role === 'user')
+                    ? session.title
+                    : firstMeaningfulQuestionTitle(draft),
+                  updatedAt: new Date().toISOString(),
+                  bookName: selectedBook,
+                  messages: session.messages.map((message) => {
+                    if (message.id !== loadingMessage.id) return message;
+                    return {
+                      ...message,
+                      content: finalContent,
+                      loading: false,
+                      error: parsed.answer?.trim() ? '' : educationComposer().t('education.conversation.emptyAnswer'),
+                      source: parsed.source,
+                      chunksUsed: parsed.chunksUsed,
+                      followUpQuestions: followUps,
+                      images: parsed.images
+                    };
+                  })
+                })
+              );
+              appStore.setData('hospital', 'DoctorEducationUiState', {
+                ...latest,
+                conversationLoading: false,
+                conversationError: '',
+                conversationSessions: updatedSessions
+              });
+            }
+          },
+          typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+            ? AbortSignal.timeout(180_000)
+            : undefined
         );
-        const data = readHospitalEnvelopeData<Record<string, unknown>>(response)
-          ?? ((response.data ?? {}) as Record<string, unknown>);
-        const parsed = extractConversationResponse(data);
-        const latest = getEducationState(appStore);
-        const latestEnsured = ensureConversationState(latest);
-        const updatedSessions = updateSessions(
-          latestEnsured.conversationSessions,
-          nextActiveSession.id,
-          (session) => ({
-            ...session,
-            title: session.messages.some((message) => message.role === 'user')
-              ? session.title
-              : firstMeaningfulQuestionTitle(draft),
-            updatedAt: new Date().toISOString(),
-            bookName: selectedBook,
-            messages: session.messages.map((message) => {
-              if (message.id !== loadingMessage.id) return message;
-              return {
-                ...message,
-                content: parsed.answer || educationComposer().t('education.conversation.emptyAnswer'),
-                loading: false,
-                error: parsed.answer ? '' : educationComposer().t('education.conversation.emptyAnswer'),
-                source: parsed.source,
-                chunksUsed: parsed.chunksUsed,
-                followUpQuestions: parsed.followUpQuestions,
-                images: parsed.images
-              };
-            })
-          })
-        );
-        appStore.setData('hospital', 'DoctorEducationUiState', {
-          ...latest,
-          conversationLoading: false,
-          conversationError: '',
-          conversationSessions: updatedSessions
-        });
         return ok();
       } catch (error: unknown) {
+        const timedOut = isRequestTimeoutError(error);
         const exactMessage = localizedConversationError('education.conversation.unavailable', error);
         const latest = getEducationState(appStore);
         const latestEnsured = ensureConversationState(latest);
@@ -453,17 +611,26 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
           (session) => ({
             ...session,
             updatedAt: new Date().toISOString(),
-            messages: session.messages.map((message) => {
-              if (message.id !== loadingMessage.id) return message;
-              return {
-                ...message,
-                content: exactMessage,
-                loading: false,
-                error: exactMessage,
-                followUpQuestions: [],
-                images: []
-              };
-            })
+            messages: timedOut
+              ? session.messages
+                .filter((message) => message.id !== loadingMessage.id)
+                .map((message) =>
+                  message.id === userMessage.id ? { ...message, sendFailedTimeout: true } : message
+                )
+              : session.messages.map((message) => {
+                if (message.id === userMessage.id) {
+                  return { ...message, sendFailedTimeout: true };
+                }
+                if (message.id !== loadingMessage.id) return message;
+                return {
+                  ...message,
+                  content: exactMessage,
+                  loading: false,
+                  error: exactMessage,
+                  followUpQuestions: [],
+                  images: []
+                };
+              })
           })
         );
         appStore.setData('hospital', 'DoctorEducationUiState', {
@@ -472,7 +639,13 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
           conversationError: exactMessage,
           conversationSessions: updatedSessions
         });
-        toastStore.show(exactMessage, 'error');
+        const statusErr =
+          error && typeof error === 'object' && 'status' in error
+            ? Number((error as { status?: number }).status)
+            : undefined;
+        if (statusErr !== 401) {
+          toastStore.show(exactMessage, 'error');
+        }
         return { responseCode: 'DOCTOR_EDUCATION_CONVERSATION_FAILED', message: exactMessage };
       }
     }

@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Json
 from psycopg_pool import ConnectionPool
@@ -128,11 +129,153 @@ def _ensure_rag_ingest_alias_views(conn) -> None:
         )
 
 
+def _normalize_embedding_type_name(type_name: str) -> str:
+    return str(type_name or "").strip().lower()
+
+
+def _target_embedding_type_name(dimension: Optional[int] = None) -> str:
+    dim = EMBEDDING_DIMENSION if dimension is None else int(dimension)
+    return f"halfvec({dim})"
+
+
+def _parse_vector_dimension(type_name: str) -> Optional[int]:
+    raw = str(type_name or "").strip().lower()
+    match = re.fullmatch(r"(?:vector|halfvec)\((\d+)\)", raw)
+    if not match:
+        return None
+    return int(match.group(1))
+
+
+def _retrieval_items_embedding_column_type(conn) -> Optional[str]:
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            SELECT format_type(a.atttypid, a.atttypmod) AS embedding_type
+            FROM pg_attribute a
+            JOIN pg_class c ON c.oid = a.attrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public'
+              AND c.relname = 'rag_retrieval_items'
+              AND a.attname = 'embedding'
+              AND a.attnum > 0
+              AND NOT a.attisdropped
+            """
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    raw_type = _normalize_embedding_type_name(str(row.get("embedding_type") or ""))
+    return raw_type or None
+
+
+def _retrieval_items_embedding_column_dimension(conn) -> Optional[int]:
+    raw_type = _retrieval_items_embedding_column_type(conn)
+    if not raw_type:
+        return None
+    return _parse_vector_dimension(raw_type)
+
+
+def _retrieval_items_row_count(conn) -> int:
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute("SELECT COUNT(*) AS c FROM rag_retrieval_items")
+        row = cur.fetchone()
+    return int(row["c"]) if row else 0
+
+
+def _drop_retrieval_items_embedding_indexes(conn) -> None:
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            SELECT indexname
+            FROM pg_indexes
+            WHERE schemaname = 'public'
+              AND tablename = 'rag_retrieval_items'
+              AND indexdef ILIKE '%embedding%'
+            """
+        )
+        rows = cur.fetchall()
+
+    for row in rows:
+        index_name = str(row.get("indexname") or "").strip()
+        if not index_name:
+            continue
+        with conn.cursor() as cur:
+            cur.execute(
+                sql.SQL("DROP INDEX IF EXISTS public.{}").format(
+                    sql.Identifier(index_name)
+                )
+            )
+
+
+def _ensure_retrieval_items_vector_index(conn, dimension: int) -> None:
+    _drop_retrieval_items_embedding_indexes(conn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS rag_retrieval_items_embedding_hnsw_idx
+                ON rag_retrieval_items USING hnsw (embedding halfvec_cosine_ops)
+                WITH (m = 16, ef_construction = 128)
+            """
+        )
+
+
+def _alter_retrieval_items_embedding_dimension(conn, new_dimension: int) -> None:
+    _drop_retrieval_items_embedding_indexes(conn)
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            ALTER TABLE rag_retrieval_items
+              ALTER COLUMN embedding TYPE {_target_embedding_type_name(new_dimension)}
+              USING embedding::{_target_embedding_type_name(new_dimension)}
+            """
+        )
+    _ensure_retrieval_items_vector_index(conn, int(new_dimension))
+
+
+def _ensure_retrieval_items_embedding_dimension(conn, *, fail_on_mismatch: bool) -> str:
+    current_type = _retrieval_items_embedding_column_type(conn)
+    target_type = _target_embedding_type_name()
+    if current_type is None:
+        return target_type
+    if current_type == target_type:
+        return current_type
+
+    row_count = _retrieval_items_row_count(conn)
+    if row_count == 0:
+        LOG.warning(
+            "Updating rag_retrieval_items.embedding from %s to %s on empty table",
+            current_type,
+            target_type,
+        )
+        _alter_retrieval_items_embedding_dimension(conn, EMBEDDING_DIMENSION)
+        return target_type
+
+    message = (
+        "Configured EMBEDDING_DIMENSION=%s and target type %s but rag_retrieval_items.embedding is %s "
+        "with %s stored rows. Existing vectors must be purged and re-embedded before switching "
+        "dimensions. Delete Marker retrieval rows for the affected books (or clear "
+        "rag_retrieval_items), restart so the empty-table migration can resize the column, "
+        "then re-run Marker ingest."
+    ) % (EMBEDDING_DIMENSION, target_type, current_type, row_count)
+    if fail_on_mismatch:
+        raise RuntimeError(message)
+    LOG.warning(message)
+    return current_type
+
+
 def ensure_postgres_schema() -> None:
     path = Path(__file__).resolve().parent / "postgres_schema.sql"
     with get_pool().connection() as conn:
+        # Drop the old index BEFORE running schema.sql so it can't be
+        # recreated with vector_cosine_ops and block the ALTER COLUMN below
+        with conn.cursor() as cur:
+            cur.execute("DROP INDEX IF EXISTS rag_retrieval_items_embedding_hnsw_idx")
+
         _run_ddl_file(conn, path)
         _ensure_rag_ingest_alias_views(conn)
+        final_type = _ensure_retrieval_items_embedding_dimension(conn, fail_on_mismatch=False)
+        if final_type == _target_embedding_type_name():
+            _ensure_retrieval_items_vector_index(conn, EMBEDDING_DIMENSION)
         conn.commit()
     LOG.info("postgres schema ensured from %s", path.name)
 
@@ -988,15 +1131,16 @@ def retrieval_items_insert_many(rows: list[dict[str, Any]]) -> None:
     if not rows:
         return
     with get_pool().connection() as conn:
+        _ensure_retrieval_items_embedding_dimension(conn, fail_on_mismatch=True)
         with conn.cursor() as cur:
             for row in rows:
                 vec_lit = _vector_literal(list(row.get("embedding") or []))
                 cur.execute(
-                    """
+                    f"""
                     INSERT INTO rag_retrieval_items (
                         kind, file_hash, source_file, page_hint, chunk_key, content, embedding_text,
                         metadata, image_url, image_storage_key, embedding
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector)
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::{_target_embedding_type_name()})
                     ON CONFLICT (file_hash, chunk_key) DO UPDATE SET
                         content = EXCLUDED.content,
                         embedding_text = EXCLUDED.embedding_text,
@@ -1068,7 +1212,7 @@ def retrieval_vector_search(
         params.append("outdated")
 
     sql = f"""
-        WITH q AS (SELECT %s::vector AS v)
+        WITH q AS (SELECT %s::{_target_embedding_type_name()} AS v)
         SELECT r.file_hash, r.chunk_key, r.content, r.source_file, r.page_hint, r.metadata, r.image_url,
                1 - (r.embedding <=> q.v) AS similarity,
                r.embedding <=> q.v AS distance
@@ -1081,6 +1225,7 @@ def retrieval_vector_search(
     params.append(int(top_k))
 
     with get_pool().connection() as conn:
+        _ensure_retrieval_items_embedding_dimension(conn, fail_on_mismatch=True)
         with conn.cursor(row_factory=dict_row) as cur:
             cur.execute(sql, params)
             raw_rows = cur.fetchall()

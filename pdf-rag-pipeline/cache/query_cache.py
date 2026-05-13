@@ -14,20 +14,26 @@ def _cache_key(
     *,
     book_name: str = "",
     include_outdated_books: bool = False,
+    conversation_id: str = "",
+    history_fingerprint: str = "",
+    retrieval_question: str = "",
 ) -> str:
     normalized = query.lower().strip()
     scope = str(audience or "").strip().lower()
     actor = str(user_id or "").strip().lower()
     book = str(book_name or "").strip().lower()
     outdated_flag = "1" if include_outdated_books else "0"
+    conv = str(conversation_id or "").strip().lower()
+    hist = str(history_fingerprint or "").strip().lower()
+    rq = str(retrieval_question or "").strip().lower()
     if scope and actor:
-        payload = f"{scope}::{actor}::{book}::{outdated_flag}::{normalized}"
+        payload = f"{scope}::{actor}::{book}::{outdated_flag}::{conv}::{hist}::{rq}::{normalized}"
     elif scope:
-        payload = f"{scope}::{book}::{outdated_flag}::{normalized}"
+        payload = f"{scope}::{book}::{outdated_flag}::{conv}::{hist}::{rq}::{normalized}"
     elif actor:
-        payload = f"{actor}::{book}::{outdated_flag}::{normalized}"
+        payload = f"{actor}::{book}::{outdated_flag}::{conv}::{hist}::{rq}::{normalized}"
     else:
-        payload = f"{book}::{outdated_flag}::{normalized}"
+        payload = f"{book}::{outdated_flag}::{conv}::{hist}::{rq}::{normalized}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -43,6 +49,9 @@ def get_cached(
     *,
     book_name: str = "",
     include_outdated_books: bool = False,
+    conversation_id: str = "",
+    history_fingerprint: str = "",
+    retrieval_question: str = "",
 ) -> Optional[CachedQueryResult]:
     key = _cache_key(
         query,
@@ -50,6 +59,9 @@ def get_cached(
         user_id,
         book_name=book_name,
         include_outdated_books=include_outdated_books,
+        conversation_id=conversation_id,
+        history_fingerprint=history_fingerprint,
+        retrieval_question=retrieval_question,
     )
     if is_postgres_persistence():
         from db import postgres_backend as pg
@@ -88,6 +100,9 @@ def set_cache(
     *,
     book_name: str = "",
     include_outdated_books: bool = False,
+    conversation_id: str = "",
+    history_fingerprint: str = "",
+    retrieval_question: str = "",
 ) -> None:
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=CACHE_TTL_HOURS)
@@ -99,6 +114,9 @@ def set_cache(
         actor,
         book_name=book_name,
         include_outdated_books=include_outdated_books,
+        conversation_id=conversation_id,
+        history_fingerprint=history_fingerprint,
+        retrieval_question=retrieval_question,
     )
 
     if is_postgres_persistence():

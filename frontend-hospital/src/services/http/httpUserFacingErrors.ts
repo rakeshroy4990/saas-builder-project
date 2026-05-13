@@ -6,6 +6,10 @@ import { i18n } from '../../i18n';
 const AXIOS_TIMEOUT_MS_RE = /timeout\s+of\s+\d+\s*ms\s+exceeded/i;
 
 export function isRequestTimeoutError(error: unknown): boolean {
+  if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
+    if (error.name === 'TimeoutError') return true;
+    if (error.name === 'AbortError') return messageLooksLikeRequestTimeout(String(error.message ?? ''));
+  }
   if (isAxiosError(error)) {
     if (error.code === 'ECONNABORTED') return true;
     return messageLooksLikeRequestTimeout(String(error.message ?? ''));

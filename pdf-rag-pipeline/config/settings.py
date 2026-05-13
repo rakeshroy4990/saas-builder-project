@@ -67,8 +67,8 @@ SENTRY_ENVIRONMENT = os.getenv("SENTRY_ENVIRONMENT", "local").strip()
 SENTRY_TRACES_SAMPLE_RATE = _env_float("SENTRY_TRACES_SAMPLE_RATE", 0.0)
 
 # ── OpenAI embeddings (Marker ingest + pgvector query) ───────────────────────
-EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "1536"))
-OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small").strip()
+EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "3072"))
+OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large").strip()
 
 # Marker PDF pipeline (batched slices → markdown + figures → S3 + vectors)
 MARKER_BATCH_PAGES = max(1, int(os.getenv("MARKER_BATCH_PAGES", "12")))

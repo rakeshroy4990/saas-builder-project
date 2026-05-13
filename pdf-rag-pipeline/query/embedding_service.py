@@ -50,6 +50,22 @@ def embed_texts_same_order(texts: list[str]) -> list[list[float]]:
             input=inputs,
             dimensions=dim,
         )
+        api_model = str(getattr(resp, "model", "") or "").strip() or OPENAI_EMBEDDING_MODEL
+        base = getattr(client, "base_url", None)
+        if base is not None:
+            embed_url = f"{str(base).rstrip('/')}/embeddings"
+        else:
+            embed_url = "https://api.openai.com/v1/embeddings"
+        vec_dim = len(resp.data[0].embedding) if resp.data else 0
+        LOG.info(
+            "[EMBED] POST %s model=%s api_model=%s request_dimensions=%s vector_dim=%s inputs=%s",
+            embed_url,
+            OPENAI_EMBEDDING_MODEL,
+            api_model,
+            dim,
+            vec_dim,
+            len(inputs),
+        )
         for d in resp.data:
             orig_i = sub[d.index][0]
             placeholders[orig_i] = list(d.embedding)
