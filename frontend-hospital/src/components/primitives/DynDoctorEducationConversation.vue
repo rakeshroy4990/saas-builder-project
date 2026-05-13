@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { PageConfig } from '../../core/types/PageConfig';
 import { useActionEngine } from '../../composables/useActionEngine';
 import { useAppStore } from '../../store/useAppStore';
+import { useToastStore } from '../../store/useToastStore';
 import { pinia } from '../../store/pinia';
+import {
+  postEducationPrescriptionTranscribe,
+  formatPrescriptionForChat,
+  isPrescriptionFullyNotStated,
+  buildPrescriptionQuestionDraft
+} from '../../services/http/educationPrescriptionTranscribe';
 import {
   assistantDisplayBody,
   assistantDisplayFollowUps
@@ -53,8 +60,16 @@ const props = defineProps<{
 const { execute } = useActionEngine(props.pageConfig);
 const { t } = useI18n();
 const appStore = useAppStore(pinia);
+const toastStore = useToastStore(pinia);
 const threadRef = ref<HTMLElement | null>(null);
 const questionTextareaRef = ref<HTMLTextAreaElement | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const cameraInputRef = ref<HTMLInputElement | null>(null);
+const prescriptionReading = ref(false);
+const showPrescriptionCameraModal = ref(false);
+const cameraStream = ref<MediaStream | null>(null);
+const cameraVideoRef = ref<HTMLVideoElement | null>(null);
+const cameraPreviewReady = ref(false);
 const showConversationControls = ref(false);
 const showQuickStarts = ref(true);
 const showSavedThreads = ref(false);
@@ -155,17 +170,16 @@ async function focusQuestionTextarea(): Promise<void> {
   questionTextareaRef.value?.focus();
 }
 
-watch(
-  () => messages.value.length,
-  async () => {
-    await nextTick();
+function scrollThreadToEnd(): void {
+  void nextTick(() => {
     const el = threadRef.value;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  },
-  { immediate: true }
-);
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'auto' });
+  });
+}
+
+/** Keep the latest user turn + assistant reply in view (including NDJSON streaming). */
+watch(messages, () => scrollThreadToEnd(), { deep: true, flush: 'post' });
 
 onMounted(() => {
   if (typeof localStorage === 'undefined') {
@@ -194,6 +208,10 @@ onMounted(() => {
 
 onMounted(async () => {
   await focusQuestionTextarea();
+});
+
+onUnmounted(() => {
+  closePrescriptionCameraModal();
 });
 
 watch(
@@ -254,10 +272,13 @@ async function setPrompt(prompt: string) {
   await execute({ actionId: 'set-doctor-education-conversation-draft', data: { value: prompt } });
 }
 
-async function submitConversation(question?: string) {
+async function submitConversation(question?: string, opts?: { includeHistory?: boolean }) {
   const value = String(question ?? conversationDraft.value).trim();
   if (!value || conversationLoading.value) return;
-  await execute({ actionId: 'submit-doctor-education-conversation', data: { question: value } });
+  await execute({
+    actionId: 'submit-doctor-education-conversation',
+    data: { question: value, includeHistory: Boolean(opts?.includeHistory) }
+  });
 }
 
 async function resendUserQuestion(message: ConversationMessage) {
@@ -274,6 +295,123 @@ async function onComposerKeydown(event: KeyboardEvent) {
   if (event.key !== 'Enter' || event.shiftKey) return;
   event.preventDefault();
   await submitConversation();
+}
+
+function openPrescriptionFilePicker() {
+  fileInputRef.value?.click();
+}
+
+function closePrescriptionCameraModal(): void {
+  const v = cameraVideoRef.value;
+  if (v) {
+    v.srcObject = null;
+  }
+  cameraStream.value?.getTracks().forEach((track) => track.stop());
+  cameraStream.value = null;
+  showPrescriptionCameraModal.value = false;
+  cameraPreviewReady.value = false;
+}
+
+function onCameraPreviewMetadata() {
+  cameraPreviewReady.value = true;
+}
+
+async function requestCameraStream(): Promise<MediaStream> {
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+  } catch {
+    return await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
+  }
+}
+
+async function openPrescriptionCameraPicker() {
+  if (conversationLoading.value || prescriptionReading.value) return;
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    cameraInputRef.value?.click();
+    return;
+  }
+  try {
+    const stream = await requestCameraStream();
+    cameraStream.value = stream;
+    cameraPreviewReady.value = false;
+    showPrescriptionCameraModal.value = true;
+    await nextTick();
+    const el = cameraVideoRef.value;
+    if (el) {
+      el.srcObject = stream;
+      await el.play().catch(() => {});
+    }
+  } catch {
+    cameraInputRef.value?.click();
+  }
+}
+
+async function capturePrescriptionCameraFrame() {
+  const video = cameraVideoRef.value;
+  if (!video || video.videoWidth <= 0 || video.videoHeight <= 0) {
+    toastStore.show(t('education.conversation.cameraNotReady'), 'error');
+    return;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    toastStore.show(t('education.conversation.prescriptionReadFailed'), 'error');
+    return;
+  }
+  ctx.drawImage(video, 0, 0);
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9);
+  });
+  closePrescriptionCameraModal();
+  if (!blob) {
+    toastStore.show(t('education.conversation.prescriptionReadFailed'), 'error');
+    return;
+  }
+  const file = new File([blob], 'prescription-camera.jpg', { type: 'image/jpeg' });
+  await ingestPrescriptionFile(file);
+}
+
+async function onPrescriptionFileInput(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  await ingestPrescriptionFile(file);
+}
+
+async function ingestPrescriptionFile(file: File) {
+  if (conversationLoading.value || prescriptionReading.value) return;
+  prescriptionReading.value = true;
+  try {
+    const extracted = await postEducationPrescriptionTranscribe(file);
+    prescriptionReading.value = false;
+    if (isPrescriptionFullyNotStated(extracted)) {
+      const draft = buildPrescriptionQuestionDraft(extracted);
+      await execute({ actionId: 'set-doctor-education-conversation-draft', data: { value: draft } });
+      await focusQuestionTextarea();
+      toastStore.show(t('education.conversation.prescriptionDraftOnly'), 'info');
+      return;
+    }
+    const question = formatPrescriptionForChat(extracted);
+    await submitConversation(question);
+    toastStore.show(t('education.conversation.prescriptionSentToChat'), 'success');
+  } catch (err) {
+    const msg =
+      err instanceof Error && err.message.trim()
+        ? err.message.trim()
+        : t('education.conversation.prescriptionReadFailed');
+    toastStore.show(msg, 'error');
+  } finally {
+    prescriptionReading.value = false;
+  }
 }
 
 function educationAssistantBody(message: ConversationMessage): string {
@@ -300,7 +438,8 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 <template>
   <section :id="htmlId" class="rounded-3xl border border-slate-200 bg-white/95 shadow-sm">
     <div class="px-4 py-4 sm:px-5">
-      <div class="space-y-5">
+      <div class="flex min-h-[min(88dvh,calc(100dvh-6rem))] flex-col gap-0">
+        <div class="order-1 shrink-0 space-y-5">
         <div class="flex items-start justify-between gap-3 min-w-0">
           <div class="min-w-0 flex-1 space-y-1">
             <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
@@ -461,51 +600,23 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
             </div>
           </div>
         </div>
-
-        <div class="space-y-2">
-          <label for="doctor-education-conversation-draft" class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {{ t('education.conversation.inputPromptLabel') }}
-          </label>
-          <textarea
-            ref="questionTextareaRef"
-            id="doctor-education-conversation-draft"
-            :value="conversationDraft"
-            rows="4"
-            class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-            :placeholder="t('education.conversation.inputPlaceholder')"
-            @input="onDraftInput"
-            @keydown="onComposerKeydown"
-          />
         </div>
 
-        <p v-if="conversationError" class="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
-          {{ conversationError }}
-        </p>
-
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <p class="text-xs leading-5 text-slate-500">{{ t('education.conversation.submitHint') }}</p>
-          <button
-            type="button"
-            class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-            :disabled="conversationLoading || !conversationDraft.trim()"
-            @click="submitConversation()"
-          >
-            {{ conversationLoading ? t('education.conversation.sending') : t('education.conversation.send') }}
-          </button>
-        </div>
-
-        <div class="border-t border-slate-200 pt-5">
+        <div
+          class="order-2 flex min-h-0 flex-col border-slate-200"
+          :class="
+            messages.length > 0
+              ? 'min-h-[10rem] flex-1 border-t pt-4'
+              : 'max-h-0 flex-none overflow-hidden border-t-0 p-0'
+          "
+        >
           <div
             ref="threadRef"
-            class="max-h-[32rem] min-h-[18rem] space-y-4 overflow-y-auto"
+            class="min-h-0 space-y-4 overflow-y-auto pr-0.5"
+            :class="messages.length > 0 ? 'flex-1' : ''"
             role="log"
             aria-live="polite"
           >
-            <div v-if="messages.length === 0" class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm leading-6 text-slate-600">
-              <p class="font-semibold text-slate-900">{{ t('education.conversation.emptyTitle') }}</p>
-              <p class="mt-2">{{ t('education.conversation.emptyBody') }}</p>
-            </div>
-
             <template v-for="message in messages" :key="message.id">
               <div v-if="message.role === 'user'" class="flex justify-end items-start gap-2">
                 <article class="max-w-3xl rounded-3xl bg-slate-900 px-4 py-3 text-sm leading-6 text-white shadow-sm">
@@ -602,7 +713,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                         :key="followUp"
                         type="button"
                         class="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-800 transition hover:bg-sky-50"
-                        @click="submitConversation(followUp)"
+                        @click="submitConversation(followUp, { includeHistory: true })"
                       >
                         {{ followUp }}
                       </button>
@@ -613,7 +724,131 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
             </template>
           </div>
         </div>
+
+        <div class="order-3 shrink-0 space-y-3 border-t border-slate-200 bg-white/95 pt-4 pb-2">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <label for="doctor-education-conversation-draft" class="text-xs font-semibold uppercase tracking-wide text-slate-500 min-w-0">
+                {{ t('education.conversation.inputPromptLabel') }}
+              </label>
+              <div class="flex shrink-0 items-center gap-1">
+                <input
+                  ref="fileInputRef"
+                  type="file"
+                  class="sr-only"
+                  accept="application/pdf,image/jpeg,image/png,image/webp"
+                  @change="onPrescriptionFileInput"
+                />
+                <input
+                  ref="cameraInputRef"
+                  type="file"
+                  class="sr-only"
+                  accept="image/*"
+                  capture="environment"
+                  @change="onPrescriptionFileInput"
+                />
+                <button
+                  type="button"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="conversationLoading || prescriptionReading"
+                  :aria-label="t('education.conversation.attachFileAria')"
+                  :title="t('education.conversation.attachFileAria')"
+                  @click="openPrescriptionFilePicker"
+                >
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.64 16.78a2 2 0 01-2.83-2.83l8.49-8.48" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="conversationLoading || prescriptionReading"
+                  :aria-label="t('education.conversation.attachCameraAria')"
+                  :title="t('education.conversation.attachCameraAria')"
+                  @click="openPrescriptionCameraPicker"
+                >
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 7a2 2 0 012-2h2.5L10 4h4l1.5 1H18a2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V7z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 17a4 4 0 100-8 4 4 0 000 8z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <textarea
+              ref="questionTextareaRef"
+              id="doctor-education-conversation-draft"
+              :value="conversationDraft"
+              rows="10"
+              class="w-full min-h-[min(38vh,18rem)] max-h-[min(52vh,30rem)] resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:opacity-60"
+              :disabled="conversationLoading || prescriptionReading"
+              :placeholder="t('education.conversation.inputPlaceholder')"
+              @input="onDraftInput"
+              @keydown="onComposerKeydown"
+            />
+          </div>
+
+          <p v-if="conversationError" class="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+            {{ conversationError }}
+          </p>
+
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <p class="text-xs leading-5 text-slate-500">
+              <span v-if="prescriptionReading" class="font-medium text-sky-700">{{ t('education.conversation.readingPrescription') }}</span>
+              <span v-else>{{ t('education.conversation.submitHint') }}</span>
+            </p>
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+              :disabled="conversationLoading || prescriptionReading || !conversationDraft.trim()"
+              @click="submitConversation()"
+            >
+              {{ conversationLoading ? t('education.conversation.sending') : t('education.conversation.send') }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
+  <Teleport to="body">
+    <div
+      v-if="showPrescriptionCameraModal"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/75 p-4"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="t('education.conversation.cameraModalTitle')"
+      @click.self="closePrescriptionCameraModal"
+    >
+      <div
+        class="w-full max-w-lg overflow-hidden rounded-3xl border border-slate-600 bg-slate-900 p-4 shadow-2xl sm:p-5"
+        @click.stop
+      >
+        <p class="text-sm font-semibold text-white">{{ t('education.conversation.cameraModalTitle') }}</p>
+        <p class="mt-1 text-xs leading-relaxed text-slate-400">{{ t('education.conversation.cameraModalHint') }}</p>
+        <video
+          ref="cameraVideoRef"
+          class="mt-3 aspect-video w-full rounded-2xl bg-black object-cover"
+          playsinline
+          muted
+          @loadedmetadata="onCameraPreviewMetadata"
+        />
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center justify-center rounded-xl border border-slate-500 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-500/40"
+            @click="closePrescriptionCameraModal"
+          >
+            {{ t('education.conversation.cameraModalCancel') }}
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center justify-center rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-400 focus:outline-none focus:ring-4 focus:ring-sky-300/50 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300"
+            :disabled="!cameraPreviewReady"
+            @click="capturePrescriptionCameraFrame"
+          >
+            {{ t('education.conversation.cameraModalCapture') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>

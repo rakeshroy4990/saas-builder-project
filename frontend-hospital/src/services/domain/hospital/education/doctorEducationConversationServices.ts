@@ -288,14 +288,48 @@ function extractConversationResponse(data: unknown): {
   };
 }
 
-function buildConversationHistory(session: ConversationSession): Array<{ role: 'user' | 'assistant'; content: string }> {
-  return session.messages
-    .filter((message) => !message.loading && !message.error && String(message.content ?? '').trim())
-    .slice(-12)
-    .map((message) => ({
-      role: message.role,
-      content: String(message.content ?? '').trim()
-    }));
+/** Matches backend `AiChatMessageDto` `@Size(max = 2000)` on `/api/hospital/ai/chat`. */
+const AI_CHAT_HISTORY_CONTENT_MAX = 2000;
+
+function truncateAiChatHistoryContent(content: string): string {
+  const t = content.trim();
+  if (t.length <= AI_CHAT_HISTORY_CONTENT_MAX) return t;
+  const mark = '\n[…]';
+  const room = AI_CHAT_HISTORY_CONTENT_MAX - mark.length;
+  return `${t.slice(0, Math.max(0, room)).trimEnd()}${mark}`;
+}
+
+/**
+ * Prior turns only for the chat API (excludes the trailing user message — it duplicates `message`).
+ * When `includeHistory` is false, sends [] so new questions / prescription flow do not attach huge threads.
+ * When true (e.g. follow-up chip), sends up to 12 prior turns with per-message truncation for validation.
+ */
+function buildConversationHistory(
+  session: ConversationSession,
+  includeHistory: boolean
+): Array<{ role: 'user' | 'assistant'; content: string }> {
+  if (!includeHistory) {
+    return [];
+  }
+  const filtered = session.messages.filter(
+    (message) => !message.loading && !message.error && String(message.content ?? '').trim()
+  );
+  let turns = filtered.slice(-12);
+  const last = turns[turns.length - 1];
+  if (last && last.role === 'user') {
+    turns = turns.slice(0, -1);
+  }
+  return turns
+    .map((message) => {
+      const raw = String(message.content ?? '').trim();
+      const body =
+        message.role === 'assistant' ? assistantDisplayBody(raw).trim() || raw : raw;
+      return {
+        role: message.role,
+        content: truncateAiChatHistoryContent(body)
+      };
+    })
+    .filter((row) => row.content.length > 0);
 }
 
 function educationConversationPayload(
@@ -463,6 +497,7 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
       const prev = getEducationState(appStore);
       const draft = String(request.data?.question ?? prev.conversationDraft ?? '').trim();
       const replaceUserMessageId = String(request.data?.replaceUserMessageId ?? '').trim();
+      const includeHistory = Boolean(request.data?.includeHistory);
       if (!draft) {
         return {
           responseCode: 'DOCTOR_EDUCATION_CONVERSATION_EMPTY',
@@ -515,7 +550,7 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
       });
 
       try {
-        const history = buildConversationHistory(nextActiveSession);
+        const history = buildConversationHistory(nextActiveSession, includeHistory);
         let acc = '';
         await postHospitalAiChatNdjson(
           educationConversationPayload(draft, history, selectedBook, nextActiveSession.id),

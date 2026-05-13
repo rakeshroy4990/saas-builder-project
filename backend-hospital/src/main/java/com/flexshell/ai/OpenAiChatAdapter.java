@@ -14,6 +14,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +33,7 @@ public class OpenAiChatAdapter {
     private final int timeoutMs;
     private final int blogMaxTokens;
     private final double blogTemperature;
+    private final int visionTimeoutMs;
 
     public OpenAiChatAdapter(
             ObjectMapper objectMapper,
@@ -44,7 +46,8 @@ public class OpenAiChatAdapter {
             @Value("${app.ai.temperature:0.3}") double temperature,
             @Value("${app.ai.timeout-ms:12000}") int timeoutMs,
             @Value("${app.ai.blog.max-tokens:4500}") int blogMaxTokens,
-            @Value("${app.ai.blog.temperature:0.75}") double blogTemperature
+            @Value("${app.ai.blog.temperature:0.75}") double blogTemperature,
+            @Value("${app.ai.prescription-vision-timeout-ms:90000}") int visionTimeoutMs
     ) {
         this.objectMapper = objectMapper;
         this.aiSafetyPolicy = aiSafetyPolicy;
@@ -58,6 +61,130 @@ public class OpenAiChatAdapter {
         this.timeoutMs = Math.max(timeoutMs, 2000);
         this.blogMaxTokens = Math.max(blogMaxTokens, 256);
         this.blogTemperature = blogTemperature;
+        this.visionTimeoutMs = Math.max(visionTimeoutMs, 15_000);
+    }
+
+    /**
+     * Vision transcription for prescription-style images (data URL, e.g. {@code data:image/png;base64,...}).
+     */
+    public String transcribePrescriptionFromImageDataUrl(String dataUrl) {
+        if (apiKey.isBlank()) {
+            throw new AiProviderException(
+                    AiProviderException.Kind.CONFIG_MISSING,
+                    "OpenAI API key is not configured for prescription transcription."
+            );
+        }
+        String url = Objects.toString(dataUrl, "").trim();
+        if (url.isBlank()) {
+            throw new AiProviderException(AiProviderException.Kind.PROVIDER_FAILED, "Empty image payload.");
+        }
+        try {
+            List<Map<String, Object>> userParts = new ArrayList<>();
+            userParts.add(Map.of("type", "text", "text", PrescriptionVisionPrompts.VISION_JSON_USER));
+            Map<String, Object> imageUrl = new LinkedHashMap<>();
+            imageUrl.put("url", url);
+            Map<String, Object> imagePart = new LinkedHashMap<>();
+            imagePart.put("type", "image_url");
+            imagePart.put("image_url", imageUrl);
+            userParts.add(imagePart);
+
+            List<Map<String, Object>> messages = new ArrayList<>();
+            messages.add(Map.of("role", "system", "content", PrescriptionVisionPrompts.VISION_JSON_SYSTEM.trim()));
+            messages.add(Map.of("role", "user", "content", userParts));
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("model", model);
+            payload.put("messages", messages);
+            payload.put("max_tokens", 2_048);
+            payload.put("temperature", 0.1);
+            String requestBody = objectMapper.writeValueAsString(payload);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(joinUrl(baseUrl, chatPath)))
+                    .timeout(Duration.ofMillis(visionTimeoutMs))
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new AiProviderException(
+                        AiProviderException.Kind.PROVIDER_FAILED,
+                        "OpenAI vision transcription failed.",
+                        "openai",
+                        response.statusCode(),
+                        ""
+                );
+            }
+            return parseResponseText(response.body()).trim();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "Smart AI provider is temporarily unavailable."
+            );
+        } catch (IOException ex) {
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "Smart AI provider is temporarily unavailable."
+            );
+        }
+    }
+
+    /**
+     * Collapses noisy PDF/OCR text into the same {@code {"diagnosis","medications"}} JSON string as vision.
+     */
+    public String extractPrescriptionDiagnosisMedicationsJsonFromPlainText(String rawText) {
+        if (apiKey.isBlank()) {
+            throw new AiProviderException(
+                    AiProviderException.Kind.CONFIG_MISSING,
+                    "OpenAI API key is not configured for prescription structuring."
+            );
+        }
+        String raw = Objects.toString(rawText, "").trim();
+        if (raw.isBlank()) {
+            throw new AiProviderException(AiProviderException.Kind.PROVIDER_FAILED, "Empty document text.");
+        }
+        String excerpt = raw.length() > 14_000 ? raw.substring(0, 14_000) : raw;
+        String userMsg = PrescriptionVisionPrompts.TEXT_JSON_USER_PREFIX + excerpt;
+        try {
+            String requestBody = buildRequestBody(
+                    PrescriptionVisionPrompts.TEXT_JSON_SYSTEM.trim(),
+                    List.of(),
+                    userMsg,
+                    900,
+                    0.1
+            );
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(joinUrl(baseUrl, chatPath)))
+                    .timeout(Duration.ofMillis(Math.max(timeoutMs, 30_000)))
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new AiProviderException(
+                        AiProviderException.Kind.PROVIDER_FAILED,
+                        "OpenAI prescription structuring failed.",
+                        "openai",
+                        response.statusCode(),
+                        ""
+                );
+            }
+            return parseResponseText(response.body()).trim();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "Smart AI provider is temporarily unavailable."
+            );
+        } catch (IOException ex) {
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "Smart AI provider is temporarily unavailable."
+            );
+        }
     }
 
     /**

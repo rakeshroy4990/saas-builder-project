@@ -61,6 +61,8 @@ export const SERVER_PATHS = {
   hospitalEducationBooks: '/api/hospital/education/books',
   /** GET `?BookName=&Limit=` — top section headings from Marker-ingested chunks. */
   hospitalEducationKeyTopics: '/api/hospital/education/key-topics',
+  /** POST multipart `file` — doctor-only prescription image/PDF transcription for education chat. */
+  hospitalEducationPrescriptionTranscribe: '/api/hospital/education/prescription-transcribe',
   /** GET `?limit=` — public LLM-generated wellness blog teasers (cached on server). */
   hospitalBlogPreviews: '/api/hospital/blog/previews',
   /** GET/PUT user by id: pass `userId` query param; PUT profile update uses registration-shaped JSON; PUT `inactive=true` deactivates. */

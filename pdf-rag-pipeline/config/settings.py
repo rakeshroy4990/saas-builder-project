@@ -44,6 +44,8 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").strip().lower()
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# Caps answer length and speeds up typical education / triage replies (raise via env for longer answers).
+RAG_CHAT_MAX_COMPLETION_TOKENS = max(256, int(os.getenv("RAG_CHAT_MAX_COMPLETION_TOKENS", "1400")))
 
 TEXT_SEARCH_MIN_SCORE = float(os.getenv("TEXT_SEARCH_MIN_SCORE", "0.5"))
 MAX_CHUNKS = int(os.getenv("MAX_CHUNKS", "5"))

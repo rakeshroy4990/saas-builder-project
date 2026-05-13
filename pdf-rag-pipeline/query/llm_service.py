@@ -14,6 +14,7 @@ from config.settings import (
     LLM_MODEL,
     LLM_PROVIDER,
     OPENAI_API_KEY,
+    RAG_CHAT_MAX_COMPLETION_TOKENS,
     RAG_LOG_FULL_PROMPT,
     RAG_LOG_PROMPT_PREVIEW_CHARS,
 )
@@ -570,6 +571,7 @@ def iter_openai_chat_stream_tokens(prompt: str) -> Iterator[str]:
         messages=[{"role": "user", "content": prompt}],
         stream=True,
         temperature=0.35,
+        max_completion_tokens=RAG_CHAT_MAX_COMPLETION_TOKENS,
     )
     for event in stream:
         for choice in event.choices or []:
@@ -638,7 +640,13 @@ def answer_with_context(query: str, chunks: list[dict], audience: str = "layman"
                 return _finalize_answer("Not available", query, chunks, audience)
             genai.configure(api_key=GEMINI_API_KEY)
             model = genai.GenerativeModel(LLM_MODEL)
-            response = model.generate_content(prompt)
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.GenerationConfig(
+                    max_output_tokens=RAG_CHAT_MAX_COMPLETION_TOKENS,
+                    temperature=0.35,
+                ),
+            )
             answer = (response.text or "").strip() or "Not available"
             if _looks_like_refusal(answer) and (
                 _is_first_person_health_query(query) or _context_covers_query_terms(query, chunks)
@@ -650,7 +658,11 @@ def answer_with_context(query: str, chunks: list[dict], audience: str = "layman"
             LOG.warning("[RAG][LLM] OPENAI_API_KEY missing; returning fallback")
             return _finalize_answer("Not available", query, chunks, audience)
         client = OpenAI(api_key=OPENAI_API_KEY)
-        response = client.responses.create(model=LLM_MODEL, input=prompt)
+        response = client.responses.create(
+            model=LLM_MODEL,
+            input=prompt,
+            max_output_tokens=RAG_CHAT_MAX_COMPLETION_TOKENS,
+        )
         answer = (response.output_text or "").strip() or "Not available"
         if _looks_like_refusal(answer) and (
             _is_first_person_health_query(query) or _context_covers_query_terms(query, chunks)

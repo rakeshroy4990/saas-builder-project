@@ -63,6 +63,19 @@ async def query_stream(body: QueryRequest, user: TokenPayload = Depends(get_curr
     task = asyncio.create_task(runner())
 
     async def gen() -> AsyncIterator[bytes]:
+        # First body chunk before retrieval/LLM so clients and reverse proxies see low TTFB
+        # (otherwise the browser attributes the full RAG+model latency to "waiting for server response").
+        yield _ndjson_line(
+            {
+                "type": "ready",
+                "data": {
+                    "source": "rag",
+                    "phase": "accepted",
+                    "images": [],
+                    "chunks_used": None,
+                },
+            }
+        )
         try:
             while True:
                 item = await queue.get()
@@ -88,4 +101,8 @@ async def query_stream(body: QueryRequest, user: TokenPayload = Depends(get_curr
         finally:
             await task
 
-    return StreamingResponse(gen(), media_type="application/x-ndjson")
+    return StreamingResponse(
+        gen(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )

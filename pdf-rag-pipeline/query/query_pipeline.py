@@ -445,21 +445,6 @@ async def handle_query(
             },
         )
 
-    # First byte to the client before retrieval/LLM (otherwise TTFB ≈ full retrieval + model time).
-    if stream_queue is not None:
-        await stream_queue.put(
-            (
-                "ready",
-                {
-                    "source":      "rag",
-                    "phase":       "retrieving",
-                    "images":      [],
-                    "chunks_used": None,
-                },
-            )
-        )
-        await asyncio.sleep(0)
-
     # ── Retrieval ─────────────────────────────────────────────────────────────
     max_chunks = 2 if len(retrieval_seed) < 20 else 3
     allowed_topics = infer_allowed_topics(effective_question)
