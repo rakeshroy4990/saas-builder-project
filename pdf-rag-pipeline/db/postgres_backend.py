@@ -211,6 +211,33 @@ def _drop_retrieval_items_embedding_indexes(conn) -> None:
 
 
 def _ensure_retrieval_items_vector_index(conn, dimension: int) -> None:
+    """
+    Ensure the pgvector HNSW index exists on rag_retrieval_items.embedding.
+
+    Important: do **not** drop and recreate on every process start — HNSW builds are
+    expensive and would block Uvicorn startup for a long time on large tables.
+    """
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            SELECT 1 AS ok
+            FROM pg_indexes
+            WHERE schemaname = 'public'
+              AND tablename = 'rag_retrieval_items'
+              AND indexname = 'rag_retrieval_items_embedding_hnsw_idx'
+            """
+        )
+        if cur.fetchone():
+            LOG.info("rag_retrieval_items HNSW index already present; skipping rebuild")
+            return
+
+    row_count = _retrieval_items_row_count(conn)
+    if row_count > 0:
+        LOG.warning(
+            "Building rag_retrieval_items_embedding_hnsw_idx on %s rows — first-time or "
+            "post-migration builds can take several minutes; avoid dropping this index casually.",
+            row_count,
+        )
     _drop_retrieval_items_embedding_indexes(conn)
     with conn.cursor() as cur:
         cur.execute(
@@ -269,13 +296,14 @@ def _ensure_retrieval_items_embedding_dimension(conn, *, fail_on_mismatch: bool)
 def ensure_postgres_schema() -> None:
     path = Path(__file__).resolve().parent / "postgres_schema.sql"
     with get_pool().connection() as conn:
-        # Drop the old index BEFORE running schema.sql so it can't be
-        # recreated with vector_cosine_ops and block the ALTER COLUMN below
-        with conn.cursor() as cur:
-            cur.execute("DROP INDEX IF EXISTS rag_retrieval_items_embedding_hnsw_idx")
-
+        LOG.info("postgres: applying ddl from %s", path.name)
+        # Do not DROP the HNSW index here on every startup — it forces a full rebuild and
+        # blocks the API for a long time on large rag_retrieval_items. Drops happen only
+        # inside _alter_retrieval_items_embedding_dimension when the embedding column type changes.
         _run_ddl_file(conn, path)
+        LOG.info("postgres: ensuring rag_ingest alias views")
         _ensure_rag_ingest_alias_views(conn)
+        LOG.info("postgres: checking rag_retrieval_items embedding column / vector index")
         final_type = _ensure_retrieval_items_embedding_dimension(conn, fail_on_mismatch=False)
         if final_type == _target_embedding_type_name():
             _ensure_retrieval_items_vector_index(conn, EMBEDDING_DIMENSION)
