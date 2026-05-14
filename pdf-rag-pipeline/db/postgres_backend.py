@@ -16,7 +16,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Json
 from psycopg_pool import ConnectionPool
 
-from config.settings import DATABASE_URL, EMBEDDING_DIMENSION, PG_TEXT_SEARCH_MIN_SCORE
+from config.settings import DATABASE_URL, EMBEDDING_DIMENSION, PG_CONNECT_TIMEOUT, PG_TEXT_SEARCH_MIN_SCORE
 
 LOG = logging.getLogger(__name__)
 
@@ -32,7 +32,10 @@ def get_pool() -> ConnectionPool:
             conninfo=DATABASE_URL.strip(),
             min_size=1,
             max_size=10,
-            kwargs={"row_factory": dict_row},
+            kwargs={
+                "row_factory": dict_row,
+                "connect_timeout": PG_CONNECT_TIMEOUT,
+            },
         )
     return _pool
 

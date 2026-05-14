@@ -19,7 +19,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -40,14 +44,14 @@ public class EducationPrescriptionTranscriptionService {
     private static final Logger LOG = LoggerFactory.getLogger(EducationPrescriptionTranscriptionService.class);
     private static final int MAX_BYTES = 12 * 1024 * 1024;
     private static final int MIN_PDF_TEXT_CHARS = 80;
-    private static final int PDF_RENDER_DPI = 144;
-    private static final int MAX_IMAGE_EDGE = 2048;
 
     private final OpenAiChatAdapter openAiChatAdapter;
     private final GeminiChatAdapter geminiChatAdapter;
     private final SmartAiQuotaService smartAiQuotaService;
     private final ObjectMapper objectMapper;
     private final boolean consumeQuotaForEducationPrescriptionTranscribe;
+    private final int pdfRenderDpi;
+    private final int maxImageEdgePx;
 
     public EducationPrescriptionTranscriptionService(
             OpenAiChatAdapter openAiChatAdapter,
@@ -55,13 +59,17 @@ public class EducationPrescriptionTranscriptionService {
             SmartAiQuotaService smartAiQuotaService,
             ObjectMapper objectMapper,
             @Value("${app.ai.smart.consume-quota-for-education-prescription-transcribe:false}")
-            boolean consumeQuotaForEducationPrescriptionTranscribe
+            boolean consumeQuotaForEducationPrescriptionTranscribe,
+            @Value("${app.ai.prescription-vision-render-dpi:120}") int pdfRenderDpi,
+            @Value("${app.ai.prescription-vision-max-edge-px:1600}") int maxImageEdgePx
     ) {
         this.openAiChatAdapter = openAiChatAdapter;
         this.geminiChatAdapter = geminiChatAdapter;
         this.smartAiQuotaService = smartAiQuotaService;
         this.objectMapper = objectMapper;
         this.consumeQuotaForEducationPrescriptionTranscribe = consumeQuotaForEducationPrescriptionTranscribe;
+        this.pdfRenderDpi = Math.min(200, Math.max(72, pdfRenderDpi));
+        this.maxImageEdgePx = Math.min(4096, Math.max(768, maxImageEdgePx));
     }
 
     public EducationPrescriptionTranscribeData transcribe(String userId, MultipartFile file) {
@@ -129,11 +137,15 @@ public class EducationPrescriptionTranscriptionService {
                 return structurePlainTextWithLlm(collapseBlankLines(extracted));
             }
             PDFRenderer renderer = new PDFRenderer(doc);
-            BufferedImage rendered = renderer.renderImageWithDPI(0, PDF_RENDER_DPI, ImageType.RGB);
-            BufferedImage scaled = constrainImage(rendered);
-            byte[] png = toPngBytes(scaled);
-            LOG.info("education_prescription_transcribe mode=pdf_vision bytes={}", png.length);
-            return parsePrescriptionJson(visionTranscribe("image/png", png));
+            BufferedImage rendered = renderer.renderImageWithDPI(0, pdfRenderDpi, ImageType.RGB);
+            BufferedImage scaled = constrainMaxEdge(rendered, maxImageEdgePx);
+            byte[] jpeg = toJpegBytes(scaled, 0.88f);
+            LOG.info(
+                    "education_prescription_transcribe mode=pdf_vision dpi={} maxEdge={} jpegBytes={}",
+                    pdfRenderDpi,
+                    maxImageEdgePx,
+                    jpeg.length);
+            return parsePrescriptionJson(visionTranscribe("image/jpeg", jpeg));
         } catch (IOException ex) {
             throw new IllegalArgumentException("Could not read PDF.");
         }
@@ -150,15 +162,19 @@ public class EducationPrescriptionTranscriptionService {
             throw new IllegalArgumentException("Could not decode image.");
         }
         BufferedImage rgb = toRgb(probe);
-        BufferedImage scaled = constrainImage(rgb);
-        byte[] pngBytes;
+        BufferedImage scaled = constrainMaxEdge(rgb, maxImageEdgePx);
+        byte[] jpegBytes;
         try {
-            pngBytes = toPngBytes(scaled);
+            jpegBytes = toJpegBytes(scaled, 0.88f);
         } catch (IOException ex) {
             throw new IllegalArgumentException("Could not process image.");
         }
-        LOG.info("education_prescription_transcribe mode=image mime={} pngBytes={}", mime, pngBytes.length);
-        return parsePrescriptionJson(visionTranscribe("image/png", pngBytes));
+        LOG.info(
+                "education_prescription_transcribe mode=image mime={} jpegBytes={} maxEdge={}",
+                mime,
+                jpegBytes.length,
+                maxImageEdgePx);
+        return parsePrescriptionJson(visionTranscribe("image/jpeg", jpegBytes));
     }
 
     private EducationPrescriptionTranscribeData structurePlainTextWithLlm(String text) {
@@ -188,38 +204,102 @@ public class EducationPrescriptionTranscriptionService {
     }
 
     private EducationPrescriptionTranscribeData parsePrescriptionJson(String rawModelOutput) {
-        try {
-            String cleaned = stripJsonFences(rawModelOutput.trim());
-            JsonNode n = objectMapper.readTree(cleaned);
-            if (!n.isObject()) {
-                throw new IllegalArgumentException("Prescription model output was not valid JSON.");
-            }
-            String d = pickJsonStringField(n, "diagnosis");
-            String m = pickJsonStringField(n, "medications");
-            String textBlob = pickJsonStringField(n, "text");
-            if (d.isBlank() && m.isBlank() && !textBlob.isBlank()) {
-                EducationPrescriptionTranscribeData fromText = extractDiagnosisMedicationsFromPlainText(textBlob);
-                d = fromText.diagnosis();
-                m = fromText.medications();
-            } else if (!textBlob.isBlank()) {
-                EducationPrescriptionTranscribeData fromText = extractDiagnosisMedicationsFromPlainText(textBlob);
-                if (d.isBlank()) {
-                    d = fromText.diagnosis();
-                }
-                if (m.isBlank()) {
-                    m = fromText.medications();
-                }
-            }
-            if (d.isBlank()) {
-                d = "Not stated";
-            }
-            if (m.isBlank()) {
-                m = "Not stated";
-            }
-            return new EducationPrescriptionTranscribeData(d, m);
-        } catch (JsonProcessingException ex) {
+        String trimmed = Objects.toString(rawModelOutput, "").trim();
+        if (trimmed.isBlank()) {
+            LOG.warn("education_prescription_parse_failed reason=empty_model_output");
             throw new IllegalArgumentException("Could not parse prescription model output.");
         }
+        String cleaned = stripJsonFences(trimmed);
+        try {
+            return buildTranscribeDataFromJson(objectMapper.readTree(cleaned));
+        } catch (JsonProcessingException ex) {
+            String sliced = sliceFirstBalancedJsonObject(cleaned);
+            if (!sliced.equals(cleaned)) {
+                try {
+                    return buildTranscribeDataFromJson(objectMapper.readTree(sliced));
+                } catch (JsonProcessingException ignored) {
+                    // fall through to warn + client error
+                }
+            }
+            LOG.warn(
+                    "education_prescription_parse_failed reason=json len={} ex={}",
+                    cleaned.length(),
+                    ex.getClass().getSimpleName());
+            throw new IllegalArgumentException("Could not parse prescription model output.");
+        }
+    }
+
+    private EducationPrescriptionTranscribeData buildTranscribeDataFromJson(JsonNode n) {
+        if (!n.isObject()) {
+            throw new IllegalArgumentException("Prescription model output was not valid JSON.");
+        }
+        String d = pickJsonStringField(n, "diagnosis");
+        String m = pickJsonStringField(n, "medications");
+        String textBlob = pickJsonStringField(n, "text");
+        if (d.isBlank() && m.isBlank() && !textBlob.isBlank()) {
+            EducationPrescriptionTranscribeData fromText = extractDiagnosisMedicationsFromPlainText(textBlob);
+            d = fromText.diagnosis();
+            m = fromText.medications();
+        } else if (!textBlob.isBlank()) {
+            EducationPrescriptionTranscribeData fromText = extractDiagnosisMedicationsFromPlainText(textBlob);
+            if (d.isBlank()) {
+                d = fromText.diagnosis();
+            }
+            if (m.isBlank()) {
+                m = fromText.medications();
+            }
+        }
+        if (d.isBlank()) {
+            d = "Not stated";
+        }
+        if (m.isBlank()) {
+            m = "Not stated";
+        }
+        return new EducationPrescriptionTranscribeData(d, m);
+    }
+
+    /**
+     * When the model prefixes prose (e.g. "Here is the JSON:"), take the first top-level JSON object by brace matching
+     * (string-aware) so we do not log raw clinical text.
+     */
+    private static String sliceFirstBalancedJsonObject(String s) {
+        int start = s.indexOf('{');
+        if (start < 0) {
+            return s;
+        }
+        int depth = 0;
+        boolean inStr = false;
+        boolean esc = false;
+        for (int i = start; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (inStr) {
+                if (esc) {
+                    esc = false;
+                    continue;
+                }
+                if (c == '\\') {
+                    esc = true;
+                    continue;
+                }
+                if (c == '"') {
+                    inStr = false;
+                }
+                continue;
+            }
+            if (c == '"') {
+                inStr = true;
+                continue;
+            }
+            if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0) {
+                    return s.substring(start, i + 1);
+                }
+            }
+        }
+        return s;
     }
 
     /**
@@ -350,13 +430,13 @@ public class EducationPrescriptionTranscriptionService {
         return rgb;
     }
 
-    private static BufferedImage constrainImage(BufferedImage src) {
+    private static BufferedImage constrainMaxEdge(BufferedImage src, int maxEdge) {
         int w = src.getWidth();
         int h = src.getHeight();
-        if (w <= MAX_IMAGE_EDGE && h <= MAX_IMAGE_EDGE) {
+        if (w <= maxEdge && h <= maxEdge) {
             return src;
         }
-        double scale = Math.min((double) MAX_IMAGE_EDGE / w, (double) MAX_IMAGE_EDGE / h);
+        double scale = Math.min((double) maxEdge / w, (double) maxEdge / h);
         int nw = Math.max(1, (int) Math.round(w * scale));
         int nh = Math.max(1, (int) Math.round(h * scale));
         BufferedImage out = new BufferedImage(nw, nh, BufferedImage.TYPE_INT_RGB);
@@ -365,6 +445,27 @@ public class EducationPrescriptionTranscriptionService {
         g.drawImage(src, 0, 0, nw, nh, null);
         g.dispose();
         return out;
+    }
+
+    private static byte[] toJpegBytes(BufferedImage img, float quality) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
+        if (!writers.hasNext()) {
+            return toPngBytes(img);
+        }
+        ImageWriter writer = writers.next();
+        ImageWriteParam param = writer.getDefaultWriteParam();
+        if (param.canWriteCompressed()) {
+            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionQuality(Math.min(1f, Math.max(0.5f, quality)));
+        }
+        try (ImageOutputStream ios = ImageIO.createImageOutputStream(baos)) {
+            writer.setOutput(ios);
+            writer.write(null, new IIOImage(img, null, null), param);
+        } finally {
+            writer.dispose();
+        }
+        return baos.toByteArray();
     }
 
     private static byte[] toPngBytes(BufferedImage img) throws IOException {

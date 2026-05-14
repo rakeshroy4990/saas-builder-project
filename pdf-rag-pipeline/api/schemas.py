@@ -1,9 +1,27 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+
+
+class QueryReferenceItem(BaseModel):
+    """Book + PDF page hint for chunks used in grounded retrieval (education citations)."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    book_name: str = Field(
+        default="",
+        validation_alias=AliasChoices("BookName", "book_name"),
+        serialization_alias="BookName",
+    )
+    page: int = Field(
+        default=0,
+        validation_alias=AliasChoices("Page", "page"),
+        serialization_alias="Page",
+        description="0-based page index from ingestion (match figure badges: display as page+1).",
+    )
 
 
 class QueryResponseImageItem(BaseModel):
@@ -583,6 +601,18 @@ class QueryResponse(BaseModel):
         serialization_alias="Images",
         description="Top matched figures from Marker/S3 (vector path) or inline refs (FTS path).",
     )
+    reference: list[QueryReferenceItem] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("Reference", "reference"),
+        serialization_alias="Reference",
+        description="Distinct book labels and page hints for chunks used as LLM context.",
+    )
+    perf: Optional[dict[str, Any]] = Field(
+        default=None,
+        validation_alias=AliasChoices("Perf", "perf"),
+        serialization_alias="Perf",
+        description="Layer timings when PERF_ENABLED is true.",
+    )
 
 
 class IngestResponse(BaseModel):
@@ -602,6 +632,12 @@ class IngestResponse(BaseModel):
         default=None,
         validation_alias=AliasChoices("FileHash", "file_hash"),
         serialization_alias="FileHash",
+    )
+    perf: Optional[dict[str, Any]] = Field(
+        default=None,
+        validation_alias=AliasChoices("Perf", "perf"),
+        serialization_alias="Perf",
+        description="Ingest layer timings when PERF_ENABLED is true (e.g. sync ingest).",
     )
 
 

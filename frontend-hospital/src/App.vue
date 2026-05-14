@@ -7,8 +7,11 @@ import { useHospitalProfileMenuPointerOutsideClose } from './composables/useHosp
 import GlobalPopup from './components/system/GlobalPopup.vue';
 import GlobalToast from './components/system/GlobalToast.vue';
 import ChatFab from './components/system/ChatFab.vue';
+import PerfOverlay from './components/dev/PerfOverlay.vue';
 
 useHospitalProfileMenuPointerOutsideClose();
+
+const isPerfEnabled = import.meta.env.VITE_PERF_ENABLED === 'true';
 
 const shellRoot = computed(() => resolveStyle({ styleTemplate: 'shell.app.root' }));
 const shellMain = computed(() => resolveStyle({ styleTemplate: 'shell.app.content' }));
@@ -23,4 +26,5 @@ const shellMain = computed(() => resolveStyle({ styleTemplate: 'shell.app.conten
   <ChatFab />
   <GlobalPopup />
   <GlobalToast />
+  <PerfOverlay v-if="isPerfEnabled" />
 </template>

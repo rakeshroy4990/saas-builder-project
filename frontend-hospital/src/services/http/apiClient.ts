@@ -23,6 +23,9 @@ import { flushSessionTelemetryQueue, ingestSessionTelemetry } from '../analytics
 import { emitLoggedInSessionSummary, SessionSummaryKind } from '../analytics/sessionSummary';
 import { stashPendingHttpReplay } from '../domain/hospital/auth/postLoginHttpReplay';
 import { localizeTimeoutErrorMessageIfNeeded } from './httpUserFacingErrors';
+import { recordPerf } from '@/composables/usePerf';
+
+const VITE_PERF_ENABLED = import.meta.env.VITE_PERF_ENABLED === 'true';
 
 let appRouter: Router | null = null;
 
@@ -281,12 +284,23 @@ apiClient.interceptors.request.use(async (config) => {
     config.timeout = Math.max(config.timeout ?? 0, 180000);
   }
 
+  const isEducationPrescriptionTranscribe = requestUrl.includes(
+    URLRegistry.paths.hospitalEducationPrescriptionTranscribe
+  );
+  if (isEducationPrescriptionTranscribe) {
+    // Vision OCR + model can exceed ~15s; keep parity with multipart max and AI chat ceiling.
+    config.timeout = Math.max(config.timeout ?? 0, 180000);
+  }
+
   // Access + refresh tokens are httpOnly cookies — no Authorization header. Refresh cookies when our TTL hint says we're close.
   if (!isRefresh && isAuthTokenExpired()) {
     await refreshAccessToken();
   }
   if (!shouldSkipSessionSummaryForAxios(config)) {
     (config as FlexshellTelemetryConfig).__flexshellTelemetryT0 = performance.now();
+  }
+  if (VITE_PERF_ENABLED) {
+    (config as FlexshellTelemetryConfig & { __perfT0?: number }).__perfT0 = performance.now();
   }
   return config;
 });
@@ -304,6 +318,17 @@ apiClient.interceptors.response.use(
         http_status: response.status,
         duration_ms: durationMs
       });
+    }
+    if (VITE_PERF_ENABLED) {
+      const t0 = (response.config as FlexshellTelemetryConfig & { __perfT0?: number }).__perfT0;
+      if (typeof t0 === 'number') {
+        recordPerf({
+          label: `${String(response.config.method ?? 'get').toUpperCase()} ${axiosResolvedUrl(response.config)}`,
+          type: 'api',
+          durationMs: performance.now() - t0,
+          timestamp: Date.now()
+        });
+      }
     }
     const authPayload = readUnauthorizedPayload(response.data);
     const payloadMsgOk = resolvePayloadMessage(response.data);
@@ -351,6 +376,18 @@ apiClient.interceptors.response.use(
         error_message: errMsg.slice(0, 2000)
       });
     }
+    if (error.config && VITE_PERF_ENABLED) {
+      const t0 = (error.config as FlexshellTelemetryConfig & { __perfT0?: number }).__perfT0;
+      if (typeof t0 === 'number') {
+        recordPerf({
+          label: `${String(error.config.method ?? 'get').toUpperCase()} ${axiosResolvedUrl(error.config)}`,
+          type: 'api',
+          durationMs: performance.now() - t0,
+          timestamp: Date.now(),
+          meta: { error: true, status: error.response?.status }
+        });
+      }
+    }
     const popupStore = usePopupStore(pinia);
     const toastStore = useToastStore(pinia);
     const isLoginRequest =
@@ -361,6 +398,10 @@ apiClient.interceptors.response.use(
     const isSmartAiRequest = requestUrl.includes(URLRegistry.paths.hospitalAiChat);
     const isChatSupportOpenRequest = requestUrl.includes(URLRegistry.paths.chatSupportOpen);
     const isMultipartUpload = typeof FormData !== 'undefined' && error.config?.data instanceof FormData;
+    /** Proxied RAG catalog calls beside chat; timeouts/errors should not show a global toast. */
+    const isHospitalEducationCatalogRequest =
+      requestUrl.includes(URLRegistry.paths.hospitalEducationBooks) ||
+      requestUrl.includes(URLRegistry.paths.hospitalEducationKeyTopics);
     const authPayload = readUnauthorizedPayload(error.response?.data);
     const payloadMsgErr = resolvePayloadMessage(error.response?.data);
 
@@ -372,7 +413,13 @@ apiClient.interceptors.response.use(
       requestUrl.includes(URLRegistry.paths.telemetrySessionEvent) ||
       requestUrl.includes(URLRegistry.paths.telemetrySessionEvents);
     const isHeroYoutubeRequest = requestUrl.includes(URLRegistry.paths.youtubeHeroVideo);
-    if (isNetworkFailure && (isLogsBatchRequest || isTelemetryIngestRequest || isHeroYoutubeRequest)) {
+    if (
+      isNetworkFailure &&
+      (isLogsBatchRequest ||
+        isTelemetryIngestRequest ||
+        isHeroYoutubeRequest ||
+        isHospitalEducationCatalogRequest)
+    ) {
       return Promise.reject(error);
     }
 
@@ -424,7 +471,8 @@ apiClient.interceptors.response.use(
         isDoctorDirectoryRequest ||
         isMultipartUpload ||
         isSmartAiRequest ||
-        isChatSupportOpenRequest
+        isChatSupportOpenRequest ||
+        isHospitalEducationCatalogRequest
       ) {
         if (isSmartAiRequest) {
           toastStore.show('Health Assistant is temporarily unavailable. Please try again shortly.', 'error');
@@ -456,6 +504,9 @@ apiClient.interceptors.response.use(
         toastStore.show('Health Assistant is temporarily unavailable. Please try again shortly.', 'error');
         return Promise.reject(error);
       }
+      if (isHospitalEducationCatalogRequest) {
+        return Promise.reject(error);
+      }
       popupStore.openError(new Error('Server error. Please try again later.'));
     } else {
       const data = error.response?.data as { Message?: string; message?: string } | undefined;
@@ -471,6 +522,9 @@ apiClient.interceptors.response.use(
         void emitSessionExpiredTelemetryAndFlush(error.response?.status).finally(() =>
           performLocalLogoutAndRedirect(normalizedToast || PLEASE_LOGIN_MESSAGE, error.config)
         );
+        return Promise.reject(error);
+      }
+      if (isHospitalEducationCatalogRequest) {
         return Promise.reject(error);
       }
       toastStore.show(rawToastMsg || normalizedToast, 'error');

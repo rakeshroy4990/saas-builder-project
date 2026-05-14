@@ -489,33 +489,47 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
       const auth = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const department = String(auth.department ?? '').trim();
       const fallbackTopics = topicsForDepartment(department);
-      const prev = getEducationState(appStore);
+      /** Snapshot before catalog I/O; conversation state may advance while awaits run. */
+      const beforeCatalog = getEducationState(appStore);
 
-      const books = await resolveBooksCached();
-      let selectedBook = String(prev.selectedBook ?? '').trim();
+      let books = await resolveBooksCached();
+      if (!books.length) {
+        const prior = Array.isArray(beforeCatalog.books)
+          ? beforeCatalog.books.map((b) => String(b ?? '').trim()).filter(Boolean)
+          : [];
+        if (prior.length) books = prior;
+      }
+
+      let selectedBookForTopics = String(beforeCatalog.selectedBook ?? '').trim();
+      if (selectedBookForTopics && !books.includes(selectedBookForTopics)) {
+        selectedBookForTopics = '';
+      }
+
+      const catalogTopics = await resolveTopicsCached(selectedBookForTopics, 5);
+      /** Re-read so NDJSON/chat updates are not overwritten by a stale spread from before awaits. */
+      const fresh = getEducationState(appStore);
+      const topics = catalogTopics.length > 0 ? catalogTopics : fallbackTopics;
+      let selectedBook = String(fresh.selectedBook ?? '').trim();
       if (selectedBook && !books.includes(selectedBook)) {
         selectedBook = '';
       }
-
-      const catalogTopics = await resolveTopicsCached(selectedBook, 5);
-      const topics = catalogTopics.length > 0 ? catalogTopics : fallbackTopics;
-      const prevTopic = String(prev.selectedTopic ?? '').trim();
+      const prevTopic = String(fresh.selectedTopic ?? '').trim();
       const selectedTopic =
         prevTopic && topics.includes(prevTopic) ? prevTopic : '';
 
       appStore.setData('hospital', 'DoctorEducationUiState', {
-        ...prev,
+        ...fresh,
         loading: false,
         error: '',
         books,
         selectedBook,
         topics,
         selectedTopic,
-        draftText: String(prev.draftText ?? '').trim(),
+        draftText: String(fresh.draftText ?? '').trim(),
         focusSummary: '',
-        flashcards: Array.isArray(prev.flashcards) ? prev.flashcards : [],
-        aiRawReply: String(prev.aiRawReply ?? ''),
-        detailByCardId: typeof prev.detailByCardId === 'object' && prev.detailByCardId ? prev.detailByCardId : {},
+        flashcards: Array.isArray(fresh.flashcards) ? fresh.flashcards : [],
+        aiRawReply: String(fresh.aiRawReply ?? ''),
+        detailByCardId: typeof fresh.detailByCardId === 'object' && fresh.detailByCardId ? fresh.detailByCardId : {},
         detailLoadingCardId: ''
       });
       return ok();
@@ -540,12 +554,13 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
       }
 
       const catalogTopics = await resolveTopicsCached(selectedBook, 5);
+      const fresh = getEducationState(appStore);
       const topics = catalogTopics.length > 0 ? catalogTopics : fallbackTopics;
-      const prevTopic = String(prev.selectedTopic ?? '').trim();
+      const prevTopic = String(fresh.selectedTopic ?? '').trim();
       const selectedTopic = prevTopic && topics.includes(prevTopic) ? prevTopic : '';
 
       appStore.setData('hospital', 'DoctorEducationUiState', {
-        ...prev,
+        ...fresh,
         books,
         selectedBook,
         topics,

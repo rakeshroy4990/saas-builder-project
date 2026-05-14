@@ -1,8 +1,9 @@
+import asyncio
 import logging
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from api.schemas import (
     MarkerBookInfoRequest,
@@ -21,6 +22,7 @@ from db.image_store import delete_images_for_file
 from ingestion.ingest import process_pdf
 from ingestion.marker_worker import process_marker_job, schedule_marker_ingest
 from ingestion.pdf_tracker import list_pdfs, registry_find_recent
+from perf.perf_context import PERF_ENABLED
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,10 @@ async def ingest(
     background_tasks: BackgroundTasks,
     filepath: str = PDF_DIR,
     force: bool = False,
+    perf_sync: bool = Query(
+        default=False,
+        description="When PERF_ENABLED and filepath is a single PDF, run ingest synchronously and return perf spans.",
+    ),
     user: TokenPayload = Depends(require_admin),
 ):
     if os.path.isdir(filepath):
@@ -71,10 +77,33 @@ async def ingest(
                 status_code=400,
                 detail=f"No PDF files found in '{filepath}'.",
             )
+        if PERF_ENABLED and perf_sync:
+            raise HTTPException(
+                status_code=400,
+                detail="perf_sync is only supported when filepath points to a single PDF file.",
+            )
         for pdf in all_pdfs:
             background_tasks.add_task(process_pdf, pdf, force)
         message = f"Batch ingestion started for {len(all_pdfs)} PDFs in {filepath}"
     elif os.path.isfile(filepath):
+        if PERF_ENABLED and perf_sync:
+            try:
+                perf_data = await asyncio.to_thread(process_pdf, filepath, force)
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail=str(exc)) from exc
+            logger.info(
+                "Ingest (sync perf) completed by sub=%s email=%s filepath=%s force=%s",
+                user.sub,
+                user.email,
+                filepath,
+                force,
+            )
+            return IngestResponse(
+                status="ingestion completed",
+                triggered_by=user.email,
+                message=f"Ingestion completed for {filepath}",
+                perf=perf_data,
+            )
         background_tasks.add_task(process_pdf, filepath, force)
         message = f"Ingestion started for {filepath}"
     else:

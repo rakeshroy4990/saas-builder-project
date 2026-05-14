@@ -3,6 +3,7 @@ package com.flexshell.ai;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.controller.dto.AiChatFigureDto;
 import com.flexshell.controller.dto.AiChatMessageDto;
+import com.flexshell.controller.dto.AiChatReferenceDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -10,11 +11,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.ConnectException;
 import java.net.URI;
+import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -29,6 +35,8 @@ import java.util.stream.Collectors;
 
 @Component
 public class PdfRagQueryAdapter {
+    private static final Logger LOG = LoggerFactory.getLogger(PdfRagQueryAdapter.class);
+
     private final boolean enabled;
     private final String baseUrl;
     private final String queryPath;
@@ -278,6 +286,7 @@ public class PdfRagQueryAdapter {
                 List<String> followUpQuestions = parseFollowUpQuestions(response);
                 Integer chunksUsed = parseIntegerField(response, "ChunksUsed", "chunks_used");
                 List<AiChatFigureDto> images = parseImages(response);
+                List<AiChatReferenceDto> reference = parseReferences(response);
                 if (answer.isEmpty()) {
                     throw new AiProviderException(
                             AiProviderException.Kind.PROVIDER_FAILED,
@@ -287,7 +296,7 @@ public class PdfRagQueryAdapter {
                             "EMPTY_ANSWER"
                     );
                 }
-                return new RagQueryResult(answer, source, followUpQuestions, chunksUsed, images);
+                return new RagQueryResult(answer, source, followUpQuestions, chunksUsed, images, reference);
             } catch (RestClientResponseException ex) {
                 int statusCode = ex.getStatusCode().value();
                 boolean retryable = statusCode == 429 || statusCode == 503;
@@ -308,6 +317,18 @@ public class PdfRagQueryAdapter {
             } catch (AiProviderException ex) {
                 throw ex;
             } catch (Exception ex) {
+                URI u = URI.create(joinBaseAndPath(baseUrl, queryPath));
+                if (isRagTcpOrDnsFailure(ex)) {
+                    LOG.error("pdf_rag_connect_failed uri={} message={}", u, ex.toString());
+                    throw new AiProviderException(
+                            AiProviderException.Kind.PROVIDER_FAILED,
+                            ragUnreachableUserMessage(u),
+                            "pdf-rag",
+                            null,
+                            "CONNECT"
+                    );
+                }
+                LOG.error("pdf_rag_query_failed uri={} message={}", u, ex.toString());
                 throw new AiProviderException(
                         AiProviderException.Kind.PROVIDER_FAILED,
                         "Failed to call pdf-rag query endpoint: " + ex.getMessage(),
@@ -333,7 +354,7 @@ public class PdfRagQueryAdapter {
             String bookName,
             String retrievalQuestion,
             java.util.function.Consumer<String> onLine
-    ) throws Exception {
+    ) {
         if (!enabled) {
             throw new AiProviderException(AiProviderException.Kind.CONFIG_MISSING, "RAG adapter is disabled.");
         }
@@ -344,9 +365,20 @@ public class PdfRagQueryAdapter {
             throw new SecurityException("Missing authorization header for RAG query");
         }
         String audience = resolveAudience(userRoles);
-        String json = objectMapper.writeValueAsString(
-                buildRagQueryPayload(message, conversationId, history, actorUserId, bookName, retrievalQuestion)
-        );
+        final String json;
+        try {
+            json = objectMapper.writeValueAsString(
+                    buildRagQueryPayload(message, conversationId, history, actorUserId, bookName, retrievalQuestion)
+            );
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "Could not build RAG request JSON: " + ex.getMessage(),
+                    "pdf-rag",
+                    null,
+                    "SERIALIZE"
+            );
+        }
         URI uri = URI.create(joinBaseAndPath(baseUrl, queryStreamPath));
         HttpRequest.Builder rb = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofMinutes(12))
@@ -357,12 +389,45 @@ public class PdfRagQueryAdapter {
         if (userRoles != null && !userRoles.isEmpty()) {
             rb.header("X-User-Roles", userRoles.stream().collect(Collectors.joining(",")));
         }
-        HttpResponse<InputStream> resp = streamingHttpClient.send(rb.build(), HttpResponse.BodyHandlers.ofInputStream());
+        final HttpResponse<InputStream> resp;
+        try {
+            resp = streamingHttpClient.send(rb.build(), HttpResponse.BodyHandlers.ofInputStream());
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "RAG stream request was interrupted.",
+                    "pdf-rag",
+                    null,
+                    "INTERRUPTED"
+            );
+        } catch (IOException ex) {
+            if (isRagTcpOrDnsFailure(ex)) {
+                LOG.error("pdf_rag_stream_connect_failed uri={} message={}", uri, ex.toString());
+                throw new AiProviderException(
+                        AiProviderException.Kind.PROVIDER_FAILED,
+                        ragUnreachableUserMessage(uri),
+                        "pdf-rag",
+                        null,
+                        "CONNECT"
+                );
+            }
+            LOG.error("pdf_rag_stream_io_failed uri={} message={}", uri, ex.toString());
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "RAG stream I/O failed: " + ex.getMessage(),
+                    "pdf-rag",
+                    null,
+                    "IO"
+            );
+        }
         int code = resp.statusCode();
         if (code != 200) {
-            String errBody;
+            String errBody = "";
             try (InputStream in = resp.body()) {
                 errBody = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            } catch (IOException ex) {
+                LOG.warn("pdf_rag_stream_error_body_read_failed uri={} status={} message={}", uri, code, ex.toString());
             }
             String friendlyMessage = code == 429
                     ? "Smart AI is handling high traffic right now. Please try again in a moment."
@@ -383,6 +448,15 @@ public class PdfRagQueryAdapter {
                     onLine.accept(line);
                 }
             }
+        } catch (IOException ex) {
+            LOG.error("pdf_rag_stream_read_failed uri={} message={}", uri, ex.toString());
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "RAG stream read failed: " + ex.getMessage(),
+                    "pdf-rag",
+                    null,
+                    "STREAM_READ"
+            );
         }
     }
 
@@ -390,6 +464,34 @@ public class PdfRagQueryAdapter {
         String b = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
         String p = path.startsWith("/") ? path : "/" + path;
         return b + p;
+    }
+
+    /**
+     * True when the JVM could not open a TCP connection or resolve the host (typical local dev: pdf-rag not running).
+     */
+    private static boolean isRagTcpOrDnsFailure(Throwable ex) {
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (t instanceof ConnectException) {
+                return true;
+            }
+            if (t instanceof HttpConnectTimeoutException) {
+                return true;
+            }
+            if (t instanceof java.nio.channels.UnresolvedAddressException) {
+                return true;
+            }
+            String name = t.getClass().getName();
+            if (name.contains("ConnectException") || name.contains("UnresolvedAddressException")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String ragUnreachableUserMessage(URI uri) {
+        return "Cannot reach the PDF RAG service at "
+                + uri
+                + ". Start the pdf-rag-pipeline (default http://localhost:8090) or set APP_AI_RAG_BASE_URL to the correct base URL.";
     }
 
     /**
@@ -416,6 +518,7 @@ public class PdfRagQueryAdapter {
         List<String> followUpQuestions = parseFollowUpQuestions(response);
         Integer chunksUsed = parseIntegerField(response, "ChunksUsed", "chunks_used");
         List<AiChatFigureDto> images = parseImages(response);
+        List<AiChatReferenceDto> reference = parseReferences(response);
         if (answer.isEmpty()) {
             throw new AiProviderException(
                     AiProviderException.Kind.PROVIDER_FAILED,
@@ -425,7 +528,7 @@ public class PdfRagQueryAdapter {
                     "EMPTY_ANSWER"
             );
         }
-        return new RagQueryResult(answer, source, followUpQuestions, chunksUsed, images);
+        return new RagQueryResult(answer, source, followUpQuestions, chunksUsed, images, reference);
     }
 
     public record RagQueryResult(
@@ -433,7 +536,8 @@ public class PdfRagQueryAdapter {
             String source,
             List<String> followUpQuestions,
             Integer chunksUsed,
-            List<AiChatFigureDto> images
+            List<AiChatFigureDto> images,
+            List<AiChatReferenceDto> reference
     ) {
     }
 
@@ -493,6 +597,46 @@ public class PdfRagQueryAdapter {
             ));
         }
         return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<AiChatReferenceDto> parseReferences(Map<String, Object> response) {
+        if (response == null || response.isEmpty()) {
+            return List.of();
+        }
+        Object raw = response.get("Reference");
+        if (!(raw instanceof List<?>)) {
+            raw = response.get("reference");
+        }
+        if (!(raw instanceof List<?> items)) {
+            return List.of();
+        }
+        List<AiChatReferenceDto> out = new ArrayList<>();
+        for (Object item : items) {
+            if (!(item instanceof Map<?, ?> rawMap)) {
+                continue;
+            }
+            Map<String, Object> map = rawMap.entrySet().stream()
+                    .filter(e -> e.getKey() != null)
+                    .collect(Collectors.toMap(
+                            e -> String.valueOf(e.getKey()),
+                            Map.Entry::getValue,
+                            (a, b) -> b,
+                            LinkedHashMap::new
+                    ));
+            String book = parseStringField(map, "BookName", "book_name");
+            int page = parseIntField(map, "Page", "page");
+            if (book.isBlank()) {
+                continue;
+            }
+            out.add(new AiChatReferenceDto(book, page));
+        }
+        return out;
+    }
+
+    private static int parseIntField(Map<String, Object> response, String... keys) {
+        Integer v = parseIntegerField(response, keys);
+        return v == null ? 0 : v;
     }
 
     private static String parseStringField(Map<String, Object> response, String... keys) {

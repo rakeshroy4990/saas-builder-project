@@ -24,6 +24,9 @@ def _get_s3():
             config=Config(
                 signature_version="s3v4",
                 s3={"addressing_style": "path"},
+                connect_timeout=10,
+                read_timeout=60,
+                retries={"max_attempts": 3, "mode": "standard"},
             ),
         )
     return _s3

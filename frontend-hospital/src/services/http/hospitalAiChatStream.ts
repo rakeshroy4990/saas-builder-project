@@ -1,6 +1,9 @@
+import { recordPerf } from '@/composables/usePerf';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { ensureAccessTokenFreshForFetch, refreshHospitalAccessCookies, triggerHospitalReLoginFromFetch } from './apiClient';
 import { getApiBaseUrl, URLRegistry } from './URLRegistry';
+
+const VITE_PERF_ENABLED = import.meta.env.VITE_PERF_ENABLED === 'true';
 
 export type HospitalAiChatStreamHandlers = {
   onReady?: (data: unknown) => void;
@@ -79,72 +82,93 @@ export async function postHospitalAiChatNdjson(
   handlers: HospitalAiChatStreamHandlers,
   signal?: AbortSignal
 ): Promise<void> {
-  await ensureAccessTokenFreshForFetch();
+  const perfStart = VITE_PERF_ENABLED ? performance.now() : null;
   const url = `${getApiBaseUrl()}${URLRegistry.paths.hospitalAiChat}`;
-  const opts: RequestInit = {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/x-ndjson',
-      'X-Trace-Id': getOrCreateTraceId()
-    },
-    body: JSON.stringify(body),
-    signal
-  };
-  let res = await fetch(url, opts);
-  if (res.status === 401) {
-    await refreshHospitalAccessCookies();
-    res = await fetch(url, opts);
-  }
-  if (!res.ok) {
-    const detail = await readHttpErrorDetail(res);
-    if (res.status === 401) {
-      triggerHospitalReLoginFromFetch(detail);
+
+  const recordChatPerf = (meta?: Record<string, unknown>): void => {
+    if (perfStart == null) {
+      return;
     }
-    throw Object.assign(new Error(`hospital_ai_chat_stream_${res.status}: ${detail}`), {
-      status: res.status,
-      body: detail
+    recordPerf({
+      label: `POST ${url}`,
+      type: 'api',
+      durationMs: performance.now() - perfStart,
+      timestamp: Date.now(),
+      meta: { stream: 'ndjson', ...meta }
     });
-  }
-  if (!res.body) {
-    throw new Error('hospital_ai_chat_stream_no_body');
-  }
-  const reader = res.body.getReader();
-  const dec = new TextDecoder();
-  let buf = '';
-  const sawComplete = { value: false };
-
-  const drainBufferedLines = (): void => {
-    for (;;) {
-      const nl = buf.indexOf('\n');
-      if (nl < 0) break;
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      dispatchNdjsonLine(line, handlers, sawComplete);
-    }
   };
 
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (value && value.byteLength > 0) {
-      buf += dec.decode(value, { stream: !done });
+  try {
+    await ensureAccessTokenFreshForFetch();
+    const opts: RequestInit = {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/x-ndjson',
+        'X-Trace-Id': getOrCreateTraceId()
+      },
+      body: JSON.stringify(body),
+      signal
+    };
+    let res = await fetch(url, opts);
+    if (res.status === 401) {
+      await refreshHospitalAccessCookies();
+      res = await fetch(url, opts);
     }
-    drainBufferedLines();
-    if (done) {
-      buf += dec.decode(new Uint8Array(), { stream: false });
+    if (!res.ok) {
+      const detail = await readHttpErrorDetail(res);
+      if (res.status === 401) {
+        triggerHospitalReLoginFromFetch(detail);
+      }
+      throw Object.assign(new Error(`hospital_ai_chat_stream_${res.status}: ${detail}`), {
+        status: res.status,
+        body: detail
+      });
+    }
+    if (!res.body) {
+      throw new Error('hospital_ai_chat_stream_no_body');
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    const sawComplete = { value: false };
+
+    const drainBufferedLines = (): void => {
+      for (;;) {
+        const nl = buf.indexOf('\n');
+        if (nl < 0) break;
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        dispatchNdjsonLine(line, handlers, sawComplete);
+      }
+    };
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (value && value.byteLength > 0) {
+        buf += dec.decode(value, { stream: !done });
+      }
       drainBufferedLines();
-      const tail = buf.trim();
-      buf = '';
-      if (tail) {
-        dispatchNdjsonLine(tail, handlers, sawComplete);
+      if (done) {
+        buf += dec.decode(new Uint8Array(), { stream: false });
+        drainBufferedLines();
+        const tail = buf.trim();
+        buf = '';
+        if (tail) {
+          dispatchNdjsonLine(tail, handlers, sawComplete);
+        }
+        if (!sawComplete.value) {
+          throw new Error(
+            'hospital_ai_chat_stream_incomplete: stream ended before a complete event (check NDJSON framing and proxies)'
+          );
+        }
+        break;
       }
-      if (!sawComplete.value) {
-        throw new Error(
-          'hospital_ai_chat_stream_incomplete: stream ended before a complete event (check NDJSON framing and proxies)'
-        );
-      }
-      break;
     }
+    recordChatPerf();
+  } catch (err) {
+    recordChatPerf({ error: true, status: err && typeof err === 'object' && 'status' in err ? (err as { status?: number }).status : undefined });
+    throw err;
   }
 }

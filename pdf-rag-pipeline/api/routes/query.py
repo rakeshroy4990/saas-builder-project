@@ -77,8 +77,16 @@ async def query_stream(body: QueryRequest, user: TokenPayload = Depends(get_curr
             }
         )
         try:
+            # While ``handle_query`` runs sync OpenAI/DB work on the default loop, ``queue.get()`` can
+            # block for a long time with no bytes on the wire — some L7 proxies and clients treat that
+            # as a dead connection. Emit lightweight ``ping`` lines until real events arrive.
+            ping_interval_s = 18.0
             while True:
-                item = await queue.get()
+                try:
+                    item = await asyncio.wait_for(queue.get(), timeout=ping_interval_s)
+                except asyncio.TimeoutError:
+                    yield _ndjson_line({"type": "ping", "data": {"phase": "processing"}})
+                    continue
                 if item is None:
                     break
                 kind, payload = item

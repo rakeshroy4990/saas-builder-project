@@ -3,6 +3,8 @@ package com.flexshell.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.controller.dto.AiChatMessageDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +25,7 @@ import java.util.Objects;
 
 @Component
 public class GeminiChatAdapter {
+    private static final Logger LOG = LoggerFactory.getLogger(GeminiChatAdapter.class);
     private final ObjectMapper objectMapper;
     private final AiSafetyPolicy aiSafetyPolicy;
     private final HttpClient httpClient;
@@ -34,6 +37,8 @@ public class GeminiChatAdapter {
     private final double temperature;
     private final int timeoutMs;
     private final int visionTimeoutMs;
+    private final int prescriptionVisionMaxOutputTokens;
+    private final int prescriptionVisionHttpRetries;
 
     public GeminiChatAdapter(
             ObjectMapper objectMapper,
@@ -45,7 +50,9 @@ public class GeminiChatAdapter {
             @Value("${app.ai.max-tokens:400}") int maxTokens,
             @Value("${app.ai.temperature:0.3}") double temperature,
             @Value("${app.ai.timeout-ms:12000}") int timeoutMs,
-            @Value("${app.ai.prescription-vision-timeout-ms:90000}") int visionTimeoutMs
+            @Value("${app.ai.prescription-vision-timeout-ms:90000}") int visionTimeoutMs,
+            @Value("${app.ai.prescription-vision-max-output-tokens:2048}") int prescriptionVisionMaxOutputTokens,
+            @Value("${app.ai.prescription-vision-http-retries:2}") int prescriptionVisionHttpRetries
     ) {
         this.objectMapper = objectMapper;
         this.aiSafetyPolicy = aiSafetyPolicy;
@@ -58,6 +65,8 @@ public class GeminiChatAdapter {
         this.temperature = temperature;
         this.timeoutMs = Math.max(timeoutMs, 2000);
         this.visionTimeoutMs = Math.max(visionTimeoutMs, 15_000);
+        this.prescriptionVisionMaxOutputTokens = Math.min(8192, Math.max(256, prescriptionVisionMaxOutputTokens));
+        this.prescriptionVisionHttpRetries = Math.min(5, Math.max(0, prescriptionVisionHttpRetries));
     }
 
     /**
@@ -97,7 +106,7 @@ public class GeminiChatAdapter {
             payload.put("contents", contents);
             payload.put("generationConfig", Map.of(
                     "temperature", 0.1,
-                    "maxOutputTokens", 2_048
+                    "maxOutputTokens", prescriptionVisionMaxOutputTokens
             ));
 
             String requestBody = objectMapper.writeValueAsString(payload);
@@ -107,30 +116,34 @@ public class GeminiChatAdapter {
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                String providerStatus = "";
-                String providerMessage = "Gemini vision transcription failed.";
-                try {
-                    JsonNode root = objectMapper.readTree(response.body());
-                    JsonNode errorNode = root.path("error");
-                    providerStatus = errorNode.path("status").asText("");
-                    String upstreamMessage = errorNode.path("message").asText("");
-                    if (!upstreamMessage.isBlank()) {
-                        providerMessage = "Gemini provider error: " + upstreamMessage;
-                    }
-                } catch (Exception ignored) {
-                    // keep generic provider message
+            int maxAttempts = 1 + prescriptionVisionHttpRetries;
+            for (int attempt = 0; attempt < maxAttempts; attempt++) {
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                int code = response.statusCode();
+                String body = response.body();
+                if (code >= 200 && code < 300) {
+                    return parseResponseText(body).trim();
                 }
-                throw new AiProviderException(
-                        AiProviderException.Kind.PROVIDER_FAILED,
-                        providerMessage,
-                        "gemini",
-                        response.statusCode(),
-                        providerStatus
-                );
+                if (attempt < maxAttempts - 1 && AiProviderHttpRetry.shouldRetryAfterHttpFailure(code, body)) {
+                    LOG.warn(
+                            "gemini_prescription_vision_http_retry attempt={} maxAttempts={} httpStatus={}",
+                            attempt + 1,
+                            maxAttempts,
+                            code);
+                    try {
+                        AiProviderHttpRetry.sleepBeforeRetry(attempt);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new AiProviderException(
+                                AiProviderException.Kind.PROVIDER_FAILED,
+                                "Smart AI provider is temporarily unavailable."
+                        );
+                    }
+                    continue;
+                }
+                throw geminiVisionTranscriptionException(code, body);
             }
-            return parseResponseText(response.body()).trim();
+            throw geminiVisionTranscriptionException(0, "");
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new AiProviderException(
@@ -143,6 +156,29 @@ public class GeminiChatAdapter {
                     "Smart AI provider is temporarily unavailable."
             );
         }
+    }
+
+    private AiProviderException geminiVisionTranscriptionException(int statusCode, String body) {
+        String providerStatus = "";
+        String providerMessage = "Gemini vision transcription failed.";
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode errorNode = root.path("error");
+            providerStatus = errorNode.path("status").asText("");
+            String upstreamMessage = errorNode.path("message").asText("");
+            if (!upstreamMessage.isBlank()) {
+                providerMessage = "Gemini provider error: " + upstreamMessage;
+            }
+        } catch (Exception ignored) {
+            // keep generic provider message
+        }
+        return new AiProviderException(
+                AiProviderException.Kind.PROVIDER_FAILED,
+                providerMessage,
+                "gemini",
+                statusCode,
+                providerStatus
+        );
     }
 
     /**
@@ -310,7 +346,21 @@ public class GeminiChatAdapter {
         if (!parts.isArray() || parts.isEmpty()) {
             return "";
         }
-        return parts.get(0).path("text").asText("");
+        StringBuilder sb = new StringBuilder();
+        for (JsonNode part : parts) {
+            if (part == null || part.isNull()) {
+                continue;
+            }
+            String t = part.path("text").asText("");
+            if (t.isBlank()) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append('\n');
+            }
+            sb.append(t);
+        }
+        return sb.toString();
     }
 
     private static String joinUrl(String base, String path) {

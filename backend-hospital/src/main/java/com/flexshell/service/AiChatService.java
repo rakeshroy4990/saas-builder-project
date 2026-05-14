@@ -63,7 +63,7 @@ public class AiChatService {
             String greetingReply = "Hello! I am the AI Symptom Triage Assistant. Please share your symptoms and how long you have had them, and I can provide general guidance.\n\n"
                     + AiSafetyPolicy.NON_DOCTOR_LINE + "\n\n"
                     + AiSafetyPolicy.DISCLAIMER_LINE;
-            return new AiChatResponse(greetingReply, false, "llm", List.of(), null, null, List.of());
+            return new AiChatResponse(greetingReply, false, "llm", List.of(), null, null, List.of(), List.of());
         }
         String audience = resolveAudience(userRoles);
         smartAiQuotaService.assertWithinTokenBudget(request);
@@ -74,7 +74,7 @@ public class AiChatService {
             AiSafetyPolicy.EscalationType escalationType =
                     escalationTypeOptional.orElse(AiSafetyPolicy.EscalationType.CARDIAC_RESPIRATORY);
             String escalationMessage = safetyPolicy.escalationReply(escalationType);
-            return new AiChatResponse(escalationMessage, true, escalationType.name().toLowerCase(), List.of(), null, null, List.of());
+            return new AiChatResponse(escalationMessage, true, escalationType.name().toLowerCase(), List.of(), null, null, List.of(), List.of());
         }
         List<AiChatMessageDto> history = request.history() == null ? List.of() : request.history();
         LOG.info("aiChat request actor={} messageLength={} historyCount={}", actor, messageLength, history.size());
@@ -105,7 +105,8 @@ public class AiChatService {
                 followUpQuestions,
                 ragResult == null ? null : ragResult.source(),
                 ragResult == null ? null : ragResult.chunksUsed(),
-                ragResult == null || ragResult.images() == null ? List.of() : ragResult.images()
+                ragResult == null || ragResult.images() == null ? List.of() : ragResult.images(),
+                ragResult == null || ragResult.reference() == null ? List.of() : ragResult.reference()
         );
     }
 
@@ -131,7 +132,7 @@ public class AiChatService {
             String greetingReply = "Hello! I am the AI Symptom Triage Assistant. Please share your symptoms and how long you have had them, and I can provide general guidance.\n\n"
                     + AiSafetyPolicy.NON_DOCTOR_LINE + "\n\n"
                     + AiSafetyPolicy.DISCLAIMER_LINE;
-            AiChatResponse r = new AiChatResponse(greetingReply, false, "llm", List.of(), null, null, List.of());
+            AiChatResponse r = new AiChatResponse(greetingReply, false, "llm", List.of(), null, null, List.of(), List.of());
             return out -> writeNdjsonComplete(out, r);
         }
         smartAiQuotaService.assertWithinTokenBudget(request);
@@ -142,7 +143,7 @@ public class AiChatService {
             AiSafetyPolicy.EscalationType escalationType =
                     escalationTypeOptional.orElse(AiSafetyPolicy.EscalationType.CARDIAC_RESPIRATORY);
             String escalationMessage = safetyPolicy.escalationReply(escalationType);
-            AiChatResponse r = new AiChatResponse(escalationMessage, true, escalationType.name().toLowerCase(), List.of(), null, null, List.of());
+            AiChatResponse r = new AiChatResponse(escalationMessage, true, escalationType.name().toLowerCase(), List.of(), null, null, List.of(), List.of());
             return out -> writeNdjsonComplete(out, r);
         }
         List<AiChatMessageDto> history = request.history() == null ? List.of() : request.history();
@@ -212,7 +213,8 @@ public class AiChatService {
                 rag.followUpQuestions() == null ? List.of() : rag.followUpQuestions(),
                 rag.source(),
                 rag.chunksUsed(),
-                rag.images() == null ? List.of() : rag.images()
+                rag.images() == null ? List.of() : rag.images(),
+                rag.reference() == null ? List.of() : rag.reference()
         );
         writeNdjsonComplete(outputStream, response);
     }

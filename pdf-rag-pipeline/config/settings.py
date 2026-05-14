@@ -30,6 +30,11 @@ def _env_float(name: str, default: float) -> float:
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 MONGO_DB_NAME = os.getenv("MONGO_DB", "rag_db")
+# Fail fast at startup (and on first query) if Mongo is down — avoids “hangs forever” with OS TCP retries.
+MONGO_SERVER_SELECTION_TIMEOUT_MS = max(1000, int(os.getenv("MONGO_SERVER_SELECTION_TIMEOUT_MS", "8000")))
+MONGO_CONNECT_TIMEOUT_MS = max(1000, int(os.getenv("MONGO_CONNECT_TIMEOUT_MS", "8000")))
+# libpq connect_timeout (seconds) for Postgres pool (startup + runtime).
+PG_CONNECT_TIMEOUT = max(3, int(os.getenv("PG_CONNECT_TIMEOUT", "15")))
 
 
 def is_postgres_persistence() -> bool:
@@ -125,6 +130,10 @@ RAG_USE_VECTOR_RETRIEVAL = _env_bool("RAG_USE_VECTOR_RETRIEVAL", True)
 # Figure captions embed as near-duplicates — fetch ANN pool, then keep only figures whose PDF page
 # is near text chunks actually selected for the LLM (see filter_api_images_by_selected_chunks).
 VECTOR_IMAGE_ANN_CANDIDATES = _env_int_clamped("VECTOR_IMAGE_ANN_CANDIDATES", 56, 16, 160)
+# Second pgvector query (kind='image'). Set RAG_VECTOR_FETCH_IMAGE_ANN=true to re-enable figure ANN pool.
+RAG_VECTOR_FETCH_IMAGE_ANN = _env_bool("RAG_VECTOR_FETCH_IMAGE_ANN", False)
+# When false (default), /query omits figure URLs (Images) and skips figure-summary LLM context work.
+RAG_CHAT_INCLUDE_SOURCE_FIGURES = _env_bool("RAG_CHAT_INCLUDE_SOURCE_FIGURES", False)
 IMAGE_CONTEXT_PAGE_WINDOW = _env_int_clamped(
     "IMAGE_CONTEXT_PAGE_WINDOW",
     3,

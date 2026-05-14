@@ -4,7 +4,13 @@ from typing import Optional
 
 from pymongo import MongoClient
 
-from config.settings import MONGO_DB_NAME, MONGO_URI, is_postgres_persistence
+from config.settings import (
+    MONGO_CONNECT_TIMEOUT_MS,
+    MONGO_DB_NAME,
+    MONGO_SERVER_SELECTION_TIMEOUT_MS,
+    MONGO_URI,
+    is_postgres_persistence,
+)
 
 _client: Optional[MongoClient] = None
 
@@ -12,7 +18,11 @@ _client: Optional[MongoClient] = None
 def get_client() -> MongoClient:
     global _client
     if _client is None:
-        _client = MongoClient(MONGO_URI)
+        _client = MongoClient(
+            MONGO_URI,
+            serverSelectionTimeoutMS=MONGO_SERVER_SELECTION_TIMEOUT_MS,
+            connectTimeoutMS=MONGO_CONNECT_TIMEOUT_MS,
+        )
     return _client
 
 

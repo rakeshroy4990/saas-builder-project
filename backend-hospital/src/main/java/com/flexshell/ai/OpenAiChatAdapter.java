@@ -3,6 +3,8 @@ package com.flexshell.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.controller.dto.AiChatMessageDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -16,11 +18,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
 @Component
 public class OpenAiChatAdapter {
+    private static final Logger LOG = LoggerFactory.getLogger(OpenAiChatAdapter.class);
     private final ObjectMapper objectMapper;
     private final AiSafetyPolicy aiSafetyPolicy;
     private final HttpClient httpClient;
@@ -34,6 +38,10 @@ public class OpenAiChatAdapter {
     private final int blogMaxTokens;
     private final double blogTemperature;
     private final int visionTimeoutMs;
+    /** OpenAI vision {@code image_url.detail}: {@code low} (faster, smaller tiles), {@code high}, or {@code auto} (omit). */
+    private final String prescriptionVisionOpenAiImageDetail;
+    private final int prescriptionVisionMaxOutputTokens;
+    private final int prescriptionVisionHttpRetries;
 
     public OpenAiChatAdapter(
             ObjectMapper objectMapper,
@@ -47,7 +55,10 @@ public class OpenAiChatAdapter {
             @Value("${app.ai.timeout-ms:12000}") int timeoutMs,
             @Value("${app.ai.blog.max-tokens:4500}") int blogMaxTokens,
             @Value("${app.ai.blog.temperature:0.75}") double blogTemperature,
-            @Value("${app.ai.prescription-vision-timeout-ms:90000}") int visionTimeoutMs
+            @Value("${app.ai.prescription-vision-timeout-ms:90000}") int visionTimeoutMs,
+            @Value("${app.ai.prescription-vision-openai-image-detail:low}") String prescriptionVisionOpenAiImageDetail,
+            @Value("${app.ai.prescription-vision-max-output-tokens:2048}") int prescriptionVisionMaxOutputTokens,
+            @Value("${app.ai.prescription-vision-http-retries:2}") int prescriptionVisionHttpRetries
     ) {
         this.objectMapper = objectMapper;
         this.aiSafetyPolicy = aiSafetyPolicy;
@@ -62,6 +73,10 @@ public class OpenAiChatAdapter {
         this.blogMaxTokens = Math.max(blogMaxTokens, 256);
         this.blogTemperature = blogTemperature;
         this.visionTimeoutMs = Math.max(visionTimeoutMs, 15_000);
+        this.prescriptionVisionOpenAiImageDetail =
+                Objects.toString(prescriptionVisionOpenAiImageDetail, "low").trim().toLowerCase(Locale.ROOT);
+        this.prescriptionVisionMaxOutputTokens = Math.min(4096, Math.max(256, prescriptionVisionMaxOutputTokens));
+        this.prescriptionVisionHttpRetries = Math.min(5, Math.max(0, prescriptionVisionHttpRetries));
     }
 
     /**
@@ -83,6 +98,9 @@ public class OpenAiChatAdapter {
             userParts.add(Map.of("type", "text", "text", PrescriptionVisionPrompts.VISION_JSON_USER));
             Map<String, Object> imageUrl = new LinkedHashMap<>();
             imageUrl.put("url", url);
+            if ("low".equals(prescriptionVisionOpenAiImageDetail) || "high".equals(prescriptionVisionOpenAiImageDetail)) {
+                imageUrl.put("detail", prescriptionVisionOpenAiImageDetail);
+            }
             Map<String, Object> imagePart = new LinkedHashMap<>();
             imagePart.put("type", "image_url");
             imagePart.put("image_url", imageUrl);
@@ -95,7 +113,7 @@ public class OpenAiChatAdapter {
             Map<String, Object> payload = new HashMap<>();
             payload.put("model", model);
             payload.put("messages", messages);
-            payload.put("max_tokens", 2_048);
+            payload.put("max_tokens", prescriptionVisionMaxOutputTokens);
             payload.put("temperature", 0.1);
             String requestBody = objectMapper.writeValueAsString(payload);
 
@@ -106,17 +124,34 @@ public class OpenAiChatAdapter {
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new AiProviderException(
-                        AiProviderException.Kind.PROVIDER_FAILED,
-                        "OpenAI vision transcription failed.",
-                        "openai",
-                        response.statusCode(),
-                        ""
-                );
+            int maxAttempts = 1 + prescriptionVisionHttpRetries;
+            for (int attempt = 0; attempt < maxAttempts; attempt++) {
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                int code = response.statusCode();
+                String body = response.body();
+                if (code >= 200 && code < 300) {
+                    return parseResponseText(body).trim();
+                }
+                if (attempt < maxAttempts - 1 && AiProviderHttpRetry.shouldRetryAfterHttpFailure(code, body)) {
+                    LOG.warn(
+                            "openai_prescription_vision_http_retry attempt={} maxAttempts={} httpStatus={}",
+                            attempt + 1,
+                            maxAttempts,
+                            code);
+                    try {
+                        AiProviderHttpRetry.sleepBeforeRetry(attempt);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new AiProviderException(
+                                AiProviderException.Kind.PROVIDER_FAILED,
+                                "Smart AI provider is temporarily unavailable."
+                        );
+                    }
+                    continue;
+                }
+                throw openAiVisionTranscriptionException(code, body);
             }
-            return parseResponseText(response.body()).trim();
+            throw openAiVisionTranscriptionException(0, "");
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new AiProviderException(
@@ -128,6 +163,29 @@ public class OpenAiChatAdapter {
                     AiProviderException.Kind.PROVIDER_FAILED,
                     "Smart AI provider is temporarily unavailable."
             );
+        }
+    }
+
+    private AiProviderException openAiVisionTranscriptionException(int statusCode, String body) {
+        String detail = parseOpenAiErrorMessage(body);
+        String msg = detail.isBlank()
+                ? "OpenAI vision transcription failed."
+                : "OpenAI vision transcription failed: " + detail;
+        return new AiProviderException(
+                AiProviderException.Kind.PROVIDER_FAILED,
+                msg,
+                "openai",
+                statusCode,
+                ""
+        );
+    }
+
+    private String parseOpenAiErrorMessage(String body) {
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            return root.path("error").path("message").asText("").trim();
+        } catch (Exception e) {
+            return "";
         }
     }
 
@@ -312,7 +370,47 @@ public class OpenAiChatAdapter {
         if (!choices.isArray() || choices.isEmpty()) {
             return "";
         }
-        return choices.get(0).path("message").path("content").asText("");
+        JsonNode first = choices.get(0);
+        String fromMessage = extractOpenAiAssistantText(first.path("message"));
+        if (!fromMessage.isBlank()) {
+            return fromMessage;
+        }
+        return first.path("text").asText("");
+    }
+
+    /**
+     * Newer chat completions may return {@code message.content} as an array of parts
+     * ({@code type}/{@code text}) instead of a plain string; string path would yield empty and break JSON parsing.
+     */
+    private static String extractOpenAiAssistantText(JsonNode messageNode) {
+        if (messageNode == null || messageNode.isMissingNode() || messageNode.isNull()) {
+            return "";
+        }
+        JsonNode contentNode = messageNode.path("content");
+        if (contentNode.isNull() || contentNode.isMissingNode()) {
+            return "";
+        }
+        if (contentNode.isTextual()) {
+            return contentNode.asText("");
+        }
+        if (contentNode.isArray()) {
+            StringBuilder sb = new StringBuilder();
+            for (JsonNode part : contentNode) {
+                if (part == null || part.isNull()) {
+                    continue;
+                }
+                String t = part.path("text").asText("");
+                if (t.isBlank()) {
+                    continue;
+                }
+                if (sb.length() > 0) {
+                    sb.append('\n');
+                }
+                sb.append(t);
+            }
+            return sb.toString();
+        }
+        return "";
     }
 
     private static String joinUrl(String base, String path) {

@@ -23,6 +23,11 @@ type ConversationFigure = {
   url: string;
   sourceFile: string;
 };
+type ConversationReference = {
+  bookName: string;
+  /** 0-based page index from RAG (display as page+1, same convention as figure thumbnails). */
+  page: number;
+};
 type ConversationMessage = {
   id: string;
   role: 'user' | 'assistant';
@@ -34,6 +39,7 @@ type ConversationMessage = {
   chunksUsed?: number;
   followUpQuestions?: string[];
   images?: ConversationFigure[];
+  reference?: ConversationReference[];
   /** Set after a failed send; UI may emphasize the resend control until cleared on the next send. */
   sendFailedTimeout?: boolean;
 };
@@ -114,6 +120,20 @@ function readFollowUpList(row: Record<string, unknown>): string[] {
   return raw.map((item) => String(item ?? '').trim()).filter(Boolean);
 }
 
+function readReferenceList(row: Record<string, unknown>): ConversationReference[] {
+  const raw = row.Reference ?? row.reference;
+  if (!Array.isArray(raw)) return [];
+  const out: ConversationReference[] = [];
+  for (const item of raw) {
+    const o = (item ?? {}) as Record<string, unknown>;
+    const bookName = String(o.BookName ?? o.bookName ?? '').trim();
+    const page = Number(o.Page ?? o.page ?? 0) || 0;
+    if (!bookName) continue;
+    out.push({ bookName, page });
+  }
+  return out;
+}
+
 function normalizeConversationMessage(raw: unknown, fallbackIndex: number): ConversationMessage | null {
   const row = (raw ?? {}) as Record<string, unknown>;
   const role = String(row.role ?? '').trim().toLowerCase() === 'assistant' ? 'assistant' : 'user';
@@ -132,7 +152,8 @@ function normalizeConversationMessage(raw: unknown, fallbackIndex: number): Conv
     sendFailedTimeout: Boolean(row.sendFailedTimeout),
     images: imagesRaw
       .map((item, idx) => normalizeConversationFigure(item, idx))
-      .filter((item): item is ConversationFigure => item !== null)
+      .filter((item): item is ConversationFigure => item !== null),
+    reference: readReferenceList(row)
   };
 }
 
@@ -221,6 +242,7 @@ function extractConversationResponse(data: unknown): {
   chunksUsed?: number;
   followUpQuestions: string[];
   images: ConversationFigure[];
+  reference: ConversationReference[];
 } {
   const root = normalizeApiPayloadRoot(data);
   const row = resolveChatPayloadRow(root);
@@ -279,12 +301,24 @@ function extractConversationResponse(data: unknown): {
       followUpQuestions = topFu.map((item) => String(item ?? '').trim()).filter(Boolean).slice(0, 6);
     }
   }
+  let reference = readReferenceList(row);
+  if (reference.length === 0) {
+    const topRef = root.Reference ?? root.reference;
+    if (Array.isArray(topRef)) {
+      reference = readReferenceList({ Reference: topRef });
+    }
+  }
+  if (reference.length === 0 && data && typeof data === 'object' && !Array.isArray(data)) {
+    const d = data as Record<string, unknown>;
+    reference = readReferenceList(d);
+  }
   return {
     answer,
     source: String(row.source ?? row.Source ?? row.mode ?? '').trim(),
     chunksUsed,
     followUpQuestions,
-    images
+    images,
+    reference
   };
 }
 
@@ -617,7 +651,8 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
                       source: parsed.source,
                       chunksUsed: parsed.chunksUsed,
                       followUpQuestions: followUps,
-                      images: parsed.images
+                      images: parsed.images,
+                      reference: parsed.reference
                     };
                   })
                 })
@@ -663,7 +698,8 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
                   loading: false,
                   error: exactMessage,
                   followUpQuestions: [],
-                  images: []
+                  images: [],
+                  reference: []
                 };
               })
           })

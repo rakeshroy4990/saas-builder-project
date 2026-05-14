@@ -528,6 +528,8 @@
       "chunksChip": "{count} chunks",
       "loadingAnswer": "Preparing a grounded answer…",
       "figuresTitle": "Source figures",
+      "referenceTitle": "Reference",
+      "referenceLine": "{book} · p. {page}",
       "followUpTitle": "Follow-up questions",
       "figureAlt": "Source figure from page {page}",
       "pageBadge": "p. {page}",

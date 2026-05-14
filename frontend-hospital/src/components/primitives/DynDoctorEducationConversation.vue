@@ -27,6 +27,11 @@ type ConversationFigure = {
   sourceFile: string;
 };
 
+type ConversationReference = {
+  bookName: string;
+  page: number;
+};
+
 type ConversationMessage = {
   id: string;
   role: 'user' | 'assistant';
@@ -38,6 +43,7 @@ type ConversationMessage = {
   chunksUsed?: number;
   followUpQuestions?: string[];
   images?: ConversationFigure[];
+  reference?: ConversationReference[];
   /** After a failed request, resend button uses stronger styling until the next send. */
   sendFailedTimeout?: boolean;
 };
@@ -128,6 +134,19 @@ const sessions = computed<ConversationSession[]>(() => {
               : [];
           })(),
           sendFailedTimeout: Boolean(msg.sendFailedTimeout),
+          reference: (() => {
+            const raw = msg.Reference ?? msg.reference;
+            if (!Array.isArray(raw)) return [] as ConversationReference[];
+            return raw
+              .map((entry) => {
+                const o = (entry ?? {}) as Record<string, unknown>;
+                const bookName = String(o.BookName ?? o.bookName ?? '').trim();
+                const page = Number(o.Page ?? o.page ?? 0) || 0;
+                if (!bookName) return null;
+                return { bookName, page } as ConversationReference;
+              })
+              .filter((x): x is ConversationReference => x !== null);
+          })(),
           images: imagesRaw.map((image, index) => {
             const img = (image ?? {}) as Record<string, unknown>;
             return {
@@ -675,6 +694,20 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                     <span>{{ t('education.conversation.loadingAnswer') }}</span>
                   </div>
                   <p v-else class="whitespace-pre-wrap text-sm leading-7 text-slate-800">{{ educationAssistantBody(message) }}</p>
+
+                  <div
+                    v-if="!message.loading && message.reference && message.reference.length > 0"
+                    class="mt-4 rounded-2xl border border-slate-200 bg-white px-3 py-3"
+                  >
+                    <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {{ t('education.conversation.referenceTitle') }}
+                    </p>
+                    <ul class="list-inside list-disc space-y-1 text-sm text-slate-700">
+                      <li v-for="(ref, refIdx) in message.reference" :key="`${message.id}-ref-${refIdx}`">
+                        {{ t('education.conversation.referenceLine', { book: ref.bookName, page: ref.page + 1 }) }}
+                      </li>
+                    </ul>
+                  </div>
 
                   <div v-if="!message.loading && message.images && message.images.length > 0" class="mt-4 space-y-3">
                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.conversation.figuresTitle') }}</p>

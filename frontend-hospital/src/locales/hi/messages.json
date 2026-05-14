@@ -528,6 +528,8 @@
       "chunksChip": "{count} चंक्स",
       "loadingAnswer": "ग्राउंडेड उत्तर तैयार किया जा रहा है…",
       "figuresTitle": "स्रोत चित्र",
+      "referenceTitle": "संदर्भ",
+      "referenceLine": "{book} · पृ. {page}",
       "followUpTitle": "फॉलो-अप प्रश्न",
       "figureAlt": "पेज {page} का स्रोत चित्र",
       "pageBadge": "पृ. {page}",

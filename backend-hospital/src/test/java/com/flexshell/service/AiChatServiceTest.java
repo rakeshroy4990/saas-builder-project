@@ -51,7 +51,7 @@ class AiChatServiceTest {
                         anyList(),
                         nullable(String.class),
                         nullable(String.class)))
-                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Paracetamol may help fever and body ache.", "rag", List.of(), null, List.of()));
+                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Paracetamol may help fever and body ache.", "rag", List.of(), null, List.of(), List.of()));
         AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota(), new ObjectMapper());
 
         AiChatResponse response = service.reply(
@@ -76,7 +76,7 @@ class AiChatServiceTest {
                         anyList(),
                         nullable(String.class),
                         nullable(String.class)))
-                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Not enough information in knowledge base.", "cache", List.of(), null, List.of()));
+                .thenReturn(new PdfRagQueryAdapter.RagQueryResult("Not enough information in knowledge base.", "cache", List.of(), null, List.of(), List.of()));
         AiChatService service = new AiChatService(ragAdapter, new AiSafetyPolicy(""), unlimitedQuota(), new ObjectMapper());
 
         AiChatResponse response = service.reply(

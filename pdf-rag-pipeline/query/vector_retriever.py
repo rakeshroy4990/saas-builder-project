@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 from config.settings import (
     EMBEDDING_DIMENSION,
     IMAGE_CONTEXT_PAGE_WINDOW,
     MAX_CONTEXT_TOKENS,
+    RAG_VECTOR_FETCH_IMAGE_ANN,
     VECTOR_CONTEXT_MAX_TEXT_CHUNKS,
     VECTOR_IMAGE_ANN_CANDIDATES,
     VECTOR_TOP_K_IMAGE,
@@ -27,6 +29,8 @@ from query.embedding_service import embed_query
 from query.token_utils import estimate_tokens
 
 LOG = logging.getLogger(__name__)
+
+_VECTOR_IO_EXECUTOR = ThreadPoolExecutor(max_workers=6, thread_name_prefix="rag-vector-io")
 
 _TITLE_STOP = frozenset(
     {"the", "of", "in", "for", "and", "or", "to", "a", "an", "on", "at", "with", "from"}
@@ -226,26 +230,39 @@ def retrieve_vector_dual(
         # is still inside the ANN shortlist after filtering.
         text_k = min(max(VECTOR_TOP_K_TEXT * 2, 48), 128)
 
-    texts = pg.retrieval_vector_search(
-        qv,
-        "text",
-        text_k,
-        chapter_topics=chapter_topics,
-        audience=audience,
-        book_name=book_name,
-        include_outdated_books=include_outdated_books,
-    )
+    def _fetch_text() -> list[dict]:
+        return pg.retrieval_vector_search(
+            qv,
+            "text",
+            text_k,
+            chapter_topics=chapter_topics,
+            audience=audience,
+            book_name=book_name,
+            include_outdated_books=include_outdated_books,
+        )
+
+    fut_text = _VECTOR_IO_EXECUTOR.submit(_fetch_text)
+    texts = fut_text.result()
     texts = _rerank_text_hits_by_heading(query, texts)
+
+    if not RAG_VECTOR_FETCH_IMAGE_ANN:
+        LOG.info("[VectorRAG] skipping image ANN (RAG_VECTOR_FETCH_IMAGE_ANN=false)")
+        return texts, []
+
     image_pool_k = max(VECTOR_TOP_K_IMAGE, VECTOR_IMAGE_ANN_CANDIDATES)
-    images = pg.retrieval_vector_search(
-        qv,
-        "image",
-        image_pool_k,
-        chapter_topics=chapter_topics,
-        audience=audience,
-        book_name=book_name,
-        include_outdated_books=include_outdated_books,
-    )
+
+    def _fetch_images() -> list[dict]:
+        return pg.retrieval_vector_search(
+            qv,
+            "image",
+            image_pool_k,
+            chapter_topics=chapter_topics,
+            audience=audience,
+            book_name=book_name,
+            include_outdated_books=include_outdated_books,
+        )
+
+    images = _VECTOR_IO_EXECUTOR.submit(_fetch_images).result()
     return texts, images
 
 
