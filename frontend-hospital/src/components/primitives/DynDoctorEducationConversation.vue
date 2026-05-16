@@ -17,6 +17,9 @@ import {
   assistantDisplayFollowUps
 } from '../../services/domain/hospital/education/educationAssistantPayload';
 import { resolveStyle } from '../../core/engine/StyleResolver';
+import DynDoctorEducationPrescriptionSimilarity from './DynDoctorEducationPrescriptionSimilarity.vue';
+
+type QueryTab = 'books' | 'prescription';
 
 type ConversationFigure = {
   imgIndex: number;
@@ -82,6 +85,7 @@ const showQuickStarts = ref(true);
 const showSavedThreads = ref(false);
 const PANEL_PREFS_KEY = 'hospital.doctorEducationConversation.panelPrefs.v1';
 const hasLoadedPanelPrefs = ref(false);
+const queryTab = ref<QueryTab>('books');
 
 const education = computed(() => {
   return (appStore.getData('hospital', 'DoctorEducationUiState') ?? {}) as Record<string, unknown>;
@@ -108,6 +112,12 @@ const uiMode = computed<'flashcards' | 'conversation'>(() => {
     : 'conversation';
 });
 const hasBooks = computed(() => books.value.length > 0);
+const isBooksTab = computed(() => queryTab.value === 'books');
+const isPrescriptionTab = computed(() => queryTab.value === 'prescription');
+
+function setQueryTab(tab: QueryTab) {
+  queryTab.value = tab;
+}
 
 const userMessageRowClass = computed(() =>
   resolveStyle({ styleTemplate: 'hosp.education.conversation.userRow' })
@@ -500,9 +510,31 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
               {{ t('education.conversation.historyTitle') }}
             </p>
             <h3 class="text-xl font-semibold text-slate-900">{{ t('education.conversation.inputLabel') }}</h3>
+            <div class="flex flex-wrap gap-2 pt-2">
+              <button
+                type="button"
+                class="inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-sky-100"
+                :class="isBooksTab
+                  ? 'border-sky-300 bg-sky-600 text-white shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-sky-200 hover:bg-sky-50'"
+                @click="setQueryTab('books')"
+              >
+                {{ t('education.conversation.tabs.books') }}
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-sky-100"
+                :class="isPrescriptionTab
+                  ? 'border-sky-300 bg-sky-600 text-white shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-sky-200 hover:bg-sky-50'"
+                @click="setQueryTab('prescription')"
+              >
+                {{ t('education.conversation.tabs.prescription') }}
+              </button>
+            </div>
           </div>
 
-          <div class="shrink-0 flex items-center justify-end">
+          <div v-if="isBooksTab" class="shrink-0 flex items-center justify-end">
             <button
               type="button"
               class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100"
@@ -526,7 +558,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
         </div>
 
         <div
-          v-if="hasBooks"
+          v-if="isBooksTab && hasBooks"
           class="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center"
         >
           <label for="doctor-education-conversation-book" class="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -544,7 +576,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
         </div>
 
         <div
-          v-if="showConversationControls"
+          v-if="isBooksTab && showConversationControls"
           class="space-y-4 rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,_rgba(239,246,255,0.9),_rgba(255,255,255,0.96))] p-4 shadow-sm"
         >
           <div class="flex flex-wrap items-center gap-2">
@@ -656,7 +688,13 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
         </div>
         </div>
 
+        <DynDoctorEducationPrescriptionSimilarity
+          v-if="isPrescriptionTab"
+          class="order-2 flex min-h-0 flex-1 flex-col border-t border-slate-200 pt-4"
+        />
+
         <div
+          v-if="isBooksTab"
           class="order-2 flex min-h-0 flex-col border-slate-200"
           :class="
             messages.length > 0
@@ -783,7 +821,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
           </div>
         </div>
 
-        <div class="order-3 shrink-0 space-y-3 border-t border-slate-200 bg-white/95 pt-4 pb-2">
+        <div v-if="isBooksTab" class="order-3 shrink-0 space-y-3 border-t border-slate-200 bg-white/95 pt-4 pb-2">
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2 min-w-0">
               <label for="doctor-education-conversation-draft" class="text-xs font-semibold uppercase tracking-wide text-slate-500 min-w-0">

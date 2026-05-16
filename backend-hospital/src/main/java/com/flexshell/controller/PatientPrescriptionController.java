@@ -3,10 +3,12 @@ package com.flexshell.controller;
 import com.flexshell.controller.dto.PatientPrescriptionDownloadResponse;
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateRequest;
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateResponse;
+import com.flexshell.controller.dto.PatientPrescriptionSimilarityHitResponse;
 import com.flexshell.controller.dto.PatientPrescriptionSummaryResponse;
 import com.flexshell.controller.dto.PatientPrescriptionUploadResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.service.PatientPrescriptionService;
+import com.flexshell.service.PatientPrescriptionSimilarityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,9 +43,14 @@ public class PatientPrescriptionController {
     private static final Logger LOG = LoggerFactory.getLogger(PatientPrescriptionController.class);
 
     private final PatientPrescriptionService patientPrescriptionService;
+    private final PatientPrescriptionSimilarityService patientPrescriptionSimilarityService;
 
-    public PatientPrescriptionController(PatientPrescriptionService patientPrescriptionService) {
+    public PatientPrescriptionController(
+            PatientPrescriptionService patientPrescriptionService,
+            PatientPrescriptionSimilarityService patientPrescriptionSimilarityService
+    ) {
         this.patientPrescriptionService = patientPrescriptionService;
+        this.patientPrescriptionSimilarityService = patientPrescriptionSimilarityService;
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -192,6 +200,43 @@ public class PatientPrescriptionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(StandardApiResponse.success("Group created", data));
     }
 
+    @PostMapping(
+            value = "/similarity-search",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<StandardApiResponse<List<PatientPrescriptionSimilarityHitResponse>>> similaritySearch(
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "query", required = false) String query,
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            Authentication authentication
+    ) {
+        if (!isDoctorSimilarityUser(authentication)) {
+            return forbidden("Prescription similarity search is restricted to doctors.");
+        }
+        String userId = actorId(authentication);
+        if (userId.isBlank()) {
+            return unauthorized();
+        }
+        boolean hasFile = file != null && !file.isEmpty();
+        String queryText = Objects.toString(query, "").trim();
+        if (!hasFile && queryText.isBlank()) {
+            return badRequest("Enter search text or upload a prescription file.", "PATIENT_PRESCRIPTION_SIMILARITY_INVALID");
+        }
+        try {
+            List<PatientPrescriptionSimilarityHitResponse> hits = patientPrescriptionSimilarityService.search(
+                    userId, hasFile ? file : null, queryText, limit);
+            return ResponseEntity.ok(StandardApiResponse.success("Similar prescriptions ranked", hits));
+        } catch (IllegalArgumentException ex) {
+            return badRequest(ex.getMessage(), "PATIENT_PRESCRIPTION_SIMILARITY_INVALID");
+        } catch (SecurityException ex) {
+            return forbidden(ex.getMessage());
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_SIMILARITY_UNAVAILABLE"));
+        }
+    }
+
     @GetMapping(value = "/groups/{groupExternalId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<List<PatientPrescriptionSummaryResponse>>> listGroup(
             @PathVariable UUID groupExternalId,
@@ -214,6 +259,16 @@ public class PatientPrescriptionController {
 
     private static String actorId(Authentication authentication) {
         return authentication == null ? "" : Objects.toString(authentication.getName(), "").trim();
+    }
+
+    private static boolean isDoctorSimilarityUser(Authentication authentication) {
+        if (authentication == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(Objects::nonNull)
+                .anyMatch(a -> a.toUpperCase().contains("DOCTOR"));
     }
 
     private static <T> ResponseEntity<StandardApiResponse<T>> unauthorized() {

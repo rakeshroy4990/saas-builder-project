@@ -4,7 +4,7 @@
     "home": "Home",
     "dashboard": "Dashboard",
     "prescription": "Prescriptions",
-    "education": "Education",
+    "aiDiagnosis": "AI Diagnosis",
     "blog": "Blog",
     "loginRegister": "Login/Register",
     "bookNow": "Book Now",
@@ -611,7 +611,47 @@
       "cameraModalHint": "Align the prescription in the frame, then tap Capture.",
       "cameraModalCapture": "Capture",
       "cameraModalCancel": "Cancel",
-      "cameraNotReady": "Camera preview is not ready yet. Wait a moment or try again."
+      "cameraNotReady": "Camera preview is not ready yet. Wait a moment or try again.",
+      "tabs": {
+        "books": "Books",
+        "prescription": "Prescription"
+      }
+    },
+    "prescriptionSimilarity": {
+      "banner": "Search your uploaded prescriptions by clinical text or file. Results are ranked by vector similarity (cosine match).",
+      "inputLabel": "Query",
+      "inputPlaceholder": "Example: diabetes metformin — or paste a full prescription, or upload a PDF or image.",
+      "submitHint": "Press Enter to search, Shift+Enter for a new line.",
+      "search": "Find similar prescriptions",
+      "searching": "Searching…",
+      "searchFailed": "Could not search prescriptions. Try again.",
+      "emptyQuery": "Enter text or attach a prescription file to search.",
+      "noResults": "No matching prescriptions with embeddings were found.",
+      "resultsTitle": "Best matches",
+      "matchLabel": "Similarity score",
+      "unknownPatient": "Unknown patient",
+      "noSnippet": "No clinical summary stored for this prescription.",
+      "fields": {
+        "diagnosis": "Diagnosis",
+        "medicines": "Medicines",
+        "dosage": "Dosage",
+        "advice": "Advice",
+        "notes": "Notes"
+      },
+      "attachedFile": "Attached: {name}",
+      "removeFile": "Remove",
+      "quickFillTitle": "Quick fill with examples",
+      "viewPrescription": "View prescription",
+      "viewingPrescription": "Opening…",
+      "viewFailed": "Could not open this prescription.",
+      "quickFill": {
+        "diabetes": "Diabetes type 2",
+        "hypertension": "Hypertension",
+        "pediatricFever": "Pediatric fever",
+        "diabetesText": "Diagnosis: Type 2 Diabetes\nMedicines: Metformin 500mg BD, Glipizide 5mg OD\nDuration: 30 days",
+        "hypertensionText": "Diagnosis: Essential Hypertension\nMedicines: Amlodipine 5mg OD, Telmisartan 40mg OD\nDuration: 30 days",
+        "pediatricFeverText": "Diagnosis: Viral fever (pediatric)\nMedicines: Paracetamol 15mg/kg TID, ORS\nDuration: 5 days"
+      }
     },
     "explainer": {
       "title": "Medical Concept Explainer",

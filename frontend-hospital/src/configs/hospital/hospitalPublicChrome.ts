@@ -204,7 +204,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                i18nKey: 'nav.education',
+                i18nKey: 'nav.aiDiagnosis',
                 styles: {
                   styleTemplate: 'hosp.header.menuButton',
                   utilityClasses: 'bg-emerald-100 text-emerald-700'
@@ -226,7 +226,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               },
               config: {
-                i18nKey: 'nav.education',
+                i18nKey: 'nav.aiDiagnosis',
                 styles: { styleTemplate: 'hosp.header.menuButton' },
                 click: {
                   actionId: 'set-education-header-active',
@@ -618,7 +618,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          i18nKey: 'nav.education',
+          i18nKey: 'nav.aiDiagnosis',
           styles: { styleTemplate: 'hosp.header.menuButtonActive' },
           click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'doctor-education' } }
         }
@@ -634,7 +634,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         },
         config: {
-          i18nKey: 'nav.education',
+          i18nKey: 'nav.aiDiagnosis',
           styles: { styleTemplate: 'hosp.header.menuButton' },
           click: {
             actionId: 'set-education-header-active',

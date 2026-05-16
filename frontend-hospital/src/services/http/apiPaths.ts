@@ -66,6 +66,7 @@ export const SERVER_PATHS = {
   /** Patient-uploaded prescription documents (storage + extraction). */
   patientPrescriptions: '/api/v1/patient-prescriptions',
   patientPrescriptionsUpload: '/api/v1/patient-prescriptions/upload',
+  patientPrescriptionsSimilaritySearch: '/api/v1/patient-prescriptions/similarity-search',
   /** GET `?limit=` — public LLM-generated wellness blog teasers (cached on server). */
   hospitalBlogPreviews: '/api/hospital/blog/previews',
   /** GET/PUT user by id: pass `userId` query param; PUT profile update uses registration-shaped JSON; PUT `inactive=true` deactivates. */

@@ -21,6 +21,46 @@ public interface PatientPrescriptionJpaRepository extends JpaRepository<PatientP
 
     Page<PatientPrescriptionJpaEntity> findByDoctorIdAndDeletedFalse(String doctorId, Pageable pageable);
 
+    @Query(
+            value = """
+                    SELECT p.*
+                    FROM patient_prescriptions p
+                    WHERE p.deleted = false
+                      AND (
+                          p.doctor_id = :doctorId
+                          OR p.patient_user_id = :doctorId
+                          OR p.uploaded_by = :doctorId
+                          OR EXISTS (
+                              SELECT 1
+                              FROM appointments a
+                              WHERE a.id = p.appointment_id
+                                AND a.deleted = false
+                                AND a.doctor_id = :doctorId
+                          )
+                      )
+                    ORDER BY p.created_at DESC
+                    """,
+            countQuery = """
+                    SELECT COUNT(*)
+                    FROM patient_prescriptions p
+                    WHERE p.deleted = false
+                      AND (
+                          p.doctor_id = :doctorId
+                          OR p.patient_user_id = :doctorId
+                          OR p.uploaded_by = :doctorId
+                          OR EXISTS (
+                              SELECT 1
+                              FROM appointments a
+                              WHERE a.id = p.appointment_id
+                                AND a.deleted = false
+                                AND a.doctor_id = :doctorId
+                          )
+                      )
+                    """,
+            nativeQuery = true
+    )
+    Page<PatientPrescriptionJpaEntity> findVisibleToDoctor(@Param("doctorId") String doctorId, Pageable pageable);
+
     Page<PatientPrescriptionJpaEntity> findByDeletedFalse(Pageable pageable);
 
     @Modifying

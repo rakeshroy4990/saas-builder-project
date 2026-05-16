@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -154,7 +155,11 @@ public class PatientPrescriptionService {
         entity.setPatientUserId(patientUserId);
         entity.setUploadedBy(actorUserId);
         entity.setAppointmentId(resolvedAppointment.appointmentId());
-        entity.setDoctorId(resolvedAppointment.doctorId());
+        String doctorId = resolvedAppointment.doctorId();
+        if (doctorId == null && resolveRole(actorUserId) == UserRole.DOCTOR) {
+            doctorId = actorUserId;
+        }
+        entity.setDoctorId(doctorId);
         entity.setFileStoragePath(storagePath);
         entity.setFileHash(fileHash);
         entity.setFileSizeBytes(bytes.length);
@@ -182,7 +187,7 @@ public class PatientPrescriptionService {
         if (role == UserRole.ADMIN) {
             page = prescriptionRepository.findByDeletedFalse(pageable);
         } else if (role == UserRole.DOCTOR) {
-            page = prescriptionRepository.findByDoctorIdAndDeletedFalse(actorUserId, pageable);
+            page = prescriptionRepository.findVisibleToDoctor(actorUserId, unsortedPageable(pageable));
         } else {
             page = prescriptionRepository.findByPatientUserIdAndDeletedFalse(actorUserId, pageable);
         }
@@ -285,7 +290,7 @@ public class PatientPrescriptionService {
 
     private void assertCanRead(String actorUserId, PatientPrescriptionJpaEntity row) {
         UserRole role = resolveRole(actorUserId);
-        if (role == UserRole.ADMIN) {
+        if (role == UserRole.ADMIN || role == UserRole.DOCTOR) {
             return;
         }
         if (actorUserId.equals(row.getPatientUserId()) || actorUserId.equals(row.getUploadedBy())) {
@@ -307,6 +312,11 @@ public class PatientPrescriptionService {
         return userRepository.findById(userId)
                 .map(UserJpaEntity::getRole)
                 .orElse(UserRole.PATIENT);
+    }
+
+    /** Native SQL orders by {@code created_at}; ignore JPA property sorts like {@code createdAt}. */
+    private static Pageable unsortedPageable(Pageable pageable) {
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
     }
 
     private PatientPrescriptionSummaryResponse toSummary(PatientPrescriptionJpaEntity row) {
