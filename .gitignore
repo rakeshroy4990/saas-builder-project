@@ -1,3 +1,4 @@
+# ── Environment files ────────────────────────────────────────────
 *.env
 *.env.*
 **/.env
@@ -5,23 +6,37 @@
 !.env.example
 !**/.env.example
 
-# Google Cloud Console OAuth "Desktop" / client JSON — contains client_secret (never commit).
+# ── Secrets ──────────────────────────────────────────────────────
 client_secret_*.json
 **/client_secret_*.json
+
+# ── Cloud Run configs ────────────────────────────────────────────
 *cloudrun.yaml
+*cloudrun.yml
 **/*cloudrun.yaml
 **/*cloudrun.yml
-backend-hospital-cloudrun.yaml
-pdf-rag-pipeline-cloudrun.yaml
-backend-hospital/backend-hospital-cloudrun.yaml
 
-# Python virtual environments (never commit — site-packages can exceed GitHub 100MB limit)
+# ── Python ───────────────────────────────────────────────────────
 .venv/
 venv/
 ENV/
 env/
 **/.venv/
-.venv/
-.venv/
-.venv/
-pdf-rag-pipeline/.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── PDFs (store in S3/GCS) ───────────────────────────────────────
+pdf-rag-pipeline/pdfs/
+**/*.pdf
+
+# ── Node modules ─────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Build output ─────────────────────────────────────────────────
+dist/
+build/
+target/
+*.jar
