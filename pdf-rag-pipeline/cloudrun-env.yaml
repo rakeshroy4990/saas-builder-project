@@ -26,6 +26,8 @@ APP_LOG_LEVEL: INFO
 RAG_LOG_FULL_PROMPT: "true"
 RAG_LOG_PROMPT_PREVIEW_CHARS: "400"
 DOMAIN_POINTS_FILE: config/domain_points.json
+# RAG chunk images (S3); auto-created on startup via db/image_store.ensure_bucket_exists
+STORAGE_BUCKET: chunk-images
 CORS_ORIGINS: "https://agastyahealthcare.com,https://www.agastyahealthcare.com,https://backend-hospital-yspwmymsgq-el.a.run.app,https://oshu-ai-clinic-ui.onrender.com,http://localhost:5173"
 SENTRY_TRACES_SAMPLE_RATE: "1.0"
 SENTRY_ENABLED: "true"

@@ -23,6 +23,8 @@ import { callHospitalServices } from './call/callServices';
 import { doctorScheduleHospitalServices } from './doctor/doctorScheduleHospitalServices';
 import { profileUserHospitalServices } from './profile/profileUserServices';
 import { prescriptionHospitalServices } from './prescription/prescriptionServices';
+import { prescriptionNavHospitalServices } from './prescription/prescriptionNavServices';
+import { patientPrescriptionUploadHospitalServices } from './prescription/patientPrescriptionUploadServices';
 import { doctorEducationHospitalServices } from './education/doctorEducationServices';
 import { doctorEducationConversationHospitalServices } from './education/doctorEducationConversationServices';
 import { blogHospitalServices } from './blog/blogHospitalServices';
@@ -56,6 +58,8 @@ export const hospitalServices: ServiceDefinition[] = [
   ...doctorScheduleHospitalServices,
   ...profileUserHospitalServices,
   ...prescriptionHospitalServices,
+  ...prescriptionNavHospitalServices,
+  ...patientPrescriptionUploadHospitalServices,
   ...doctorEducationHospitalServices,
   ...doctorEducationConversationHospitalServices,
   ...blogHospitalServices

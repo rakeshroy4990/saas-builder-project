@@ -9,6 +9,7 @@ import { pinia } from '../store/pinia';
  */
 const REQUIRES_AUTHENTICATED_SESSION = new Set([
   'dashboard',
+  'prescriptions',
   'patient-dashboard',
   'profile',
   'doctor-working-slots',

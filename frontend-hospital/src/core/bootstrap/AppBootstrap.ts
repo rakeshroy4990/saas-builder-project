@@ -16,6 +16,8 @@ import DynRadioGroup from '../../components/primitives/DynRadioGroup.vue';
 import DynDoctorScheduleEditor from '../../components/primitives/DynDoctorScheduleEditor.vue';
 import DynMedicineListEditor from '../../components/primitives/DynMedicineListEditor.vue';
 import DynDoctorEducationWorkspace from '../../components/primitives/DynDoctorEducationWorkspace.vue';
+import DynPrescriptionUpload from '../../components/primitives/DynPrescriptionUpload.vue';
+import DynPrescriptionList from '../../components/primitives/DynPrescriptionList.vue';
 import DynLanguageSwitcher from '../../components/primitives/DynLanguageSwitcher.vue';
 
 /** STOMP + chat UI — not needed for first paint. */
@@ -43,6 +45,8 @@ export function bootstrap(): void {
   ComponentRegistry.register('doctor-schedule-editor', DynDoctorScheduleEditor);
   ComponentRegistry.register('medicine-list-editor', DynMedicineListEditor);
   ComponentRegistry.register('doctor-education-workspace', DynDoctorEducationWorkspace);
+  ComponentRegistry.register('prescription-upload', DynPrescriptionUpload);
+  ComponentRegistry.register('prescription-list', DynPrescriptionList);
 
   registerHospitalModule();
 }

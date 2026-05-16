@@ -270,13 +270,18 @@ export function registerStyleTemplates(): void {
     utilityClasses: 'w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover'
   });
   StyleTemplateRegistry.register('hosp.header.title', {
-    utilityClasses: 'block min-w-0 truncate whitespace-nowrap text-base sm:text-lg md:text-xl font-extrabold text-slate-900'
+    utilityClasses:
+      'inline-block min-w-0 max-w-full truncate whitespace-nowrap text-base sm:text-lg md:text-xl font-extrabold text-slate-900'
   });
   StyleTemplateRegistry.register('hosp.header.menuButton', {
     utilityClasses: 'max-w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100'
   });
   StyleTemplateRegistry.register('hosp.header.menuButtonActive', {
     utilityClasses: 'max-w-full rounded-lg bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700'
+  });
+  StyleTemplateRegistry.register('hosp.header.homeIcon', {
+    utilityClasses:
+      'relative z-10 inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40'
   });
   StyleTemplateRegistry.register('hosp.header.userButton', {
     utilityClasses:

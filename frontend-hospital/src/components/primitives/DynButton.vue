@@ -10,8 +10,8 @@ interface ButtonConfig {
   text?: string;
   /** Shown next to the busy spinner while `actionPending` (defaults to `text` so controls stay readable). */
   pendingLabel?: string;
-  /** Renders the Google “G” icon before optional `text` (icon-only if `text` is empty). */
-  iconPreset?: 'google';
+  /** Icon-only or leading icon when `text` is empty. */
+  iconPreset?: 'google' | 'home';
   /** Small affordance after label (e.g. account menu trigger). */
   trailingVisual?: 'chevron-down';
   disabled?: boolean;
@@ -41,13 +41,13 @@ const isDisabled = computed(() => !!(props.config?.disabled || props.config?.act
 const classes = computed(() => [
   resolveStyle(props.config?.styles),
   DISABLED_NATIVE_CONTROL_CLASSES,
-  props.config?.actionPending ? 'cursor-wait' : ''
+  props.config?.actionPending ? 'cursor-wait' : props.config?.iconPreset === 'home' ? 'cursor-pointer' : ''
 ]);
 
 const shouldRender = computed(() => {
   if (!props.config?.hiddenWhenEmptyText) return true;
   const hasText = String(props.config?.text ?? '').trim().length > 0;
-  const hasIcon = props.config?.iconPreset === 'google';
+  const hasIcon = props.config?.iconPreset === 'google' || props.config?.iconPreset === 'home';
   return hasText || hasIcon;
 });
 
@@ -56,6 +56,9 @@ const buttonAriaLabel = computed((): string | undefined => {
   const text = String(props.config?.text ?? '').trim();
   if (preset === 'google' && !text) {
     return props.config?.title?.trim() || 'Sign in with Google';
+  }
+  if (preset === 'home' && !text) {
+    return props.config?.title?.trim() || 'Home';
   }
   return undefined;
 });
@@ -86,6 +89,19 @@ const onClick = () => {
       <span class="min-w-0 truncate text-left">{{
         String(config?.pendingLabel ?? config?.text ?? 'Please wait…').trim() || 'Please wait…'
       }}</span>
+    </span>
+    <span
+      v-else-if="config?.iconPreset === 'home'"
+      class="pointer-events-none inline-flex items-center justify-center"
+      aria-hidden="true"
+    >
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+        />
+      </svg>
     </span>
     <span
       v-else-if="config?.iconPreset === 'google'"

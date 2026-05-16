@@ -1,0 +1,50 @@
+---
+description: Standard GlobalPopup dialogs in frontend-hospital — config-driven, never ad-hoc modal markup in primitives
+globs: frontend-hospital/src/configs/**/*.ts, frontend-hospital/src/components/primitives/**/*.vue, frontend-hospital/src/services/domain/**/*.ts
+alwaysApply: false
+---
+
+# Hospital popups (GlobalPopup)
+
+All user-facing dialogs (confirmations, success, forms) must use the **config-driven popup system**, not custom `fixed inset-0` overlays inside primitives.
+
+## How it works
+
+1. **`usePopupStore.open({ packageName, pageId, title? })`** — opens `GlobalPopup.vue` (Teleport to body).
+2. **`PageConfig`** with `pageId` ending in `-popup` registered in `hospitalPages` (`pages.ts` or `*PopupPage.ts`).
+3. **`DynamicContainer`** renders the popup from config; backdrop/panel use `system.popup.*` style templates.
+
+## Required popup layout
+
+```text
+container (flex flex-col gap-6)
+├── header container — layoutTemplate: hosp.popup.header
+│   └── text — styleTemplate: hosp.popup.header.title (i18nKey for title)
+├── body text — styleTemplate: hosp.section.subheading + text-center (message)
+└── actions container — flex justify-center gap-3
+    ├── Cancel — hosp.popup.button.secondary + actionType: closePopup
+    └── Primary — hosp.popup.button.primary + actionId (+ onSuccess chain)
+```
+
+Reference implementations:
+
+- `prescriptionUploadSuccessPopupPage.ts` — title + message + Cancel / View
+- `pages.ts` → `register-success-popup`, `login-popup`, `appointment-success-popup`
+
+## Opening from code
+
+- **Config actions:** `click: { actionId: 'open-*-popup' }` on buttons.
+- **Primitives / services:** `useActionEngine(pageConfig).execute({ actionId: 'open-*-popup' })` or `usePopupStore(pinia).open({ packageName: 'hospital', pageId: '…' })` inside a `ServiceDefinition`.
+
+Add matching services in `services/domain/hospital/` and register in `hospitalServices`.
+
+## Do not
+
+- Build success/confirm dialogs with inline HTML in `Dyn*.vue` (except device-specific flows like camera capture).
+- Use `useToastStore` for outcomes that need **Cancel / primary choice** — toasts are transient only.
+- Invent new button colors; use `hosp.popup.button.primary` / `secondary`.
+
+## i18n
+
+- Titles and messages under `popup.*` in `locales/en/messages.json` and `locales/hi/messages.json`.
+- Register new `pageId` in `e2e/manifests/hospitalRoutes.ts` when adding a popup page.

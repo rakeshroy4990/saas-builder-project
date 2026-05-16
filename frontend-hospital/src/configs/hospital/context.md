@@ -13,6 +13,10 @@
 - Registration: `modules/HospitalModule.ts` imports `hospitalPages` from `./pages` (via `../configs/hospital/pages`)
 - Behaviors that call APIs live in `services/domain/hospital/services.ts` (service definitions keyed in config)
 
+## Popups
+
+Use **GlobalPopup** + declarative `PageConfig` (`layoutTemplate: hosp.popup.header`, `hosp.popup.button.*`). Do not add custom modal HTML in primitives. See `.cursor/rules/frontend-popups.mdc` and `prescriptionUploadSuccessPopupPage.ts`.
+
 ## When you change this
 
 - Keep **pageId** renames in sync with `router` redirects and any bookmarks/docs

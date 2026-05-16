@@ -12,4 +12,6 @@ alwaysApply: false
 
 **Layout:** Components `src/components/{domain}/{Name}.vue`; pages `src/pages/{patient|doctor|admin}/{Name}.vue`; stores `src/stores/{name}.store.ts`; API `src/services/{name}.service.ts`. Tailwind only (no inline styles). Validate forms client-side; user-facing errors sanitized (no raw API errors).
 
+**Popups:** Use `GlobalPopup` + declarative `*-popup` page configs (`usePopupStore` / `open-*` services). Never build success/confirm overlays inside primitives. See `frontend-popups.mdc`.
+
 **Agora:** Tokens only from backend; channel = appointment UUID (not raw user IDs); handle token refresh mid-call; degrade to audio when network poor; on `onUnmounted`, close tracks and `client.leave()`.

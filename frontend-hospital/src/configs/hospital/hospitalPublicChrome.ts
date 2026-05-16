@@ -58,6 +58,22 @@ const hospitalPublicHeader: ComponentDefinition = {
                 layoutTemplate: 'hosp.header.brand',
                 children: [
                   {
+                    id: 'hospital-public-header-home-icon',
+                    type: 'button',
+                    config: {
+                      iconPreset: 'home',
+                      titleI18nKey: 'nav.home',
+                      styles: { styleTemplate: 'hosp.header.homeIcon' },
+                      click: {
+                        actionId: 'set-home-header-active',
+                        onSuccess: {
+                          actionType: 'navigate',
+                          navigate: { packageName: 'hospital', pageId: 'home' }
+                        }
+                      }
+                    }
+                  },
+                  {
                     id: 'hospital-public-header-logo',
                     type: 'image',
                     config: {
@@ -103,45 +119,6 @@ const hospitalPublicHeader: ComponentDefinition = {
           styles: { utilityClasses: 'hidden lg:flex items-center gap-4' },
           children: [
             {
-              id: 'hospital-public-header-nav-home-active',
-              type: 'button',
-              condition: {
-                expression: "activeMenu === 'HOME'",
-                mappings: {
-                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                }
-              },
-              config: {
-                i18nKey: 'nav.home',
-                styles: {
-                  styleTemplate: 'hosp.header.menuButton',
-                  utilityClasses: 'bg-emerald-100 text-emerald-700'
-                },
-                click: {
-                  actionId: 'set-home-header-active',
-                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-                }
-              }
-            },
-            {
-              id: 'hospital-public-header-nav-home',
-              type: 'button',
-              condition: {
-                expression: "activeMenu !== 'HOME'",
-                mappings: {
-                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                }
-              },
-              config: {
-                i18nKey: 'nav.home',
-                styles: { styleTemplate: 'hosp.header.menuButton' },
-                click: {
-                  actionId: 'set-home-header-active',
-                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-                }
-              }
-            },
-            {
               id: 'hospital-public-header-nav-dashboard-active',
               type: 'button',
               condition: {
@@ -174,6 +151,45 @@ const hospitalPublicHeader: ComponentDefinition = {
                 click: {
                   actionId: 'set-dashboard-header-active',
                   onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+                }
+              }
+            },
+            {
+              id: 'hospital-public-header-nav-prescription-active',
+              type: 'button',
+              condition: {
+                expression: "activeMenu === 'PRESCRIPTION'",
+                mappings: {
+                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                }
+              },
+              config: {
+                i18nKey: 'nav.prescription',
+                styles: {
+                  styleTemplate: 'hosp.header.menuButton',
+                  utilityClasses: 'bg-emerald-100 text-emerald-700'
+                },
+                click: {
+                  actionId: 'set-prescription-header-active',
+                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'prescriptions' } }
+                }
+              }
+            },
+            {
+              id: 'hospital-public-header-nav-prescription',
+              type: 'button',
+              condition: {
+                expression: "activeMenu !== 'PRESCRIPTION'",
+                mappings: {
+                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+                }
+              },
+              config: {
+                i18nKey: 'nav.prescription',
+                styles: { styleTemplate: 'hosp.header.menuButton' },
+                click: {
+                  actionId: 'set-prescription-header-active',
+                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'prescriptions' } }
                 }
               }
             },
@@ -488,7 +504,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               id: 'hospital-public-header-actions-cta-row',
               type: 'container',
               config: {
-                styles: { utilityClasses: 'flex w-auto shrink-0 justify-end' },
+                styles: { utilityClasses: 'flex w-auto shrink-0 justify-start md:justify-end' },
                 children: [
                   {
                     id: 'hospital-public-header-cta',
@@ -523,39 +539,6 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
     styles: { utilityClasses: 'lg:hidden rounded-xl border border-slate-200 bg-white px-3 py-2' },
     children: [
       {
-        id: 'hospital-public-mobile-menu-home-active',
-        type: 'button',
-        condition: {
-          expression: "activeMenu === 'HOME'",
-          mappings: {
-            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-          }
-        },
-        config: {
-          i18nKey: 'nav.home',
-          styles: { styleTemplate: 'hosp.header.menuButtonActive' },
-          click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-        }
-      },
-      {
-        id: 'hospital-public-mobile-menu-home',
-        type: 'button',
-        condition: {
-          expression: "activeMenu !== 'HOME'",
-          mappings: {
-            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-          }
-        },
-        config: {
-          i18nKey: 'nav.home',
-          styles: { styleTemplate: 'hosp.header.menuButton' },
-          click: {
-            actionId: 'set-home-header-active',
-            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'home' } }
-          }
-        }
-      },
-      {
         id: 'hospital-public-mobile-menu-dashboard-active',
         type: 'button',
         condition: {
@@ -585,6 +568,42 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           click: {
             actionId: 'set-dashboard-header-active',
             onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+          }
+        }
+      },
+      {
+        id: 'hospital-public-mobile-menu-prescription-active',
+        type: 'button',
+        condition: {
+          expression: "activeMenu === 'PRESCRIPTION'",
+          mappings: {
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+          }
+        },
+        config: {
+          i18nKey: 'nav.prescription',
+          styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+          click: {
+            actionId: 'set-prescription-header-active',
+            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'prescriptions' } }
+          }
+        }
+      },
+      {
+        id: 'hospital-public-mobile-menu-prescription',
+        type: 'button',
+        condition: {
+          expression: "activeMenu !== 'PRESCRIPTION'",
+          mappings: {
+            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+          }
+        },
+        config: {
+          i18nKey: 'nav.prescription',
+          styles: { styleTemplate: 'hosp.header.menuButton' },
+          click: {
+            actionId: 'set-prescription-header-active',
+            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'prescriptions' } }
           }
         }
       },

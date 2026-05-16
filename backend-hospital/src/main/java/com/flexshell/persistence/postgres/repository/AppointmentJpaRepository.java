@@ -6,8 +6,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public interface AppointmentJpaRepository extends JpaRepository<AppointmentJpaEntity, String> {
+
+    Optional<AppointmentJpaEntity> findByExternalIdAndDeletedFalse(UUID externalId);
 
     Page<AppointmentJpaEntity> findByDoctorIdAndDeletedFalse(String doctorId, Pageable pageable);
 

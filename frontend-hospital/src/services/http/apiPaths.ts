@@ -63,6 +63,9 @@ export const SERVER_PATHS = {
   hospitalEducationKeyTopics: '/api/hospital/education/key-topics',
   /** POST multipart `file` — doctor-only prescription image/PDF transcription for education chat. */
   hospitalEducationPrescriptionTranscribe: '/api/hospital/education/prescription-transcribe',
+  /** Patient-uploaded prescription documents (storage + extraction). */
+  patientPrescriptions: '/api/v1/patient-prescriptions',
+  patientPrescriptionsUpload: '/api/v1/patient-prescriptions/upload',
   /** GET `?limit=` — public LLM-generated wellness blog teasers (cached on server). */
   hospitalBlogPreviews: '/api/hospital/blog/previews',
   /** GET/PUT user by id: pass `userId` query param; PUT profile update uses registration-shaped JSON; PUT `inactive=true` deactivates. */

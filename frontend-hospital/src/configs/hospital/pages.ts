@@ -1,6 +1,8 @@
 import type { PageConfig } from '../../core/types/PageConfig';
 import { hospitalBookAppointmentPage, hospitalBookAppointmentPopupPage } from './bookAppointmentPage';
 import { hospitalEprescriptionPopupPage } from './eprescriptionPopupPage';
+import { hospitalPrescriptionsPage } from './prescriptionsPage';
+import { hospitalPrescriptionUploadSuccessPopupPage } from './prescriptionUploadSuccessPopupPage';
 import { hospitalProfilePage } from './profilePage';
 import { hospitalTermsPage } from './termsPage';
 import { hospitalPrivacyPage } from './privacyPage';
@@ -1697,6 +1699,8 @@ export const hospitalPages: PageConfig[] = [
       ]
     }
   },
+  hospitalPrescriptionsPage,
+  hospitalPrescriptionUploadSuccessPopupPage,
   {
     packageName: 'hospital',
     pageId: 'patient-dashboard',

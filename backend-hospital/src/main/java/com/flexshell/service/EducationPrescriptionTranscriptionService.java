@@ -8,6 +8,7 @@ import com.flexshell.ai.GeminiChatAdapter;
 import com.flexshell.ai.OpenAiChatAdapter;
 import com.flexshell.ai.SmartAiQuotaService;
 import com.flexshell.controller.dto.EducationPrescriptionTranscribeData;
+import com.flexshell.prescription.OpdPrintedFieldExtractor;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
@@ -32,8 +33,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -134,7 +135,9 @@ public class EducationPrescriptionTranscriptionService {
             stripper.setEndPage(Math.min(3, pages));
             String extracted = Objects.toString(stripper.getText(doc), "").trim();
             if (extracted.length() >= MIN_PDF_TEXT_CHARS) {
-                return structurePlainTextWithLlm(collapseBlankLines(extracted));
+                EducationPrescriptionTranscribeData structured =
+                        structurePlainTextWithLlm(collapseBlankLines(extracted));
+                return OpdPrintedFieldExtractor.enrich(structured, extracted);
             }
             PDFRenderer renderer = new PDFRenderer(doc);
             BufferedImage rendered = renderer.renderImageWithDPI(0, pdfRenderDpi, ImageType.RGB);
@@ -145,7 +148,9 @@ public class EducationPrescriptionTranscriptionService {
                     pdfRenderDpi,
                     maxImageEdgePx,
                     jpeg.length);
-            return parsePrescriptionJson(visionTranscribe("image/jpeg", jpeg));
+            EducationPrescriptionTranscribeData vision =
+                    parsePrescriptionJson(visionTranscribe("image/jpeg", jpeg));
+            return OpdPrintedFieldExtractor.enrich(vision, extracted);
         } catch (IOException ex) {
             throw new IllegalArgumentException("Could not read PDF.");
         }
@@ -174,7 +179,9 @@ public class EducationPrescriptionTranscriptionService {
                 mime,
                 jpegBytes.length,
                 maxImageEdgePx);
-        return parsePrescriptionJson(visionTranscribe("image/jpeg", jpegBytes));
+        EducationPrescriptionTranscribeData vision =
+                parsePrescriptionJson(visionTranscribe("image/jpeg", jpegBytes));
+        return OpdPrintedFieldExtractor.splitAgeGenderIfNeeded(vision);
     }
 
     private EducationPrescriptionTranscribeData structurePlainTextWithLlm(String text) {
@@ -230,32 +237,39 @@ public class EducationPrescriptionTranscriptionService {
     }
 
     private EducationPrescriptionTranscribeData buildTranscribeDataFromJson(JsonNode n) {
-        if (!n.isObject()) {
-            throw new IllegalArgumentException("Prescription model output was not valid JSON.");
+        EducationPrescriptionTranscribeData parsed =
+                OpdPrintedFieldExtractor.splitAgeGenderIfNeeded(PrescriptionExtractionJsonParser.fromJson(n));
+        String diagnosis = parsed.diagnosis().isBlank() ? "Not stated" : parsed.diagnosis();
+        String medications = parsed.medications();
+        if (medications.isBlank() && parsed.medicines().isEmpty()) {
+            medications = "Not stated";
+        } else if (medications.isBlank()) {
+            medications = String.join("\n", parsed.medicines());
         }
-        String d = pickJsonStringField(n, "diagnosis");
-        String m = pickJsonStringField(n, "medications");
-        String textBlob = pickJsonStringField(n, "text");
-        if (d.isBlank() && m.isBlank() && !textBlob.isBlank()) {
-            EducationPrescriptionTranscribeData fromText = extractDiagnosisMedicationsFromPlainText(textBlob);
-            d = fromText.diagnosis();
-            m = fromText.medications();
-        } else if (!textBlob.isBlank()) {
-            EducationPrescriptionTranscribeData fromText = extractDiagnosisMedicationsFromPlainText(textBlob);
-            if (d.isBlank()) {
-                d = fromText.diagnosis();
-            }
-            if (m.isBlank()) {
-                m = fromText.medications();
-            }
-        }
-        if (d.isBlank()) {
-            d = "Not stated";
-        }
-        if (m.isBlank()) {
-            m = "Not stated";
-        }
-        return new EducationPrescriptionTranscribeData(d, m);
+        return new EducationPrescriptionTranscribeData(
+                parsed.hospitalName(),
+                parsed.documentType(),
+                parsed.registrationNumber(),
+                parsed.receiptNumber(),
+                parsed.appointmentDate(),
+                parsed.patientName(),
+                parsed.patientAge(),
+                parsed.patientGender(),
+                parsed.ageGender(),
+                parsed.department(),
+                parsed.consultant(),
+                parsed.address(),
+                parsed.mobileNumber(),
+                parsed.referredBy(),
+                diagnosis,
+                medications,
+                parsed.medicines(),
+                parsed.dosage(),
+                parsed.advice(),
+                parsed.doctorName(),
+                parsed.prescriptionDate(),
+                parsed.notes()
+        );
     }
 
     /**
@@ -307,7 +321,7 @@ public class EducationPrescriptionTranscriptionService {
      */
     static EducationPrescriptionTranscribeData extractDiagnosisMedicationsFromPlainText(String raw) {
         if (raw == null || raw.isBlank()) {
-            return new EducationPrescriptionTranscribeData("Not stated", "Not stated");
+            return legacyPlainTextFallback("Not stated", "Not stated", List.of());
         }
         String text = raw.replace("\r\n", "\n").trim();
         java.util.regex.Pattern medSep = java.util.regex.Pattern.compile("(?i)\\n\\s*Medications\\s*:\\s*");
@@ -339,28 +353,54 @@ public class EducationPrescriptionTranscriptionService {
         if (medications.isBlank()) {
             medications = "Not stated";
         }
-        return new EducationPrescriptionTranscribeData(diagnosis, medications);
+        List<String> medicineLines = splitPlainMedicationLines(medications);
+        return legacyPlainTextFallback(diagnosis, medications, medicineLines);
     }
 
-    private static String pickJsonStringField(JsonNode object, String key) {
-        Iterator<Map.Entry<String, JsonNode>> it = object.fields();
-        while (it.hasNext()) {
-            Map.Entry<String, JsonNode> e = it.next();
-            if (e.getKey().equalsIgnoreCase(key)) {
-                JsonNode v = e.getValue();
-                if (v == null || v.isNull()) {
-                    return "";
-                }
-                if (v.isTextual()) {
-                    return v.asText("").trim();
-                }
-                if (v.isNumber()) {
-                    return v.asText().trim();
-                }
-                return v.toString().trim();
+    private static EducationPrescriptionTranscribeData legacyPlainTextFallback(
+            String diagnosis,
+            String medications,
+            List<String> medicineLines
+    ) {
+        return new EducationPrescriptionTranscribeData(
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                diagnosis,
+                medications,
+                medicineLines,
+                List.of(),
+                List.of(),
+                "",
+                "",
+                ""
+        );
+    }
+
+    private static List<String> splitPlainMedicationLines(String medications) {
+        String text = Objects.toString(medications, "").trim();
+        if (text.isBlank() || "Not stated".equalsIgnoreCase(text)) {
+            return List.of();
+        }
+        List<String> lines = new java.util.ArrayList<>();
+        for (String line : text.split("\\r?\\n")) {
+            String t = line.trim();
+            if (!t.isBlank()) {
+                lines.add(t);
             }
         }
-        return "";
+        return lines.isEmpty() ? List.of(text) : lines;
     }
 
     private static String stripJsonFences(String raw) {

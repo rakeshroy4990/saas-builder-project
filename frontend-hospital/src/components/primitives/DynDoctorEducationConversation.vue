@@ -666,7 +666,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
         >
           <div
             ref="threadRef"
-            class="min-h-0 space-y-4 overflow-y-auto pr-0.5"
+            class="min-h-0 space-y-4 overflow-y-auto pb-6 pr-0.5"
             :class="messages.length > 0 ? 'flex-1' : ''"
             role="log"
             aria-live="polite"

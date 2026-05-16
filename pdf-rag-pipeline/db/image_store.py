@@ -8,7 +8,8 @@ from botocore.config import Config
 
 logger = logging.getLogger(__name__)
 
-BUCKET = "chunk-images"
+# Same env contract as backend-hospital S3 storage; pdf-rag defaults to chunk-images, hospital to prescriptions.
+BUCKET = (os.environ.get("STORAGE_BUCKET") or os.environ.get("RAG_STORAGE_BUCKET") or "chunk-images").strip() or "chunk-images"
 
 _s3 = None
 

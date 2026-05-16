@@ -71,6 +71,7 @@ children: buildStandardUiChrome('page-id-prefix', [
 
 - Use a **unique** `idPrefix` per page (`home`, `cart`, `checkout`) so component `id`s stay unique.
 - Popups / minimal dialogs that should not show global chrome: **do not** use `buildStandardUiChrome`; keep a flat `children` list.
+- **Hospital modals:** use `GlobalPopup` + `PageConfig` (`*-popup` pageId), not inline overlay markup in primitives. See `.cursor/rules/frontend-popups.mdc` and `prescriptionUploadSuccessPopupPage.ts`.
 - To hide menu or footer on a route: `buildStandardUiChrome(prefix, outlet, { includeMenu: false })` or `includeFooter: false`.
 
 Treat the outlet array as the only place “screen content” belongs; keeps layout consistent with the [building-components](https://skills.sh/vercel/components.build/building-components) idea of composable regions.

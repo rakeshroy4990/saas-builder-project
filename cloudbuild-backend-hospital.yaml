@@ -6,6 +6,9 @@
 # AI keys (same names as backend-hospital/.env APP_AI_*):
 #   printf %s 'sk-...' | gcloud secrets create backend-hospital-app-ai-openai-api-key --data-file=-
 #   printf %s 'AIza...' | gcloud secrets create backend-hospital-app-ai-gemini-api-key --data-file=-
+# Prescription S3 credentials:
+#   printf %s 'your-s3-access-key' | gcloud secrets create backend-hospital-supabase-s3-access-key --data-file=-
+#   printf %s 'your-s3-secret-key' | gcloud secrets create backend-hospital-supabase-s3-secret-key --data-file=-
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -42,7 +45,7 @@ steps:
       - backend-hospital/cloudrun-env.yaml
       # Required when APP_VIDEO_PROVIDER=agora: JVM startup fails if certificate secret is missing (see AgoraVideoSessionAdapter).
       - --set-secrets
-      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest,APP_AI_OPENAI_API_KEY=backend-hospital-app-ai-openai-api-key:latest,APP_AI_GEMINI_API_KEY=backend-hospital-app-ai-gemini-api-key:latest
+      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest,APP_AI_OPENAI_API_KEY=backend-hospital-app-ai-openai-api-key:latest,APP_AI_GEMINI_API_KEY=backend-hospital-app-ai-gemini-api-key:latest,SUPABASE_S3_ACCESS_KEY=backend-hospital-supabase-s3-access-key:latest,SUPABASE_S3_SECRET_KEY=backend-hospital-supabase-s3-secret-key:latest
       - --quiet
 
 images:

@@ -3,6 +3,7 @@
     "menu": "Menu",
     "home": "Home",
     "dashboard": "Dashboard",
+    "prescription": "Prescriptions",
     "education": "Education",
     "blog": "Blog",
     "loginRegister": "Login/Register",
@@ -29,6 +30,7 @@
       "patientDashboard": "Agastya Healthcare | Your patient dashboard and care updates.",
       "doctorOverview": "Agastya Healthcare | Meet our care team and specialists.",
       "doctorEducation": "Agastya Healthcare | Clinical learning workspace for doctors.",
+      "prescriptions": "Agastya Healthcare | Upload and manage your prescriptions securely.",
       "blog": "Agastya Healthcare | Wellness stories for curious readers.",
       "blogArticle": "Agastya Healthcare | Wellness stories for curious readers.",
       "chat": "Agastya Healthcare | Questions? Our team is here to help.",
@@ -52,6 +54,9 @@
     "resetPassword": "Reset password",
     "chooseLanguage": "Choose your language",
     "chooseLanguageHint": "This controls menus and labels in the app. You can change it later from Profile.",
+    "prescriptionUploaded": "Prescription",
+    "prescriptionUploadedMessage": "Prescription uploaded successfully",
+    "prescriptionUploadedView": "View",
     "error": {
       "title": "Something went wrong",
       "generic": "Something went wrong while processing your request. Please try again.",
@@ -92,6 +97,7 @@
   "page": {
     "home": { "title": "Agastya Healthcare Hospital" },
     "dashboard": { "title": "Dashboard" },
+    "prescriptions": { "title": "Prescriptions" },
     "terms": { "title": "Terms & Conditions" },
     "privacy": { "title": "Privacy Notice (India)" },
     "blog": { "title": "Wellness Blog" },
@@ -319,6 +325,53 @@
         "female": "Female",
         "other": "Other"
       }
+    }
+  },
+  "prescriptions": {
+    "nav": {
+      "upload": "Upload Prescription",
+      "view": "View Prescription"
+    },
+    "upload": {
+      "title": "Upload prescription",
+      "hint": "Add photos or PDFs of your prescriptions. You can upload multiple files at once.",
+      "dropHint": "Drag and drop files here, or click to browse",
+      "browse": "Choose files",
+      "camera": "Take photo",
+      "uploading": "Uploading…",
+      "processing": "Processing on server…",
+      "duplicate": "Already on file",
+      "success": "Uploaded successfully",
+      "successModalTitle": "Prescription",
+      "successModalMessage": "Prescription uploaded successfully",
+      "successModalView": "View",
+      "uploadedExtracting": "Uploaded — analysis in progress",
+      "failed": "Upload failed",
+      "invalidType": "Use JPEG, PNG, or PDF files only.",
+      "cameraModalTitle": "Capture prescription",
+      "cameraModalHint": "Align the prescription in the frame, then tap Capture.",
+      "capture": "Capture",
+      "queueEmpty": "No files selected yet."
+    },
+    "view": {
+      "title": "Your prescriptions",
+      "empty": "No prescriptions uploaded yet.",
+      "refresh": "Refresh",
+      "download": "Download",
+      "status": {
+        "pending": "Pending",
+        "processing": "Processing",
+        "verified": "Verified",
+        "rejected": "Rejected"
+      },
+      "columns": {
+        "date": "Uploaded",
+        "status": "Status",
+        "type": "Type",
+        "actions": "Actions"
+      },
+      "extractedSummary": "Extracted summary",
+      "loadFailed": "Could not load prescriptions."
     }
   },
   "dashboard": {
