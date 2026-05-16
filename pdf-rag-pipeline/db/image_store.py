@@ -32,6 +32,55 @@ def _get_s3():
     return _s3
 
 
+def _s3_endpoint_lower() -> str:
+    return os.environ.get("SUPABASE_S3_ENDPOINT", "").strip().lower()
+
+
+def _use_batch_delete() -> bool:
+    """Supabase Storage S3 rejects boto3 DeleteObjects (InvalidRequest: required property 'Body')."""
+    if "supabase" in _s3_endpoint_lower():
+        return False
+    return os.environ.get("S3_BATCH_DELETE", "true").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+
+
+def _delete_s3_keys(keys: list[str]) -> int:
+    if not keys:
+        return 0
+    s3 = _get_s3()
+    if _use_batch_delete():
+        try:
+            deleted = 0
+            for i in range(0, len(keys), 900):
+                batch = keys[i : i + 900]
+                s3.delete_objects(
+                    Bucket=BUCKET,
+                    Delete={"Objects": [{"Key": k} for k in batch], "Quiet": True},
+                )
+                deleted += len(batch)
+            return deleted
+        except ClientError as e:
+            code = (e.response.get("Error") or {}).get("Code", "")
+            msg = str(e)
+            if code != "InvalidRequest" and "Body" not in msg:
+                raise
+            logger.info(
+                "[ImageStore] Batch delete_objects not supported by endpoint; using delete_object per key"
+            )
+    deleted = 0
+    for key in keys:
+        try:
+            s3.delete_object(Bucket=BUCKET, Key=key)
+            deleted += 1
+        except ClientError as e:
+            logger.warning("[ImageStore] delete_object failed for %s: %s", key, e)
+    return deleted
+
+
 def ensure_bucket_exists() -> None:
     s3 = _get_s3()
     try:
@@ -88,17 +137,20 @@ def build_public_image_url(
 def delete_images_for_file(file_hash: str) -> int:
     s3 = _get_s3()
     try:
-        objects = s3.list_objects_v2(Bucket=BUCKET, Prefix=f"{file_hash}/")
-        keys = [o["Key"] for o in objects.get("Contents", [])]
-        if keys:
-            s3.delete_objects(
-                Bucket=BUCKET,
-                Delete={"Objects": [{"Key": k} for k in keys]},
-            )
-            logger.info(f"[ImageStore] Deleted {len(keys)} images for {file_hash}")
-            return len(keys)
+        keys: list[str] = []
+        paginator = s3.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=BUCKET, Prefix=f"{file_hash}/"):
+            for o in page.get("Contents", []) or []:
+                key = o.get("Key")
+                if key:
+                    keys.append(key)
+        if not keys:
+            return 0
+        deleted = _delete_s3_keys(keys)
+        logger.info("[ImageStore] Deleted %s objects for %s", deleted, file_hash)
+        return deleted
     except Exception as e:
-        logger.warning(f"[ImageStore] Delete failed for {file_hash}: {e}")
+        logger.warning("[ImageStore] Delete failed for %s: %s", file_hash, e)
     return 0
 
 
@@ -213,9 +265,13 @@ def delete_marker_images_for_page_range(file_hash: str, p0: int, p1: int) -> Non
                         to_delete.append(key)
         if not to_delete:
             return
-        for i in range(0, len(to_delete), 900):
-            batch = to_delete[i : i + 900]
-            s3.delete_objects(Bucket=BUCKET, Delete={"Objects": [{"Key": k} for k in batch]})
-        logger.info("[ImageStore] Deleted %s marker assets for %s pages %s–%s", len(to_delete), file_hash, p0, p1)
+        deleted = _delete_s3_keys(to_delete)
+        logger.info(
+            "[ImageStore] Deleted %s marker assets for %s pages %s–%s",
+            deleted,
+            file_hash,
+            p0,
+            p1,
+        )
     except Exception as e:
         logger.warning("[ImageStore] Marker delete failed for %s: %s", file_hash, e)

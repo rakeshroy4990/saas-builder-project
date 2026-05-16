@@ -35,6 +35,31 @@ MONGO_SERVER_SELECTION_TIMEOUT_MS = max(1000, int(os.getenv("MONGO_SERVER_SELECT
 MONGO_CONNECT_TIMEOUT_MS = max(1000, int(os.getenv("MONGO_CONNECT_TIMEOUT_MS", "8000")))
 # libpq connect_timeout (seconds) for Postgres pool (startup + runtime).
 PG_CONNECT_TIMEOUT = max(3, int(os.getenv("PG_CONNECT_TIMEOUT", "15")))
+# Supabase session pooler (port 5432) caps concurrent clients (~15 on free tier). Keep this small and
+# share the budget with backend-hospital / other tools. Transaction pooler (port 6543) allows more clients.
+PG_POOL_MIN_SIZE = max(0, int(os.getenv("PG_POOL_MIN_SIZE", "0")))
+PG_POOL_MAX_SIZE = max(1, int(os.getenv("PG_POOL_MAX_SIZE", "2")))
+PG_POOL_TIMEOUT = max(5, float(os.getenv("PG_POOL_TIMEOUT", "30")))
+
+
+def _env_int_optional(name: str) -> int | None:
+    raw = os.getenv(name)
+    if raw is None or not str(raw).strip():
+        return None
+    try:
+        return int(str(raw).strip())
+    except ValueError:
+        return None
+
+
+# Transaction pooler (Supabase :6543) + PgBouncer: disable server-side prepared statements.
+_pg_prepare_raw = os.getenv("PG_PREPARE_THRESHOLD")
+if _pg_prepare_raw is not None and str(_pg_prepare_raw).strip().lower() in {"", "none", "null"}:
+    PG_PREPARE_THRESHOLD: int | None = None
+else:
+    PG_PREPARE_THRESHOLD = _env_int_optional("PG_PREPARE_THRESHOLD")
+    if PG_PREPARE_THRESHOLD is None and ":6543" in DATABASE_URL:
+        PG_PREPARE_THRESHOLD = None
 
 
 def is_postgres_persistence() -> bool:

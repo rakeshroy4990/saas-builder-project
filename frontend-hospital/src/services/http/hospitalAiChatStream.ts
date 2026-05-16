@@ -7,6 +7,7 @@ const VITE_PERF_ENABLED = import.meta.env.VITE_PERF_ENABLED === 'true';
 
 export type HospitalAiChatStreamHandlers = {
   onReady?: (data: unknown) => void;
+  onStatus?: (phase: string) => void;
   onDelta?: (chunk: string) => void;
   onComplete?: (data: Record<string, unknown>) => void;
 };
@@ -41,7 +42,8 @@ type NdjsonEvent = Record<string, unknown> & {
 function dispatchNdjsonLine(
   line: string,
   handlers: HospitalAiChatStreamHandlers,
-  sawComplete: { value: boolean }
+  sawComplete: { value: boolean },
+  streamTiming?: { t0: number; firstDeltaLogged: boolean }
 ): void {
   if (!line) return;
   let obj: NdjsonEvent;
@@ -56,9 +58,27 @@ function dispatchNdjsonLine(
   const payload = obj.data !== undefined && obj.data !== null ? obj.data : obj.Data;
 
   if (t === 'ready') handlers.onReady?.(payload);
-  if (t === 'delta') {
-    const chunk = typeof obj.text === 'string' ? obj.text : typeof obj.Text === 'string' ? obj.Text : '';
-    if (chunk) handlers.onDelta?.(chunk);
+  if (t === 'status' && payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const phase = String((payload as Record<string, unknown>).phase ?? '').trim();
+    if (phase) handlers.onStatus?.(phase);
+  }
+  if (t === 'delta' || t === 'token') {
+    let chunk = '';
+    if (typeof obj.text === 'string') {
+      chunk = obj.text;
+    } else if (typeof obj.Text === 'string') {
+      chunk = obj.Text;
+    } else if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+      const p = payload as Record<string, unknown>;
+      chunk = String(p.token ?? p.Token ?? '').trim();
+    }
+    if (chunk) {
+      if (streamTiming && !streamTiming.firstDeltaLogged) {
+        console.log(`UI_FIRST_DELTA_MS=${Date.now() - streamTiming.t0}`);
+        streamTiming.firstDeltaLogged = true;
+      }
+      handlers.onDelta?.(chunk);
+    }
   }
   if (t === 'complete' && payload && typeof payload === 'object' && !Array.isArray(payload)) {
     sawComplete.value = true;
@@ -133,6 +153,8 @@ export async function postHospitalAiChatNdjson(
     const dec = new TextDecoder();
     let buf = '';
     const sawComplete = { value: false };
+    const streamTiming = { t0: Date.now(), firstDeltaLogged: false };
+    let firstChunkLogged = false;
 
     const drainBufferedLines = (): void => {
       for (;;) {
@@ -140,13 +162,17 @@ export async function postHospitalAiChatNdjson(
         if (nl < 0) break;
         const line = buf.slice(0, nl).trim();
         buf = buf.slice(nl + 1);
-        dispatchNdjsonLine(line, handlers, sawComplete);
+        dispatchNdjsonLine(line, handlers, sawComplete, streamTiming);
       }
     };
 
     for (;;) {
       const { done, value } = await reader.read();
       if (value && value.byteLength > 0) {
+        if (!firstChunkLogged) {
+          console.log(`UI_FIRST_CHUNK_MS=${Date.now() - streamTiming.t0}`);
+          firstChunkLogged = true;
+        }
         buf += dec.decode(value, { stream: !done });
       }
       drainBufferedLines();
@@ -156,7 +182,7 @@ export async function postHospitalAiChatNdjson(
         const tail = buf.trim();
         buf = '';
         if (tail) {
-          dispatchNdjsonLine(tail, handlers, sawComplete);
+          dispatchNdjsonLine(tail, handlers, sawComplete, streamTiming);
         }
         if (!sawComplete.value) {
           throw new Error(

@@ -527,6 +527,8 @@
       "sourceChip": "Source: {source}",
       "chunksChip": "{count} chunks",
       "loadingAnswer": "Preparing a grounded answer…",
+      "searchingSources": "Searching the selected textbook…",
+      "generatingAnswer": "Writing your answer…",
       "figuresTitle": "Source figures",
       "referenceTitle": "Reference",
       "referenceLine": "{book} · p. {page}",

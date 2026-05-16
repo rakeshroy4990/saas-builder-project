@@ -8,6 +8,7 @@
 #   (Omit the password secret if the JDBC URL already embeds user:password.)
 #   printf %s 'your-jwt-secret' | gcloud secrets create backend-hospital-app-auth-jwt-secret --data-file=-
 #   printf %s 'agora-cert' | gcloud secrets create backend-hospital-app-video-agora-certificate --data-file=-
+#   printf %s 'sk-...' | gcloud secrets create backend-hospital-app-ai-openai-api-key --data-file=-
 #   printf %s 'AIza...' | gcloud secrets create backend-hospital-app-ai-gemini-api-key --data-file=-
 #   printf %s 'AIza...' | gcloud secrets create backend-hospital-youtube-api-key --data-file=-   # YouTube Data API v3 (app.youtube.api-key / YOUTUBE_API_KEY)
 #   printf %s 'internal-email-secret' | gcloud secrets create backend-hospital-app-email-internal-secret --data-file=-
@@ -25,7 +26,8 @@
 #   for s in \
 #     backend-hospital-spring-data-mongodb-uri backend-hospital-spring-datasource-url \
 #     backend-hospital-app-auth-jwt-secret \
-#     backend-hospital-app-video-agora-certificate backend-hospital-app-ai-gemini-api-key \
+#     backend-hospital-app-video-agora-certificate backend-hospital-app-ai-openai-api-key \
+#     backend-hospital-app-ai-gemini-api-key \
 #     backend-hospital-youtube-api-key backend-hospital-app-email-internal-secret \
 #     email-notify-resend-api-key \
 #     pdf-rag-pipeline-mongo-uri pdf-rag-pipeline-database-url pdf-rag-pipeline-jwt-secret \
@@ -128,7 +130,7 @@ steps:
       - backend-hospital/cloudrun-env.yaml
       # When APP_VIDEO_PROVIDER=agora (cloudrun-env), backend-hospital fails fast at startup if this secret is missing/empty.
       - --set-secrets
-      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,SPRING_DATASOURCE_URL=backend-hospital-spring-datasource-url:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest,YOUTUBE_API_KEY=backend-hospital-youtube-api-key:latest,APP_EMAIL_INTERNAL_SECRET=backend-hospital-app-email-internal-secret:latest
+      - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,SPRING_DATASOURCE_URL=backend-hospital-spring-datasource-url:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest,YOUTUBE_API_KEY=backend-hospital-youtube-api-key:latest,APP_EMAIL_INTERNAL_SECRET=backend-hospital-app-email-internal-secret:latest,APP_AI_OPENAI_API_KEY=backend-hospital-app-ai-openai-api-key:latest
       - --quiet
 
   # ── pdf-rag-pipeline: deploy ──────────────────────────────────

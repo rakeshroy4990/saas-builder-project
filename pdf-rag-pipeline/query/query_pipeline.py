@@ -21,11 +21,13 @@ from query.intent_classifier import infer_allowed_topics
 from query.keyword_extractor import extract_keywords
 from query.llm_service import (
     answer_with_context,
+    async_iter_openai_chat_stream_tokens,
     finalize_streamed_llm_raw,
     iter_openai_chat_stream_tokens,
     _build_stream_plain_prompt,
 )
 from query import llm_service
+from query.rag_timing import bind_query_wall_clock, log_timing
 from query.retriever import retrieve_top_chunks
 from query.safety_layer import check_safety
 from db.image_store import build_public_image_url
@@ -172,6 +174,80 @@ def _images_from_vector_api(api_images: list[dict]) -> list[dict]:
             "source_file": str(img.get("source_file") or ""),
         })
     return out
+
+
+def _collect_all_response_images(
+    selected: list[dict],
+    used_vector: bool,
+    api_images: list[dict],
+) -> list[dict]:
+    """Build API figure list (may query DB for page-local images)."""
+    from query.vector_retriever import (
+        collect_page_local_images_for_selected_chunks,
+        filter_api_images_by_selected_chunks,
+    )
+
+    filtered_vector_images: list[dict] = []
+    all_response_images: list[dict] = []
+    seen_image_keys: set[str] = set()
+
+    if not RAG_CHAT_INCLUDE_SOURCE_FIGURES:
+        LOG.info("[RAG][FIGURES] source figures omitted (RAG_CHAT_INCLUDE_SOURCE_FIGURES=false)")
+        return []
+
+    if used_vector:
+        filtered_vector_images = collect_page_local_images_for_selected_chunks(
+            selected,
+            page_window=IMAGE_CONTEXT_PAGE_WINDOW,
+            max_return=VECTOR_TOP_K_IMAGE,
+        )
+        if not filtered_vector_images and api_images:
+            filtered_vector_images = filter_api_images_by_selected_chunks(
+                api_images,
+                selected,
+                page_window=IMAGE_CONTEXT_PAGE_WINDOW,
+                max_return=VECTOR_TOP_K_IMAGE,
+            )
+
+    if used_vector and filtered_vector_images:
+        return _images_from_vector_api(filtered_vector_images)
+
+    for chunk in selected:
+        for img in _extract_images_for_response(chunk):
+            key = f"{chunk.get('page_num')}_{img['img_index']}"
+            if key not in seen_image_keys:
+                seen_image_keys.add(key)
+                all_response_images.append(img)
+    return all_response_images
+
+
+def _build_focused_selected(
+    selected: list[dict],
+    effective_question: str,
+    used_vector: bool,
+    fig_summary_chunk: Optional[dict] = None,
+) -> list[dict]:
+    selected_for_llm = list(selected)
+    if fig_summary_chunk:
+        selected_for_llm.append(fig_summary_chunk)
+        if context_tokens(selected_for_llm) > MAX_CONTEXT_TOKENS:
+            selected_for_llm.pop()
+    focused_selected: list[dict] = []
+    for chunk in selected_for_llm:
+        focused_text = _chunk_text_for_llm(
+            chunk.get("text", ""),
+            effective_question,
+            from_vector=used_vector,
+        )
+        focused_selected.append({**chunk, "text": focused_text})
+        LOG.info(
+            "[RAG][FOCUSED_CHUNK] source=%s page=%s focused_chars=%s images_in_chunk=%s",
+            chunk.get("source_file", "unknown"),
+            chunk.get("page_num", "?"),
+            len(focused_text),
+            len(_extract_images_for_response(chunk)),
+        )
+    return focused_selected
 
 
 def _answer_body_without_followups(answer: str) -> str:
@@ -454,6 +530,8 @@ async def handle_query(
 
     trace = PerfTrace(operation="query") if PERF_ENABLED else None
     wall_start = time.perf_counter() if PERF_ENABLED else None
+    query_t0 = time.perf_counter()
+    bind_query_wall_clock(query_t0)
 
     # ── Cache check ───────────────────────────────────────────────────────────
     cached = get_cached(
@@ -488,39 +566,13 @@ async def handle_query(
             ),
         )
     LOG.info("[RAG][CACHE] miss question=%s audience=%s", user_query, audience)
+    log_timing("T1_after_cache")
 
-    # ── Safety ────────────────────────────────────────────────────────────────
-    safety = check_safety(user_query)
-    if not safety.safe:
-        return await _return_with_stream(
-            stream_queue,
-            _apply_perf(
-                trace,
-                wall_start,
-                {
-                    "answer": safety.reason,
-                    "follow_up_questions": [],
-                    "images": [],
-                    "source": "safety_block",
-                    "reference": [],
-                },
-            ),
-        )
-    if safety.escalate:
-        return await _return_with_stream(
-            stream_queue,
-            _apply_perf(
-                trace,
-                wall_start,
-                {
-                    "answer": "Your symptoms may indicate an emergency. Please call emergency services or visit the nearest hospital immediately.",
-                    "follow_up_questions": [],
-                    "images": [],
-                    "source": "escalation",
-                    "reference": [],
-                },
-            ),
-        )
+    if stream_queue is not None:
+        await stream_queue.put(("status", {"phase": "retrieving"}))
+
+    # Safety is cheap; run in parallel with retrieval (embedding dominates T3).
+    safety_task = asyncio.create_task(asyncio.to_thread(check_safety, user_query))
 
     # ── Retrieval ─────────────────────────────────────────────────────────────
     with _perf_span(trace, "keyword_extract"):
@@ -533,6 +585,7 @@ async def handle_query(
             allowed_topics,
             audience,
         )
+    log_timing("T1b_after_intent")
 
     used_vector = False
     api_images: list[dict] = []
@@ -553,6 +606,7 @@ async def handle_query(
                 # when page_topic_classifier labeled chunks with different `chapter_topic` strings.
                 vector_topics = None if _is_broad_definition_query(effective_question) else allowed_topics
 
+                fetch_image_ann = stream_queue is None
                 if stream_queue is not None:
                     text_hits, image_hits = await asyncio.to_thread(
                         retrieve_vector_dual,
@@ -561,6 +615,7 @@ async def handle_query(
                         audience,
                         book_name=book_scope or None,
                         include_outdated_books=include_outdated_books,
+                        fetch_image_ann=fetch_image_ann,
                     )
                 else:
                     text_hits, image_hits = retrieve_vector_dual(
@@ -569,8 +624,10 @@ async def handle_query(
                         audience=audience,
                         book_name=book_scope or None,
                         include_outdated_books=include_outdated_books,
+                        fetch_image_ann=fetch_image_ann,
                     )
                 llm_chunks, api_images = build_llm_chunks_and_response_images(text_hits, image_hits)
+                log_timing("T3d_after_chunk_build", chunks=str(len(llm_chunks)))
                 if len(llm_chunks) >= MIN_CHUNKS_REQUIRED:
                     chunks = llm_chunks
                     used_vector = True
@@ -605,6 +662,41 @@ async def handle_query(
                     book_name=book_scope or None,
                     include_outdated_books=include_outdated_books,
                 )
+
+    log_timing("T3_after_retrieval", vector=str(used_vector), chunks=str(len(chunks)))
+
+    safety = await safety_task
+    if not safety.safe:
+        return await _return_with_stream(
+            stream_queue,
+            _apply_perf(
+                trace,
+                wall_start,
+                {
+                    "answer": safety.reason,
+                    "follow_up_questions": [],
+                    "images": [],
+                    "source": "safety_block",
+                    "reference": [],
+                },
+            ),
+        )
+    if safety.escalate:
+        return await _return_with_stream(
+            stream_queue,
+            _apply_perf(
+                trace,
+                wall_start,
+                {
+                    "answer": "Your symptoms may indicate an emergency. Please call emergency services or visit the nearest hospital immediately.",
+                    "follow_up_questions": [],
+                    "images": [],
+                    "source": "escalation",
+                    "reference": [],
+                },
+            ),
+        )
+    log_timing("T2_after_safety")
     LOG.info(
         "[RAG][RETRIEVE] question=%s retrieved=%s vector=%s",
         user_query, len(chunks), used_vector,
@@ -649,7 +741,8 @@ async def handle_query(
             selected            = trim_chunks(selected)
             context_token_count = context_tokens(selected)
             LOG.info("[RAG][CONTEXT] trimmed selected=%s tokens=%s", len(selected), context_token_count)
-    
+        print(f"T4_after_context={time.perf_counter() - query_t0:.3f}s")
+
         if len(selected) < MIN_CHUNKS_REQUIRED:
             return await _return_with_stream(
                 stream_queue,
@@ -662,33 +755,149 @@ async def handle_query(
                 },
             )
     
-        # ── Figures (optional: API Images + optional figure-summary chunk for the LLM) ─
-        filtered_vector_images: list[dict] = []
-        fig_summary_chunk: Optional[dict] = None
+        want_token_stream = (
+            stream_queue is not None
+            and LLM_PROVIDER == "openai"
+            and not llm_service._is_flashcard_generation_task(user_query)
+        )
         all_response_images: list[dict] = []
-        seen_image_keys: set[str] = set()
-    
-        if RAG_CHAT_INCLUDE_SOURCE_FIGURES:
-            if used_vector:
-                filtered_vector_images = collect_page_local_images_for_selected_chunks(
-                    selected,
-                    page_window=IMAGE_CONTEXT_PAGE_WINDOW,
-                    max_return=VECTOR_TOP_K_IMAGE,
+        fig_summary_chunk: Optional[dict] = None
+        focused_selected: list[dict] = []
+        llm_result: dict = {}
+
+        if want_token_stream:
+            await stream_queue.put(
+                (
+                    "ready",
+                    {
+                        "source": "rag",
+                        "images": [],
+                        "chunks_used": len(selected),
+                    },
                 )
-                if not filtered_vector_images and api_images:
-                    filtered_vector_images = filter_api_images_by_selected_chunks(
-                        api_images,
+            )
+            await stream_queue.put(("status", {"phase": "generating"}))
+            focused_selected = _build_focused_selected(
+                selected, effective_question, used_vector, fig_summary_chunk=None
+            )
+            print(f"T5_after_focused={time.perf_counter() - query_t0:.3f}s")
+
+            async def _llm_stream_worker() -> dict:
+                try:
+                    prompt = _build_stream_plain_prompt(
+                        user_query, focused_selected, audience
+                    )
+                    print(f"LLM_CALL_START={time.perf_counter() - query_t0:.3f}s")
+                    raw_parts: list[str] = []
+                    i = 0
+                    first_token_logged = False
+                    async for tok in async_iter_openai_chat_stream_tokens(prompt):
+                        if not first_token_logged:
+                            print(f"FIRST_TOKEN_AT={time.perf_counter() - query_t0:.3f}s")
+                            first_token_logged = True
+                        raw_parts.append(tok)
+                        await stream_queue.put(("delta", tok))
+                        if i % 4 == 0:
+                            await asyncio.sleep(0)
+                        i += 1
+                    raw = "".join(raw_parts)
+                    return await asyncio.to_thread(
+                        finalize_streamed_llm_raw,
+                        raw,
+                        user_query,
+                        focused_selected,
+                        audience,
+                    )
+                except Exception:
+                    LOG.exception("[RAG][LLM_STREAM] failed; sync fallback")
+                    print(f"LLM_CALL_START={time.perf_counter() - query_t0:.3f}s")
+                    result = await asyncio.to_thread(
+                        answer_with_context,
+                        user_query,
+                        focused_selected,
+                        audience,
+                    )
+                    ans_fb = str(result.get("answer", "") or "")
+                    step = 160
+                    for j in range(0, len(ans_fb), step):
+                        if j == 0:
+                            print(f"FIRST_TOKEN_AT={time.perf_counter() - query_t0:.3f}s")
+                        await stream_queue.put(("delta", ans_fb[j : j + step]))
+                        if j % (step * 4) == 0:
+                            await asyncio.sleep(0)
+                    return result
+
+            llm_result, all_response_images = await asyncio.gather(
+                _llm_stream_worker(),
+                asyncio.to_thread(
+                    _collect_all_response_images, selected, used_vector, api_images
+                ),
+            )
+        else:
+            from query.vector_retriever import (
+                build_optional_figure_summary_chunk,
+                collect_page_local_images_for_selected_chunks,
+                filter_api_images_by_selected_chunks,
+            )
+
+            filtered_vector_images: list[dict] = []
+            seen_image_keys: set[str] = set()
+
+            if RAG_CHAT_INCLUDE_SOURCE_FIGURES:
+                if used_vector:
+                    filtered_vector_images = collect_page_local_images_for_selected_chunks(
                         selected,
                         page_window=IMAGE_CONTEXT_PAGE_WINDOW,
                         max_return=VECTOR_TOP_K_IMAGE,
                     )
-    
-            if filtered_vector_images:
-                fig_summary_chunk = build_optional_figure_summary_chunk(filtered_vector_images)
-    
-            if used_vector and filtered_vector_images:
-                all_response_images = _images_from_vector_api(filtered_vector_images)
-                seen_image_keys = {str(i.get("url") or "") for i in all_response_images if i.get("url")}
+                    if not filtered_vector_images and api_images:
+                        filtered_vector_images = filter_api_images_by_selected_chunks(
+                            api_images,
+                            selected,
+                            page_window=IMAGE_CONTEXT_PAGE_WINDOW,
+                            max_return=VECTOR_TOP_K_IMAGE,
+                        )
+
+                if filtered_vector_images:
+                    fig_summary_chunk = build_optional_figure_summary_chunk(
+                        filtered_vector_images
+                    )
+
+                if used_vector and filtered_vector_images:
+                    all_response_images = _images_from_vector_api(filtered_vector_images)
+                    seen_image_keys = {
+                        str(i.get("url") or "") for i in all_response_images if i.get("url")
+                    }
+                    for chunk in selected:
+                        LOG.info(
+                            "[RAG][SELECTED_CHUNK] source=%s page=%s score=%s images=%s text=\n%s",
+                            chunk.get("source_file", "unknown"),
+                            chunk.get("page_num", "?"),
+                            chunk.get("weighted_score", chunk.get("score", "")),
+                            0,
+                            _chunk_text_for_log(chunk.get("text", "")),
+                        )
+                else:
+                    for chunk in selected:
+                        chunk_text_raw = chunk.get("text", "")
+                        imgs = _extract_images_for_response(chunk)
+                        LOG.info(
+                            "[RAG][SELECTED_CHUNK] source=%s page=%s score=%s images=%s text=\n%s",
+                            chunk.get("source_file", "unknown"),
+                            chunk.get("page_num", "?"),
+                            chunk.get("weighted_score", chunk.get("score", "")),
+                            len(imgs),
+                            _chunk_text_for_log(chunk_text_raw),
+                        )
+                        for img in imgs:
+                            key = f"{chunk.get('page_num')}_{img['img_index']}"
+                            if key not in seen_image_keys:
+                                seen_image_keys.add(key)
+                                all_response_images.append(img)
+            else:
+                LOG.info(
+                    "[RAG][FIGURES] source figures omitted (RAG_CHAT_INCLUDE_SOURCE_FIGURES=false)"
+                )
                 for chunk in selected:
                     LOG.info(
                         "[RAG][SELECTED_CHUNK] source=%s page=%s score=%s images=%s text=\n%s",
@@ -698,97 +907,18 @@ async def handle_query(
                         0,
                         _chunk_text_for_log(chunk.get("text", "")),
                     )
-            else:
-                for chunk in selected:
-                    chunk_text_raw = chunk.get("text", "")
-                    imgs = _extract_images_for_response(chunk)
-                    LOG.info(
-                        "[RAG][SELECTED_CHUNK] source=%s page=%s score=%s images=%s text=\n%s",
-                        chunk.get("source_file", "unknown"),
-                        chunk.get("page_num", "?"),
-                        chunk.get("weighted_score", chunk.get("score", "")),
-                        len(imgs),
-                        _chunk_text_for_log(chunk_text_raw),
-                    )
-                    for img in imgs:
-                        key = f"{chunk.get('page_num')}_{img['img_index']}"
-                        if key not in seen_image_keys:
-                            seen_image_keys.add(key)
-                            all_response_images.append(img)
-        else:
-            LOG.info("[RAG][FIGURES] source figures omitted (RAG_CHAT_INCLUDE_SOURCE_FIGURES=false)")
-            for chunk in selected:
-                LOG.info(
-                    "[RAG][SELECTED_CHUNK] source=%s page=%s score=%s images=%s text=\n%s",
-                    chunk.get("source_file", "unknown"),
-                    chunk.get("page_num", "?"),
-                    chunk.get("weighted_score", chunk.get("score", "")),
-                    0,
-                    _chunk_text_for_log(chunk.get("text", "")),
-                )
-    
-        selected_for_llm = list(selected)
-        if fig_summary_chunk:
-            selected_for_llm.append(fig_summary_chunk)
-            if context_tokens(selected_for_llm) > MAX_CONTEXT_TOKENS:
-                selected_for_llm.pop()
-    
-        # ── Prepare text for LLM (vector: keep full excerpts; FTS: keyword focus) ─
-        focused_selected = []
-        for chunk in selected_for_llm:
-            focused_text = _chunk_text_for_llm(
-                chunk.get("text", ""),
-                effective_question,
-                from_vector=used_vector,
+
+            focused_selected = _build_focused_selected(
+                selected, effective_question, used_vector, fig_summary_chunk
             )
-            focused_selected.append({**chunk, "text": focused_text})
-            LOG.info(
-                "[RAG][FOCUSED_CHUNK] source=%s page=%s focused_chars=%s images_in_chunk=%s",
-                chunk.get("source_file", "unknown"),
-                chunk.get("page_num", "?"),
-                len(focused_text),
-                len(_extract_images_for_response(chunk)),
-            )
-    
+            print(f"T5_after_focused={time.perf_counter() - query_t0:.3f}s")
+
     with _perf_span(trace, "llm"):
-        # focused_selected has base64 stripped — prompt stays compact.
-        # Images are returned separately so the UI can render them.
-        want_token_stream = (
-            stream_queue is not None
-            and LLM_PROVIDER == "openai"
-            and not llm_service._is_flashcard_generation_task(user_query)
-        )
-        llm_result: dict
-        if want_token_stream:
-            await stream_queue.put(
-                (
-                    "ready",
-                    {
-                        "source":      "rag",
-                        "images":      all_response_images,
-                        "chunks_used": len(selected),
-                    },
-                )
+        if not want_token_stream:
+            print(f"LLM_CALL_START={time.perf_counter() - query_t0:.3f}s")
+            llm_result = answer_with_context(
+                user_query, focused_selected, audience=audience
             )
-            try:
-                prompt = _build_stream_plain_prompt(user_query, focused_selected, audience)
-                raw_parts: list[str] = []
-                for i, tok in enumerate(iter_openai_chat_stream_tokens(prompt)):
-                    raw_parts.append(tok)
-                    await stream_queue.put(("delta", tok))
-                    if i % 4 == 0:
-                        await asyncio.sleep(0)
-                raw = "".join(raw_parts)
-                llm_result = finalize_streamed_llm_raw(raw, user_query, focused_selected, audience)
-            except Exception:
-                LOG.exception("[RAG][LLM_STREAM] failed; sync fallback")
-                llm_result = answer_with_context(user_query, focused_selected, audience=audience)
-                ans_fb = str(llm_result.get("answer", "") or "")
-                step = 160
-                for i in range(0, len(ans_fb), step):
-                    await stream_queue.put(("delta", ans_fb[i : i + step]))
-        else:
-            llm_result = answer_with_context(user_query, focused_selected, audience=audience)
 
     with _perf_span(trace, "response_format"):
         answer             = str(llm_result.get("answer", "")).strip()

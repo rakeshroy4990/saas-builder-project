@@ -26,6 +26,7 @@ from config.settings import (
 )
 from db import postgres_backend as pg
 from query.embedding_service import embed_query
+from query.rag_timing import log_timing
 from query.token_utils import estimate_tokens
 
 LOG = logging.getLogger(__name__)
@@ -218,6 +219,7 @@ def retrieve_vector_dual(
     *,
     book_name: Optional[str] = None,
     include_outdated_books: bool = False,
+    fetch_image_ann: Optional[bool] = None,
 ) -> tuple[list[dict], list[dict]]:
     """Returns (text_hits, image_hits) with similarity scores."""
     qv = embed_query(query.strip())
@@ -228,7 +230,11 @@ def retrieve_vector_dual(
     if str(book_name or "").strip():
         # Single-book queries need deeper candidate pools so the right section
         # is still inside the ANN shortlist after filtering.
-        text_k = min(max(VECTOR_TOP_K_TEXT * 2, 48), 128)
+        if fetch_image_ann is False:
+            # Streaming path: smaller pool → faster embedding/ANN before first LLM token.
+            text_k = min(max(VECTOR_TOP_K_TEXT, 20), 32)
+        else:
+            text_k = min(max(VECTOR_TOP_K_TEXT * 2, 48), 128)
 
     def _fetch_text() -> list[dict]:
         return pg.retrieval_vector_search(
@@ -243,10 +249,13 @@ def retrieve_vector_dual(
 
     fut_text = _VECTOR_IO_EXECUTOR.submit(_fetch_text)
     texts = fut_text.result()
+    log_timing("T3b_after_vector_search", text_hits=str(len(texts)))
     texts = _rerank_text_hits_by_heading(query, texts)
+    log_timing("T3c_after_rerank", text_hits=str(len(texts)))
 
-    if not RAG_VECTOR_FETCH_IMAGE_ANN:
-        LOG.info("[VectorRAG] skipping image ANN (RAG_VECTOR_FETCH_IMAGE_ANN=false)")
+    use_image_ann = RAG_VECTOR_FETCH_IMAGE_ANN if fetch_image_ann is None else bool(fetch_image_ann)
+    if not use_image_ann:
+        LOG.info("[VectorRAG] skipping image ANN (fetch_image_ann=false)")
         return texts, []
 
     image_pool_k = max(VECTOR_TOP_K_IMAGE, VECTOR_IMAGE_ANN_CANDIDATES)

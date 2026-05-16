@@ -16,6 +16,7 @@ import {
   assistantDisplayBody,
   assistantDisplayFollowUps
 } from '../../services/domain/hospital/education/educationAssistantPayload';
+import { resolveStyle } from '../../core/engine/StyleResolver';
 
 type ConversationFigure = {
   imgIndex: number;
@@ -107,6 +108,40 @@ const uiMode = computed<'flashcards' | 'conversation'>(() => {
     : 'conversation';
 });
 const hasBooks = computed(() => books.value.length > 0);
+
+const userMessageRowClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.userRow' })
+);
+const userMessageBubbleClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.userBubble' })
+);
+const userMessageLabelClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.userLabel' })
+);
+const userMessageBodyClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.userBody' })
+);
+const resendButtonClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.resendButton' })
+);
+const resendButtonFailedClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.resendButtonFailed' })
+);
+const assistantMessageRowClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.assistantRow' })
+);
+const assistantMessageBubbleClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.assistantBubble' })
+);
+const assistantMessageLabelClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.assistantLabel' })
+);
+const assistantMessageBodyClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.assistantBody' })
+);
+const assistantMetaChipClass = computed(() =>
+  resolveStyle({ styleTemplate: 'hosp.education.conversation.metaChip' })
+);
 
 const sessions = computed<ConversationSession[]>(() => {
   const raw = education.value.conversationSessions;
@@ -421,7 +456,7 @@ async function ingestPrescriptionFile(file: File) {
     }
     const question = formatPrescriptionForChat(extracted);
     await submitConversation(question);
-    toastStore.show(t('education.conversation.prescriptionSentToChat'), 'success');
+    // toastStore.show(t('education.conversation.prescriptionSentToChat'), 'success');
   } catch (err) {
     const msg =
       err instanceof Error && err.message.trim()
@@ -637,20 +672,17 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
             aria-live="polite"
           >
             <template v-for="message in messages" :key="message.id">
-              <div v-if="message.role === 'user'" class="flex justify-end items-start gap-2">
-                <article class="max-w-3xl rounded-3xl bg-slate-900 px-4 py-3 text-sm leading-6 text-white shadow-sm">
-                  <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+              <div v-if="message.role === 'user'" :class="userMessageRowClass">
+                <article :class="userMessageBubbleClass">
+                  <p :class="userMessageLabelClass">
                     {{ t('education.conversation.userLabel') }}
                   </p>
-                  <p class="whitespace-pre-wrap">{{ message.content }}</p>
+                  <p :class="userMessageBodyClass">{{ message.content }}</p>
                 </article>
                 <button
                   v-if="message.content.trim()"
                   type="button"
-                  class="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border shadow-sm transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50"
-                  :class="message.sendFailedTimeout
-                    ? 'border-amber-200 bg-amber-50 text-amber-900 hover:border-amber-300 hover:bg-amber-100 focus:ring-amber-100'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:ring-sky-100'"
+                  :class="message.sendFailedTimeout ? resendButtonFailedClass : resendButtonClass"
                   :disabled="conversationLoading"
                   :title="t('education.conversation.resendTitle')"
                   :aria-label="t('education.conversation.resendAria')"
@@ -660,40 +692,33 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                 </button>
               </div>
 
-              <div v-else class="flex justify-start">
-                <article class="max-w-4xl rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 shadow-sm">
+              <div v-else :class="assistantMessageRowClass">
+                <article :class="assistantMessageBubbleClass">
                   <div class="mb-3 flex flex-wrap items-center gap-2">
-                    <span class="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-sky-800">
+                    <span :class="assistantMessageLabelClass">
                       {{ t('education.conversation.assistantLabel') }}
                     </span>
-                    <span
-                      v-if="message.source"
-                      class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600"
-                    >
+                    <span v-if="message.source" :class="assistantMetaChipClass">
                       {{ t('education.conversation.sourceChip', { source: message.source }) }}
                     </span>
-                    <span
-                      v-if="message.chunksUsed"
-                      class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600"
-                    >
+                    <span v-if="message.chunksUsed" :class="assistantMetaChipClass">
                       {{ t('education.conversation.chunksChip', { count: message.chunksUsed }) }}
                     </span>
-                    <span
-                      v-if="activeSession?.bookName"
-                      class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600"
-                    >
+                    <span v-if="activeSession?.bookName" :class="assistantMetaChipClass">
                       {{ activeSession.bookName }}
                     </span>
                   </div>
 
                   <div
-                    v-if="message.loading"
+                    v-if="message.loading && !message.content?.trim()"
                     class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600"
                   >
                     <span class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
                     <span>{{ t('education.conversation.loadingAnswer') }}</span>
                   </div>
-                  <p v-else class="whitespace-pre-wrap text-sm leading-7 text-slate-800">{{ educationAssistantBody(message) }}</p>
+                  <p v-else :class="assistantMessageBodyClass">
+                    {{ message.loading ? message.content : educationAssistantBody(message) }}
+                  </p>
 
                   <div
                     v-if="!message.loading && message.reference && message.reference.length > 0"

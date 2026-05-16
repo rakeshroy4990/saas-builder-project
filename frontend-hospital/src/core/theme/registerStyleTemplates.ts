@@ -439,4 +439,44 @@ export function registerStyleTemplates(): void {
   StyleTemplateRegistry.register('hosp.contact.block', {
     utilityClasses: 'block text-sm sm:text-base text-slate-700'
   });
+
+  /** Doctor education chat thread (DynDoctorEducationConversation). */
+  StyleTemplateRegistry.register('hosp.education.conversation.userRow', {
+    utilityClasses: 'flex items-start justify-end gap-2'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.userBubble', {
+    utilityClasses:
+      'min-w-0 w-[70%] max-w-[70%] shrink-0 rounded-3xl bg-slate-900 px-4 py-3 text-sm leading-6 text-white shadow-sm'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.userLabel', {
+    utilityClasses: 'mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-300'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.userBody', {
+    utilityClasses: 'whitespace-pre-wrap'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.resendButton', {
+    utilityClasses:
+      'mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.resendButtonFailed', {
+    utilityClasses:
+      'mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 shadow-sm transition hover:border-amber-300 hover:bg-amber-100 focus:outline-none focus:ring-4 focus:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-50'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.assistantRow', {
+    utilityClasses: 'flex justify-start'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.assistantBubble', {
+    utilityClasses: 'max-w-4xl rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 shadow-sm'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.assistantLabel', {
+    utilityClasses:
+      'rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-sky-800'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.assistantBody', {
+    utilityClasses: 'whitespace-pre-wrap text-sm leading-7 text-slate-800'
+  });
+  StyleTemplateRegistry.register('hosp.education.conversation.metaChip', {
+    utilityClasses:
+      'rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600'
+  });
 }

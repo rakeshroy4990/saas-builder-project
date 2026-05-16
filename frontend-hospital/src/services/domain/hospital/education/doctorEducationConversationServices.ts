@@ -61,6 +61,17 @@ type EducationConversationState = {
   conversationError?: string;
 };
 
+function educationStreamStatusLabel(phase: string): string {
+  const tc = educationComposer().t;
+  if (phase === 'retrieving' || phase === 'accepted') {
+    return tc('education.conversation.searchingSources');
+  }
+  if (phase === 'generating') {
+    return tc('education.conversation.generatingAnswer');
+  }
+  return tc('education.conversation.loadingAnswer');
+}
+
 function educationComposer(): Composer {
   return i18n.global as Composer;
 }
@@ -583,44 +594,75 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
         conversationSessions: nextSessions
       });
 
+      let streamSettled = false;
+      let patchTimer: ReturnType<typeof setTimeout> | null = null;
+      const cancelPendingBubblePatch = (): void => {
+        if (patchTimer !== null) {
+          clearTimeout(patchTimer);
+          patchTimer = null;
+        }
+      };
+
       try {
         const history = buildConversationHistory(nextActiveSession, includeHistory);
         let acc = '';
+        let pendingBubbleContent = '';
+
+        const patchLoadingBubble = (content: string): void => {
+          if (streamSettled) return;
+          pendingBubbleContent = content;
+          if (patchTimer !== null) return;
+          patchTimer = setTimeout(() => {
+            patchTimer = null;
+            if (streamSettled) return;
+            const latest = getEducationState(appStore);
+            const latestEnsured = ensureConversationState(latest);
+            const updatedSessions = updateSessions(
+              latestEnsured.conversationSessions,
+              nextActiveSession.id,
+              (session) => ({
+                ...session,
+                messages: session.messages.map((message) =>
+                  message.id !== loadingMessage.id
+                    ? message
+                    : { ...message, content: pendingBubbleContent, loading: true, error: '' }
+                )
+              })
+            );
+            appStore.setData('hospital', 'DoctorEducationUiState', {
+              ...latest,
+              conversationLoading: true,
+              conversationError: '',
+              conversationSessions: updatedSessions
+            });
+          }, 50);
+        };
+
         await postHospitalAiChatNdjson(
           educationConversationPayload(draft, history, selectedBook, nextActiveSession.id),
           {
+            onReady: (data) => {
+              if (data && typeof data === 'object' && !Array.isArray(data)) {
+                const phase = String((data as Record<string, unknown>).phase ?? '').trim();
+                if (phase === 'accepted') {
+                  patchLoadingBubble(educationStreamStatusLabel('accepted'));
+                }
+              }
+            },
+            onStatus: (phase) => {
+              if (!acc.trim()) {
+                patchLoadingBubble(educationStreamStatusLabel(phase));
+              }
+            },
             onDelta: (ch) => {
               acc += ch;
-              const latest = getEducationState(appStore);
-              const latestEnsured = ensureConversationState(latest);
-              const updatedSessions = updateSessions(
-                latestEnsured.conversationSessions,
-                nextActiveSession.id,
-                (session) => ({
-                  ...session,
-                  updatedAt: new Date().toISOString(),
-                  bookName: selectedBook,
-                  messages: session.messages.map((message) =>
-                    message.id !== loadingMessage.id
-                      ? message
-                      : {
-                          ...message,
-                          content:
-                            acc.trim() || educationComposer().t('education.conversation.loadingAnswer'),
-                          loading: true,
-                          error: ''
-                        }
-                  )
-                })
+              patchLoadingBubble(
+                acc.trim() || educationComposer().t('education.conversation.loadingAnswer')
               );
-              appStore.setData('hospital', 'DoctorEducationUiState', {
-                ...latest,
-                conversationLoading: true,
-                conversationError: '',
-                conversationSessions: updatedSessions
-              });
             },
             onComplete: (data) => {
+              streamSettled = true;
+              cancelPendingBubblePatch();
               const parsed = extractConversationResponse(data);
               const rawAnswer = parsed.answer || educationComposer().t('education.conversation.emptyAnswer');
               const displayBody = assistantDisplayBody(rawAnswer);
@@ -671,6 +713,8 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
         );
         return ok();
       } catch (error: unknown) {
+        streamSettled = true;
+        cancelPendingBubblePatch();
         const timedOut = isRequestTimeoutError(error);
         const exactMessage = localizedConversationError('education.conversation.unavailable', error);
         const latest = getEducationState(appStore);

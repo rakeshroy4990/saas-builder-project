@@ -25,6 +25,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class AiChatService {
@@ -150,6 +152,9 @@ public class AiChatService {
         String conversationId = resolveConversationId(actor, request.conversationId());
         LOG.info("aiChat stream request actor={} messageLength={} historyCount={}", actor, messageLength, history.size());
         return outputStream -> {
+            AtomicBoolean firstLineFromRag = new AtomicBoolean(true);
+            AtomicBoolean firstDeltaFromRag = new AtomicBoolean(true);
+            AtomicLong streamStartMs = new AtomicLong(System.currentTimeMillis());
             try {
                 pdfRagQueryAdapter.streamQueryNdjson(
                         message,
@@ -162,7 +167,15 @@ public class AiChatService {
                         request.retrievalQuestion(),
                         line -> {
                             try {
-                                writeTransformedNdjsonLine(outputStream, line, audience, message);
+                                if (firstLineFromRag.compareAndSet(true, false)) {
+                                    LOG.info(
+                                            "FIRST_LINE_FROM_FASTAPI_MS={}",
+                                            System.currentTimeMillis() - streamStartMs.get()
+                                    );
+                                }
+                                writeTransformedNdjsonLine(
+                                        outputStream, line, audience, message, streamStartMs, firstDeltaFromRag
+                                );
                             } catch (IOException ex) {
                                 throw new UncheckedIOException(ex);
                             }
@@ -180,22 +193,40 @@ public class AiChatService {
         };
     }
 
-    private void writeTransformedNdjsonLine(OutputStream outputStream, String line, String audience, String userMessage) throws IOException {
+    private void forwardNdjsonLine(OutputStream outputStream, String line) throws IOException {
+        outputStream.write((line + "\n").getBytes(StandardCharsets.UTF_8));
+        outputStream.flush();
+    }
+
+    private void writeTransformedNdjsonLine(
+            OutputStream outputStream,
+            String line,
+            String audience,
+            String userMessage,
+            AtomicLong streamStartMs,
+            AtomicBoolean firstDeltaFromRag
+    ) throws IOException {
         JsonNode root = objectMapper.readTree(line);
-        String type = root.path("type").asText("");
+        String type = root.path("type").asText("").trim().toLowerCase(Locale.ROOT);
+        if (("delta".equals(type) || "token".equals(type)) && firstDeltaFromRag.compareAndSet(true, false)) {
+            LOG.info("FIRST_DELTA_FROM_FASTAPI_MS={}", System.currentTimeMillis() - streamStartMs.get());
+        }
         if ("error".equals(type)) {
             String msg = root.path("data").path("message").asText("stream_error");
             throw new AiProviderException(AiProviderException.Kind.PROVIDER_FAILED, msg, "pdf-rag", null, "STREAM");
         }
+        // Token/delta chunks from pdf-rag (and ready/ping) — pass through immediately for real-time UI.
+        if ("token".equals(type) || "delta".equals(type) || "ready".equals(type) || "ping".equals(type) || "status".equals(type)) {
+            forwardNdjsonLine(outputStream, line);
+            return;
+        }
         if (!"complete".equals(type)) {
-            outputStream.write((line + "\n").getBytes(StandardCharsets.UTF_8));
-            outputStream.flush();
+            forwardNdjsonLine(outputStream, line);
             return;
         }
         JsonNode data = root.get("data");
         if (data == null || !data.isObject()) {
-            outputStream.write((line + "\n").getBytes(StandardCharsets.UTF_8));
-            outputStream.flush();
+            forwardNdjsonLine(outputStream, line);
             return;
         }
         @SuppressWarnings("unchecked")

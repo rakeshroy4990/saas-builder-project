@@ -94,6 +94,8 @@ async def query_stream(body: QueryRequest, user: TokenPayload = Depends(get_curr
                     obj = {"type": "ready", "data": payload}
                 elif kind == "delta":
                     obj = {"type": "delta", "text": payload}
+                elif kind == "status":
+                    obj = {"type": "status", "data": payload}
                 elif kind == "complete":
                     try:
                         resp = QueryResponse.model_validate(payload)

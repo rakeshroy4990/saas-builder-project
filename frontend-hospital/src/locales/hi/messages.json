@@ -527,6 +527,8 @@
       "sourceChip": "स्रोत: {source}",
       "chunksChip": "{count} चंक्स",
       "loadingAnswer": "ग्राउंडेड उत्तर तैयार किया जा रहा है…",
+      "searchingSources": "चयनित पाठ्यपुस्तक में खोज की जा रही है…",
+      "generatingAnswer": "आपका उत्तर लिखा जा रहा है…",
       "figuresTitle": "स्रोत चित्र",
       "referenceTitle": "संदर्भ",
       "referenceLine": "{book} · पृ. {page}",

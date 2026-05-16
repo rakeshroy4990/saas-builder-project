@@ -1,11 +1,15 @@
 import google.generativeai as genai
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 import json
 import logging
 import re
-from typing import Iterator, Optional
+from typing import AsyncIterator, Iterator, Optional
+import httpx
 
 STREAM_FOLLOWUPS_MARKER = "\n@@FOLLOWUPS_JSON@@\n"
+
+_async_openai_client: AsyncOpenAI | None = None
+_sync_openai_client: OpenAI | None = None
 
 from query.keyword_extractor import SHORT_MEDICAL_TERMS, extract_keywords
 
@@ -561,11 +565,27 @@ QUESTION:
 YOUR RESPONSE:"""
 
 
+def _get_sync_chat_client() -> OpenAI:
+    global _sync_openai_client
+    if _sync_openai_client is None:
+        _sync_openai_client = OpenAI(
+            api_key=OPENAI_API_KEY,
+            http_client=httpx.Client(
+                limits=httpx.Limits(
+                    max_connections=10,
+                    max_keepalive_connections=5,
+                    keepalive_expiry=30,
+                )
+            ),
+        )
+    return _sync_openai_client
+
+
 def iter_openai_chat_stream_tokens(prompt: str) -> Iterator[str]:
-    """Yield incremental text from OpenAI Chat Completions streaming."""
+    """Yield incremental text from OpenAI Chat Completions streaming (sync; blocks the event loop)."""
     if not OPENAI_API_KEY:
         return
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    client = _get_sync_chat_client()
     stream = client.chat.completions.create(
         model=LLM_MODEL,
         messages=[{"role": "user", "content": prompt}],
@@ -574,6 +594,40 @@ def iter_openai_chat_stream_tokens(prompt: str) -> Iterator[str]:
         max_completion_tokens=RAG_CHAT_MAX_COMPLETION_TOKENS,
     )
     for event in stream:
+        for choice in event.choices or []:
+            delta = getattr(choice.delta, "content", None) if choice.delta else None
+            if delta:
+                yield delta
+
+
+def _get_async_client() -> AsyncOpenAI:
+    global _async_openai_client
+    if _async_openai_client is None:
+        _async_openai_client = AsyncOpenAI(
+            api_key=OPENAI_API_KEY,
+            http_client=httpx.AsyncClient(
+                limits=httpx.Limits(
+                    max_connections=20,
+                    max_keepalive_connections=10,
+                    keepalive_expiry=30,
+                )
+            )
+        )
+    return _async_openai_client
+
+
+async def async_iter_openai_chat_stream_tokens(prompt: str) -> AsyncIterator[str]:
+    if not OPENAI_API_KEY:
+        return
+    client = _get_async_client()          # ← reuses existing connection
+    stream = await client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
+        temperature=0.35,
+        max_completion_tokens=RAG_CHAT_MAX_COMPLETION_TOKENS,
+    )
+    async for event in stream:
         for choice in event.choices or []:
             delta = getattr(choice.delta, "content", None) if choice.delta else None
             if delta:
@@ -657,7 +711,7 @@ def answer_with_context(query: str, chunks: list[dict], audience: str = "layman"
         if not OPENAI_API_KEY:
             LOG.warning("[RAG][LLM] OPENAI_API_KEY missing; returning fallback")
             return _finalize_answer("Not available", query, chunks, audience)
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = _get_sync_chat_client()
         response = client.responses.create(
             model=LLM_MODEL,
             input=prompt,

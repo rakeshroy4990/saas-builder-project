@@ -16,7 +16,16 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Json
 from psycopg_pool import ConnectionPool
 
-from config.settings import DATABASE_URL, EMBEDDING_DIMENSION, PG_CONNECT_TIMEOUT, PG_TEXT_SEARCH_MIN_SCORE
+from config.settings import (
+    DATABASE_URL,
+    EMBEDDING_DIMENSION,
+    PG_CONNECT_TIMEOUT,
+    PG_POOL_MAX_SIZE,
+    PG_POOL_MIN_SIZE,
+    PG_POOL_TIMEOUT,
+    PG_PREPARE_THRESHOLD,
+    PG_TEXT_SEARCH_MIN_SCORE,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -28,14 +37,27 @@ def get_pool() -> ConnectionPool:
     if _pool is None:
         if not DATABASE_URL or not DATABASE_URL.strip():
             raise RuntimeError("DATABASE_URL is required when APP_PERSISTENCE_PROVIDER=postgres")
+        connect_kwargs: dict[str, Any] = {
+            "row_factory": dict_row,
+            "connect_timeout": PG_CONNECT_TIMEOUT,
+        }
+        if PG_PREPARE_THRESHOLD is None:
+            connect_kwargs["prepare_threshold"] = None
+        elif PG_PREPARE_THRESHOLD >= 0:
+            connect_kwargs["prepare_threshold"] = PG_PREPARE_THRESHOLD
         _pool = ConnectionPool(
             conninfo=DATABASE_URL.strip(),
-            min_size=1,
-            max_size=10,
-            kwargs={
-                "row_factory": dict_row,
-                "connect_timeout": PG_CONNECT_TIMEOUT,
-            },
+            min_size=PG_POOL_MIN_SIZE,
+            max_size=PG_POOL_MAX_SIZE,
+            timeout=PG_POOL_TIMEOUT,
+            kwargs=connect_kwargs,
+        )
+        LOG.info(
+            "postgres pool opened min_size=%s max_size=%s timeout=%ss prepare_threshold=%s",
+            PG_POOL_MIN_SIZE,
+            PG_POOL_MAX_SIZE,
+            PG_POOL_TIMEOUT,
+            PG_PREPARE_THRESHOLD,
         )
     return _pool
 
