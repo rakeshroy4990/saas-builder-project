@@ -4,6 +4,7 @@ import com.flexshell.auth.UserRole;
 import com.flexshell.persistence.postgres.model.UserJpaEntity;
 import com.flexshell.persistence.postgres.repository.UserJpaRepository;
 import com.flexshell.storage.LocalPrescriptionFileStorage;
+import com.flexshell.storage.PrescriptionStorageKeys;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.FileSystemResource;
@@ -66,18 +67,10 @@ public class PatientPrescriptionStorageFileController {
     }
 
     private boolean canReadPath(String actorUserId, String storagePath) {
-        String normalized = Objects.toString(storagePath, "").trim().replace("\\", "/");
-        while (normalized.startsWith("/")) {
-            normalized = normalized.substring(1);
-        }
         UserRole role = userRepository.findById(actorUserId)
                 .map(UserJpaEntity::getRole)
                 .orElse(UserRole.PATIENT);
-        if (role == UserRole.ADMIN) {
-            return normalized.startsWith("prescriptions/");
-        }
-        String prefix = "prescriptions/" + actorUserId + "/";
-        return normalized.startsWith(prefix);
+        return PrescriptionStorageKeys.canActorRead(actorUserId, role, storagePath);
     }
 
     private static String probeContentType(Path file) {

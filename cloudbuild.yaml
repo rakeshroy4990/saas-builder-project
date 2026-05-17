@@ -1,5 +1,36 @@
 # Cloud Run env: committed *.yaml (non-secret) + Secret Manager (--set-secrets).
 #
+# One-time setup — Artifact Registry cleanup policy (run once, keeps only last 7 days of SHA tags):
+#   gcloud artifacts repositories set-cleanup-policies oshucare \
+#     --project=oshucare \
+#     --location=asia-south1 \
+#     --policy='[
+#       {
+#         "name": "delete-old-sha-tags",
+#         "action": {"type": "Delete"},
+#         "condition": {
+#           "tagState": "tagged",
+#           "tagPrefixes": [],
+#           "olderThan": "604800s"
+#         }
+#       },
+#       {
+#         "name": "keep-latest-tag",
+#         "action": {"type": "Keep"},
+#         "condition": {
+#           "tagState": "tagged",
+#           "tagPrefixes": ["latest"]
+#         }
+#       }
+#     ]'
+#
+# Cloud Build trigger — restrict to main branch only (set in GCP Console > Cloud Build > Triggers):
+#   Branch filter: ^main$
+#   Included files filter (so only changed services rebuild — set per trigger):
+#     backend-hospital/**
+#     pdf-rag-pipeline/**
+#     packages/email-notify/**
+#
 # backend-hospital — create secrets (never commit values):
 #   printf %s 'mongodb+srv://...' | gcloud secrets create backend-hospital-spring-data-mongodb-uri --data-file=-
 #   Postgres (APP_PERSISTENCE_PROVIDER=postgres): JDBC URL must start with jdbc:postgresql://
@@ -10,19 +41,16 @@
 #   printf %s 'agora-cert' | gcloud secrets create backend-hospital-app-video-agora-certificate --data-file=-
 #   printf %s 'sk-...' | gcloud secrets create backend-hospital-app-ai-openai-api-key --data-file=-
 #   printf %s 'AIza...' | gcloud secrets create backend-hospital-app-ai-gemini-api-key --data-file=-
-#   printf %s 'AIza...' | gcloud secrets create backend-hospital-youtube-api-key --data-file=-   # YouTube Data API v3 (app.youtube.api-key / YOUTUBE_API_KEY)
+#   printf %s 'AIza...' | gcloud secrets create backend-hospital-youtube-api-key --data-file=-
 #   printf %s 'internal-email-secret' | gcloud secrets create backend-hospital-app-email-internal-secret --data-file=-
 #   printf %s 're_...' | gcloud secrets create email-notify-resend-api-key --data-file=-
-#   Prescription Supabase S3 (same env names as pdf-rag-pipeline: SUPABASE_S3_ACCESS_KEY, SUPABASE_S3_SECRET_KEY):
 #   printf %s 'your-s3-access-key' | gcloud secrets create backend-hospital-supabase-s3-access-key --data-file=-
 #   printf %s 'your-s3-secret-key' | gcloud secrets create backend-hospital-supabase-s3-secret-key --data-file=-
-#   (May reuse the same values as pdf-rag-pipeline if keys are shared.)
 #
 # pdf-rag-pipeline — create secrets:
 #   printf %s 'mongodb+srv://...' | gcloud secrets create pdf-rag-pipeline-mongo-uri --data-file=-
 #   printf %s 'jwt-signing-secret' | gcloud secrets create pdf-rag-pipeline-jwt-secret --data-file=-
 #   printf %s 'sk-...' | gcloud secrets create pdf-rag-pipeline-openai-api-key --data-file=-
-#   Postgres (cloudrun-env APP_PERSISTENCE_PROVIDER=postgres): libpq URL, e.g. postgresql://user:pass@host:5432/db?sslmode=require
 #   printf %s 'postgresql://postgres.PROJECT:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres?sslmode=require' | gcloud secrets create pdf-rag-pipeline-database-url --data-file=-
 #
 # Grant Cloud Run runtime SA secretAccessor (replace PROJECT_NUMBER):
@@ -41,9 +69,38 @@
 #   done
 
 steps:
-  # ── backend-hospital: build ───────────────────────────────────
+  # ── Pull cache images in parallel (allow failure on first-ever build) ─────
+  - id: pull-cache-backend
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        docker pull asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital:latest || true
+
+  - id: pull-cache-rag
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        docker pull asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:latest || true
+
+  - id: pull-cache-email-notify
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        docker pull asia-south1-docker.pkg.dev/oshucare/oshucare/email-notify:latest || true
+
+  # ── backend-hospital: build ───────────────────────────────────────────────
   - id: build-backend
     name: gcr.io/cloud-builders/docker
+    waitFor: [pull-cache-backend]
     args:
       - build
       - --cache-from
@@ -56,10 +113,10 @@ steps:
       - backend-hospital/Dockerfile
       - .
 
-  # ── pdf-rag-pipeline: build (parallel with backend push+deploy) ──
+  # ── pdf-rag-pipeline: build ───────────────────────────────────────────────
   - id: build-rag
     name: gcr.io/cloud-builders/docker
-    waitFor: ['-']   # starts immediately, parallel to build-backend
+    waitFor: [pull-cache-rag]
     args:
       - build
       - --cache-from
@@ -72,10 +129,10 @@ steps:
       - pdf-rag-pipeline/Dockerfile
       - .
 
-  # ── email-notify: build (parallel) ─────────────────────────────
+  # ── email-notify: build ───────────────────────────────────────────────────
   - id: build-email-notify
     name: gcr.io/cloud-builders/docker
-    waitFor: ['-']
+    waitFor: [pull-cache-email-notify]
     args:
       - build
       - --cache-from
@@ -88,7 +145,8 @@ steps:
       - packages/email-notify/Dockerfile
       - packages/email-notify
 
-  # ── backend-hospital: push ────────────────────────────────────
+  # ── backend-hospital: push (latest + SHA) ────────────────────────────────
+  # NOTE: SHA tags are kept for rollback; cleanup policy deletes them after 7 days.
   - id: push-backend
     name: gcr.io/cloud-builders/docker
     waitFor: [build-backend]
@@ -97,7 +155,7 @@ steps:
       - --all-tags
       - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital
 
-  # ── pdf-rag-pipeline: push ────────────────────────────────────
+  # ── pdf-rag-pipeline: push ────────────────────────────────────────────────
   - id: push-rag
     name: gcr.io/cloud-builders/docker
     waitFor: [build-rag]
@@ -106,7 +164,7 @@ steps:
       - --all-tags
       - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
 
-  # ── email-notify: push ────────────────────────────────────────
+  # ── email-notify: push ────────────────────────────────────────────────────
   - id: push-email-notify
     name: gcr.io/cloud-builders/docker
     waitFor: [build-email-notify]
@@ -115,7 +173,7 @@ steps:
       - --all-tags
       - asia-south1-docker.pkg.dev/oshucare/oshucare/email-notify
 
-  # ── backend-hospital: deploy ──────────────────────────────────
+  # ── backend-hospital: deploy ──────────────────────────────────────────────
   - id: deploy-backend
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
     waitFor: [push-backend]
@@ -133,12 +191,11 @@ steps:
       - --allow-unauthenticated
       - --env-vars-file
       - backend-hospital/cloudrun-env.yaml
-      # When APP_VIDEO_PROVIDER=agora (cloudrun-env), backend-hospital fails fast at startup if this secret is missing/empty.
       - --set-secrets
       - SPRING_DATA_MONGODB_URI=backend-hospital-spring-data-mongodb-uri:latest,SPRING_DATASOURCE_URL=backend-hospital-spring-datasource-url:latest,APP_AUTH_JWT_SECRET=backend-hospital-app-auth-jwt-secret:latest,APP_VIDEO_AGORA_APP_CERTIFICATE=backend-hospital-app-video-agora-certificate:latest,CLOUDINARY_URL=backend-hospital-cloudinary-url:latest,YOUTUBE_API_KEY=backend-hospital-youtube-api-key:latest,APP_EMAIL_INTERNAL_SECRET=backend-hospital-app-email-internal-secret:latest,APP_AI_OPENAI_API_KEY=backend-hospital-app-ai-openai-api-key:latest,SUPABASE_S3_ACCESS_KEY=backend-hospital-supabase-s3-access-key:latest,SUPABASE_S3_SECRET_KEY=backend-hospital-supabase-s3-secret-key:latest
       - --quiet
 
-  # ── pdf-rag-pipeline: deploy ──────────────────────────────────
+  # ── pdf-rag-pipeline: deploy ──────────────────────────────────────────────
   - id: deploy-rag
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
     waitFor: [push-rag]
@@ -160,7 +217,7 @@ steps:
       - MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,DATABASE_URL=pdf-rag-pipeline-database-url:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest
       - --quiet
 
-  # ── email-notify: deploy ──────────────────────────────────────
+  # ── email-notify: deploy ──────────────────────────────────────────────────
   - id: deploy-email-notify
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
     waitFor: [push-email-notify]
@@ -189,4 +246,4 @@ images:
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  machineType: E2_HIGHCPU_8   # faster CPU for parallel builds
+  machineType: E2_STANDARD_4   # ↓ from E2_HIGHCPU_8 — ~40% cheaper; still fast for parallel builds

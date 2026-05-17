@@ -17,6 +17,7 @@ import com.flexshell.persistence.postgres.repository.PatientPrescriptionGroupJpa
 import com.flexshell.persistence.postgres.repository.PatientPrescriptionJpaRepository;
 import com.flexshell.persistence.postgres.repository.UserJpaRepository;
 import com.flexshell.storage.PrescriptionFileStorage;
+import com.flexshell.storage.PrescriptionStorageKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -126,9 +127,9 @@ public class PatientPrescriptionService {
         String patientUserId = actorUserId;
         ResolvedAppointment resolvedAppointment = resolveAppointment(appointmentExternalId, actorUserId);
 
-        String fileUuid = UUID.randomUUID().toString();
+        UUID fileUuid = UUID.randomUUID();
         String extension = extensionForMime(mimeType);
-        String storagePath = "prescriptions/" + patientUserId + "/" + fileUuid + "." + extension;
+        String storagePath = PrescriptionStorageKeys.build(patientUserId, fileUuid, extension);
         LOG.info(
                 "patient_prescription_upload_storage_begin storageClass={} storageEnabled={} storagePath={} bytes={}",
                 storageService.getClass().getSimpleName(),

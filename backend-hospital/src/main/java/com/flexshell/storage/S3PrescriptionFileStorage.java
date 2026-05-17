@@ -32,15 +32,15 @@ import java.util.Objects;
  * Supabase Storage S3-compatible API for prescription uploads (same env contract as
  * {@code pdf-rag-pipeline/db/image_store.py}: {@code SUPABASE_S3_ENDPOINT}, {@code SUPABASE_S3_ACCESS_KEY},
  * {@code SUPABASE_S3_SECRET_KEY}, {@code SUPABASE_S3_REGION}, and bucket
- * {@code PRESCRIPTION_STORAGE_BUCKET} or {@code STORAGE_BUCKET} (default {@code prescriptions}).
+ * {@code PRESCRIPTION_STORAGE_BUCKET} (default {@code prescription}).
  * On startup calls {@link SupabaseS3BucketSupport#ensureBucketExists} like pdf-rag {@code ensure_bucket_exists()}.
  */
 @Service
 @ConditionalOnProperty(name = "app.prescription.storage.provider", havingValue = "s3", matchIfMissing = true)
 public class S3PrescriptionFileStorage implements PrescriptionFileStorage {
 
-    /** Default Supabase storage bucket for patient prescriptions (object keys: prescriptions/{userId}/...). */
-    public static final String DEFAULT_PRESCRIPTION_BUCKET = "prescriptions";
+    /** Default Supabase storage bucket for patient prescriptions (object keys: {userId}/{fileId}.ext). */
+    public static final String DEFAULT_PRESCRIPTION_BUCKET = "prescription";
 
     private static final Logger LOG = LoggerFactory.getLogger(S3PrescriptionFileStorage.class);
 
@@ -57,7 +57,7 @@ public class S3PrescriptionFileStorage implements PrescriptionFileStorage {
     private final S3Presigner presigner;
 
     public S3PrescriptionFileStorage(
-            @Value("${app.prescription.storage.bucket:prescriptions}") String bucket,
+            @Value("${app.prescription.storage.bucket:prescription}") String bucket,
             @Value("${SUPABASE_S3_ENDPOINT:}") String supabaseS3Endpoint,
             @Value("${SUPABASE_S3_REGION:auto}") String supabaseS3Region,
             @Value("${SUPABASE_S3_ACCESS_KEY:}") String supabaseS3AccessKey,
@@ -249,7 +249,7 @@ public class S3PrescriptionFileStorage implements PrescriptionFileStorage {
         if (!enabled) {
             throw new IllegalStateException(
                     "Supabase S3 prescription storage is not configured "
-                            + "(set PRESCRIPTION_STORAGE_BUCKET or STORAGE_BUCKET, SUPABASE_S3_ENDPOINT, "
+                            + "(set PRESCRIPTION_STORAGE_BUCKET, SUPABASE_S3_ENDPOINT, "
                             + "SUPABASE_S3_ACCESS_KEY, SUPABASE_S3_SECRET_KEY)"
             );
         }
@@ -301,7 +301,7 @@ public class S3PrescriptionFileStorage implements PrescriptionFileStorage {
     private static String[] missingConfigLabels(boolean bucketSet, boolean endpointSet, boolean accessKeySet, boolean secretKeySet) {
         List<String> missing = new ArrayList<>();
         if (!bucketSet) {
-            missing.add("PRESCRIPTION_STORAGE_BUCKET|STORAGE_BUCKET");
+            missing.add("PRESCRIPTION_STORAGE_BUCKET");
         }
         if (!endpointSet) {
             missing.add("SUPABASE_S3_ENDPOINT");

@@ -32,7 +32,7 @@ APP_PRESCRIPTION_STORAGE_PROVIDER: s3
 SUPABASE_URL: https://xbefsiwpieeznbkbahab.supabase.co
 SUPABASE_S3_ENDPOINT: https://xbefsiwpieeznbkbahab.storage.supabase.co/storage/v1/s3
 SUPABASE_S3_REGION: auto
-# Patient prescription uploads (S3 keys under prescriptions/{userId}/...). Created on startup if missing (see image_store.ensure_bucket_exists).
+# Patient prescription uploads — bucket "prescription", object keys: {userId}/{fileId}.ext
 PRESCRIPTION_STORAGE_BUCKET: prescriptions
 SIGNED_URL_TTL: "900"
 # SUPABASE_S3_ACCESS_KEY + SUPABASE_S3_SECRET_KEY: cloudbuild --set-secrets (backend-hospital-supabase-s3-access-key / -secret-key).

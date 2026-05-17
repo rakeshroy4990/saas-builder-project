@@ -27,16 +27,16 @@ class SupabaseS3BucketSupportTest {
         when(s3Client.headBucket(any(HeadBucketRequest.class)))
                 .thenThrow(NoSuchBucketException.builder().message("not found").build());
 
-        SupabaseS3BucketSupport.ensureBucketExists(s3Client, "prescriptions");
+        SupabaseS3BucketSupport.ensureBucketExists(s3Client, "prescription");
 
         ArgumentCaptor<CreateBucketRequest> captor = ArgumentCaptor.forClass(CreateBucketRequest.class);
         verify(s3Client).createBucket(captor.capture());
-        assertEquals("prescriptions", captor.getValue().bucket());
+        assertEquals("prescription", captor.getValue().bucket());
     }
 
     @Test
     void doesNotCreateWhenBucketExists() {
-        SupabaseS3BucketSupport.ensureBucketExists(s3Client, "prescriptions");
+        SupabaseS3BucketSupport.ensureBucketExists(s3Client, "prescription");
         verify(s3Client).headBucket(any(HeadBucketRequest.class));
         verify(s3Client, never()).createBucket(any(CreateBucketRequest.class));
     }

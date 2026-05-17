@@ -9,7 +9,7 @@ class S3PrescriptionFileStorageTest {
 
     @Test
     void normalizeKey_stripsLeadingSlashes() {
-        assertEquals("prescriptions/user-1/abc.jpg", S3PrescriptionFileStorage.normalizeKey("/prescriptions/user-1/abc.jpg"));
+        assertEquals("user-1/abc.jpg", S3PrescriptionFileStorage.normalizeKey("/user-1/abc.jpg"));
     }
 
     @Test
@@ -24,6 +24,6 @@ class S3PrescriptionFileStorageTest {
 
     @Test
     void defaultPrescriptionBucketName() {
-        assertEquals("prescriptions", S3PrescriptionFileStorage.DEFAULT_PRESCRIPTION_BUCKET);
+        assertEquals("prescription", S3PrescriptionFileStorage.DEFAULT_PRESCRIPTION_BUCKET);
     }
 }

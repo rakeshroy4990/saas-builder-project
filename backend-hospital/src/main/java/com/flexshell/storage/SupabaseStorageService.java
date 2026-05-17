@@ -37,7 +37,7 @@ public class SupabaseStorageService implements PrescriptionFileStorage {
             ObjectMapper objectMapper,
             @Value("${app.supabase.url:}") String supabaseUrl,
             @Value("${app.supabase.service-key:}") String serviceKey,
-            @Value("${app.supabase.storage-bucket:prescriptions}") String bucket,
+            @Value("${app.supabase.storage-bucket:prescription}") String bucket,
             @Value("${app.supabase.signed-url-ttl-seconds:900}") int signedUrlTtlSeconds
     ) {
         this.objectMapper = objectMapper;
