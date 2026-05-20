@@ -16,6 +16,11 @@ public record PatientPrescriptionSummaryResponse(
         @JsonProperty("department") String department,
         @JsonProperty("patientName") String patientName,
         @JsonProperty("gender") String gender,
-        @JsonProperty("extractedData") Map<String, Object> extractedData
+        @JsonProperty("extractedData") Map<String, Object> extractedData,
+        @JsonProperty("groupExternalId") UUID groupExternalId,
+        @JsonProperty("pageNumber") Integer pageNumber,
+        @JsonProperty("isPrimaryPage") Boolean isPrimaryPage,
+        @JsonProperty("groupType") String groupType,
+        @JsonProperty("sharedDiagnosis") String sharedDiagnosis
 ) {
 }

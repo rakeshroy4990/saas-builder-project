@@ -1,0 +1,806 @@
+---
+description: Web Bluetooth API integration for Agastya Healthcare — connects BLE medical devices (spirometers, oximeters, BP monitors, glucometers) to patient/doctor dashboards. Apply this rule whenever working on Bluetooth device pairing, live readings, appointment data, or any feature touching navigator.bluetooth.
+globs:
+  - "**/*.js"
+  - "**/*.jsx"
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.vue"
+  - "**/frontend-bluetooth-lib/**"
+  - "**/bluetooth*"
+  - "**/DynBluetooth*"
+  - "**/device*"
+  - "**/appointment*"
+  - "**/patient-dashboard*"
+  - "**/devicesDashboard*"
+alwaysApply: false
+---
+
+# Agastya Healthcare — Web Bluetooth API Integration Rules
+
+## Project Context
+
+**Domain:** agastyahealthcare.com  
+**Stack:** JWT-authenticated web app with patient/doctor dashboards, Agora video calls, AI chat  
+**Bluetooth Scope:** BLE 4.0+ medical devices — spirometers, pulse oximeters, BP monitors, glucometers  
+**Target Users:** Chrome on Desktop (Windows/macOS/Linux) and Chrome on Android  
+**Not Supported:** Safari (iOS/macOS), Firefox — handle gracefully with fallback UI  
+
+---
+
+## 1. Browser & Environment Checks
+
+Always gate every Bluetooth feature behind a capability check. Never call `navigator.bluetooth` without checking first.
+
+```typescript
+// lib/bluetooth/bluetoothSupport.ts
+
+export function isWebBluetoothSupported(): boolean {
+  return (
+    typeof navigator !== "undefined" &&
+    "bluetooth" in navigator &&
+    window.isSecureContext // Must be HTTPS or localhost
+  );
+}
+
+export function getBluetoothUnsupportedReason(): string {
+  if (typeof navigator === "undefined") return "Not running in browser";
+  if (!window.isSecureContext)
+    return "Web Bluetooth requires HTTPS. Please access via agastyahealthcare.com";
+  if (!("bluetooth" in navigator)) {
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(ua))
+      return "Web Bluetooth is not supported on iOS Safari. Please use an Android device or desktop Chrome.";
+    if (/Firefox/.test(ua))
+      return "Web Bluetooth is not supported in Firefox. Please use Chrome or Edge.";
+    if (/Safari/.test(ua) && !/Chrome/.test(ua))
+      return "Web Bluetooth is not supported in Safari. Please use Chrome or Edge.";
+    return "Web Bluetooth is not supported in your browser. Please use Chrome 56+ or Edge 79+.";
+  }
+  return "";
+}
+```
+
+---
+
+## 2. Supported Device Registry
+
+Maintain a central device registry. Add new devices here — never hardcode UUIDs scattered across components.
+
+```typescript
+// lib/bluetooth/deviceRegistry.ts
+
+export type DeviceType =
+  | "spirometer"
+  | "pulse_oximeter"
+  | "bp_monitor"
+  | "glucometer"
+  | "thermometer";
+
+export interface BluetoothDeviceProfile {
+  type: DeviceType;
+  label: string;
+  icon: string; // Tailwind/emoji or icon key
+  serviceUUIDs: string[];         // BLE GATT service UUIDs to request
+  characteristicUUID: string;     // Primary data characteristic UUID
+  measurementKeys: string[];      // Keys parsed from raw data e.g. ["fev1","fvc","pef"]
+  unit: string;                   // Display unit e.g. "L", "mmHg", "%SpO2"
+  requiresUserAction: string;     // Instruction shown to patient before connecting
+}
+
+export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
+  // ── Spirometers ──────────────────────────────────────────────────────────
+  MIR_SPIROBANK: {
+    type: "spirometer",
+    label: "MIR Spirobank",
+    icon: "🫁",
+    serviceUUIDs: ["0000fff0-0000-1000-8000-00805f9b34fb"],
+    characteristicUUID: "0000fff1-0000-1000-8000-00805f9b34fb",
+    measurementKeys: ["fev1", "fvc", "pef", "fev1_fvc_ratio"],
+    unit: "L / L/min",
+    requiresUserAction: "Blow steadily into the mouthpiece when prompted.",
+  },
+  NUVOAIR_AIR_NEXT: {
+    type: "spirometer",
+    label: "NuvoAir Air Next",
+    icon: "🫁",
+    serviceUUIDs: ["00001800-0000-1000-8000-00805f9b34fb"],
+    characteristicUUID: "00002a00-0000-1000-8000-00805f9b34fb",
+    measurementKeys: ["fev1", "fvc", "pef"],
+    unit: "L / L/min",
+    requiresUserAction: "Breathe in fully, then blow out as hard and fast as possible.",
+  },
+  GENERIC_SPIROMETER: {
+    type: "spirometer",
+    label: "Generic Spirometer",
+    icon: "🫁",
+    serviceUUIDs: ["0000fff0-0000-1000-8000-00805f9b34fb"],
+    characteristicUUID: "0000fff1-0000-1000-8000-00805f9b34fb",
+    measurementKeys: ["fev1", "fvc", "pef"],
+    unit: "L / L/min",
+    requiresUserAction: "Follow instructions on your spirometer device.",
+  },
+
+  // ── Pulse Oximeters ───────────────────────────────────────────────────────
+  GENERIC_OXIMETER: {
+    type: "pulse_oximeter",
+    label: "Pulse Oximeter",
+    icon: "❤️",
+    serviceUUIDs: ["00001822-0000-1000-8000-00805f9b34fb"], // Pulse Oximeter Service
+    characteristicUUID: "00002a5f-0000-1000-8000-00805f9b34fb",
+    measurementKeys: ["spo2", "pulse_rate"],
+    unit: "% / BPM",
+    requiresUserAction: "Place your finger inside the oximeter clip.",
+  },
+
+  // ── Blood Pressure Monitors ───────────────────────────────────────────────
+  GENERIC_BP_MONITOR: {
+    type: "bp_monitor",
+    label: "Blood Pressure Monitor",
+    icon: "🩺",
+    serviceUUIDs: ["00001810-0000-1000-8000-00805f9b34fb"], // Blood Pressure Service
+    characteristicUUID: "00002a35-0000-1000-8000-00805f9b34fb",
+    measurementKeys: ["systolic", "diastolic", "pulse"],
+    unit: "mmHg / BPM",
+    requiresUserAction: "Wrap the cuff around your upper arm and stay still.",
+  },
+
+  // ── Glucometers ───────────────────────────────────────────────────────────
+  GENERIC_GLUCOMETER: {
+    type: "glucometer",
+    label: "Glucometer",
+    icon: "🩸",
+    serviceUUIDs: ["00001808-0000-1000-8000-00805f9b34fb"], // Glucose Service
+    characteristicUUID: "00002a18-0000-1000-8000-00805f9b34fb",
+    measurementKeys: ["glucose_level"],
+    unit: "mg/dL",
+    requiresUserAction: "Insert a test strip and apply a blood sample.",
+  },
+};
+```
+
+---
+
+## 3. Core Bluetooth Service
+
+All Bluetooth logic lives here. Components never call `navigator.bluetooth` directly.
+
+```typescript
+// lib/bluetooth/bluetoothService.ts
+
+import { DEVICE_REGISTRY, BluetoothDeviceProfile } from "./deviceRegistry";
+import { isWebBluetoothSupported } from "./bluetoothSupport";
+
+export interface BluetoothReading {
+  deviceKey: string;
+  deviceName: string;
+  deviceType: string;
+  measurements: Record<string, number | null>;
+  rawBytes?: Uint8Array;
+  timestamp: string; // ISO 8601
+  appointmentId?: string;
+  patientId?: string;
+}
+
+export interface BluetoothSession {
+  device: BluetoothDevice;
+  server: BluetoothRemoteGATTServer;
+  characteristic: BluetoothRemoteGATTCharacteristic;
+  profile: BluetoothDeviceProfile;
+  deviceKey: string;
+}
+
+let activeSession: BluetoothSession | null = null;
+
+// ── Connect to a specific device profile ─────────────────────────────────────
+
+export async function connectDevice(
+  deviceKey: string
+): Promise<BluetoothSession> {
+  if (!isWebBluetoothSupported()) {
+    throw new Error("Web Bluetooth is not supported in this browser.");
+  }
+
+  const profile = DEVICE_REGISTRY[deviceKey];
+  if (!profile) throw new Error(`Unknown device key: ${deviceKey}`);
+
+  // Disconnect any existing session cleanly
+  if (activeSession) await disconnectDevice();
+
+  // MUST be triggered by user gesture (click) — never call from useEffect directly
+  const device = await navigator.bluetooth.requestDevice({
+    filters: [{ services: profile.serviceUUIDs }],
+    optionalServices: profile.serviceUUIDs,
+  });
+
+  const server = await device.gatt!.connect();
+  const service = await server.getPrimaryService(profile.serviceUUIDs[0]);
+  const characteristic = await service.getCharacteristic(
+    profile.characteristicUUID
+  );
+
+  activeSession = { device, server, characteristic, profile, deviceKey };
+
+  // Auto-cleanup when device disconnects
+  device.addEventListener("gattserverdisconnected", () => {
+    activeSession = null;
+  });
+
+  return activeSession;
+}
+
+// ── Read a single measurement (one-shot) ─────────────────────────────────────
+
+export async function readMeasurement(
+  session: BluetoothSession,
+  context?: { appointmentId?: string; patientId?: string }
+): Promise<BluetoothReading> {
+  const value = await session.characteristic.readValue();
+  const rawBytes = new Uint8Array(value.buffer);
+  const measurements = parseDeviceData(session.deviceKey, value);
+
+  return {
+    deviceKey: session.deviceKey,
+    deviceName: session.device.name ?? session.profile.label,
+    deviceType: session.profile.type,
+    measurements,
+    rawBytes,
+    timestamp: new Date().toISOString(),
+    appointmentId: context?.appointmentId,
+    patientId: context?.patientId,
+  };
+}
+
+// ── Subscribe to continuous notifications ─────────────────────────────────────
+
+export async function subscribeToNotifications(
+  session: BluetoothSession,
+  onReading: (reading: BluetoothReading) => void,
+  context?: { appointmentId?: string; patientId?: string }
+): Promise<() => void> {
+  await session.characteristic.startNotifications();
+
+  const handler = (event: Event) => {
+    const value = (event.target as BluetoothRemoteGATTCharacteristic).value!;
+    const measurements = parseDeviceData(session.deviceKey, value);
+    onReading({
+      deviceKey: session.deviceKey,
+      deviceName: session.device.name ?? session.profile.label,
+      deviceType: session.profile.type,
+      measurements,
+      rawBytes: new Uint8Array(value.buffer),
+      timestamp: new Date().toISOString(),
+      ...context,
+    });
+  };
+
+  session.characteristic.addEventListener(
+    "characteristicvaluechanged",
+    handler
+  );
+
+  // Return unsubscribe function
+  return () => {
+    session.characteristic.removeEventListener(
+      "characteristicvaluechanged",
+      handler
+    );
+    session.characteristic.stopNotifications().catch(() => {});
+  };
+}
+
+// ── Disconnect cleanly ────────────────────────────────────────────────────────
+
+export async function disconnectDevice(): Promise<void> {
+  if (activeSession?.server?.connected) {
+    activeSession.server.disconnect();
+  }
+  activeSession = null;
+}
+
+export function getActiveSession(): BluetoothSession | null {
+  return activeSession;
+}
+
+// ── Device-specific data parsers ──────────────────────────────────────────────
+// Add a case here for every new device added to DEVICE_REGISTRY.
+// DataView reference: https://developer.mozilla.org/en-US/docs/Web/API/DataView
+
+function parseDeviceData(
+  deviceKey: string,
+  value: DataView
+): Record<string, number | null> {
+  switch (deviceKey) {
+    case "MIR_SPIROBANK":
+    case "NUVOAIR_AIR_NEXT":
+    case "GENERIC_SPIROMETER":
+      return parseSpirometerData(value);
+    case "GENERIC_OXIMETER":
+      return parseOximeterData(value);
+    case "GENERIC_BP_MONITOR":
+      return parseBPData(value);
+    case "GENERIC_GLUCOMETER":
+      return parseGlucometerData(value);
+    default:
+      return { raw: value.byteLength > 0 ? value.getUint8(0) : null };
+  }
+}
+
+function parseSpirometerData(
+  value: DataView
+): Record<string, number | null> {
+  // Typical spirometer BLE packet layout (device-specific — adjust offsets):
+  // Byte 0:   Flags
+  // Bytes 1-2: FEV1 in 0.01L units (little-endian)
+  // Bytes 3-4: FVC in 0.01L units
+  // Bytes 5-6: PEF in L/min
+  try {
+    const fev1 = value.byteLength >= 3 ? value.getInt16(1, true) / 100 : null;
+    const fvc = value.byteLength >= 5 ? value.getInt16(3, true) / 100 : null;
+    const pef = value.byteLength >= 7 ? value.getInt16(5, true) : null;
+    const fev1_fvc_ratio =
+      fev1 && fvc && fvc > 0 ? parseFloat(((fev1 / fvc) * 100).toFixed(1)) : null;
+    return { fev1, fvc, pef, fev1_fvc_ratio };
+  } catch {
+    return { fev1: null, fvc: null, pef: null, fev1_fvc_ratio: null };
+  }
+}
+
+function parseOximeterData(value: DataView): Record<string, number | null> {
+  // IEEE 11073 Pulse Oximeter format
+  try {
+    const flags = value.getUint8(0);
+    const spo2 = value.byteLength >= 3 ? value.getUint8(1) : null;
+    const pulse_rate = value.byteLength >= 5 ? value.getUint16(2, true) : null;
+    return { spo2, pulse_rate };
+  } catch {
+    return { spo2: null, pulse_rate: null };
+  }
+}
+
+function parseBPData(value: DataView): Record<string, number | null> {
+  // IEEE 11073 Blood Pressure format
+  try {
+    const systolic =
+      value.byteLength >= 3 ? value.getUint16(1, true) : null;
+    const diastolic =
+      value.byteLength >= 5 ? value.getUint16(3, true) : null;
+    const pulse =
+      value.byteLength >= 15 ? value.getUint16(14, true) : null;
+    return { systolic, diastolic, pulse };
+  } catch {
+    return { systolic: null, diastolic: null, pulse: null };
+  }
+}
+
+function parseGlucometerData(value: DataView): Record<string, number | null> {
+  try {
+    const glucose_level =
+      value.byteLength >= 3 ? value.getUint16(1, true) : null;
+    return { glucose_level };
+  } catch {
+    return { glucose_level: null };
+  }
+}
+```
+
+---
+
+## 4. React Hook — `useBluetoothDevice`
+
+Use this hook in all components. Never use the service directly in components.
+
+```typescript
+// hooks/useBluetoothDevice.ts
+
+import { useState, useCallback, useRef } from "react";
+import {
+  connectDevice,
+  disconnectDevice,
+  readMeasurement,
+  subscribeToNotifications,
+  BluetoothReading,
+  BluetoothSession,
+} from "@/lib/bluetooth/bluetoothService";
+import { isWebBluetoothSupported, getBluetoothUnsupportedReason } from "@/lib/bluetooth/bluetoothSupport";
+
+export type BluetoothStatus =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reading"
+  | "error"
+  | "unsupported"
+  | "disconnected";
+
+interface UseBluetoothDeviceOptions {
+  appointmentId?: string;
+  patientId?: string;
+  onReading?: (reading: BluetoothReading) => void;
+  autoSubscribe?: boolean; // If true, start notifications on connect
+}
+
+export function useBluetoothDevice(options: UseBluetoothDeviceOptions = {}) {
+  const [status, setStatus] = useState<BluetoothStatus>(
+    isWebBluetoothSupported() ? "idle" : "unsupported"
+  );
+  const [session, setSession] = useState<BluetoothSession | null>(null);
+  const [latestReading, setLatestReading] = useState<BluetoothReading | null>(null);
+  const [readings, setReadings] = useState<BluetoothReading[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+
+  const context = {
+    appointmentId: options.appointmentId,
+    patientId: options.patientId,
+  };
+
+  const connect = useCallback(
+    async (deviceKey: string) => {
+      if (!isWebBluetoothSupported()) {
+        setStatus("unsupported");
+        setError(getBluetoothUnsupportedReason());
+        return;
+      }
+
+      setStatus("connecting");
+      setError(null);
+
+      try {
+        const newSession = await connectDevice(deviceKey);
+        setSession(newSession);
+        setStatus("connected");
+
+        if (options.autoSubscribe) {
+          const unsubscribe = await subscribeToNotifications(
+            newSession,
+            (reading) => {
+              setLatestReading(reading);
+              setReadings((prev) => [reading, ...prev].slice(0, 50)); // Keep last 50
+              options.onReading?.(reading);
+            },
+            context
+          );
+          unsubscribeRef.current = unsubscribe;
+        }
+      } catch (err: any) {
+        // User cancelled the device picker — don't show as error
+        if (err.name === "NotFoundError") {
+          setStatus("idle");
+        } else {
+          setStatus("error");
+          setError(err.message ?? "Failed to connect to device");
+        }
+      }
+    },
+    [options.autoSubscribe, options.appointmentId, options.patientId]
+  );
+
+  const read = useCallback(async () => {
+    if (!session) return;
+    setStatus("reading");
+    try {
+      const reading = await readMeasurement(session, context);
+      setLatestReading(reading);
+      setReadings((prev) => [reading, ...prev].slice(0, 50));
+      options.onReading?.(reading);
+      setStatus("connected");
+      return reading;
+    } catch (err: any) {
+      setStatus("error");
+      setError(err.message ?? "Failed to read from device");
+    }
+  }, [session, options.appointmentId, options.patientId]);
+
+  const disconnect = useCallback(async () => {
+    unsubscribeRef.current?.();
+    unsubscribeRef.current = null;
+    await disconnectDevice();
+    setSession(null);
+    setStatus("disconnected");
+  }, []);
+
+  const reset = useCallback(() => {
+    setStatus(isWebBluetoothSupported() ? "idle" : "unsupported");
+    setError(null);
+    setLatestReading(null);
+    setReadings([]);
+  }, []);
+
+  return {
+    status,
+    session,
+    latestReading,
+    readings,
+    error,
+    isSupported: isWebBluetoothSupported(),
+    isConnected: status === "connected" || status === "reading",
+    connect,     // Must be called from onClick — never from useEffect
+    read,
+    disconnect,
+    reset,
+  };
+}
+```
+
+---
+
+## 5. Agastya Dashboard Integration Points
+
+### 5a. Patient Dashboard — Device Panel
+
+Add a `<DevicePanel>` component to the patient appointment card (alongside Video Call, Edit, Delete, Download Prescription).
+
+```tsx
+// components/patient/DevicePanel.tsx
+
+import { useBluetoothDevice } from "@/hooks/useBluetoothDevice";
+import { DEVICE_REGISTRY } from "@/lib/bluetooth/deviceRegistry";
+import { saveReadingToAppointment } from "@/api/appointments";
+import { BluetoothUnsupportedBanner } from "./BluetoothUnsupportedBanner";
+
+interface DevicePanelProps {
+  appointmentId: string;
+  patientId: string;
+}
+
+export function DevicePanel({ appointmentId, patientId }: DevicePanelProps) {
+  const [selectedDeviceKey, setSelectedDeviceKey] = useState("GENERIC_SPIROMETER");
+
+  const { status, latestReading, readings, error, isSupported, connect, read, disconnect } =
+    useBluetoothDevice({
+      appointmentId,
+      patientId,
+      onReading: async (reading) => {
+        // Auto-save to appointment record on each new reading
+        await saveReadingToAppointment(appointmentId, reading);
+      },
+    });
+
+  if (!isSupported) return <BluetoothUnsupportedBanner />;
+
+  return (
+    <div className="agastya-device-panel">
+      {/* Device Selector */}
+      <select
+        value={selectedDeviceKey}
+        onChange={(e) => setSelectedDeviceKey(e.target.value)}
+        disabled={status === "connected"}
+      >
+        {Object.entries(DEVICE_REGISTRY).map(([key, profile]) => (
+          <option key={key} value={key}>
+            {profile.icon} {profile.label}
+          </option>
+        ))}
+      </select>
+
+      {/* Patient Instruction */}
+      {status === "idle" && (
+        <p className="instruction">
+          {DEVICE_REGISTRY[selectedDeviceKey].requiresUserAction}
+        </p>
+      )}
+
+      {/* Connect/Disconnect Button — onClick is REQUIRED for Web Bluetooth */}
+      {status !== "connected" ? (
+        <button
+          onClick={() => connect(selectedDeviceKey)} // ← Must be user gesture
+          disabled={status === "connecting"}
+          className="btn-connect"
+        >
+          {status === "connecting" ? "Connecting..." : "🔵 Connect Device"}
+        </button>
+      ) : (
+        <>
+          <button onClick={read} className="btn-read">
+            📡 Take Reading
+          </button>
+          <button onClick={disconnect} className="btn-disconnect">
+            Disconnect
+          </button>
+        </>
+      )}
+
+      {/* Error */}
+      {error && <p className="error-text">{error}</p>}
+
+      {/* Latest Reading */}
+      {latestReading && <ReadingDisplay reading={latestReading} />}
+
+      {/* Reading History */}
+      {readings.length > 1 && <ReadingHistory readings={readings} />}
+    </div>
+  );
+}
+```
+
+### 5b. Doctor Dashboard — View Readings on Appointment
+
+Doctors see all stored readings per appointment alongside prescription upload.
+
+```tsx
+// components/doctor/AppointmentReadings.tsx
+
+import { useEffect, useState } from "react";
+import { getReadingsForAppointment } from "@/api/appointments";
+import { BluetoothReading } from "@/lib/bluetooth/bluetoothService";
+
+export function AppointmentReadings({ appointmentId }: { appointmentId: string }) {
+  const [readings, setReadings] = useState<BluetoothReading[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getReadingsForAppointment(appointmentId)
+      .then(setReadings)
+      .finally(() => setLoading(false));
+  }, [appointmentId]);
+
+  if (loading) return <p>Loading device readings...</p>;
+  if (!readings.length) return <p>No device readings recorded for this appointment.</p>;
+
+  return (
+    <div className="appointment-readings">
+      <h3>Device Readings</h3>
+      {readings.map((r, i) => (
+        <div key={i} className="reading-card">
+          <span className="device-label">{r.deviceName}</span>
+          <span className="timestamp">{new Date(r.timestamp).toLocaleString()}</span>
+          <div className="measurements">
+            {Object.entries(r.measurements).map(([key, val]) => (
+              <div key={key}>
+                <strong>{key.replace(/_/g, " ").toUpperCase()}</strong>: {val ?? "—"}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### 5c. Video Call Integration (Agora)
+
+During a teleconsult, readings should appear as a live overlay on the patient side.
+
+```tsx
+// In your Agora video call component
+
+import { useBluetoothDevice } from "@/hooks/useBluetoothDevice";
+
+// Inside your VideoCall component:
+const bluetooth = useBluetoothDevice({
+  appointmentId,
+  patientId,
+  autoSubscribe: true, // Stream readings continuously during call
+  onReading: (reading) => {
+    // Optional: send reading over Agora RTM data channel to doctor
+    agoraRTMChannel.sendMessage({
+      text: JSON.stringify({ type: "device_reading", data: reading }),
+    });
+  },
+});
+
+// Render a small overlay for live readings during the call
+// Position it as a floating panel alongside the video stream
+```
+
+---
+
+## 6. Backend API — Storing Readings
+
+Add these endpoints to your existing appointment API.
+
+```typescript
+// api/appointments.ts (additions)
+
+import { BluetoothReading } from "@/lib/bluetooth/bluetoothService";
+
+// POST /api/appointments/:id/readings
+export async function saveReadingToAppointment(
+  appointmentId: string,
+  reading: BluetoothReading
+): Promise<void> {
+  const token = localStorage.getItem("jwt_token"); // Use your existing JWT approach
+  await fetch(`/api/appointments/${appointmentId}/readings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(reading),
+  });
+}
+
+// GET /api/appointments/:id/readings
+export async function getReadingsForAppointment(
+  appointmentId: string
+): Promise<BluetoothReading[]> {
+  const token = localStorage.getItem("jwt_token");
+  const res = await fetch(`/api/appointments/${appointmentId}/readings`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+```
+
+**Backend DB Schema (add to your appointments model):**
+
+```sql
+CREATE TABLE appointment_device_readings (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  appointment_id UUID NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+  patient_id    UUID NOT NULL REFERENCES users(id),
+  device_key    VARCHAR(64) NOT NULL,
+  device_name   VARCHAR(128),
+  device_type   VARCHAR(32) NOT NULL,
+  measurements  JSONB NOT NULL,        -- e.g. {"fev1": 2.8, "fvc": 3.5, "pef": 420}
+  raw_bytes     BYTEA,                 -- Optional raw BLE bytes for audit
+  recorded_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_readings_appointment ON appointment_device_readings(appointment_id);
+CREATE INDEX idx_readings_patient ON appointment_device_readings(patient_id);
+```
+
+---
+
+## 7. Unsupported Browser Fallback
+
+Always render a helpful message for Safari/Firefox users — never silently fail.
+
+```tsx
+// components/patient/BluetoothUnsupportedBanner.tsx
+
+import { getBluetoothUnsupportedReason } from "@/lib/bluetooth/bluetoothSupport";
+
+export function BluetoothUnsupportedBanner() {
+  return (
+    <div className="bluetooth-unsupported">
+      <span>📵</span>
+      <div>
+        <strong>Device Connection Unavailable</strong>
+        <p>{getBluetoothUnsupportedReason()}</p>
+        <p>
+          For the best experience with medical device integration, please use{" "}
+          <strong>Chrome on Android</strong> or <strong>Chrome/Edge on Desktop</strong>.
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 8. Security & Compliance Rules
+
+Follow these for every Bluetooth feature in Agastya Healthcare:
+
+- **HTTPS only:** Web Bluetooth is blocked on HTTP. agastyahealthcare.com already qualifies. Never test on HTTP in production.
+- **JWT-gated endpoints:** All `/api/appointments/:id/readings` routes must verify the JWT and confirm the patient owns the appointment before saving.
+- **Doctor-only read access:** Only the assigned doctor (or an admin) may read readings for a given appointment.
+- **Raw bytes optional:** Store `rawBytes` only if needed for audit/debugging; exclude from general API responses.
+- **No readings in chat/blog:** Never expose `appointment_device_readings` data in the AI chat, blog, or education sections — patient data must stay within the appointment context.
+- **Consent UI:** Before connecting, always show the patient what data will be collected and auto-saved (the `requiresUserAction` field in the device profile serves this purpose).
+- **Device picker is the consent:** `navigator.bluetooth.requestDevice()` shows the browser's native device picker — this is the user's explicit consent gesture. Never pre-select or auto-connect without user action.
+- **Soft delete alignment:** If an appointment is soft-deleted by admin, readings should be excluded from doctor/patient views (add `deleted_at IS NULL` filter in the JOIN).
+
+---
+
+## 9. Rules for AI-Assisted Coding
+
+When generating Bluetooth-related code for Agastya Healthcare, always:
+
+1. **Check `isWebBluetoothSupported()` first** — never call `navigator.bluetooth` naked.
+2. **All `connect()` calls must live inside `onClick` handlers** — the Web Bluetooth API requires a user gesture. Never call inside `useEffect`, `setTimeout`, or page load.
+3. **Use the `useBluetoothDevice` hook** — never call `bluetoothService.ts` functions directly from components.
+4. **Add new devices to `DEVICE_REGISTRY`** — never hardcode service UUIDs in components.
+5. **Save readings via `saveReadingToAppointment()`** — never POST directly from a Bluetooth callback.
+6. **Always show `<BluetoothUnsupportedBanner />`** if `isWebBluetoothSupported()` returns false — never render a broken connect button.
+7. **Parse raw bytes in `bluetoothService.ts`** `parseDeviceData()` switch — never in components or hooks.
+8. **Log errors, don't swallow them** — always set `error` state and display it to the patient.
+9. **Clean up on unmount** — call `disconnect()` in `useEffect` cleanup if a session is active.
+10. **Test with Chrome DevTools Bluetooth emulator** (`chrome://bluetooth-internals`) before testing with real hardware.

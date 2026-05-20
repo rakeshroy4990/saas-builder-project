@@ -29,6 +29,9 @@ public class PatientPrescriptionGroupJpaEntity {
     @Column(name = "group_type")
     private String groupType;
 
+    @Column(name = "shared_diagnosis")
+    private String sharedDiagnosis;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -86,6 +89,14 @@ public class PatientPrescriptionGroupJpaEntity {
 
     public void setGroupType(String groupType) {
         this.groupType = groupType;
+    }
+
+    public String getSharedDiagnosis() {
+        return sharedDiagnosis;
+    }
+
+    public void setSharedDiagnosis(String sharedDiagnosis) {
+        this.sharedDiagnosis = sharedDiagnosis;
     }
 
     public Instant getCreatedAt() {

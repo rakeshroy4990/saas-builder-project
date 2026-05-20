@@ -690,7 +690,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 
         <DynDoctorEducationPrescriptionSimilarity
           v-if="isPrescriptionTab"
-          class="order-2 flex min-h-0 flex-1 flex-col border-t border-slate-200 pt-4"
+          class="order-2 flex min-h-0 flex-1 flex-col pt-4"
         />
 
         <div

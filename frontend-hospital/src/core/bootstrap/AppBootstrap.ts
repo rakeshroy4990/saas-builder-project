@@ -24,6 +24,9 @@ import DynLanguageSwitcher from '../../components/primitives/DynLanguageSwitcher
 const DynChat = defineAsyncComponent(() => import('@realtime/components/DynChat.vue'));
 /** Pulls `agora-rtc-sdk-ng` (~1.5MB) only when video call UI is first used. */
 const DynVideoCall = defineAsyncComponent(() => import('@realtime/components/DynVideoCall.vue'));
+const DynBluetoothDevicesHost = defineAsyncComponent(
+  () => import('../../components/primitives/DynBluetoothDevicesHost.vue')
+);
 
 export function bootstrap(): void {
   registerTheme();
@@ -42,6 +45,7 @@ export function bootstrap(): void {
   ComponentRegistry.register('radio-group', DynRadioGroup);
   ComponentRegistry.register('chat', DynChat);
   ComponentRegistry.register('video-call', DynVideoCall);
+  ComponentRegistry.register('bluetooth-devices', DynBluetoothDevicesHost);
   ComponentRegistry.register('doctor-schedule-editor', DynDoctorScheduleEditor);
   ComponentRegistry.register('medicine-list-editor', DynMedicineListEditor);
   ComponentRegistry.register('doctor-education-workspace', DynDoctorEducationWorkspace);

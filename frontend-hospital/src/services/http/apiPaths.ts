@@ -4,14 +4,26 @@
  */
 
 export function getApiBaseUrl(): string {
-  const raw = import.meta.env.VITE_SPRING_API_BASE_URL ?? 'http://localhost:8080';
-  const base = String(raw).replace(/\/$/, '');
+  const trimmed = String(import.meta.env.VITE_SPRING_API_BASE_URL ?? '').trim();
+  const base = (trimmed || 'http://localhost:8080').replace(/\/$/, '');
   if (import.meta.env.PROD && base.startsWith('http://')) {
     console.warn(
       '[Flexshell] VITE_SPRING_API_BASE_URL should use https in production to avoid mixed content and protect health data in transit.'
     );
   }
   return base;
+}
+
+/** Absolute Spring URL; never a browser-relative `/api/...` (which would hit the UI origin, e.g. :5174). */
+export function resolveSpringApiUrl(path: string): string {
+  const base = getApiBaseUrl();
+  if (!/^https?:\/\//i.test(base)) {
+    throw new Error(
+      `Invalid VITE_SPRING_API_BASE_URL (${JSON.stringify(base)}). Use http://localhost:8080 for local dev.`
+    );
+  }
+  const suffix = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${suffix}`;
 }
 
 export const SERVER_PATHS = {
@@ -67,6 +79,7 @@ export const SERVER_PATHS = {
   patientPrescriptions: '/api/v1/patient-prescriptions',
   patientPrescriptionsUpload: '/api/v1/patient-prescriptions/upload',
   patientPrescriptionsSimilaritySearch: '/api/v1/patient-prescriptions/similarity-search',
+  patientPrescriptionsSimilaritySearchStream: '/api/v1/patient-prescriptions/similarity-search/stream',
   /** GET `?limit=` — public LLM-generated wellness blog teasers (cached on server). */
   hospitalBlogPreviews: '/api/hospital/blog/previews',
   /** GET/PUT user by id: pass `userId` query param; PUT profile update uses registration-shaped JSON; PUT `inactive=true` deactivates. */
@@ -80,7 +93,8 @@ export const SERVER_PATHS = {
   youtubeUserQueries: '/api/user/youtube-queries',
   adminRoleRequests: '/api/admin/role-requests',
   adminDoctors: '/api/admin/doctors',
-  adminAppointments: '/api/admin/appointments'
+  adminAppointments: '/api/admin/appointments',
+  patientDeviceReadings: '/api/v1/patient-device-readings'
 } as const;
 
 export type ServerPathKey = keyof typeof SERVER_PATHS;

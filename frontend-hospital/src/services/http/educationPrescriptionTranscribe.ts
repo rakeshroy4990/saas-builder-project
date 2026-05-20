@@ -5,6 +5,10 @@ import { extractDiagnosisMedicationsFromPlainText } from './extractPrescriptionD
 export type EducationPrescriptionTranscribeResult = {
   diagnosis: string;
   medications: string;
+  medicines: string[];
+  dosage: string[];
+  advice: string[];
+  notes: string;
   /** Legacy API `text` / OCR blob; used for the question draft when structured fields are missing. */
   rawText?: string;
 };
@@ -36,7 +40,56 @@ function readEnvelope(data: unknown): EducationPrescriptionTranscribeResult {
 
   const rawText = legacyText || undefined;
 
-  return { diagnosis, medications, rawText };
+  return {
+    diagnosis,
+    medications,
+    medicines: parseStringList(inner, 'medicines', 'Medicines', medications),
+    dosage: parseStringList(inner, 'dosage', 'Dosage', ''),
+    advice: parseStringList(inner, 'advice', 'Advice', ''),
+    notes: String(inner?.notes ?? inner?.Notes ?? '').trim(),
+    rawText
+  };
+}
+
+function parseStringList(
+  inner: Record<string, unknown> | undefined,
+  ...keysAndFallback: (string | undefined)[]
+): string[] {
+  if (!inner) return [];
+  for (let i = 0; i < keysAndFallback.length - 1; i++) {
+    const key = keysAndFallback[i];
+    if (!key) continue;
+    const raw = inner[key];
+    if (Array.isArray(raw)) {
+      const items = raw.map((entry) => String(entry ?? '').trim()).filter(Boolean);
+      if (items.length) return items;
+    }
+  }
+  const fallback = String(keysAndFallback[keysAndFallback.length - 1] ?? '').trim();
+  if (!fallback || fallback.toLowerCase() === 'not stated') return [];
+  return fallback
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+/** Clinical text for vector similarity search after a file has been transcribed. */
+export function buildSimilarityQueryFromTranscribe(result: EducationPrescriptionTranscribeResult): string {
+  if (isPrescriptionFullyNotStated(result) && result.rawText?.trim()) {
+    return result.rawText.trim();
+  }
+  const parts: string[] = [];
+  const d = result.diagnosis.trim();
+  if (d && d.toLowerCase() !== 'not stated') parts.push(d);
+  if (result.medicines.length) {
+    parts.push(result.medicines.join(', '));
+  } else {
+    const m = result.medications.trim();
+    if (m && m.toLowerCase() !== 'not stated') {
+      parts.push(m.replace(/\n+/g, ', '));
+    }
+  }
+  return parts.join('. ').trim();
 }
 
 /** True when both structured fields failed — do not auto-call education chat. */

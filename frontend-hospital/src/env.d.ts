@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="web-bluetooth" />
 
 interface ImportMetaEnv {
   /** Set to `false` to skip Firebase Analytics init (no calls to googleapis.com). */

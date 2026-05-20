@@ -2,8 +2,10 @@ package com.flexshell.service;
 
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.PatientPrescriptionDownloadResponse;
+import com.flexshell.controller.dto.PatientPrescriptionDiagnosisGroupSummaryResponse;
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateRequest;
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateResponse;
+import com.flexshell.controller.dto.PatientPrescriptionGroupLinkRequest;
 import com.flexshell.controller.dto.PatientPrescriptionSummaryResponse;
 import com.flexshell.controller.dto.PatientPrescriptionUploadResponse;
 import com.flexshell.persistence.postgres.model.AppointmentJpaEntity;
@@ -32,9 +34,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -192,14 +197,16 @@ public class PatientPrescriptionService {
         } else {
             page = prescriptionRepository.findByPatientUserIdAndDeletedFalse(actorUserId, pageable);
         }
-        return page.map(this::toSummary);
+        List<String> prescriptionIds = page.getContent().stream().map(PatientPrescriptionJpaEntity::getId).toList();
+        Map<String, GroupPageMeta> groupMetaByPrescriptionId = loadGroupMetaByPrescriptionIds(prescriptionIds);
+        return page.map(row -> toSummary(row, groupMetaByPrescriptionId.get(row.getId())));
     }
 
     @Transactional(readOnly = true)
     public PatientPrescriptionSummaryResponse getMetadata(String actorUserId, UUID externalId) {
         PatientPrescriptionJpaEntity row = requireRow(externalId);
         assertCanRead(actorUserId, row);
-        return toSummary(row);
+        return toSummary(row, loadGroupMeta(row.getId()).orElse(null));
     }
 
     @Transactional(readOnly = true)
@@ -214,13 +221,58 @@ public class PatientPrescriptionService {
     public PatientPrescriptionGroupCreateResponse createGroup(String actorUserId, PatientPrescriptionGroupCreateRequest request) {
         PatientPrescriptionGroupJpaEntity group = new PatientPrescriptionGroupJpaEntity();
         group.setPatientUserId(actorUserId);
-        group.setLabel(Objects.toString(request.label(), "").trim());
         String groupType = Objects.toString(request.groupType(), "").trim().toLowerCase(Locale.ROOT);
-        if (!groupType.isBlank()) {
-            group.setGroupType(groupType);
+        if (groupType.isBlank()) {
+            groupType = "multi_page";
         }
+        group.setGroupType(groupType);
+        String sharedDiagnosis = Objects.toString(request.sharedDiagnosis(), "").trim();
+        if ("diagnosis".equals(groupType) && sharedDiagnosis.isBlank()) {
+            throw new IllegalArgumentException("sharedDiagnosis is required for diagnosis groups");
+        }
+        group.setSharedDiagnosis(sharedDiagnosis.isBlank() ? null : sharedDiagnosis);
+        String label = Objects.toString(request.label(), "").trim();
+        if (label.isBlank() && !sharedDiagnosis.isBlank()) {
+            label = sharedDiagnosis;
+        }
+        group.setLabel(label);
         PatientPrescriptionGroupJpaEntity saved = groupRepository.save(group);
         return new PatientPrescriptionGroupCreateResponse(saved.getExternalId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PatientPrescriptionDiagnosisGroupSummaryResponse> listDiagnosisGroups(String actorUserId) {
+        List<PatientPrescriptionGroupJpaEntity> groups = groupRepository
+                .findByPatientUserIdAndGroupTypeAndDeletedFalseOrderByCreatedAtDesc(actorUserId, "diagnosis");
+        List<PatientPrescriptionDiagnosisGroupSummaryResponse> summaries = new ArrayList<>();
+        for (PatientPrescriptionGroupJpaEntity group : groups) {
+            int count = groupItemRepository.countByGroupId(group.getId());
+            summaries.add(new PatientPrescriptionDiagnosisGroupSummaryResponse(
+                    group.getExternalId(),
+                    Objects.toString(group.getSharedDiagnosis(), "").trim(),
+                    Objects.toString(group.getLabel(), "").trim(),
+                    count,
+                    group.getCreatedAt()
+            ));
+        }
+        return summaries;
+    }
+
+    @Transactional
+    public void linkPrescriptionToGroup(String actorUserId, UUID groupExternalId, PatientPrescriptionGroupLinkRequest request) {
+        if (request == null || request.prescriptionExternalId() == null) {
+            throw new IllegalArgumentException("prescriptionExternalId is required");
+        }
+        PatientPrescriptionGroupJpaEntity group = groupRepository.findByExternalIdAndDeletedFalse(groupExternalId)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found"));
+        if (!actorUserId.equals(group.getPatientUserId()) && resolveRole(actorUserId) != UserRole.ADMIN) {
+            throw new SecurityException("Forbidden");
+        }
+        PatientPrescriptionJpaEntity row = requireRow(request.prescriptionExternalId());
+        if (!actorUserId.equals(row.getPatientUserId()) && resolveRole(actorUserId) != UserRole.ADMIN) {
+            throw new SecurityException("Forbidden");
+        }
+        attachToGroup(row, group, request.pageNumber(), row.getPatientUserId());
     }
 
     @Transactional(readOnly = true)
@@ -235,7 +287,7 @@ public class PatientPrescriptionService {
         for (PatientPrescriptionGroupItemJpaEntity item : items) {
             prescriptionRepository.findById(item.getPrescriptionId()).ifPresent(row -> {
                 if (!row.isDeleted()) {
-                    summaries.add(toSummary(row));
+                    summaries.add(toSummary(row, toGroupMeta(group, item)));
                 }
             });
         }
@@ -256,13 +308,88 @@ public class PatientPrescriptionService {
         if (!patientUserId.equals(group.getPatientUserId())) {
             throw new SecurityException("Forbidden");
         }
-        int page = pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
+        attachToGroup(saved, group, pageNumber, patientUserId);
+    }
+
+    private void attachToGroup(
+            PatientPrescriptionJpaEntity prescription,
+            PatientPrescriptionGroupJpaEntity group,
+            Integer pageNumber,
+            String patientUserId
+    ) {
+        if (!patientUserId.equals(group.getPatientUserId())) {
+            throw new SecurityException("Forbidden");
+        }
+        if (groupItemRepository.existsByPrescriptionId(prescription.getId())) {
+            throw new IllegalArgumentException("Prescription is already linked to a group");
+        }
+        boolean diagnosisGroup = "diagnosis".equalsIgnoreCase(Objects.toString(group.getGroupType(), "").trim());
+        int page;
+        if (diagnosisGroup) {
+            page = pageNumber == null || pageNumber < 1
+                    ? groupItemRepository.countByGroupId(group.getId()) + 1
+                    : pageNumber;
+        } else {
+            page = pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
+        }
+        if (groupItemRepository.existsByGroupIdAndPageNumber(group.getId(), page)) {
+            throw new IllegalArgumentException("Page " + page + " is already assigned in this group");
+        }
         PatientPrescriptionGroupItemJpaEntity item = new PatientPrescriptionGroupItemJpaEntity();
-        item.setPrescriptionId(saved.getId());
+        item.setPrescriptionId(prescription.getId());
         item.setGroupId(group.getId());
         item.setPageNumber(page);
-        item.setPrimaryPage(page == 1);
+        item.setPrimaryPage(!diagnosisGroup && page == 1);
         groupItemRepository.save(item);
+    }
+
+    private Map<String, GroupPageMeta> loadGroupMetaByPrescriptionIds(Collection<String> prescriptionIds) {
+        if (prescriptionIds == null || prescriptionIds.isEmpty()) {
+            return Map.of();
+        }
+        List<PatientPrescriptionGroupItemJpaEntity> items = groupItemRepository.findByPrescriptionIdIn(prescriptionIds);
+        if (items.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, PatientPrescriptionGroupJpaEntity> groupById = groupRepository.findAllById(
+                        items.stream().map(PatientPrescriptionGroupItemJpaEntity::getGroupId).collect(Collectors.toSet()))
+                .stream()
+                .filter(group -> !group.isDeleted())
+                .collect(Collectors.toMap(PatientPrescriptionGroupJpaEntity::getId, group -> group));
+        Map<String, GroupPageMeta> out = new HashMap<>();
+        for (PatientPrescriptionGroupItemJpaEntity item : items) {
+            PatientPrescriptionGroupJpaEntity group = groupById.get(item.getGroupId());
+            if (group != null) {
+                out.put(item.getPrescriptionId(), toGroupMeta(group, item));
+            }
+        }
+        return out;
+    }
+
+    private Optional<GroupPageMeta> loadGroupMeta(String prescriptionId) {
+        return groupItemRepository.findFirstByPrescriptionId(prescriptionId)
+                .flatMap(item -> groupRepository.findById(item.getGroupId())
+                        .filter(group -> !group.isDeleted())
+                        .map(group -> toGroupMeta(group, item)));
+    }
+
+    private static GroupPageMeta toGroupMeta(PatientPrescriptionGroupJpaEntity group, PatientPrescriptionGroupItemJpaEntity item) {
+        return new GroupPageMeta(
+                group.getExternalId(),
+                item.getPageNumber(),
+                item.isPrimaryPage(),
+                group.getGroupType(),
+                group.getSharedDiagnosis()
+        );
+    }
+
+    private record GroupPageMeta(
+            UUID groupExternalId,
+            int pageNumber,
+            boolean isPrimaryPage,
+            String groupType,
+            String sharedDiagnosis
+    ) {
     }
 
     private ResolvedAppointment resolveAppointment(UUID appointmentExternalId, String actorUserId) {
@@ -321,7 +448,16 @@ public class PatientPrescriptionService {
     }
 
     private PatientPrescriptionSummaryResponse toSummary(PatientPrescriptionJpaEntity row) {
+        return toSummary(row, null);
+    }
+
+    private PatientPrescriptionSummaryResponse toSummary(PatientPrescriptionJpaEntity row, GroupPageMeta groupMeta) {
         Map<String, Object> extracted = row.getExtractedData() == null ? Map.of() : row.getExtractedData();
+        UUID groupExternalId = groupMeta == null ? null : groupMeta.groupExternalId();
+        Integer pageNumber = groupMeta == null ? null : groupMeta.pageNumber();
+        Boolean isPrimaryPage = groupMeta == null ? null : groupMeta.isPrimaryPage();
+        String groupType = groupMeta == null ? null : groupMeta.groupType();
+        String sharedDiagnosis = groupMeta == null ? null : groupMeta.sharedDiagnosis();
         return new PatientPrescriptionSummaryResponse(
                 row.getExternalId(),
                 row.getStatus(),
@@ -332,7 +468,12 @@ public class PatientPrescriptionService {
                 row.getDepartment(),
                 row.getPatientName(),
                 row.getPatientGender(),
-                extracted
+                extracted,
+                groupExternalId,
+                pageNumber,
+                isPrimaryPage,
+                groupType,
+                sharedDiagnosis
         );
     }
 

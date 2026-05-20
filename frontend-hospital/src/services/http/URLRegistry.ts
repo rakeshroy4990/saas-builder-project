@@ -1,7 +1,7 @@
 import { emitLoggedInSessionSummary } from '../analytics/sessionSummary/emitSessionSummary';
 import { SessionSummaryKind } from '../analytics/sessionSummary/sessionSummaryKinds';
 import { getOrCreateTraceId } from '../logging/traceContext';
-import { getApiBaseUrl, SERVER_PATHS } from './apiPaths';
+import { getApiBaseUrl, resolveSpringApiUrl, SERVER_PATHS } from './apiPaths';
 import type { ServerPathKey } from './apiPaths';
 import { shouldSkipTelemetrySessionSummaryForApiUrl } from './telemetryUrlSkip';
 
@@ -63,8 +63,13 @@ function emitFetchSessionSummary(
 
 function assertUnderApiBase(resolvedUrl: string): void {
   const base = getApiBaseUrl();
+  if (!/^https?:\/\//i.test(resolvedUrl)) {
+    throw new Error(
+      `requestResolvedUrl: URL must be absolute (got ${resolvedUrl}). Use Spring base ${base}, not the UI dev-server port.`
+    );
+  }
   if (!resolvedUrl.startsWith(base)) {
-    throw new Error(`requestResolvedUrl: URL must start with API base (${base})`);
+    throw new Error(`requestResolvedUrl: URL must start with API base (${base}), got ${resolvedUrl}`);
   }
 }
 
@@ -95,7 +100,7 @@ export const URLRegistry = {
   getBaseUrl: getApiBaseUrl,
 
   resolve(pathKey: ServerPathKey): string {
-    return `${getApiBaseUrl()}${SERVER_PATHS[pathKey]}`;
+    return resolveSpringApiUrl(SERVER_PATHS[pathKey]);
   },
 
   /**

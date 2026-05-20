@@ -2,8 +2,14 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
+  postEducationPrescriptionTranscribe,
+  buildSimilarityQueryFromTranscribe,
+  type EducationPrescriptionTranscribeResult
+} from '../../services/http/educationPrescriptionTranscribe';
+import {
   postPatientPrescriptionSimilaritySearch,
-  type PatientPrescriptionSimilarityHit
+  type PatientPrescriptionSimilarityHit,
+  type PatientPrescriptionSimilarityDetails
 } from '../../services/http/patientPrescriptionSimilarityApi';
 import { getPatientPrescriptionDownloadUrl } from '../../services/http/patientPrescriptionApi';
 import { useToastStore } from '../../store/useToastStore';
@@ -13,14 +19,22 @@ const { t } = useI18n();
 const toastStore = useToastStore(pinia);
 const draft = ref('');
 const searching = ref(false);
-const readingFile = ref(false);
 const error = ref('');
 const emptyHint = ref('');
 const results = ref<PatientPrescriptionSimilarityHit[]>([]);
+const streamPhase = ref('');
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const cameraInputRef = ref<HTMLInputElement | null>(null);
 const pendingFile = ref<File | null>(null);
 const viewingExternalId = ref('');
+const summarizingFile = ref(false);
+
+type UploadSummary = {
+  fileName: string;
+  details: PatientPrescriptionSimilarityDetails;
+};
+
+const uploadSummary = ref<UploadSummary | null>(null);
 
 const quickFills = computed(() => [
   {
@@ -41,8 +55,20 @@ const quickFills = computed(() => [
 ]);
 
 const canSearch = computed(() => {
-  if (searching.value || readingFile.value) return false;
+  if (searching.value || summarizingFile.value) return false;
   return Boolean(draft.value.trim() || pendingFile.value);
+});
+
+const showResultsSection = computed(() => {
+  return searching.value || results.value.length > 0 || Boolean(emptyHint.value);
+});
+
+const streamStatusText = computed(() => {
+  const phase = streamPhase.value.trim();
+  if (!phase) return t('education.prescriptionSimilarity.searching');
+  const key = `education.prescriptionSimilarity.streamPhase.${phase}`;
+  const translated = t(key);
+  return translated === key ? t('education.prescriptionSimilarity.searching') : translated;
 });
 
 function formatPercent(value: number): string {
@@ -72,6 +98,9 @@ function hasDisplayDetails(hit: PatientPrescriptionSimilarityHit): boolean {
 function onDraftInput(event: Event) {
   draft.value = (event.target as HTMLTextAreaElement).value;
   error.value = '';
+  if (!pendingFile.value) {
+    clearUploadSummary();
+  }
 }
 
 function openFilePicker() {
@@ -82,12 +111,56 @@ function openCameraPicker() {
   cameraInputRef.value?.click();
 }
 
+function transcribeToDetails(result: EducationPrescriptionTranscribeResult): PatientPrescriptionSimilarityDetails {
+  const diagnosis =
+    result.diagnosis.trim().toLowerCase() === 'not stated' ? '' : result.diagnosis.trim();
+  let medicines = result.medicines;
+  if (!medicines.length && result.medications.trim().toLowerCase() !== 'not stated') {
+    medicines = result.medications
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+  if (!diagnosis && !medicines.length && result.rawText?.trim()) {
+    return {
+      diagnosis: result.rawText.trim(),
+      medicines: [],
+      dosage: [],
+      advice: [],
+      notes: ''
+    };
+  }
+  return {
+    diagnosis,
+    medicines,
+    dosage: result.dosage ?? [],
+    advice: result.advice ?? [],
+    notes: result.notes?.trim() ?? ''
+  };
+}
+
+function hasSummaryDetails(details: PatientPrescriptionSimilarityDetails): boolean {
+  return Boolean(
+    details.diagnosis?.trim() ||
+      details.medicines?.length ||
+      details.dosage?.length ||
+      details.advice?.length ||
+      details.notes?.trim()
+  );
+}
+
+function clearUploadSummary() {
+  uploadSummary.value = null;
+}
+
 async function applyQuickFill(text: string) {
   draft.value = text;
   pendingFile.value = null;
+  clearUploadSummary();
   error.value = '';
   emptyHint.value = '';
-  await runSearch();
+  results.value = [];
+  await runSearch({ query: text });
 }
 
 async function onFileSelected(event: Event) {
@@ -97,22 +170,33 @@ async function onFileSelected(event: Event) {
   if (!file) return;
   pendingFile.value = file;
   error.value = '';
-  readingFile.value = true;
+  emptyHint.value = '';
+  results.value = [];
+  clearUploadSummary();
+  summarizingFile.value = true;
   try {
-    await runSearch({ file });
+    const transcribed = await postEducationPrescriptionTranscribe(file);
+    uploadSummary.value = {
+      fileName: file.name,
+      details: transcribeToDetails(transcribed)
+    };
+    draft.value = buildSimilarityQueryFromTranscribe(transcribed);
+    await runSearch({ query: draft.value });
   } catch (err) {
+    uploadSummary.value = null;
+    results.value = [];
     error.value =
       err instanceof Error && err.message.trim()
         ? err.message.trim()
         : t('education.prescriptionSimilarity.searchFailed');
   } finally {
-    readingFile.value = false;
+    summarizingFile.value = false;
   }
 }
 
-async function runSearch(opts?: { file?: File }) {
-  const file = opts?.file ?? pendingFile.value ?? undefined;
-  const query = draft.value.trim();
+async function runSearch(opts?: { query?: string; file?: File }) {
+  const file = opts?.file ?? (opts?.query !== undefined ? undefined : pendingFile.value ?? undefined);
+  const query = (opts?.query ?? draft.value).trim();
   if (!file && !query) {
     error.value = t('education.prescriptionSimilarity.emptyQuery');
     return;
@@ -120,13 +204,22 @@ async function runSearch(opts?: { file?: File }) {
   searching.value = true;
   error.value = '';
   emptyHint.value = '';
+  streamPhase.value = '';
+  results.value = [];
   try {
     const hits = await postPatientPrescriptionSimilaritySearch({
       query: query || undefined,
-      file,
-      limit: 10
+      file: uploadSummary.value ? undefined : file,
+      limit: 10,
+      onStatus: (phase) => {
+        streamPhase.value = phase;
+      },
+      onHit: (hit) => {
+        const id = String(hit.externalId ?? '').trim();
+        if (id && results.value.some((row) => row.externalId === id)) return;
+        results.value = [...results.value, hit];
+      }
     });
-    results.value = hits;
     if (!hits.length) {
       emptyHint.value = t('education.prescriptionSimilarity.noResults');
     }
@@ -139,10 +232,14 @@ async function runSearch(opts?: { file?: File }) {
         : t('education.prescriptionSimilarity.searchFailed');
   } finally {
     searching.value = false;
+    streamPhase.value = '';
   }
 }
 
 async function submitSearch() {
+  if (!pendingFile.value) {
+    clearUploadSummary();
+  }
   await runSearch();
 }
 
@@ -155,6 +252,9 @@ function onComposerKeydown(event: KeyboardEvent) {
 
 function clearPendingFile() {
   pendingFile.value = null;
+  clearUploadSummary();
+  results.value = [];
+  emptyHint.value = '';
 }
 
 async function viewPrescription(hit: PatientPrescriptionSimilarityHit): Promise<void> {
@@ -178,6 +278,23 @@ async function viewPrescription(hit: PatientPrescriptionSimilarityHit): Promise<
 function isViewing(hit: PatientPrescriptionSimilarityHit): boolean {
   return viewingExternalId.value === String(hit.externalId ?? '').trim();
 }
+
+function sectionBreakdownLabel(section: string): string {
+  const key = `education.prescriptionSimilarity.fields.${section}` as const;
+  const translated = t(key);
+  return translated === key ? section : translated;
+}
+
+function sectionBarWidth(percent: number): string {
+  const n = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 0;
+  return `${n}%`;
+}
+
+function sectionBarTone(percent: number): string {
+  if (percent >= 70) return 'bg-emerald-500';
+  if (percent >= 45) return 'bg-amber-400';
+  return 'bg-slate-300';
+}
 </script>
 
 <template>
@@ -196,7 +313,7 @@ function isViewing(hit: PatientPrescriptionSimilarityHit): boolean {
           :key="example.id"
           type="button"
           class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
-          :disabled="searching || readingFile"
+          :disabled="searching || summarizingFile"
           @click="applyQuickFill(example.text)"
         >
           {{ example.label }}
@@ -228,7 +345,7 @@ function isViewing(hit: PatientPrescriptionSimilarityHit): boolean {
           <button
             type="button"
             class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="searching || readingFile"
+            :disabled="searching || summarizingFile"
             :aria-label="t('education.conversation.attachFileAria')"
             @click="openFilePicker"
           >
@@ -239,7 +356,7 @@ function isViewing(hit: PatientPrescriptionSimilarityHit): boolean {
           <button
             type="button"
             class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="searching || readingFile"
+            :disabled="searching || summarizingFile"
             :aria-label="t('education.conversation.attachCameraAria')"
             @click="openCameraPicker"
           >
@@ -265,23 +382,16 @@ function isViewing(hit: PatientPrescriptionSimilarityHit): boolean {
         :value="draft"
         rows="8"
         class="w-full min-h-[min(32vh,14rem)] max-h-[min(48vh,24rem)] resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:opacity-60"
-        :disabled="searching || readingFile"
+        :disabled="searching || readingFile || summarizingFile"
         :placeholder="t('education.prescriptionSimilarity.inputPlaceholder')"
         @input="onDraftInput"
         @keydown="onComposerKeydown"
       />
     </div>
 
-    <p v-if="error" class="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
-      {{ error }}
-    </p>
-    <p v-else-if="emptyHint" class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-      {{ emptyHint }}
-    </p>
-
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-xs leading-5 text-slate-500">
-        <span v-if="readingFile" class="font-medium text-sky-700">{{ t('education.conversation.readingPrescription') }}</span>
+        <span v-if="summarizingFile" class="font-medium text-sky-700">{{ t('education.prescriptionSimilarity.creatingSummary') }}</span>
         <span v-else>{{ t('education.prescriptionSimilarity.submitHint') }}</span>
       </p>
       <button
@@ -294,9 +404,86 @@ function isViewing(hit: PatientPrescriptionSimilarityHit): boolean {
       </button>
     </div>
 
-    <div v-if="results.length" class="min-h-0 flex-1 space-y-3 overflow-y-auto border-t border-slate-200 pt-4">
+    <section
+      v-if="uploadSummary && hasSummaryDetails(uploadSummary.details)"
+      class="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/60 px-4 py-4 shadow-sm"
+    >
+      <div class="space-y-1">
+        <p class="text-xs font-semibold uppercase tracking-wide text-amber-900/80">
+          {{ t('education.prescriptionSimilarity.uploadSummaryTitle') }}
+        </p>
+        <p class="text-xs text-amber-900/70">
+          {{ t('education.prescriptionSimilarity.uploadSummaryHint') }}
+        </p>
+        <p class="text-xs font-medium text-amber-950/80">
+          {{ t('education.prescriptionSimilarity.summaryFileLabel') }}: {{ uploadSummary.fileName }}
+        </p>
+      </div>
+      <div class="space-y-3 rounded-xl border border-amber-100 bg-white/90 px-3 py-3">
+        <div v-if="uploadSummary.details.diagnosis?.trim()" class="space-y-1">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            {{ t('education.prescriptionSimilarity.fields.diagnosis') }}
+          </p>
+          <p class="text-sm leading-6 text-slate-800">{{ uploadSummary.details.diagnosis }}</p>
+        </div>
+        <div v-if="uploadSummary.details.medicines?.length" class="space-y-1">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            {{ t('education.prescriptionSimilarity.fields.medicines') }}
+          </p>
+          <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-800">
+            <li v-for="(medicine, medIndex) in uploadSummary.details.medicines" :key="`upload-med-${medIndex}`">
+              {{ medicine }}
+            </li>
+          </ul>
+        </div>
+        <div v-if="uploadSummary.details.dosage?.length" class="space-y-1">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            {{ t('education.prescriptionSimilarity.fields.dosage') }}
+          </p>
+          <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-800">
+            <li v-for="(line, doseIndex) in uploadSummary.details.dosage" :key="`upload-dose-${doseIndex}`">
+              {{ line }}
+            </li>
+          </ul>
+        </div>
+        <div v-if="uploadSummary.details.advice?.length" class="space-y-1">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            {{ t('education.prescriptionSimilarity.fields.advice') }}
+          </p>
+          <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-800">
+            <li v-for="(line, adviceIndex) in uploadSummary.details.advice" :key="`upload-advice-${adviceIndex}`">
+              {{ line }}
+            </li>
+          </ul>
+        </div>
+        <div v-if="uploadSummary.details.notes?.trim()" class="space-y-1">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            {{ t('education.prescriptionSimilarity.fields.notes') }}
+          </p>
+          <p class="text-sm leading-6 text-slate-800 whitespace-pre-wrap">{{ uploadSummary.details.notes }}</p>
+        </div>
+      </div>
+    </section>
+
+    <p v-if="error" class="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+      {{ error }}
+    </p>
+
+    <div
+      v-if="showResultsSection"
+      class="min-h-0 flex-1 space-y-3 overflow-y-auto border-t border-slate-200 pt-4"
+    >
       <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {{ t('education.prescriptionSimilarity.resultsTitle') }}
+      </p>
+      <p v-if="searching && !results.length" class="text-sm text-sky-700">
+        {{ streamStatusText }}
+      </p>
+      <p v-else-if="searching && results.length" class="text-xs text-sky-600">
+        {{ streamStatusText }}
+      </p>
+      <p v-else-if="emptyHint" class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+        {{ emptyHint }}
       </p>
       <article
         v-for="(hit, index) in results"
@@ -323,6 +510,33 @@ function isViewing(hit: PatientPrescriptionSimilarityHit): boolean {
             {{ formatPercent(hit.matchPercent) }}
           </span>
         </div>
+
+        <div
+          v-if="hit.sectionBreakdown?.length"
+          class="mt-3 space-y-2 rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-3"
+        >
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-sky-800/80">
+            {{ t('education.prescriptionSimilarity.sectionBreakdownTitle') }}
+          </p>
+          <div
+            v-for="score in hit.sectionBreakdown"
+            :key="`${hit.externalId}-section-${score.section}`"
+            class="space-y-1"
+          >
+            <div class="flex items-center justify-between gap-2 text-xs">
+              <span class="font-medium text-slate-700">{{ sectionBreakdownLabel(score.section) }}</span>
+              <span class="tabular-nums font-semibold text-slate-800">{{ formatPercent(score.matchPercent) }}</span>
+            </div>
+            <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
+              <div
+                class="h-full rounded-full transition-all"
+                :class="sectionBarTone(score.matchPercent)"
+                :style="{ width: sectionBarWidth(score.matchPercent) }"
+              />
+            </div>
+          </div>
+        </div>
+
         <div v-if="hasDisplayDetails(hit)" class="mt-3 space-y-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
           <div v-if="hit.details?.diagnosis?.trim()" class="space-y-1">
             <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">

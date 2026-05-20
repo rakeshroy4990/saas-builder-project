@@ -12,3 +12,5 @@ alwaysApply: true
 **Repos:** `frontend*` → Vue (`components`, `pages`, `composables`, `stores`, `services`); `backend*` → Spring (`controller` → `service` → `repository`, `dto`, security, audit); `ai-service` → FastAPI (`routers`, `services`, `schemas`, middleware).
 
 **HTTP:** Response envelope `{ "success", "data", "message", "timestamp" }`; errors include machine-readable `errorCode`. Lists `?page=0&size=20&sort=createdAt,desc`. REST `/api/v1/{resource}/{external_id}/action`.
+
+**Backend build gate:** After any `backend-hospital` Java change, run `cd backend-hospital && gradle compileJava` and fix failures before finishing (lambdas cannot throw checked exceptions without a catch inside).

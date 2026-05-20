@@ -33,7 +33,7 @@ function appointmentPreferredDateToInput(raw: unknown): string {
   return m ? m[1] : '';
 }
 
-const DASHBOARD_GUARD_TABS = new Set(['appointments', 'working-slots', 'admin']);
+const DASHBOARD_GUARD_TABS = new Set(['appointments', 'working-slots', 'admin', 'devices']);
 
 /** Mobile appointment filters use `dashboardFiltersOpen`; desktop grid ignores it (`lg:`). */
 function collapseDashboardFiltersPanel(): void {
@@ -174,6 +174,12 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         await runHospitalService('init-doctor-working-slots');
         return ok();
       }
+      if (tab === 'devices') {
+        await runHospitalService('set-dashboard-nav-devices');
+        await runHospitalService('init-patient-device-readings');
+        await runHospitalService('set-dashboard-header-active');
+        return ok();
+      }
       await runHospitalService('set-dashboard-nav-appointments');
       await runHospitalService('init-dashboard');
       await runHospitalService('set-dashboard-header-active');
@@ -191,8 +197,15 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const previousActiveItem = String(prevNav.activeItem ?? '').trim();
       const keepWorkingSlots = previousActiveItem === 'working-slots';
       const keepAdmin = previousActiveItem === 'admin';
+      const keepDevices = previousActiveItem === 'devices';
       appStore.setData('hospital', 'DashboardNav', {
-        activeItem: keepAdmin ? 'admin' : keepWorkingSlots ? 'working-slots' : 'appointments'
+        activeItem: keepAdmin
+          ? 'admin'
+          : keepWorkingSlots
+            ? 'working-slots'
+            : keepDevices
+              ? 'devices'
+              : 'appointments'
       });
       await ensureMedicalDepartmentOptionsLoaded();
       const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;

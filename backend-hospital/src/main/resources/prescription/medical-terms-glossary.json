@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "description": "Canonical clinical terms and common OCR/vision misreads for Indian OPD prescriptions.",
+  "terms": [
+    {
+      "canonical": "WALRI",
+      "aliases": [
+        "WALFI",
+        "WALPH",
+        "WALPF",
+        "WALPI",
+        "WALRH",
+        "WALRN",
+        "WAL F1",
+        "WALF1",
+        "WALP1",
+        "W ALFI",
+        "W ALRI",
+        "W ALPH"
+      ],
+      "categories": ["diagnosis"],
+      "note": "Wheezing associated lower respiratory infection; final R often misread as F, P, or H"
+    },
+    {
+      "canonical": "LRTI",
+      "aliases": ["LRT1", "LR TI", "LRT I"],
+      "categories": ["diagnosis"]
+    },
+    {
+      "canonical": "URTI",
+      "aliases": ["URT1", "UR TI", "URT I"],
+      "categories": ["diagnosis"]
+    },
+    {
+      "canonical": "RTI",
+      "aliases": ["RT1", "R T I"],
+      "categories": ["diagnosis"]
+    },
+    {
+      "canonical": "ARI",
+      "aliases": ["AR1", "A R I"],
+      "categories": ["diagnosis"]
+    },
+    {
+      "canonical": "F/U/C",
+      "aliases": ["FUC", "F U C", "F/U C"],
+      "categories": ["diagnosis"]
+    },
+    {
+      "canonical": "Levolin",
+      "aliases": ["Levoline", "Levo lin", "Levo-line"],
+      "categories": ["medicine"]
+    },
+    {
+      "canonical": "Nasivion mini",
+      "aliases": ["Nasivin mini", "Nasivon mini", "Nasivion Mini"],
+      "categories": ["medicine"]
+    },
+    {
+      "canonical": "Paracetamol",
+      "aliases": ["Para cetamol", "Paracetamol", "PCM"],
+      "categories": ["medicine"]
+    },
+    {
+      "canonical": "Azithromycin",
+      "aliases": ["Azithro mycin", "Azithromycine"],
+      "categories": ["medicine"]
+    },
+    {
+      "canonical": "Amoxicillin",
+      "aliases": ["Amoxycillin", "Amoxi cillin"],
+      "categories": ["medicine"]
+    },
+    {
+      "canonical": "Montelukast",
+      "aliases": ["Monteluk ast", "Monteleukast"],
+      "categories": ["medicine"]
+    },
+    {
+      "canonical": "Budesonide",
+      "aliases": ["Bude sonide", "Budesonid"],
+      "categories": ["medicine"]
+    },
+    {
+      "canonical": "Naso. saline drops",
+      "aliases": ["Naso saline drops", "Nasal saline drops"],
+      "categories": ["medicine"]
+    },
+    {
+      "canonical": "SOS",
+      "aliases": ["S O S", "sos"],
+      "categories": ["instruction"]
+    },
+    {
+      "canonical": "PRN",
+      "aliases": ["P R N", "prn"],
+      "categories": ["instruction"]
+    },
+    {
+      "canonical": "BD",
+      "aliases": ["B D", "b.d.", "bd"],
+      "categories": ["instruction"]
+    },
+    {
+      "canonical": "TDS",
+      "aliases": ["T D S", "tds", "t.d.s."],
+      "categories": ["instruction"]
+    },
+    {
+      "canonical": "OD",
+      "aliases": ["O D", "o.d.", "od"],
+      "categories": ["instruction"]
+    }
+  ],
+  "phrases": [
+    {
+      "canonical": "Full WALRI chest",
+      "aliases": [
+        "FULL WALPH chest",
+        "FULL WALFI chest",
+        "FULL WALPF chest",
+        "Full WALPH chest",
+        "Full WALFI chest",
+        "FULL WALRI chest",
+        "full walph chest"
+      ]
+    },
+    {
+      "canonical": "F/U/C WALRI",
+      "aliases": ["F/U/C WALFI", "F/U/C WALPH", "FUC WALFI", "FUC WALPH", "F/U/C WALPF"]
+    }
+  ],
+  "patterns": [
+    {
+      "canonical": "WALRI",
+      "regex": "\\bWAL[PpHhFfNn][Ii1l]?\\b",
+      "note": "WALRI with R misread as P/F/H/N (e.g. WALPH → WALRI)"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import com.flexshell.ai.AiProviderException;
 import com.flexshell.ai.SmartAiQuotaExceededException;
 import com.flexshell.controller.dto.EducationPrescriptionTranscribeData;
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.prescription.PrescriptionTranscribeTiming;
 import com.flexshell.service.EducationPrescriptionTranscriptionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,13 +48,32 @@ public class HospitalEducationPrescriptionController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(StandardApiResponse.error("Authentication required.", "AUTH_REQUIRED"));
         }
+        long httpStartNanos = System.nanoTime();
         try {
             EducationPrescriptionTranscribeData data = transcriptionService.transcribe(userId, file);
             if (data == null) {
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                         .body(StandardApiResponse.error("Transcription returned empty data.", "EDUCATION_PRESCRIPTION_EMPTY"));
             }
-            return ResponseEntity.ok(StandardApiResponse.success("Transcription ready", data));
+            long httpTotalMs = Math.max(0L, (System.nanoTime() - httpStartNanos) / 1_000_000L);
+            PrescriptionTranscribeTiming timing = PrescriptionTranscribeTiming.currentOrNull();
+            if (timing != null) {
+                LOG.info(
+                        "education_prescription_transcribe_http totalMs={} slowest=[{}]",
+                        httpTotalMs,
+                        timing.topStepSummary()
+                );
+            } else {
+                LOG.info("education_prescription_transcribe_http totalMs={}", httpTotalMs);
+            }
+            ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
+            if (timing != null) {
+                String serverTiming = timing.toServerTimingHeader();
+                if (!serverTiming.isBlank()) {
+                    builder.header("Server-Timing", serverTiming);
+                }
+            }
+            return builder.body(StandardApiResponse.success("Transcription ready", data));
         } catch (IllegalArgumentException ex) {
             String msg = Objects.toString(ex.getMessage(), "Invalid request").trim();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -75,6 +95,11 @@ public class HospitalEducationPrescriptionController {
             LOG.warn("education_prescription_transcribe provider_fail kind={}", ex.kind());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(StandardApiResponse.error(ex.getMessage(), code));
+        } finally {
+            PrescriptionTranscribeTiming timing = PrescriptionTranscribeTiming.currentOrNull();
+            if (timing != null) {
+                timing.close();
+            }
         }
     }
 

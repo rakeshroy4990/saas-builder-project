@@ -13,7 +13,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@realtime/*": ["../frontend-realtime-lib/src/*"]
+      "@realtime/*": ["../frontend-realtime-lib/src/*"],
+      "@bluetooth/*": ["../frontend-bluetooth-lib/src/*"]
     },
     "allowJs": true,
     "checkJs": false

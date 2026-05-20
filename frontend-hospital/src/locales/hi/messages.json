@@ -335,6 +335,40 @@
     "upload": {
       "title": "प्रिस्क्रिप्शन अपलोड करें",
       "hint": "अपनी प्रिस्क्रिप्शन की फोटो या PDF जोड़ें। एक साथ कई फाइलें अपलोड कर सकते हैं।",
+      "modeLabel": "यह प्रिस्क्रिप्शन किस प्रकार की है?",
+      "modeSingle": "एक फाइल या एक पृष्ठ",
+      "modeFrontBack": "आगे और पीछे (2 पृष्ठ)",
+      "modeSameDiagnosis": "एक निदान — कई प्रिस्क्रिप्शन",
+      "sameDiagnosis": {
+        "hint": "एक निदान दर्ज करें, फिर कई प्रिस्क्रिप्शन फाइलें अपलोड करें। सभी उसी निदान से जुड़ेंगी।",
+        "dropHint": "इस निदान के लिए एक या अधिक प्रिस्क्रिप्शन फाइलें जोड़ें",
+        "setupTitle": "इस अपलोड का निदान",
+        "newDiagnosis": "नया निदान",
+        "existingDiagnosis": "मौजूदा निदान से जोड़ें",
+        "diagnosisLabel": "निदान",
+        "diagnosisPlaceholder": "जैसे टाइप 2 मधुमेह, हल्का बुखार",
+        "diagnosisRequired": "अपलोड से पहले निदान दर्ज या चुनें।",
+        "selectDiagnosis": "मौजूदा निदान",
+        "selectPlaceholder": "निदान चुनें…",
+        "prescriptionCount": "{count} प्रिस्क्रिप्शन",
+        "noExisting": "अभी कोई सहेजा निदान नहीं — ऊपर नया बनाएँ।",
+        "sessionActive": "इस सत्र की अपलोड चयनित निदान से जुड़ेंगी।",
+        "pickExisting": "मौजूदा निदान चुनें।",
+        "groupFailed": "निदान लिंक नहीं बन सका।"
+      },
+      "frontBack": {
+        "hint": "पहले आगे का पृष्ठ अपलोड करें (मरीज़ विवरण, डॉक्टर, तारीख), फिर पीछे का पृष्ठ (दवाएँ और निदान)। दोनों एक प्रिस्क्रिप्शन के रूप में जुड़ेंगे।",
+        "dropHint": "वर्तमान पृष्ठ (आगे या पीछे) एक फाइल में जोड़ें",
+        "stepFront": "चरण 1/2 — आगे का पृष्ठ (पूर्ण विवरण)",
+        "stepBack": "चरण 2/2 — पीछे का पृष्ठ (दवाएँ और निदान)",
+        "pageFront": "आगे",
+        "pageBack": "पीछे",
+        "oneAtATime": "आगे/पीछे मोड में एक समय में एक पृष्ठ जोड़ें।",
+        "addBack": "आगे का पृष्ठ अपलोड हो गया। अब पीछे का पृष्ठ जोड़ें।",
+        "complete": "आगे और पीछे एक प्रिस्क्रिप्शन के रूप में जुड़ गए।",
+        "groupLabel": "आगे और पीछे",
+        "groupFailed": "प्रिस्क्रिप्शन समूह नहीं बन सका।"
+      },
       "dropHint": "फाइलें यहाँ खींचें और छोड़ें, या ब्राउज़ करने के लिए क्लिक करें",
       "browse": "फाइलें चुनें",
       "camera": "फोटो लें",
@@ -371,6 +405,29 @@
         "actions": "कार्रवाई"
       },
       "extractedSummary": "निकाला गया सारांश",
+      "multiPageBadge": "{count} पृष्ठ · एक प्रिस्क्रिप्शन",
+      "diagnosisBadge": "{count} प्रिस्क्रिप्शन · एक निदान",
+      "multiPageType": "आगे + पीछे",
+      "diagnosisType": "निदान से जुड़ी",
+      "downloadPrescription": "प्रिस्क्रिप्शन {n}",
+      "linkToDiagnosis": "निदान से जोड़ें",
+      "linkDiagnosisTitle": "इस अपलोड को निदान से जोड़ें",
+      "linkDiagnosisNew": "नया निदान",
+      "linkDiagnosisExisting": "मौजूदा निदान",
+      "linkDiagnosisPlaceholder": "निदान लिखें",
+      "linkDiagnosisConfirm": "जोड़ें",
+      "linkDiagnosisTextRequired": "निदान दर्ज करें।",
+      "linkDiagnosisPickRequired": "मौजूदा निदान चुनें।",
+      "linkDiagnosisSuccess": "प्रिस्क्रिप्शन निदान से जुड़ गई।",
+      "linkDiagnosisFailed": "निदान से नहीं जोड़ा जा सका।",
+      "downloadFront": "आगे का पृष्ठ",
+      "downloadBack": "पीछे का पृष्ठ",
+      "linkAsFront": "आगे का पृष्ठ बनाएँ",
+      "linkAsBack": "पीछे के पृष्ठ से जोड़ें",
+      "linkPickBack": "आगे का पृष्ठ चुना गया। दूसरी अपलोड पर “पीछे के पृष्ठ से जोड़ें” टैप करें।",
+      "linkCancel": "जोड़ना रद्द करें",
+      "linkSuccess": "आगे और पीछे एक प्रिस्क्रिप्शन के रूप में जुड़ गए।",
+      "linkFailed": "दोनों पृष्ठ जोड़े नहीं जा सके।",
       "loadFailed": "प्रिस्क्रिप्शन लोड नहीं हो सकीं।"
     }
   },
@@ -378,7 +435,8 @@
     "nav": {
       "appointments": "अपॉइंटमेंट",
       "workingSlots": "कार्य समय स्लॉट सेट करें",
-      "administration": "प्रशासन"
+      "administration": "प्रशासन",
+      "devices": "डिवाइस"
     },
     "filters": {
       "heading": "⚙️ फ़िल्टर",
@@ -624,11 +682,19 @@
       "submitHint": "खोज के लिए Enter दबाएँ, नई पंक्ति के लिए Shift+Enter।",
       "search": "समान प्रिस्क्रिप्शन खोजें",
       "searching": "खोज जारी…",
+      "streamPhase": {
+        "transcribing": "प्रिस्क्रिप्शन पढ़ रहे हैं…",
+        "embedding": "खोज एम्बेडिंग बना रहे हैं…",
+        "searching": "समान प्रिस्क्रिप्शन खोज रहे हैं…",
+        "section_scores": "अनुभाग मेल स्कोर कर रहे हैं…"
+      },
       "searchFailed": "प्रिस्क्रिप्शन खोज नहीं हो सकी। फिर कोशिश करें।",
       "emptyQuery": "खोज के लिए टेक्स्ट लिखें या प्रिस्क्रिप्शन फाइल अटैच करें।",
       "noResults": "एम्बेडिंग वाली कोई मेल खाती प्रिस्क्रिप्शन नहीं मिली।",
       "resultsTitle": "सर्वोत्तम मेल",
       "matchLabel": "समानता स्कोर",
+      "sectionBreakdownTitle": "अनुभाग के अनुसार मेल",
+      "sectionBreakdownOverall": "कुल मेल",
       "unknownPatient": "अज्ञात रोगी",
       "noSnippet": "इस प्रिस्क्रिप्शन के लिए क्लिनिकल सार संग्रहीत नहीं है।",
       "fields": {
@@ -640,6 +706,10 @@
       },
       "attachedFile": "अटैच: {name}",
       "removeFile": "हटाएँ",
+      "uploadSummaryTitle": "अपलोड की गई प्रिस्क्रिप्शन का सार",
+      "uploadSummaryHint": "अपनी फाइल से निकाला गया विवरण देखें। नीचे लाइब्रेरी की समान प्रिस्क्रिप्शन दी गई हैं।",
+      "creatingSummary": "आपकी प्रिस्क्रिप्शन पढ़ी जा रही है…",
+      "summaryFileLabel": "फाइल",
       "quickFillTitle": "उदाहरण से त्वरित भरें",
       "viewPrescription": "प्रिस्क्रिप्शन देखें",
       "viewingPrescription": "खोला जा रहा है…",
@@ -663,6 +733,16 @@
       "generatingDetail": "विस्तृत व्याख्या जनरेट की जा रही है...",
       "noDetailYet": "अभी विस्तृत नोट्स नहीं हैं। यह दृश्य बनाने के लिए कार्ड से 'विस्तार से खोजें' का उपयोग करें।"
     }
+  },
+  "patientDashboard": {
+    "nav": {
+      "overview": "अवलोकन",
+      "devices": "डिवाइस"
+    }
+  },
+  "devices": {
+    "title": "मेडिकल डिवाइस",
+    "intro": "अपने प्रोफ़ाइल पर रीडिंग सहेजने के लिए समर्थित ब्लूटूथ डिवाइस कनेक्ट करें। डेस्कटॉप या Android पर Chrome या Edge का उपयोग करें।"
   },
   "serverCopy": {
     "acceptLanguageHint": "API को सर्वर-प्रदत्त पाठ के लिए Accept-Language (उदा. hi, en) का सम्मान करना चाहिए, या स्थिर कोड लौटाकर क्लाइंट अनुवाद करवाएँ।"

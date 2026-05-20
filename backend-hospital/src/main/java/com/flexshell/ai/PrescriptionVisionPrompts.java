@@ -31,6 +31,9 @@ final class PrescriptionVisionPrompts {
             
             Clinical:
             - "diagnosis" (string): diagnosis, impression, or problem list from handwritten or printed notes.
+              Use standard medical abbreviations exactly as written when legible (e.g. WALRI not WALFI or WALPH; LRTI/URTI not LRT1/URT1).
+              Short uppercase tokens are often abbreviations — do not confuse R with F, P, or H; I with 1; or O with 0.
+              Phrases like "Full WALRI chest" refer to wheezing on chest exam — transcribe WALRI with an R, not P or F.
             - "medicines" (array of strings): each drug or product with its instructions — include strength and how to use \
             (e.g. "NIZRAL 2% Shampoo: mix 3ml with 3ml water, apply, wait 3 min, wash; twice a week for 1 month").
             - "dosage" (array of strings): frequency/duration-only lines if listed separately from drug names; else [].

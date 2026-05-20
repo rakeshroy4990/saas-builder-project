@@ -4,6 +4,8 @@ import { hospitalEprescriptionPopupPage } from './eprescriptionPopupPage';
 import { hospitalPrescriptionsPage } from './prescriptionsPage';
 import { hospitalPrescriptionUploadSuccessPopupPage } from './prescriptionUploadSuccessPopupPage';
 import { hospitalProfilePage } from './profilePage';
+import { dashboardDevicesNavButtons, hospitalDashboardDevicesPanel } from './devicesDashboardPanel';
+import { hospitalPatientDashboardPage } from './patientDashboardPage';
 import { hospitalTermsPage } from './termsPage';
 import { hospitalPrivacyPage } from './privacyPage';
 import {
@@ -698,7 +700,8 @@ export const hospitalPages: PageConfig[] = [
                           }
                         }
                       }
-                    }
+                    },
+                    ...dashboardDevicesNavButtons()
                   ]
                 }
               },
@@ -1685,7 +1688,8 @@ export const hospitalPages: PageConfig[] = [
                           }
                         ]
                       }
-                    }
+                    },
+                    hospitalDashboardDevicesPanel
                   ]
                 }
               },
@@ -1701,81 +1705,7 @@ export const hospitalPages: PageConfig[] = [
   },
   hospitalPrescriptionsPage,
   hospitalPrescriptionUploadSuccessPopupPage,
-  {
-    packageName: 'hospital',
-    pageId: 'patient-dashboard',
-    title: 'Patient Dashboard',
-    titleKey: 'page.patientDashboard.title',
-    initializeActions: [{ actionId: 'set-dashboard-header-active' }, { actionId: 'load-home-content' }],
-    container: {
-      layoutTemplate: 'hosp.page.root',
-      children: [
-        ...hospitalPublicChromeTop,
-        {
-          id: 'hospital-patient-dashboard-main',
-          type: 'container',
-          config: {
-            styles: { utilityClasses: 'w-full flex-1 min-h-0 flex flex-col gap-6' },
-            children: [
-              {
-                id: 'hospital-patient-dashboard-intro',
-                type: 'text',
-                config: {
-                  i18nKey: 'page.patientDashboard.title',
-                  styles: { styleTemplate: 'hosp.section.heading' }
-                }
-              },
-              {
-                id: 'hospital-patient-dashboard-next-steps',
-                type: 'container',
-                config: {
-                  layoutTemplate: 'hosp.section.stack',
-                  styles: { styleTemplate: 'hosp.section.card' },
-                  children: [
-                    {
-                      id: 'hospital-patient-dashboard-guidance',
-                      type: 'text',
-                      config: {
-                        i18nKey: 'page.patientDashboard.introGuidance',
-                        styles: { styleTemplate: 'hosp.section.subheading' }
-                      }
-                    },
-                    {
-                      id: 'hospital-patient-dashboard-highlights',
-                      type: 'list',
-                      config: {
-                        listStyleTemplate: 'hosp.highlights.grid',
-                        mapping: { packageName: 'hospital', key: 'HomeContent', property: 'highlights' },
-                        itemTemplate: {
-                          layoutTemplate: 'hosp.highlight.card',
-                          styles: { styleTemplate: 'hosp.highlight.card' },
-                          children: [
-                            {
-                              id: 'hospital-patient-dashboard-highlight-title',
-                              type: 'text',
-                              config: { text: '{{title}}', styles: { styleTemplate: 'hosp.highlight.title' } }
-                            },
-                            {
-                              id: 'hospital-patient-dashboard-highlight-detail',
-                              type: 'text',
-                              config: { text: '{{detail}}', styles: { styleTemplate: 'hosp.highlight.detail' } }
-                            }
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        hospitalSiteFooter('hospital-patient-dashboard-footer', '', {
-          taglineI18nKey: 'footer.tagline.patientDashboard'
-        })
-      ]
-    }
-  },
+  hospitalPatientDashboardPage,
   {
     packageName: 'hospital',
     pageId: 'doctor-overview',

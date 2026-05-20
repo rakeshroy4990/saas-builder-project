@@ -22,6 +22,22 @@ Use **GlobalPopup** + declarative `PageConfig` (`layoutTemplate: hosp.popup.head
 - Keep **pageId** renames in sync with `router` redirects and any bookmarks/docs
 - If new **action types** or **layer types** appear, update `core/types` and renderer if needed
 
+## Backend (`backend-hospital`) — verify compile after server changes
+
+Hospital UI often calls Spring APIs under `/api/hospital/*` and `/api/v1/*`. **Whenever you change Java in `backend-hospital` (or shared libs it depends on), run a compile before finishing the task** so `:compileJava` always passes:
+
+```bash
+cd backend-hospital && gradle compileJava
+```
+
+If the change touches tests you rely on, also run:
+
+```bash
+cd backend-hospital && gradle test
+```
+
+Do not leave the branch with compile errors — fix checked exceptions inside `timing.record(...)` lambdas (wrap `IOException` in `IllegalArgumentException` or handle in an outer `try`), missing types, and Spring API differences (e.g. use `"Server-Timing"` header string if `HttpHeaders.SERVER_TIMING` is unavailable).
+
 ## Header title → home
 
 Brand title text (`hosp.header.title`) uses **`config.click`** on `type: 'text'`: `set-home-header-active` then `navigate` to `hospital` / `home` on home, dashboard, and chat pages.

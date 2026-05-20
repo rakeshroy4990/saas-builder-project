@@ -1,5 +1,15 @@
 # Backend Hospital — repository context
 
+## Build verification (required after Java edits)
+
+From repo root:
+
+```bash
+cd backend-hospital && gradle compileJava
+```
+
+Run this before completing any agent task that modifies `src/main/java` or `src/test/java`. Fix compile failures (missing types, checked exceptions in lambdas, Spring constant drift) in the same change.
+
 ## Purpose
 
 Spring Boot **3.4** (Java **17**) API for the hospital vertical: REST + WebSocket realtime, JWT/cookie auth (via shared `backend-auth-lib`), UI metadata (MongoDB + `backend-uimetadata-lib`), and hospital domain (appointments, medical departments, doctor directory, admin bootstrap).

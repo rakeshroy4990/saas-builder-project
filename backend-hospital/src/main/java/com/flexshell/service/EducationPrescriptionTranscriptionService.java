@@ -8,7 +8,10 @@ import com.flexshell.ai.GeminiChatAdapter;
 import com.flexshell.ai.OpenAiChatAdapter;
 import com.flexshell.ai.SmartAiQuotaService;
 import com.flexshell.controller.dto.EducationPrescriptionTranscribeData;
+import com.flexshell.prescription.MedicalTermsGlossary;
+import com.flexshell.prescription.MedicalTermsGlossaryNormalizer;
 import com.flexshell.prescription.OpdPrintedFieldExtractor;
+import com.flexshell.prescription.PrescriptionTranscribeTiming;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
@@ -53,12 +56,14 @@ public class EducationPrescriptionTranscriptionService {
     private final boolean consumeQuotaForEducationPrescriptionTranscribe;
     private final int pdfRenderDpi;
     private final int maxImageEdgePx;
+    private final MedicalTermsGlossary medicalTermsGlossary;
 
     public EducationPrescriptionTranscriptionService(
             OpenAiChatAdapter openAiChatAdapter,
             GeminiChatAdapter geminiChatAdapter,
             SmartAiQuotaService smartAiQuotaService,
             ObjectMapper objectMapper,
+            MedicalTermsGlossary medicalTermsGlossary,
             @Value("${app.ai.smart.consume-quota-for-education-prescription-transcribe:false}")
             boolean consumeQuotaForEducationPrescriptionTranscribe,
             @Value("${app.ai.prescription-vision-render-dpi:120}") int pdfRenderDpi,
@@ -68,28 +73,43 @@ public class EducationPrescriptionTranscriptionService {
         this.geminiChatAdapter = geminiChatAdapter;
         this.smartAiQuotaService = smartAiQuotaService;
         this.objectMapper = objectMapper;
+        this.medicalTermsGlossary = medicalTermsGlossary;
         this.consumeQuotaForEducationPrescriptionTranscribe = consumeQuotaForEducationPrescriptionTranscribe;
         this.pdfRenderDpi = Math.min(200, Math.max(72, pdfRenderDpi));
         this.maxImageEdgePx = Math.min(4096, Math.max(768, maxImageEdgePx));
     }
 
     public EducationPrescriptionTranscribeData transcribe(String userId, MultipartFile file) {
+        PrescriptionTranscribeTiming timing = PrescriptionTranscribeTiming.start();
+        try {
+            return doTranscribe(userId, file, timing);
+        } finally {
+            timing.logSummary(LOG);
+        }
+    }
+
+    private EducationPrescriptionTranscribeData doTranscribe(
+            String userId,
+            MultipartFile file,
+            PrescriptionTranscribeTiming timing
+    ) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("A non-empty file is required.");
         }
         if (file.getSize() > MAX_BYTES) {
             throw new IllegalArgumentException("File is too large (max 12 MB).");
         }
-        byte[] bytes;
-        try {
-            bytes = file.getBytes();
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Could not read uploaded file.");
-        }
+        byte[] bytes = timing.record("read_upload_bytes", () -> {
+            try {
+                return file.getBytes();
+            } catch (IOException ex) {
+                throw new IllegalArgumentException("Could not read uploaded file.");
+            }
+        });
         if (bytes.length == 0) {
             throw new IllegalArgumentException("A non-empty file is required.");
         }
-        String sniffed = sniffMime(bytes);
+        String sniffed = timing.record("sniff_mime", () -> sniffMime(bytes));
         String declared = Objects.toString(file.getContentType(), "").trim().toLowerCase(Locale.ROOT);
         String effectiveMime = !sniffed.isBlank() ? sniffed : declared;
 
@@ -102,13 +122,14 @@ public class EducationPrescriptionTranscriptionService {
         }
 
         if (consumeQuotaForEducationPrescriptionTranscribe) {
-            smartAiQuotaService.consumeDailyRequestOrThrow(userId);
+            timing.record("quota_check", () -> smartAiQuotaService.consumeDailyRequestOrThrow(userId));
         }
 
+        timing.context(effectiveMime, bytes.length, "application/pdf".equals(effectiveMime) ? "pdf" : "image");
         if ("application/pdf".equals(effectiveMime)) {
-            return transcribePdf(bytes);
+            return transcribePdf(bytes, timing);
         }
-        return transcribeImageBytes(effectiveMime, bytes);
+        return transcribeImageBytes(effectiveMime, bytes, timing);
     }
 
     private void validateRasterMime(String mime) {
@@ -124,93 +145,153 @@ public class EducationPrescriptionTranscriptionService {
         throw new IllegalArgumentException("Unsupported image type. Use JPEG, PNG, WebP, or GIF.");
     }
 
-    private EducationPrescriptionTranscribeData transcribePdf(byte[] pdfBytes) {
-        try (PDDocument doc = Loader.loadPDF(pdfBytes)) {
-            int pages = doc.getNumberOfPages();
-            if (pages <= 0) {
-                throw new IllegalArgumentException("PDF has no pages.");
+    private EducationPrescriptionTranscribeData transcribePdf(byte[] pdfBytes, PrescriptionTranscribeTiming timing) {
+        return timing.record("pdf_total", () -> {
+            try (PDDocument doc = Loader.loadPDF(pdfBytes)) {
+                int pages = doc.getNumberOfPages();
+                if (pages <= 0) {
+                    throw new IllegalArgumentException("PDF has no pages.");
+                }
+                PDFTextStripper stripper = new PDFTextStripper();
+                stripper.setStartPage(1);
+                stripper.setEndPage(Math.min(3, pages));
+                String extracted = timing.record("pdf_text_extract", () -> {
+                    try {
+                        return Objects.toString(stripper.getText(doc), "").trim();
+                    } catch (IOException ex) {
+                        throw new IllegalArgumentException("Could not read PDF.");
+                    }
+                });
+                if (extracted.length() >= MIN_PDF_TEXT_CHARS) {
+                    timing.context("application/pdf", pdfBytes.length, "pdf_text_llm");
+                    EducationPrescriptionTranscribeData structured = timing.record(
+                            "pdf_text_llm_total",
+                            () -> structurePlainTextWithLlm(collapseBlankLines(extracted), timing)
+                    );
+                    return timing.record(
+                            "opd_enrich",
+                            () -> finishTranscribe(OpdPrintedFieldExtractor.enrich(structured, extracted), timing)
+                    );
+                }
+                timing.context("application/pdf", pdfBytes.length, "pdf_vision");
+                byte[] jpeg = timing.record("pdf_render_jpeg", () -> {
+                    try {
+                        PDFRenderer renderer = new PDFRenderer(doc);
+                        BufferedImage rendered = renderer.renderImageWithDPI(0, pdfRenderDpi, ImageType.RGB);
+                        BufferedImage scaled = constrainMaxEdge(rendered, maxImageEdgePx);
+                        return toJpegBytes(scaled, 0.88f);
+                    } catch (IOException ex) {
+                        throw new IllegalArgumentException("Could not process PDF image.");
+                    }
+                });
+                LOG.info(
+                        "education_prescription_transcribe mode=pdf_vision dpi={} maxEdge={} jpegBytes={}",
+                        pdfRenderDpi,
+                        maxImageEdgePx,
+                        jpeg.length);
+                String visionJson = timing.record("vision_llm_total", () -> visionTranscribe("image/jpeg", jpeg, timing));
+                EducationPrescriptionTranscribeData vision = parsePrescriptionJson(visionJson);
+                return timing.record(
+                        "opd_enrich",
+                        () -> finishTranscribe(OpdPrintedFieldExtractor.enrich(vision, extracted), timing)
+                );
+            } catch (IOException ex) {
+                throw new IllegalArgumentException("Could not read PDF.");
             }
-            PDFTextStripper stripper = new PDFTextStripper();
-            stripper.setStartPage(1);
-            stripper.setEndPage(Math.min(3, pages));
-            String extracted = Objects.toString(stripper.getText(doc), "").trim();
-            if (extracted.length() >= MIN_PDF_TEXT_CHARS) {
-                EducationPrescriptionTranscribeData structured =
-                        structurePlainTextWithLlm(collapseBlankLines(extracted));
-                return OpdPrintedFieldExtractor.enrich(structured, extracted);
+        });
+    }
+
+    private EducationPrescriptionTranscribeData transcribeImageBytes(
+            String mime,
+            byte[] imageBytes,
+            PrescriptionTranscribeTiming timing
+    ) {
+        return timing.record("image_total", () -> {
+            BufferedImage probe = timing.record("image_decode", () -> {
+                try {
+                    return ImageIO.read(new ByteArrayInputStream(imageBytes));
+                } catch (IOException ex) {
+                    return null;
+                }
+            });
+            if (probe == null) {
+                throw new IllegalArgumentException("Could not decode image.");
             }
-            PDFRenderer renderer = new PDFRenderer(doc);
-            BufferedImage rendered = renderer.renderImageWithDPI(0, pdfRenderDpi, ImageType.RGB);
-            BufferedImage scaled = constrainMaxEdge(rendered, maxImageEdgePx);
-            byte[] jpeg = toJpegBytes(scaled, 0.88f);
+            byte[] jpegBytes = timing.record("image_preprocess_jpeg", () -> {
+                BufferedImage rgb = toRgb(probe);
+                BufferedImage scaled = constrainMaxEdge(rgb, maxImageEdgePx);
+                try {
+                    return toJpegBytes(scaled, 0.88f);
+                } catch (IOException ex) {
+                    throw new IllegalArgumentException("Could not process image.");
+                }
+            });
             LOG.info(
-                    "education_prescription_transcribe mode=pdf_vision dpi={} maxEdge={} jpegBytes={}",
-                    pdfRenderDpi,
-                    maxImageEdgePx,
-                    jpeg.length);
-            EducationPrescriptionTranscribeData vision =
-                    parsePrescriptionJson(visionTranscribe("image/jpeg", jpeg));
-            return OpdPrintedFieldExtractor.enrich(vision, extracted);
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Could not read PDF.");
-        }
+                    "education_prescription_transcribe mode=image mime={} jpegBytes={} maxEdge={}",
+                    mime,
+                    jpegBytes.length,
+                    maxImageEdgePx);
+            String visionJson = timing.record("vision_llm_total", () -> visionTranscribe("image/jpeg", jpegBytes, timing));
+            EducationPrescriptionTranscribeData vision = parsePrescriptionJson(visionJson);
+            return timing.record(
+                    "split_age_gender",
+                    () -> finishTranscribe(OpdPrintedFieldExtractor.splitAgeGenderIfNeeded(vision), timing)
+            );
+        });
     }
 
-    private EducationPrescriptionTranscribeData transcribeImageBytes(String mime, byte[] imageBytes) {
-        BufferedImage probe;
-        try {
-            probe = ImageIO.read(new ByteArrayInputStream(imageBytes));
-        } catch (IOException ex) {
-            probe = null;
-        }
-        if (probe == null) {
-            throw new IllegalArgumentException("Could not decode image.");
-        }
-        BufferedImage rgb = toRgb(probe);
-        BufferedImage scaled = constrainMaxEdge(rgb, maxImageEdgePx);
-        byte[] jpegBytes;
-        try {
-            jpegBytes = toJpegBytes(scaled, 0.88f);
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Could not process image.");
-        }
-        LOG.info(
-                "education_prescription_transcribe mode=image mime={} jpegBytes={} maxEdge={}",
-                mime,
-                jpegBytes.length,
-                maxImageEdgePx);
-        EducationPrescriptionTranscribeData vision =
-                parsePrescriptionJson(visionTranscribe("image/jpeg", jpegBytes));
-        return OpdPrintedFieldExtractor.splitAgeGenderIfNeeded(vision);
+    private EducationPrescriptionTranscribeData finishTranscribe(
+            EducationPrescriptionTranscribeData data,
+            PrescriptionTranscribeTiming timing
+    ) {
+        return timing.record("medical_glossary", () -> MedicalTermsGlossaryNormalizer.normalize(data, medicalTermsGlossary));
     }
 
-    private EducationPrescriptionTranscribeData structurePlainTextWithLlm(String text) {
+    private EducationPrescriptionTranscribeData finishTranscribe(EducationPrescriptionTranscribeData data) {
+        PrescriptionTranscribeTiming timing = PrescriptionTranscribeTiming.currentOrNull();
+        if (timing != null) {
+            return finishTranscribe(data, timing);
+        }
+        return MedicalTermsGlossaryNormalizer.normalize(data, medicalTermsGlossary);
+    }
+
+    private EducationPrescriptionTranscribeData structurePlainTextWithLlm(String text, PrescriptionTranscribeTiming timing) {
         try {
-            String json = openAiChatAdapter.extractPrescriptionDiagnosisMedicationsJsonFromPlainText(text);
-            return parsePrescriptionJson(json);
+            String json = timing.record("text_llm_openai", () ->
+                    openAiChatAdapter.extractPrescriptionDiagnosisMedicationsJsonFromPlainText(text));
+            return finishTranscribe(parsePrescriptionJson(json), timing);
         } catch (AiProviderException ex) {
             if (ex.kind() != AiProviderException.Kind.CONFIG_MISSING) {
                 throw ex;
             }
         }
-        String json = geminiChatAdapter.extractPrescriptionDiagnosisMedicationsJsonFromPlainText(text);
-        return parsePrescriptionJson(json);
+        String json = timing.record("text_llm_gemini", () ->
+                geminiChatAdapter.extractPrescriptionDiagnosisMedicationsJsonFromPlainText(text));
+        return finishTranscribe(parsePrescriptionJson(json), timing);
     }
 
-    private String visionTranscribe(String mime, byte[] imageBytes) {
-        String b64 = Base64.getEncoder().encodeToString(imageBytes);
+    private String visionTranscribe(String mime, byte[] imageBytes, PrescriptionTranscribeTiming timing) {
+        String b64 = timing.record("vision_base64_encode", () -> Base64.getEncoder().encodeToString(imageBytes));
         String dataUrl = "data:" + mime + ";base64," + b64;
         try {
-            return openAiChatAdapter.transcribePrescriptionFromImageDataUrl(dataUrl);
+            return timing.record("vision_llm_openai", () -> openAiChatAdapter.transcribePrescriptionFromImageDataUrl(dataUrl));
         } catch (AiProviderException ex) {
             if (ex.kind() != AiProviderException.Kind.CONFIG_MISSING) {
                 throw ex;
             }
         }
-        return geminiChatAdapter.transcribePrescriptionFromInlineImage(mime, b64);
+        return timing.record("vision_llm_gemini", () -> geminiChatAdapter.transcribePrescriptionFromInlineImage(mime, b64));
     }
 
     private EducationPrescriptionTranscribeData parsePrescriptionJson(String rawModelOutput) {
+        PrescriptionTranscribeTiming timing = PrescriptionTranscribeTiming.currentOrNull();
+        if (timing != null) {
+            return timing.record("parse_json", () -> parsePrescriptionJsonBody(rawModelOutput));
+        }
+        return parsePrescriptionJsonBody(rawModelOutput);
+    }
+
+    private EducationPrescriptionTranscribeData parsePrescriptionJsonBody(String rawModelOutput) {
         String trimmed = Objects.toString(rawModelOutput, "").trim();
         if (trimmed.isBlank()) {
             LOG.warn("education_prescription_parse_failed reason=empty_model_output");

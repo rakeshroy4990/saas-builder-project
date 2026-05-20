@@ -1,8 +1,10 @@
 package com.flexshell.controller;
 
 import com.flexshell.controller.dto.PatientPrescriptionDownloadResponse;
+import com.flexshell.controller.dto.PatientPrescriptionDiagnosisGroupSummaryResponse;
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateRequest;
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateResponse;
+import com.flexshell.controller.dto.PatientPrescriptionGroupLinkRequest;
 import com.flexshell.controller.dto.PatientPrescriptionSimilarityHitResponse;
 import com.flexshell.controller.dto.PatientPrescriptionSummaryResponse;
 import com.flexshell.controller.dto.PatientPrescriptionUploadResponse;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +33,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
 import java.util.Objects;
@@ -41,6 +47,7 @@ import java.util.UUID;
 public class PatientPrescriptionController {
 
     private static final Logger LOG = LoggerFactory.getLogger(PatientPrescriptionController.class);
+    private static final MediaType NDJSON = MediaType.parseMediaType("application/x-ndjson");
 
     private final PatientPrescriptionService patientPrescriptionService;
     private final PatientPrescriptionSimilarityService patientPrescriptionSimilarityService;
@@ -196,8 +203,52 @@ public class PatientPrescriptionController {
         if (userId.isBlank()) {
             return unauthorized();
         }
-        PatientPrescriptionGroupCreateResponse data = patientPrescriptionService.createGroup(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(StandardApiResponse.success("Group created", data));
+        try {
+            PatientPrescriptionGroupCreateResponse data = patientPrescriptionService.createGroup(userId, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(StandardApiResponse.success("Group created", data));
+        } catch (IllegalArgumentException ex) {
+            return badRequest(ex.getMessage(), "PATIENT_PRESCRIPTION_GROUP_INVALID");
+        }
+    }
+
+    @GetMapping(value = "/groups/diagnosis", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<List<PatientPrescriptionDiagnosisGroupSummaryResponse>>> listDiagnosisGroups(
+            Authentication authentication
+    ) {
+        String userId = actorId(authentication);
+        if (userId.isBlank()) {
+            return unauthorized();
+        }
+        List<PatientPrescriptionDiagnosisGroupSummaryResponse> data = patientPrescriptionService.listDiagnosisGroups(userId);
+        return ResponseEntity.ok(StandardApiResponse.success("Diagnosis groups fetched", data));
+    }
+
+    @PostMapping(
+            value = "/groups/{groupExternalId}/link",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<StandardApiResponse<Void>> linkToGroup(
+            @PathVariable UUID groupExternalId,
+            @RequestBody PatientPrescriptionGroupLinkRequest request,
+            Authentication authentication
+    ) {
+        String userId = actorId(authentication);
+        if (userId.isBlank()) {
+            return unauthorized();
+        }
+        try {
+            patientPrescriptionService.linkPrescriptionToGroup(userId, groupExternalId, request);
+            return ResponseEntity.ok(StandardApiResponse.success("Prescription linked to group", null));
+        } catch (IllegalArgumentException ex) {
+            boolean notFound = "Group not found".equalsIgnoreCase(Objects.toString(ex.getMessage(), "").trim())
+                    || "Prescription not found".equalsIgnoreCase(Objects.toString(ex.getMessage(), "").trim());
+            HttpStatus status = notFound ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
+            String code = notFound ? "PATIENT_PRESCRIPTION_GROUP_NOT_FOUND" : "PATIENT_PRESCRIPTION_GROUP_LINK_INVALID";
+            return ResponseEntity.status(status).body(StandardApiResponse.error(ex.getMessage(), code));
+        } catch (SecurityException ex) {
+            return forbidden(ex.getMessage());
+        }
     }
 
     @PostMapping(
@@ -235,6 +286,48 @@ public class PatientPrescriptionController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_SIMILARITY_UNAVAILABLE"));
         }
+    }
+
+    /**
+     * NDJSON stream ({@code ready} → {@code status} → {@code hit} × N → {@code complete}), same framing as
+     * {@code POST /api/hospital/ai/chat} with {@code Accept: application/x-ndjson}.
+     */
+    @PostMapping(
+            value = "/similarity-search/stream",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = {"application/x-ndjson", "application/ndjson"}
+    )
+    public ResponseEntity<StreamingResponseBody> similaritySearchStream(
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "query", required = false) String query,
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            Authentication authentication,
+            HttpServletResponse httpResponse
+    ) {
+        if (!isDoctorSimilarityUser(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        String userId = actorId(authentication);
+        if (userId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        boolean hasFile = file != null && !file.isEmpty();
+        String queryText = Objects.toString(query, "").trim();
+        if (!hasFile && queryText.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        httpResponse.setBufferSize(1024);
+        httpResponse.setHeader("X-Accel-Buffering", "no");
+        StreamingResponseBody body = patientPrescriptionSimilarityService.streamSearch(
+                userId,
+                hasFile ? file : null,
+                queryText,
+                limit
+        );
+        return ResponseEntity.ok()
+                .contentType(NDJSON)
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(body);
     }
 
     @GetMapping(value = "/groups/{groupExternalId}", produces = MediaType.APPLICATION_JSON_VALUE)

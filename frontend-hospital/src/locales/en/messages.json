@@ -335,6 +335,40 @@
     "upload": {
       "title": "Upload prescription",
       "hint": "Add photos or PDFs of your prescriptions. You can upload multiple files at once.",
+      "modeLabel": "How is this prescription formatted?",
+      "modeSingle": "Single file or one page",
+      "modeFrontBack": "Front and back (2 pages)",
+      "modeSameDiagnosis": "Same diagnosis (multiple prescriptions)",
+      "sameDiagnosis": {
+        "hint": "Enter one diagnosis, then upload several prescription files (different visits or formats). They will all link to that diagnosis.",
+        "dropHint": "Add one or more prescription files for this diagnosis",
+        "setupTitle": "Diagnosis for this upload",
+        "newDiagnosis": "New diagnosis",
+        "existingDiagnosis": "Link to existing diagnosis",
+        "diagnosisLabel": "Diagnosis",
+        "diagnosisPlaceholder": "e.g. Type 2 diabetes, mild fever",
+        "diagnosisRequired": "Enter or select a diagnosis before uploading.",
+        "selectDiagnosis": "Existing diagnosis",
+        "selectPlaceholder": "Choose a diagnosis…",
+        "prescriptionCount": "{count} prescriptions",
+        "noExisting": "No saved diagnoses yet — create a new one above.",
+        "sessionActive": "Uploads in this session will link to the selected diagnosis.",
+        "pickExisting": "Select an existing diagnosis.",
+        "groupFailed": "Could not create diagnosis link."
+      },
+      "frontBack": {
+        "hint": "Upload the front page first (patient details, doctor, dates), then the back page (medicines and diagnosis). Both pages are stored as one prescription.",
+        "dropHint": "Add the current page (front or back), one file at a time",
+        "stepFront": "Step 1 of 2 — Front page (full details)",
+        "stepBack": "Step 2 of 2 — Back page (medicines & diagnosis)",
+        "pageFront": "Front",
+        "pageBack": "Back",
+        "oneAtATime": "Add one page at a time for front/back mode.",
+        "addBack": "Front uploaded. Now add the back page.",
+        "complete": "Front and back linked as one prescription.",
+        "groupLabel": "Front and back",
+        "groupFailed": "Could not create a prescription group."
+      },
       "dropHint": "Drag and drop files here, or click to browse",
       "browse": "Choose files",
       "camera": "Take photo",
@@ -371,6 +405,29 @@
         "actions": "Actions"
       },
       "extractedSummary": "Extracted summary",
+      "multiPageBadge": "{count} pages · one prescription",
+      "diagnosisBadge": "{count} prescriptions · one diagnosis",
+      "multiPageType": "Front + back",
+      "diagnosisType": "Linked by diagnosis",
+      "downloadPrescription": "Prescription {n}",
+      "linkToDiagnosis": "Link to diagnosis",
+      "linkDiagnosisTitle": "Link this upload to a diagnosis",
+      "linkDiagnosisNew": "New diagnosis",
+      "linkDiagnosisExisting": "Existing diagnosis",
+      "linkDiagnosisPlaceholder": "Diagnosis text",
+      "linkDiagnosisConfirm": "Link",
+      "linkDiagnosisTextRequired": "Enter a diagnosis.",
+      "linkDiagnosisPickRequired": "Select an existing diagnosis.",
+      "linkDiagnosisSuccess": "Prescription linked to diagnosis.",
+      "linkDiagnosisFailed": "Could not link to diagnosis.",
+      "downloadFront": "Front page",
+      "downloadBack": "Back page",
+      "linkAsFront": "Use as front page",
+      "linkAsBack": "Link as back page",
+      "linkPickBack": "Front page selected. Choose another upload and tap “Link as back page”.",
+      "linkCancel": "Cancel linking",
+      "linkSuccess": "Front and back linked as one prescription.",
+      "linkFailed": "Could not link the two pages.",
       "loadFailed": "Could not load prescriptions."
     }
   },
@@ -378,7 +435,8 @@
     "nav": {
       "appointments": "Appointments",
       "workingSlots": "Set working time slots",
-      "administration": "Administration"
+      "administration": "Administration",
+      "devices": "Devices"
     },
     "filters": {
       "heading": "⚙️ Filters",
@@ -624,11 +682,19 @@
       "submitHint": "Press Enter to search, Shift+Enter for a new line.",
       "search": "Find similar prescriptions",
       "searching": "Searching…",
+      "streamPhase": {
+        "transcribing": "Reading prescription…",
+        "embedding": "Building search embedding…",
+        "searching": "Finding similar prescriptions…",
+        "section_scores": "Scoring section matches…"
+      },
       "searchFailed": "Could not search prescriptions. Try again.",
       "emptyQuery": "Enter text or attach a prescription file to search.",
       "noResults": "No matching prescriptions with embeddings were found.",
       "resultsTitle": "Best matches",
       "matchLabel": "Similarity score",
+      "sectionBreakdownTitle": "Match by section",
+      "sectionBreakdownOverall": "Overall",
       "unknownPatient": "Unknown patient",
       "noSnippet": "No clinical summary stored for this prescription.",
       "fields": {
@@ -640,6 +706,10 @@
       },
       "attachedFile": "Attached: {name}",
       "removeFile": "Remove",
+      "uploadSummaryTitle": "Uploaded prescription summary",
+      "uploadSummaryHint": "Review the extract from your file. Similar prescriptions in the library are listed below.",
+      "creatingSummary": "Reading your prescription…",
+      "summaryFileLabel": "File",
       "quickFillTitle": "Quick fill with examples",
       "viewPrescription": "View prescription",
       "viewingPrescription": "Opening…",
@@ -663,6 +733,16 @@
       "generatingDetail": "Generating detailed explanation...",
       "noDetailYet": "No detailed notes yet. Use Search in detail from a card to generate this view."
     }
+  },
+  "patientDashboard": {
+    "nav": {
+      "overview": "Overview",
+      "devices": "Devices"
+    }
+  },
+  "devices": {
+    "title": "Medical devices",
+    "intro": "Connect supported Bluetooth devices to record readings on your profile. Use Chrome or Edge on desktop or Android."
   },
   "serverCopy": {
     "acceptLanguageHint": "APIs should honor Accept-Language (e.g. hi, en) for server-rendered copy or return stable codes for client translation."

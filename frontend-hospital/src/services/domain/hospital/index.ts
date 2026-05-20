@@ -28,6 +28,7 @@ import { patientPrescriptionUploadHospitalServices } from './prescription/patien
 import { doctorEducationHospitalServices } from './education/doctorEducationServices';
 import { doctorEducationConversationHospitalServices } from './education/doctorEducationConversationServices';
 import { blogHospitalServices } from './blog/blogHospitalServices';
+import { deviceReadingHospitalServices } from './devices/deviceReadingServices';
 
 /**
  * Same service ids and behavior as legacy `services.ts`, in the same registration order
@@ -62,5 +63,6 @@ export const hospitalServices: ServiceDefinition[] = [
   ...patientPrescriptionUploadHospitalServices,
   ...doctorEducationHospitalServices,
   ...doctorEducationConversationHospitalServices,
-  ...blogHospitalServices
+  ...blogHospitalServices,
+  ...deviceReadingHospitalServices
 ];

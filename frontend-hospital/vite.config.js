@@ -85,6 +85,12 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      }
+    },
     hmr: {
       overlay: true
     },
@@ -97,6 +103,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@realtime': fileURLToPath(new URL('../frontend-realtime-lib/src', import.meta.url)),
+      '@bluetooth': fileURLToPath(new URL('../frontend-bluetooth-lib/src', import.meta.url)),
       '@stomp/stompjs': fileURLToPath(
         new URL('./node_modules/@stomp/stompjs/esm6/index.js', import.meta.url)
       )
