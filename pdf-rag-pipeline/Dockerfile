@@ -14,16 +14,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# ── Layer A: Heavy/stable deps (torch, cv2, langchain) ──────────
-# Split requirements into stable vs frequently-changed
+# ── Layer A: ML stack (CPU wheels only — Cloud Run has no GPU) ───
+# Default PyPI torch pulls ~2GB of CUDA libs; CPU index is ~200MB and caches faster.
 COPY pdf-rag-pipeline/requirements-base.txt .
-RUN pip install --no-cache-dir -r requirements-base.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && grep -vE '^(torch|torchvision)\s*($|#)' requirements-base.txt > /tmp/requirements-base-rest.txt \
+    && pip install --no-cache-dir -r /tmp/requirements-base-rest.txt
 
 # ── Layer B: Light/changing deps ────────────────────────────────
 COPY pdf-rag-pipeline/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
 
-# ── Source ──────────────────────────────────────────────────────
+# ── Source (invalidates only the final thin layer when app code changes) ──
 COPY pdf-rag-pipeline/ .
 
 EXPOSE 8080

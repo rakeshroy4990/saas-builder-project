@@ -246,3 +246,6 @@ images:
 
 options:
   logging: CLOUD_LOGGING_ONLY
+  # Required for Dockerfile RUN --mount=type=cache (Gradle + pip layers reuse across builds).
+  env:
+    - 'DOCKER_BUILDKIT=1'
