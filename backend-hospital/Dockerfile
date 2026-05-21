@@ -8,16 +8,14 @@ COPY backend-hospital/gradlew        ./
 COPY backend-hospital/build.gradle   ./
 COPY backend-hospital/settings.gradle ./
 
-# ── Layer 2: Dependency download ────────────────────────────────
-# Only reruns when build.gradle changes — NOT when lib source changes
-RUN ./gradlew dependencies --no-daemon --no-build-cache \
-    && echo "Dependencies downloaded successfully"
-# Removed || true — fail loudly if deps can't resolve
-
-# ── Layer 3: Sibling libs (source, changes often) ───────────────
+# ── Layer 2: Sibling composite builds (required before any ./gradlew run) ──
 COPY backend-uimetadata-lib/ ../backend-uimetadata-lib/
 COPY backend-auth-lib/       ../backend-auth-lib/
 COPY backend-realtime-lib/   ../backend-realtime-lib/
+
+# ── Layer 3: Dependency download ────────────────────────────────
+RUN ./gradlew dependencies --no-daemon --no-build-cache \
+    && echo "Dependencies downloaded successfully"
 
 # ── Layer 4: App source ─────────────────────────────────────────
 COPY backend-hospital/src/ ./src/
