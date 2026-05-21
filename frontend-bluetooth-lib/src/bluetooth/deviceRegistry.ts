@@ -22,6 +22,15 @@ export interface BluetoothDeviceProfile {
   measurementKeys: string[];
   unit: string;
   requiresUserAction: string;
+  /**
+   * List every nearby BLE device in the browser picker (not only devices advertising
+   * `serviceUUIDs`). Required for most consumer thermometers/oximeters that use vendor UUIDs.
+   */
+  acceptAllDevices?: boolean;
+  /** GATT services to access after pairing when using `acceptAllDevices`. */
+  optionalServiceUUIDs?: string[];
+  /** Alternate characteristics to try per service UUID (e.g. Environmental Sensing temp). */
+  alternateCharacteristics?: Record<string, string[]>;
 }
 
 export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
@@ -63,7 +72,9 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
     characteristicUUID: '00002a5f-0000-1000-8000-00805f9b34fb',
     measurementKeys: ['spo2', 'pulse_rate'],
     unit: '% / BPM',
-    requiresUserAction: 'Place your finger inside the oximeter clip.'
+    requiresUserAction: 'Place your finger inside the oximeter clip.',
+    acceptAllDevices: true,
+    optionalServiceUUIDs: ['00001822-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb']
   },
   GENERIC_BP_MONITOR: {
     type: 'bp_monitor',
@@ -73,7 +84,9 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
     characteristicUUID: '00002a35-0000-1000-8000-00805f9b34fb',
     measurementKeys: ['systolic', 'diastolic', 'pulse'],
     unit: 'mmHg / BPM',
-    requiresUserAction: 'Wrap the cuff around your upper arm and stay still.'
+    requiresUserAction: 'Wrap the cuff around your upper arm and stay still.',
+    acceptAllDevices: true,
+    optionalServiceUUIDs: ['00001810-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb']
   },
   GENERIC_GLUCOMETER: {
     type: 'glucometer',
@@ -83,7 +96,9 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
     characteristicUUID: '00002a18-0000-1000-8000-00805f9b34fb',
     measurementKeys: ['glucose_level'],
     unit: 'mg/dL',
-    requiresUserAction: 'Insert a test strip and apply a blood sample.'
+    requiresUserAction: 'Insert a test strip and apply a blood sample.',
+    acceptAllDevices: true,
+    optionalServiceUUIDs: ['00001808-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb']
   },
   GENERIC_THERMOMETER: {
     type: 'thermometer',
@@ -93,7 +108,17 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
     characteristicUUID: '00002a1c-0000-1000-8000-00805f9b34fb',
     measurementKeys: ['temperature_celsius'],
     unit: '°C',
-    requiresUserAction: 'Place the thermometer as directed by the manufacturer.'
+    acceptAllDevices: true,
+    optionalServiceUUIDs: [
+      '00001809-0000-1000-8000-00805f9b34fb',
+      '0000181a-0000-1000-8000-00805f9b34fb',
+      '0000fff0-0000-1000-8000-00805f9b34fb'
+    ],
+    alternateCharacteristics: {
+      '0000181a-0000-1000-8000-00805f9b34fb': ['00002a6e-0000-1000-8000-00805f9b34fb']
+    },
+    requiresUserAction:
+      'Turn the thermometer on and enable pairing mode if required. In the browser list, select your thermometer by name — most devices do not advertise a standard health service until connected.'
   }
 };
 

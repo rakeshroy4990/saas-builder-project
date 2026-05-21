@@ -42,8 +42,11 @@ function axiosResolvedUrl(config: { baseURL?: string; url?: string }): string {
   return `${b}${u.startsWith('/') ? '' : '/'}${u}`;
 }
 
-function shouldSkipSessionSummaryForAxios(config: { baseURL?: string; url?: string }): boolean {
-  return shouldSkipTelemetrySessionSummaryForApiUrl(axiosResolvedUrl(config));
+function shouldSkipSessionSummaryForAxios(
+  config: { baseURL?: string; url?: string },
+  kind: 'api_call' | 'api_error' = 'api_call'
+): boolean {
+  return shouldSkipTelemetrySessionSummaryForApiUrl(axiosResolvedUrl(config), kind);
 }
 
 export const apiClient = axios.create({
@@ -296,7 +299,7 @@ apiClient.interceptors.request.use(async (config) => {
   if (!isRefresh && isAuthTokenExpired()) {
     await refreshAccessToken();
   }
-  if (!shouldSkipSessionSummaryForAxios(config)) {
+  if (!shouldSkipSessionSummaryForAxios(config, 'api_call')) {
     (config as FlexshellTelemetryConfig).__flexshellTelemetryT0 = performance.now();
   }
   if (VITE_PERF_ENABLED) {
@@ -307,7 +310,7 @@ apiClient.interceptors.request.use(async (config) => {
 
 apiClient.interceptors.response.use(
   (response) => {
-    if (!shouldSkipSessionSummaryForAxios(response.config)) {
+    if (!shouldSkipSessionSummaryForAxios(response.config, 'api_call')) {
       const cfg = response.config as FlexshellTelemetryConfig;
       const t0 = cfg.__flexshellTelemetryT0;
       const durationMs = typeof t0 === 'number' ? Math.round(performance.now() - t0) : undefined;
@@ -360,7 +363,7 @@ apiClient.interceptors.response.use(
       url: error.config?.url,
       method: error.config?.method
     });
-    if (error.config && !shouldSkipSessionSummaryForAxios(error.config)) {
+    if (error.config && !shouldSkipSessionSummaryForAxios(error.config, 'api_error')) {
       const cfg = error.config as FlexshellTelemetryConfig;
       const t0 = cfg.__flexshellTelemetryT0;
       const durationMs = typeof t0 === 'number' ? Math.round(performance.now() - t0) : undefined;

@@ -1,13 +1,12 @@
 import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition';
 import type { Composer } from 'vue-i18n';
 import type { AxiosResponse } from 'axios';
-import { isAxiosError } from 'axios';
 import { useAppStore } from '../../../../store/useAppStore';
 import { useToastStore } from '../../../../store/useToastStore';
 import { pinia } from '../../../../store/pinia';
 import { i18n } from '../../../../i18n';
 import { apiClient } from '../../../http/apiClient';
-import { isRequestTimeoutError, requestTimeoutMessage } from '../../../http/httpUserFacingErrors';
+import { resolveUserFacingErrorMessage } from '../../../http/httpUserFacingErrors';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 
@@ -465,19 +464,8 @@ function hospitalAiChatPayload(
   return payload;
 }
 
-function extractApiErrorMessage(err: unknown, fallback: string): string {
-  if (isRequestTimeoutError(err)) {
-    return requestTimeoutMessage();
-  }
-  if (isAxiosError(err)) {
-    const payload = (err.response?.data ?? {}) as Record<string, unknown>;
-    const exact =
-      String(payload.Message ?? '').trim()
-      || String(payload.message ?? '').trim()
-      || String(err.message ?? '').trim();
-    return exact || fallback;
-  }
-  return fallback;
+function extractApiErrorMessage(err: unknown, fallbackKey: string): string {
+  return resolveUserFacingErrorMessage(err, fallbackKey);
 }
 
 export const doctorEducationHospitalServices: ServiceDefinition[] = [
@@ -663,7 +651,7 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
         });
         return ok({ cards: flashcards.length });
       } catch (err: unknown) {
-        const exactMessage = extractApiErrorMessage(err, educationComposer().t('education.flashcardsUnavailable'));
+        const exactMessage = extractApiErrorMessage(err, 'education.flashcardsUnavailable');
         const latest = getEducationState(appStore);
         appStore.setData('hospital', 'DoctorEducationUiState', {
           ...latest,
@@ -737,7 +725,7 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
         });
         return ok();
       } catch (err: unknown) {
-        const exactMessage = extractApiErrorMessage(err, educationComposer().t('education.detailUnavailable'));
+        const exactMessage = extractApiErrorMessage(err, 'education.detailUnavailable');
         const latest = getEducationState(appStore);
         appStore.setData('hospital', 'DoctorEducationUiState', {
           ...latest,

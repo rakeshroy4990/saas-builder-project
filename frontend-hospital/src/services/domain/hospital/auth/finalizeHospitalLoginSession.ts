@@ -13,6 +13,7 @@ import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcIn
 import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { emitSessionSummaryAuthLogin } from '../../../analytics/sessionSummary';
+import { clearTelemetryOutbox } from '../../../analytics/sessionTelemetryQueue';
 import { mintLoginSessionId } from '../../../logging/loginSessionContext';
 import { getOrCreateTraceId, startNewTraceId } from '../../../logging/traceContext';
 import { refreshHeroYoutubeFromUserQueryCache } from '../home/resolveHeroYoutubeVideoService';
@@ -118,6 +119,7 @@ export async function finalizeHospitalLoginSession(
     role: resolvedRole,
     preferredLocale
   });
+  await clearTelemetryOutbox();
   mintLoginSessionId();
   startNewTraceId();
   useAppStore(pinia).setProperty('hospital', 'AuthForm', 'emailError', '');
@@ -146,12 +148,16 @@ export async function finalizeHospitalLoginSession(
       // Non-fatal: badge/chat still work after opening the chat popup.
     }
   }
-  trackEvent('login_success', {
-    role: resolvedRole,
-    domain: 'auth',
-    status: 'success',
-    trace_id: getOrCreateTraceId()
-  });
+  trackEvent(
+    'login_success',
+    {
+      role: resolvedRole,
+      domain: 'auth',
+      status: 'success',
+      trace_id: getOrCreateTraceId()
+    },
+    { skipSessionTelemetry: true }
+  );
   void emitSessionSummaryAuthLogin(options?.authMethod === 'google' ? 'google' : 'password');
   void refreshHeroYoutubeFromUserQueryCache();
 }

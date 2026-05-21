@@ -23,6 +23,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.annotation.PostConstruct;
+
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
@@ -57,6 +59,9 @@ public class EducationPrescriptionTranscriptionService {
     private final int pdfRenderDpi;
     private final int maxImageEdgePx;
     private final MedicalTermsGlossary medicalTermsGlossary;
+    private final String prescriptionVisionOpenAiImageDetail;
+    private final int prescriptionVisionTimeoutMs;
+    private final int prescriptionVisionHttpRetries;
 
     public EducationPrescriptionTranscriptionService(
             OpenAiChatAdapter openAiChatAdapter,
@@ -67,7 +72,10 @@ public class EducationPrescriptionTranscriptionService {
             @Value("${app.ai.smart.consume-quota-for-education-prescription-transcribe:false}")
             boolean consumeQuotaForEducationPrescriptionTranscribe,
             @Value("${app.ai.prescription-vision-render-dpi:120}") int pdfRenderDpi,
-            @Value("${app.ai.prescription-vision-max-edge-px:1600}") int maxImageEdgePx
+            @Value("${app.ai.prescription-vision-max-edge-px:900}") int maxImageEdgePx,
+            @Value("${app.ai.prescription-vision-openai-image-detail:auto}") String prescriptionVisionOpenAiImageDetail,
+            @Value("${app.ai.prescription-vision-timeout-ms:90000}") int prescriptionVisionTimeoutMs,
+            @Value("${app.ai.prescription-vision-http-retries:2}") int prescriptionVisionHttpRetries
     ) {
         this.openAiChatAdapter = openAiChatAdapter;
         this.geminiChatAdapter = geminiChatAdapter;
@@ -77,12 +85,39 @@ public class EducationPrescriptionTranscriptionService {
         this.consumeQuotaForEducationPrescriptionTranscribe = consumeQuotaForEducationPrescriptionTranscribe;
         this.pdfRenderDpi = Math.min(200, Math.max(72, pdfRenderDpi));
         this.maxImageEdgePx = Math.min(4096, Math.max(768, maxImageEdgePx));
+        this.prescriptionVisionOpenAiImageDetail =
+                Objects.toString(prescriptionVisionOpenAiImageDetail, "auto").trim().toLowerCase(Locale.ROOT);
+        this.prescriptionVisionTimeoutMs = Math.max(15_000, prescriptionVisionTimeoutMs);
+        this.prescriptionVisionHttpRetries = Math.min(5, Math.max(0, prescriptionVisionHttpRetries));
+    }
+
+    @PostConstruct
+    void logEffectivePrescriptionVisionConfig() {
+        LOG.info(
+                "education_prescription_vision_effective_config maxEdgePx={} renderDpi={} openAiImageDetail={} "
+                        + "visionTimeoutMs={} httpRetries={} maxOpenAiAttempts={} glossaryEnabled={} "
+                        + "(local: set OS env or application.properties; cloudrun-env.yaml is deploy-only)",
+                maxImageEdgePx,
+                pdfRenderDpi,
+                prescriptionVisionOpenAiImageDetail,
+                prescriptionVisionTimeoutMs,
+                prescriptionVisionHttpRetries,
+                1 + prescriptionVisionHttpRetries,
+                medicalTermsGlossary.isEnabled()
+        );
     }
 
     public EducationPrescriptionTranscribeData transcribe(String userId, MultipartFile file) {
         PrescriptionTranscribeTiming timing = PrescriptionTranscribeTiming.start();
         try {
             return doTranscribe(userId, file, timing);
+        } catch (RuntimeException ex) {
+            LOG.warn(
+                    "education_prescription_transcribe_failed errorType={} message={}",
+                    ex.getClass().getSimpleName(),
+                    Objects.toString(ex.getMessage(), "").trim()
+            );
+            throw ex;
         } finally {
             timing.logSummary(LOG);
         }
@@ -126,6 +161,13 @@ public class EducationPrescriptionTranscriptionService {
         }
 
         timing.context(effectiveMime, bytes.length, "application/pdf".equals(effectiveMime) ? "pdf" : "image");
+        LOG.info(
+                "education_prescription_transcribe_start mime={} fileBytes={} maxEdgePx={} openAiImageDetail={}",
+                effectiveMime,
+                bytes.length,
+                maxImageEdgePx,
+                prescriptionVisionOpenAiImageDetail
+        );
         if ("application/pdf".equals(effectiveMime)) {
             return transcribePdf(bytes, timing);
         }

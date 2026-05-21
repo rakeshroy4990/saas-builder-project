@@ -25,12 +25,12 @@ function emitFetchSessionSummary(
   startedAt: number,
   outcome: { type: 'response'; response: Response } | { type: 'network'; error: unknown }
 ): void {
-  if (shouldSkipTelemetrySessionSummaryForApiUrl(apiPath)) {
-    return;
-  }
   const durationMs = Math.round(performance.now() - startedAt);
   try {
     if (outcome.type === 'response') {
+      if (shouldSkipTelemetrySessionSummaryForApiUrl(apiPath, 'api_call')) {
+        return;
+      }
       void emitLoggedInSessionSummary({
         kind: SessionSummaryKind.API_CALL,
         api_path: apiPath,
@@ -39,6 +39,9 @@ function emitFetchSessionSummary(
         duration_ms: durationMs
       });
     } else {
+      if (shouldSkipTelemetrySessionSummaryForApiUrl(apiPath, 'api_error')) {
+        return;
+      }
       const err = outcome.error;
       const msg =
         err instanceof Error

@@ -1,14 +1,13 @@
 import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition';
 import type { Composer } from 'vue-i18n';
 import type { AxiosResponse } from 'axios';
-import { isAxiosError } from 'axios';
 import { useAppStore } from '../../../../store/useAppStore';
 import { useToastStore } from '../../../../store/useToastStore';
 import { pinia } from '../../../../store/pinia';
 import { i18n } from '../../../../i18n';
 import { apiClient } from '../../../http/apiClient';
 import { postHospitalAiChatNdjson } from '../../../http/hospitalAiChatStream';
-import { isRequestTimeoutError, requestTimeoutMessage } from '../../../http/httpUserFacingErrors';
+import { isRequestTimeoutError, resolveUserFacingErrorMessage } from '../../../http/httpUserFacingErrors';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 import { assistantDisplayBody, assistantDisplayFollowUps, tryParseEmbeddedAssistantJson } from './educationAssistantPayload';
@@ -395,21 +394,7 @@ function educationConversationPayload(
 }
 
 function localizedConversationError(fallbackKey: string, error: unknown): string {
-  const composer = educationComposer();
-  const fallback = composer.t(fallbackKey);
-  if (isRequestTimeoutError(error)) {
-    return requestTimeoutMessage();
-  }
-  if (isAxiosError(error)) {
-    const payload = (error.response?.data ?? {}) as Record<string, unknown>;
-    const exact = String(payload.Message ?? payload.message ?? error.message ?? '').trim();
-    return exact || fallback;
-  }
-  if (error instanceof Error) {
-    const m = String(error.message ?? '').trim();
-    if (m) return m;
-  }
-  return fallback;
+  return resolveUserFacingErrorMessage(error, fallbackKey);
 }
 
 function ensureConversationState(state: EducationConversationState): Required<Pick<

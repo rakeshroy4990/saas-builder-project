@@ -63,7 +63,10 @@
       "network": "Unable to reach the server right now. Please check your connection and try again.",
       "requestTimeout": "The request took too long to complete. Please check your connection and try again.",
       "sessionExpired": "Your session may have expired. Please log in again and retry.",
-      "unavailable": "The service is temporarily unavailable. Please try again in a moment."
+      "unavailable": "The service is temporarily unavailable. Please try again in a moment.",
+      "streamInterrupted": "The response was cut off before it finished. Please try again.",
+      "streamNoBody": "We could not get a full response. Please try again.",
+      "rateLimited": "Too many requests right now. Please wait a moment and try again."
     },
     "loginForm": {
       "emailLabel": "Email *",

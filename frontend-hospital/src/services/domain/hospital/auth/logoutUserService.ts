@@ -29,7 +29,7 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       await Promise.all([
         apiClient.post(URLRegistry.paths.logout, buildLogoutRequestBody()).catch(() => undefined)
       ]);
-      flushSessionTelemetryQueue();
+      await flushSessionTelemetryQueue();
       stompClient.disconnect();
       clearWebrtcSubscription();
       clearCallHeartbeatTimer();

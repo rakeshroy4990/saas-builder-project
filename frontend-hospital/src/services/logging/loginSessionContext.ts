@@ -18,6 +18,12 @@ export function mintLoginSessionId(): string {
   return id;
 }
 
+/** When profile was hydrated from storage but no login scope id exists yet, mint one so telemetry does not fall back to {@code userId::traceId}. */
+export function ensureLoginSessionIdForPersistedAuth(): void {
+  if (readLoginSessionId()) return;
+  mintLoginSessionId();
+}
+
 export function readLoginSessionId(): string {
   try {
     return String(sessionStorage.getItem(LOGIN_SESSION_STORAGE_KEY) ?? '').trim();

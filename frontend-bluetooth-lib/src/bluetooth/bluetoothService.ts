@@ -1,6 +1,59 @@
-import { DEVICE_REGISTRY } from './deviceRegistry';
+import { DEVICE_REGISTRY, type BluetoothDeviceProfile } from './deviceRegistry';
 import { isWebBluetoothSupported } from './bluetoothSupport';
 import type { BluetoothReading, BluetoothSession } from './types';
+
+function allOptionalServices(profile: BluetoothDeviceProfile): string[] {
+  const merged = [...profile.serviceUUIDs, ...(profile.optionalServiceUUIDs ?? [])];
+  return [...new Set(merged)];
+}
+
+function buildRequestDeviceOptions(profile: BluetoothDeviceProfile): RequestDeviceOptions {
+  const optionalServices = allOptionalServices(profile);
+  if (profile.acceptAllDevices) {
+    return {
+      acceptAllDevices: true,
+      optionalServices
+    };
+  }
+  return {
+    filters: [{ services: profile.serviceUUIDs }],
+    optionalServices
+  };
+}
+
+async function resolveDataCharacteristic(
+  server: BluetoothRemoteGATTServer,
+  profile: BluetoothDeviceProfile
+): Promise<BluetoothRemoteGATTCharacteristic> {
+  const serviceIds = allOptionalServices(profile);
+
+  for (const serviceUuid of serviceIds) {
+    let service: BluetoothRemoteGATTService;
+    try {
+      service = await server.getPrimaryService(serviceUuid);
+    } catch {
+      continue;
+    }
+
+    const charIds = [
+      profile.characteristicUUID,
+      ...(profile.alternateCharacteristics?.[serviceUuid] ?? [])
+    ];
+
+    for (const charUuid of charIds) {
+      try {
+        return await service.getCharacteristic(charUuid);
+      } catch {
+        // try next characteristic / service
+      }
+    }
+  }
+
+  throw new Error(
+    'Connected, but this device does not expose a supported temperature (or measurement) characteristic. ' +
+      'Your thermometer may use a proprietary app-only protocol, not standard BLE health services.'
+  );
+}
 
 let activeSession: BluetoothSession | null = null;
 
@@ -19,14 +72,10 @@ export async function connectDevice(deviceKey: string): Promise<BluetoothSession
     throw new Error('Web Bluetooth is not supported in this browser.');
   }
 
-  const device = await bluetooth.requestDevice({
-    filters: [{ services: profile.serviceUUIDs }],
-    optionalServices: profile.serviceUUIDs
-  });
+  const device = await bluetooth.requestDevice(buildRequestDeviceOptions(profile));
 
   const server = await device.gatt!.connect();
-  const service = await server.getPrimaryService(profile.serviceUUIDs[0]);
-  const characteristic = await service.getCharacteristic(profile.characteristicUUID);
+  const characteristic = await resolveDataCharacteristic(server, profile);
 
   activeSession = { device, server, characteristic, profile, deviceKey };
 

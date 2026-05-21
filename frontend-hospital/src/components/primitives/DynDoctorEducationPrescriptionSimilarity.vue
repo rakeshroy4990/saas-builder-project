@@ -12,6 +12,7 @@ import {
   type PatientPrescriptionSimilarityDetails
 } from '../../services/http/patientPrescriptionSimilarityApi';
 import { getPatientPrescriptionDownloadUrl } from '../../services/http/patientPrescriptionApi';
+import { resolveUserFacingErrorMessage } from '../../services/http/httpUserFacingErrors';
 import { useToastStore } from '../../store/useToastStore';
 import { pinia } from '../../store/pinia';
 
@@ -185,10 +186,7 @@ async function onFileSelected(event: Event) {
   } catch (err) {
     uploadSummary.value = null;
     results.value = [];
-    error.value =
-      err instanceof Error && err.message.trim()
-        ? err.message.trim()
-        : t('education.prescriptionSimilarity.searchFailed');
+    error.value = resolveUserFacingErrorMessage(err, 'education.prescriptionSimilarity.searchFailed');
   } finally {
     summarizingFile.value = false;
   }
@@ -226,10 +224,7 @@ async function runSearch(opts?: { query?: string; file?: File }) {
   } catch (err) {
     results.value = [];
     emptyHint.value = '';
-    error.value =
-      err instanceof Error && err.message.trim()
-        ? err.message.trim()
-        : t('education.prescriptionSimilarity.searchFailed');
+    error.value = resolveUserFacingErrorMessage(err, 'education.prescriptionSimilarity.searchFailed');
   } finally {
     searching.value = false;
     streamPhase.value = '';

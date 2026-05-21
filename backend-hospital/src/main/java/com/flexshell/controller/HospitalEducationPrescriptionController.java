@@ -49,6 +49,12 @@ public class HospitalEducationPrescriptionController {
                     .body(StandardApiResponse.error("Authentication required.", "AUTH_REQUIRED"));
         }
         long httpStartNanos = System.nanoTime();
+        LOG.info(
+                "education_prescription_transcribe_request filePresent={} fileSize={} contentType={}",
+                file != null && !file.isEmpty(),
+                file == null ? -1 : file.getSize(),
+                file == null ? "" : Objects.toString(file.getContentType(), "").trim()
+        );
         try {
             EducationPrescriptionTranscribeData data = transcriptionService.transcribe(userId, file);
             if (data == null) {
@@ -75,6 +81,7 @@ public class HospitalEducationPrescriptionController {
             }
             return builder.body(StandardApiResponse.success("Transcription ready", data));
         } catch (IllegalArgumentException ex) {
+            logTranscribeHttpOutcome(httpStartNanos, "bad_request");
             String msg = Objects.toString(ex.getMessage(), "Invalid request").trim();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(StandardApiResponse.error(msg.isBlank() ? "Invalid request" : msg, "EDUCATION_PRESCRIPTION_INVALID"));
@@ -86,6 +93,7 @@ public class HospitalEducationPrescriptionController {
                     ? "AI_SMART_QUOTA_DAILY"
                     : "AI_SMART_QUOTA_TOKEN";
             LOG.warn("education_prescription_transcribe quota kind={}", ex.kind());
+            logTranscribeHttpOutcome(httpStartNanos, "quota");
             return ResponseEntity.status(status)
                     .body(StandardApiResponse.error(ex.getMessage(), code));
         } catch (AiProviderException ex) {
@@ -93,6 +101,7 @@ public class HospitalEducationPrescriptionController {
                     ? "AI_CONFIG_MISSING"
                     : "AI_PROVIDER_FAILED";
             LOG.warn("education_prescription_transcribe provider_fail kind={}", ex.kind());
+            logTranscribeHttpOutcome(httpStartNanos, "provider_failed");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(StandardApiResponse.error(ex.getMessage(), code));
         } finally {
@@ -100,6 +109,21 @@ public class HospitalEducationPrescriptionController {
             if (timing != null) {
                 timing.close();
             }
+        }
+    }
+
+    private static void logTranscribeHttpOutcome(long httpStartNanos, String outcome) {
+        long httpTotalMs = Math.max(0L, (System.nanoTime() - httpStartNanos) / 1_000_000L);
+        PrescriptionTranscribeTiming timing = PrescriptionTranscribeTiming.currentOrNull();
+        if (timing != null) {
+            LOG.info(
+                    "education_prescription_transcribe_http outcome={} totalMs={} slowest=[{}]",
+                    outcome,
+                    httpTotalMs,
+                    timing.topStepSummary()
+            );
+        } else {
+            LOG.info("education_prescription_transcribe_http outcome={} totalMs={}", outcome, httpTotalMs);
         }
     }
 

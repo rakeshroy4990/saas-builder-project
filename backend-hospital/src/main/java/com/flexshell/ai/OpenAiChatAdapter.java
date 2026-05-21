@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -79,6 +81,19 @@ public class OpenAiChatAdapter {
         this.prescriptionVisionHttpRetries = Math.min(5, Math.max(0, prescriptionVisionHttpRetries));
     }
 
+    @PostConstruct
+    void logPrescriptionVisionConfig() {
+        LOG.info(
+                "openai_prescription_vision_config model={} imageDetail={} visionTimeoutMs={} maxOutputTokens={} httpRetries={} maxAttempts={}",
+                model,
+                prescriptionVisionOpenAiImageDetail,
+                visionTimeoutMs,
+                prescriptionVisionMaxOutputTokens,
+                prescriptionVisionHttpRetries,
+                1 + prescriptionVisionHttpRetries
+        );
+    }
+
     /**
      * Vision transcription for prescription-style images (data URL, e.g. {@code data:image/png;base64,...}).
      */
@@ -98,7 +113,9 @@ public class OpenAiChatAdapter {
             userParts.add(Map.of("type", "text", "text", PrescriptionVisionPrompts.VISION_JSON_USER));
             Map<String, Object> imageUrl = new LinkedHashMap<>();
             imageUrl.put("url", url);
-            if ("low".equals(prescriptionVisionOpenAiImageDetail) || "high".equals(prescriptionVisionOpenAiImageDetail)) {
+            if ("low".equals(prescriptionVisionOpenAiImageDetail)
+                    || "high".equals(prescriptionVisionOpenAiImageDetail)
+                    || "auto".equals(prescriptionVisionOpenAiImageDetail)) {
                 imageUrl.put("detail", prescriptionVisionOpenAiImageDetail);
             }
             Map<String, Object> imagePart = new LinkedHashMap<>();
@@ -125,11 +142,24 @@ public class OpenAiChatAdapter {
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
             int maxAttempts = 1 + prescriptionVisionHttpRetries;
+            LOG.info(
+                    "openai_prescription_vision_request_start detail={} visionTimeoutMs={} maxAttempts={} payloadChars={}",
+                    prescriptionVisionOpenAiImageDetail,
+                    visionTimeoutMs,
+                    maxAttempts,
+                    requestBody.length()
+            );
+            long visionStartNanos = System.nanoTime();
             for (int attempt = 0; attempt < maxAttempts; attempt++) {
+                if (attempt > 0) {
+                    LOG.warn("openai_prescription_vision_retry attempt={} maxAttempts={}", attempt + 1, maxAttempts);
+                }
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 int code = response.statusCode();
                 String body = response.body();
                 if (code >= 200 && code < 300) {
+                    long visionMs = Math.max(0L, (System.nanoTime() - visionStartNanos) / 1_000_000L);
+                    LOG.info("openai_prescription_vision_request_ok elapsedMs={} attempt={}", visionMs, attempt + 1);
                     return parseResponseText(body).trim();
                 }
                 if (attempt < maxAttempts - 1 && AiProviderHttpRetry.shouldRetryAfterHttpFailure(code, body)) {
@@ -154,11 +184,13 @@ public class OpenAiChatAdapter {
             throw openAiVisionTranscriptionException(0, "");
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
+            LOG.warn("openai_prescription_vision_interrupted");
             throw new AiProviderException(
                     AiProviderException.Kind.PROVIDER_FAILED,
                     "Smart AI provider is temporarily unavailable."
             );
         } catch (IOException ex) {
+            LOG.warn("openai_prescription_vision_io_failed errorType={}", ex.getClass().getSimpleName());
             throw new AiProviderException(
                     AiProviderException.Kind.PROVIDER_FAILED,
                     "Smart AI provider is temporarily unavailable."

@@ -1,0 +1,12 @@
+# requirements-base.txt — only update when adding major new libraries
+torch
+torchvision
+opencv-python-headless
+langchain
+langchain-openai
+langchain-community
+chromadb
+sentence-transformers
+pymongo
+sqlalchemy
+psycopg2-binary

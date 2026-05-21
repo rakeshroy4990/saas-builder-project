@@ -6,7 +6,7 @@ import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
 import { postHospitalAiChatNdjson } from '../../../http/hospitalAiChatStream';
 import { URLRegistry } from '../../../http/URLRegistry';
-import { isRequestTimeoutError, requestTimeoutMessage } from '../../../http/httpUserFacingErrors';
+import { isRequestTimeoutError, resolveUserFacingErrorMessage } from '../../../http/httpUserFacingErrors';
 import { stompClient } from '../../../realtime/stompClient';
 import { logClient } from '../../../logging/clientLogger';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
@@ -792,9 +792,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
           trace_id: getOrCreateTraceId(),
           http_status: status
         });
-        const toastMsg = isRequestTimeoutError(error)
-          ? requestTimeoutMessage()
-          : 'Smart AI is temporarily unavailable. Please try again shortly.';
+        const toastMsg = resolveUserFacingErrorMessage(error, 'popup.error.unavailable');
         if (status !== 401) {
           toastStore.show(toastMsg, 'error');
         }

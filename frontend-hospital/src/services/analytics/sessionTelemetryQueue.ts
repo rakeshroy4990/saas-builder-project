@@ -70,6 +70,21 @@ async function trimOldestIfNeeded(db: IDBDatabase): Promise<void> {
   });
 }
 
+/** Drop queued rows (e.g. before a new login session id so flush does not merge stale sessions). */
+export async function clearTelemetryOutbox(): Promise<void> {
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const req = tx.objectStore(STORE).clear();
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => resolve();
+    });
+  } catch {
+    // Non-blocking
+  }
+}
+
 /**
  * Append one serialized POST body. Drops oldest rows if over {@link MAX_RECORDS}.
  */

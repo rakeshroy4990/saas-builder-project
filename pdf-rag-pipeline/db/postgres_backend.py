@@ -14,7 +14,7 @@ from typing import Any, Optional
 from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Json
-from psycopg_pool import ConnectionPool
+from psycopg_pool import ConnectionPool, PoolTimeout
 
 from config.settings import (
     DATABASE_URL,
@@ -107,6 +107,63 @@ def _drop_public_named_relation_if_exists(cur, relname: str) -> None:
         cur.execute(f"DROP VIEW public.{relname} CASCADE")
 
 
+def _ensure_rag_tables_rls_lockdown(conn) -> None:
+    """
+    Lock down rag_* tables (RLS) and rag_* views (revoke + security_invoker).
+    Views rag_ingest_jobs / rag_ingest_batches alias marker tables; V12-style migrations skip views.
+    """
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            SELECT c.relname AS object_name, c.relkind AS kind
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public'
+              AND c.relkind IN ('r', 'v')
+              AND c.relname LIKE 'rag_%'
+            ORDER BY 1
+            """
+        )
+        rows = cur.fetchall()
+
+    table_count = 0
+    view_count = 0
+    for row in rows:
+        name = str(row.get("object_name") or "").strip()
+        kind = str(row.get("kind") or "").strip()
+        if not name:
+            continue
+        with conn.cursor() as cur:
+            if kind == "r":
+                cur.execute(
+                    sql.SQL("ALTER TABLE public.{} ENABLE ROW LEVEL SECURITY").format(
+                        sql.Identifier(name)
+                    )
+                )
+                table_count += 1
+            elif kind == "v":
+                try:
+                    cur.execute(
+                        sql.SQL("ALTER VIEW public.{} SET (security_invoker = true)").format(
+                            sql.Identifier(name)
+                        )
+                    )
+                except Exception as exc:
+                    LOG.warning("postgres: security_invoker not set on view %s: %s", name, exc)
+                view_count += 1
+            cur.execute(
+                sql.SQL("REVOKE ALL ON TABLE public.{} FROM anon, authenticated, PUBLIC").format(
+                    sql.Identifier(name)
+                )
+            )
+    if table_count or view_count:
+        LOG.info(
+            "postgres: RLS lockdown on %s rag_* table(s), secured %s rag_* view(s)",
+            table_count,
+            view_count,
+        )
+
+
 def _ensure_rag_ingest_alias_views(conn) -> None:
     """
     Tooling may expect `rag_ingest_jobs` / `rag_ingest_batches`. Canonical tables are
@@ -152,6 +209,7 @@ def _ensure_rag_ingest_alias_views(conn) -> None:
             FROM public.rag_marker_batches
             """
         )
+    _ensure_rag_tables_rls_lockdown(conn)
 
 
 def _normalize_embedding_type_name(type_name: str) -> str:
@@ -315,21 +373,37 @@ def _ensure_retrieval_items_embedding_dimension(conn, *, fail_on_mismatch: bool)
     return current_type
 
 
+def _raise_pool_timeout_error(exc: PoolTimeout) -> None:
+    host_hint = ""
+    if DATABASE_URL and "@" in DATABASE_URL:
+        host_hint = DATABASE_URL.split("@", 1)[-1].split("/", 1)[0]
+    raise RuntimeError(
+        "Postgres connection pool timed out after "
+        f"{PG_POOL_TIMEOUT:.0f}s (host={host_hint or 'unknown'}). "
+        "Supabase session pooler (:5432) shares ~15 clients with backend-hospital and IDE tools. "
+        "Set DATABASE_URL to the transaction pooler (port 6543), lower PG_POOL_MAX_SIZE, "
+        "or stop other services using the same database."
+    ) from exc
+
+
 def ensure_postgres_schema() -> None:
     path = Path(__file__).resolve().parent / "postgres_schema.sql"
-    with get_pool().connection() as conn:
-        LOG.info("postgres: applying ddl from %s", path.name)
-        # Do not DROP the HNSW index here on every startup — it forces a full rebuild and
-        # blocks the API for a long time on large rag_retrieval_items. Drops happen only
-        # inside _alter_retrieval_items_embedding_dimension when the embedding column type changes.
-        _run_ddl_file(conn, path)
-        LOG.info("postgres: ensuring rag_ingest alias views")
-        _ensure_rag_ingest_alias_views(conn)
-        LOG.info("postgres: checking rag_retrieval_items embedding column / vector index")
-        final_type = _ensure_retrieval_items_embedding_dimension(conn, fail_on_mismatch=False)
-        if final_type == _target_embedding_type_name():
-            _ensure_retrieval_items_vector_index(conn, EMBEDDING_DIMENSION)
-        conn.commit()
+    try:
+        with get_pool().connection() as conn:
+            LOG.info("postgres: applying ddl from %s", path.name)
+            # Do not DROP the HNSW index here on every startup — it forces a full rebuild and
+            # blocks the API for a long time on large rag_retrieval_items. Drops happen only
+            # inside _alter_retrieval_items_embedding_dimension when the embedding column type changes.
+            _run_ddl_file(conn, path)
+            LOG.info("postgres: ensuring rag_ingest alias views and API lockdown")
+            _ensure_rag_ingest_alias_views(conn)
+            LOG.info("postgres: checking rag_retrieval_items embedding column / vector index")
+            final_type = _ensure_retrieval_items_embedding_dimension(conn, fail_on_mismatch=False)
+            if final_type == _target_embedding_type_name():
+                _ensure_retrieval_items_vector_index(conn, EMBEDDING_DIMENSION)
+            conn.commit()
+    except PoolTimeout as exc:
+        _raise_pool_timeout_error(exc)
     LOG.info("postgres schema ensured from %s", path.name)
 
 

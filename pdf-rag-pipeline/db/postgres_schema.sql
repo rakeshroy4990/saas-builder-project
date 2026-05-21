@@ -124,3 +124,5 @@ CREATE INDEX IF NOT EXISTS rag_marker_batches_job_id_idx ON rag_marker_batches (
 --   rag_ingest_jobs    → rag_marker_jobs
 --   rag_ingest_batches → rag_marker_batches
 -- (Plain SQL DROP VIEW IF EXISTS fails when the name is already a TABLE; we inspect pg_class.relkind in code.)
+-- RLS lockdown for rag_* tables: applied in Python (`_ensure_rag_tables_rls_lockdown`) — not here, because
+-- `_run_ddl_file` splits on semicolons and cannot run `DO $$ ... $$` blocks.

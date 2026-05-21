@@ -38,6 +38,8 @@ cd backend-hospital && gradle test
 
 Do not leave the branch with compile errors — fix checked exceptions inside `timing.record(...)` lambdas (wrap `IOException` in `IllegalArgumentException` or handle in an outer `try`), missing types, and Spring API differences (e.g. use `"Server-Timing"` header string if `HttpHeaders.SERVER_TIMING` is unavailable).
 
+**Prescription vision env (local):** `cloudrun-env.yaml` is **deploy-only** (Cloud Run). For `localhost:8080`, set OS environment variables or copy values into `backend-hospital/src/main/resources/application.properties`. On startup, confirm logs: `education_prescription_vision_effective_config` and `openai_prescription_vision_config` (must show `maxEdgePx=900`, `openAiImageDetail=auto` if applied).
+
 ## Header title → home
 
 Brand title text (`hosp.header.title`) uses **`config.click`** on `type: 'text'`: `set-home-header-active` then `navigate` to `hospital` / `home` on home, dashboard, and chat pages.

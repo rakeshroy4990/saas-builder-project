@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# System deps — cached unless this block changes
+# ── System deps ─────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-eng \
@@ -14,11 +14,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install deps — cached unless requirements.txt changes
+# ── Layer A: Heavy/stable deps (torch, cv2, langchain) ──────────
+# Split requirements into stable vs frequently-changed
+COPY pdf-rag-pipeline/requirements-base.txt .
+RUN pip install --no-cache-dir -r requirements-base.txt
+
+# ── Layer B: Light/changing deps ────────────────────────────────
 COPY pdf-rag-pipeline/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source last — cache invalidated only when code changes
+# ── Source ──────────────────────────────────────────────────────
 COPY pdf-rag-pipeline/ .
 
 EXPOSE 8080

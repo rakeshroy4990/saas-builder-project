@@ -9,6 +9,7 @@ import { bindHttpRouter } from './services/http/apiClient'
 import { logClient, startLogSyncScheduler } from './services/logging/clientLogger'
 import { pinia } from './store/pinia'
 import { hasPersistedAuthSessionProfile, hydrateAuthSessionProfile } from './services/auth/authSessionStore'
+import { ensureLoginSessionIdForPersistedAuth } from './services/logging/loginSessionContext'
 import { bootstrapSessionCookiesFromRefresh } from './services/auth/sessionCookieBootstrap'
 import { initFirebaseAnalytics } from './services/analytics/firebaseAnalytics'
 import { initSessionSummaryNavigation } from './services/analytics/sessionSummary'
@@ -22,6 +23,7 @@ async function start() {
   bootstrap()
   hydrateAuthSessionProfile()
   if (hasPersistedAuthSessionProfile()) {
+    ensureLoginSessionIdForPersistedAuth()
     await bootstrapSessionCookiesFromRefresh()
   }
   bindHttpRouter(router)
