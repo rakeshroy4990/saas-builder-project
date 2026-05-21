@@ -1,31 +1,42 @@
 import { DEVICE_REGISTRY, type BluetoothDeviceProfile } from './deviceRegistry';
 import { isWebBluetoothSupported } from './bluetoothSupport';
+import { withTimeout } from './bluetoothTimeout';
+import {
+  connectGattServer,
+  profileServiceUuids,
+  requestBluetoothDevice
+} from './deviceSelection';
+import {
+  countAccessibleGattServices,
+  discoverBestDataCharacteristic,
+  formatGattInspection,
+  formatOsPairingConflictHint,
+  formatSpirofyGattBlockedHint,
+  mergeOptionalServiceUuids
+} from './gattDiscovery';
 import type { BluetoothReading, BluetoothSession } from './types';
-
-function allOptionalServices(profile: BluetoothDeviceProfile): string[] {
-  const merged = [...profile.serviceUUIDs, ...(profile.optionalServiceUUIDs ?? [])];
-  return [...new Set(merged)];
-}
-
-function buildRequestDeviceOptions(profile: BluetoothDeviceProfile): RequestDeviceOptions {
-  const optionalServices = allOptionalServices(profile);
-  if (profile.acceptAllDevices) {
-    return {
-      acceptAllDevices: true,
-      optionalServices
-    };
-  }
-  return {
-    filters: [{ services: profile.serviceUUIDs }],
-    optionalServices
-  };
-}
 
 async function resolveDataCharacteristic(
   server: BluetoothRemoteGATTServer,
-  profile: BluetoothDeviceProfile
+  profile: BluetoothDeviceProfile,
+  deviceName?: string,
+  accessCounts?: { fromOptionalList: number; fromAdvertisement: number }
 ): Promise<BluetoothRemoteGATTCharacteristic> {
-  const serviceIds = allOptionalServices(profile);
+  const serviceIds = mergeOptionalServiceUuids(profileServiceUuids(profile));
+
+  if (
+    accessCounts &&
+    accessCounts.fromOptionalList === 0 &&
+    accessCounts.fromAdvertisement === 0
+  ) {
+    const deviceLabel = deviceName?.trim() || profile.label;
+    const isLivsmt =
+      profile.namePrefixes?.some((p) => p.startsWith('LIVSMT')) ||
+      profile.exactDeviceNames?.some((n) => n.startsWith('LIVSMT'));
+    throw new Error(
+      isLivsmt ? formatSpirofyGattBlockedHint(deviceLabel) : formatOsPairingConflictHint()
+    );
+  }
 
   for (const serviceUuid of serviceIds) {
     let service: BluetoothRemoteGATTService;
@@ -49,33 +60,56 @@ async function resolveDataCharacteristic(
     }
   }
 
+  const discovered = await discoverBestDataCharacteristic(server, serviceIds);
+  if (discovered) {
+    return discovered;
+  }
+
+  const gattHint = await formatGattInspection(server, serviceIds);
+  const deviceLabel = deviceName?.trim() || profile.label;
+
+  if (profile.type === 'spirometer') {
+    throw new Error(
+      `Connected to "${deviceLabel}", but no data channel was found that this browser may use. ` +
+        'Spirofy often only streams full tests through the official Spirofy app (close the mobile app and retry). ' +
+        `GATT scan: ${gattHint}`
+    );
+  }
+  if (profile.type === 'thermometer') {
+    throw new Error(
+      `Connected to "${deviceLabel}", but no temperature characteristic was found. GATT scan: ${gattHint}`
+    );
+  }
   throw new Error(
-    'Connected, but this device does not expose a supported temperature (or measurement) characteristic. ' +
-      'Your thermometer may use a proprietary app-only protocol, not standard BLE health services.'
+    `Connected to "${deviceLabel}", but no measurement characteristic was found. GATT scan: ${gattHint}`
   );
 }
 
 let activeSession: BluetoothSession | null = null;
 
-export async function connectDevice(deviceKey: string): Promise<BluetoothSession> {
-  if (!isWebBluetoothSupported()) {
-    throw new Error('Web Bluetooth is not supported in this browser.');
-  }
+const CONNECT_FLOW_TIMEOUT_MS = 22_000;
 
+async function connectDeviceInner(deviceKey: string): Promise<BluetoothSession> {
   const profile = DEVICE_REGISTRY[deviceKey];
   if (!profile) throw new Error(`Unknown device key: ${deviceKey}`);
 
   if (activeSession) await disconnectDevice();
 
-  const bluetooth = navigator.bluetooth;
-  if (!bluetooth) {
-    throw new Error('Web Bluetooth is not supported in this browser.');
+  const device = await requestBluetoothDevice(profile);
+  const server = await connectGattServer(device);
+  const serviceIds = mergeOptionalServiceUuids(profileServiceUuids(profile));
+  let access = await countAccessibleGattServices(server, serviceIds);
+  if (access.fromOptionalList === 0 && access.fromAdvertisement === 0) {
+    await new Promise((resolve) => window.setTimeout(resolve, 500));
+    access = await countAccessibleGattServices(server, serviceIds);
   }
 
-  const device = await bluetooth.requestDevice(buildRequestDeviceOptions(profile));
-
-  const server = await device.gatt!.connect();
-  const characteristic = await resolveDataCharacteristic(server, profile);
+  const characteristic = await resolveDataCharacteristic(
+    server,
+    profile,
+    device.name ?? undefined,
+    access
+  );
 
   activeSession = { device, server, characteristic, profile, deviceKey };
 
@@ -84,6 +118,23 @@ export async function connectDevice(deviceKey: string): Promise<BluetoothSession
   });
 
   return activeSession;
+}
+
+export async function connectDevice(deviceKey: string): Promise<BluetoothSession> {
+  if (!isWebBluetoothSupported()) {
+    throw new Error('Web Bluetooth is not supported in this browser.');
+  }
+
+  try {
+    return await withTimeout(
+      connectDeviceInner(deviceKey),
+      CONNECT_FLOW_TIMEOUT_MS,
+      'Connection timed out. Forget LIVSMT devices in chrome://bluetooth-internals, then use Connect device to pick the spirometer again.'
+    );
+  } catch (err) {
+    await disconnectDevice();
+    throw err;
+  }
 }
 
 export async function readMeasurement(
@@ -111,30 +162,50 @@ export async function subscribeToNotifications(
   onReading: (reading: BluetoothReading) => void,
   context?: { appointmentId?: string; patientId?: string }
 ): Promise<() => void> {
-  await session.characteristic.startNotifications();
+  const props = session.characteristic.properties;
 
-  const handler = (event: Event) => {
-    const target = event.target as BluetoothRemoteGATTCharacteristic;
-    const value = target.value!;
-    const measurements = parseDeviceData(session.deviceKey, value);
-    onReading({
-      deviceKey: session.deviceKey,
-      deviceName: session.device.name ?? session.profile.label,
-      deviceType: session.profile.type,
-      measurements,
-      rawBytes: new Uint8Array(value.buffer),
-      timestamp: new Date().toISOString(),
-      appointmentId: context?.appointmentId,
-      patientId: context?.patientId
-    });
-  };
+  if (props.notify || props.indicate) {
+    await session.characteristic.startNotifications();
 
-  session.characteristic.addEventListener('characteristicvaluechanged', handler);
+    const handler = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      const value = target.value!;
+      const measurements = parseDeviceData(session.deviceKey, value);
+      onReading({
+        deviceKey: session.deviceKey,
+        deviceName: session.device.name ?? session.profile.label,
+        deviceType: session.profile.type,
+        measurements,
+        rawBytes: new Uint8Array(value.buffer),
+        timestamp: new Date().toISOString(),
+        appointmentId: context?.appointmentId,
+        patientId: context?.patientId
+      });
+    };
 
-  return () => {
-    session.characteristic.removeEventListener('characteristicvaluechanged', handler);
-    session.characteristic.stopNotifications().catch(() => {});
-  };
+    session.characteristic.addEventListener('characteristicvaluechanged', handler);
+
+    return () => {
+      session.characteristic.removeEventListener('characteristicvaluechanged', handler);
+      session.characteristic.stopNotifications().catch(() => {});
+    };
+  }
+
+  if (props.read) {
+    const poll = async () => {
+      const reading = await readMeasurement(session, context);
+      onReading(reading);
+    };
+    await poll();
+    const intervalId = window.setInterval(() => {
+      void poll().catch(() => {});
+    }, 2000);
+    return () => window.clearInterval(intervalId);
+  }
+
+  throw new Error(
+    'Device connected but the data channel does not support notifications or read. Use the official Spirofy app for this hardware.'
+  );
 }
 
 export async function disconnectDevice(): Promise<void> {
@@ -151,6 +222,8 @@ export function getActiveSession(): BluetoothSession | null {
 /** Exported for unit tests. */
 export function parseDeviceData(deviceKey: string, value: DataView): Record<string, number | null> {
   switch (deviceKey) {
+    case 'SPIROFY_CIPLA':
+    case 'SPIROFY_SCAN_ALL':
     case 'MIR_SPIROBANK':
     case 'NUVOAIR_AIR_NEXT':
     case 'GENERIC_SPIROMETER':

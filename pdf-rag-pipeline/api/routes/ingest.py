@@ -20,7 +20,6 @@ from auth.models import TokenPayload
 from config.settings import PDF_DIR, is_postgres_persistence
 from db.image_store import delete_images_for_file
 from ingestion.ingest import process_pdf
-from ingestion.marker_worker import process_marker_job, schedule_marker_ingest
 from ingestion.pdf_tracker import list_pdfs, registry_find_recent
 from perf.perf_context import PERF_ENABLED
 
@@ -135,6 +134,8 @@ async def ingest_marker(
             status_code=400,
             detail="Marker vector ingest requires APP_PERSISTENCE_PROVIDER=postgres and DATABASE_URL.",
         )
+    from ingestion.marker_worker import process_marker_job, schedule_marker_ingest
+
     path = _resolve_pdf_under_pdf_dir(body.pdf_name)
     try:
         summary = schedule_marker_ingest(

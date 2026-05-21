@@ -1,12 +1,4 @@
-# requirements-base.txt — only update when adding major new libraries
-torch
-torchvision
-opencv-python-headless
-langchain
-langchain-openai
-langchain-community
-chromadb
-sentence-transformers
-pymongo
-sqlalchemy
-psycopg2-binary
+# Legacy file kept for Dockerfile layer cache compatibility.
+# Heavy/unused ML packages (torch, chromadb, langchain, sentence-transformers) were removed —
+# they are not imported by this service and bloated the image + Cloud Run memory.
+# App deps live in requirements.txt; optional Marker stack in requirements-marker.txt.

@@ -1,4 +1,3 @@
-import google.generativeai as genai
 from openai import AsyncOpenAI, OpenAI
 import json
 import logging
@@ -692,6 +691,8 @@ def answer_with_context(query: str, chunks: list[dict], audience: str = "layman"
             if not GEMINI_API_KEY:
                 LOG.warning("[RAG][LLM] GEMINI_API_KEY missing; returning fallback")
                 return _finalize_answer("Not available", query, chunks, audience)
+            import google.generativeai as genai
+
             genai.configure(api_key=GEMINI_API_KEY)
             model = genai.GenerativeModel(LLM_MODEL)
             response = model.generate_content(

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue';
+import { isSpirofyGattBlockedMessage } from '../../bluetooth/gattDiscovery';
 import {
+  DEVICE_REGISTRY,
   DEVICE_TYPES,
   DEVICE_TYPE_ICONS,
   DEVICE_TYPE_LABELS,
@@ -60,6 +62,19 @@ const showModelList = computed(
 );
 const showConnectPanel = computed(
   () => bluetooth.isSupported && selectedDeviceKey.value !== null
+);
+
+/** Spirofy / LIVSMT-RO-* often show "Paired" in Chrome when macOS already owns the link. */
+const showLivsmtUnpairGuide = computed(() => {
+  const key = selectedDeviceKey.value;
+  if (!key) return false;
+  const profile = DEVICE_REGISTRY[key];
+  return Boolean(profile?.namePrefixes?.some((p) => p.startsWith('LIVSMT')));
+});
+
+/** Chrome linked to LIVSMT but the spirometer exposes no GATT services to websites. */
+const showSpirofyWebBleBlocked = computed(() =>
+  isSpirofyGattBlockedMessage(bluetooth.error.value)
 );
 
 function selectType(type: DeviceType) {
@@ -185,6 +200,46 @@ onUnmounted(() => {
           <p class="text-xs text-slate-500">Unit: {{ selectedProfile.unit }}</p>
         </div>
 
+        <div
+          v-if="showLivsmtUnpairGuide && !bluetooth.isConnected.value"
+          class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 space-y-2"
+          role="note"
+          data-testid="livsmt-unpair-guide"
+        >
+          <p class="font-semibold">If the browser list shows “Paired” next to LIVSMT-RO-…</p>
+          <p class="text-amber-900">
+            That label is <strong>not</strong> macOS System Settings — it means this website was
+            allowed to use that device before. The spirometer often <strong>does not appear</strong>
+            under macOS Bluetooth; that is normal. Clear Chrome’s memory of the device, then connect
+            only from this page.
+          </p>
+          <ol class="list-decimal list-inside space-y-1 text-amber-900">
+            <li>Quit the <strong>Spirofy</strong> phone app.</li>
+            <li>
+              Open <strong>chrome://bluetooth-internals</strong> — for each
+              <strong>LIVSMT-RO-…</strong> row click <strong>Forget</strong> (even if status is
+              “Not Connected”).
+            </li>
+            <li>
+              Reload this page. Optional: Chrome → Settings → Site settings → Bluetooth → remove
+              permission for <strong>localhost:5174</strong>.
+            </li>
+            <li>Power-cycle the spirometer; keep it on and idle near the Mac.</li>
+            <li>
+              Click <strong>Connect device</strong> — select one line (try
+              <strong>LIVSMT-RO-36BC</strong> or <strong>EA2C</strong>), then click
+              <strong>Pair</strong>.
+            </li>
+          </ol>
+          <p class="text-xs text-amber-800">
+            If connection fails: while this page shows <strong>Connected</strong>, open
+            bluetooth-internals in another tab and <strong>Inspect</strong> the same LIVSMT device.
+            Empty Services with “GATT Connected: Not Connected” before you connect is normal—not a
+            sign the hardware is broken. If Services stay empty while Connected here, use the
+            official Spirofy app and enter results manually.
+          </p>
+        </div>
+
         <div class="flex flex-wrap gap-2">
           <button
             v-if="!bluetooth.isConnected.value"
@@ -215,7 +270,38 @@ onUnmounted(() => {
           </template>
         </div>
 
-        <p v-if="bluetooth.error.value" class="text-sm text-red-700" role="alert">
+        <p
+          v-if="bluetooth.status.value === 'connecting'"
+          class="text-sm text-slate-600"
+        >
+          Opening Bluetooth link… (times out after ~20s if the device does not respond)
+        </p>
+
+        <div
+          v-if="showSpirofyWebBleBlocked"
+          class="rounded-xl border border-slate-300 bg-slate-100 p-4 text-sm text-slate-800 space-y-2"
+          role="status"
+          data-testid="spirofy-web-ble-blocked"
+        >
+          <p class="font-semibold text-slate-900">Spirofy is not readable via Web Bluetooth in Chrome</p>
+          <p>
+            Your <strong>bluetooth-internals</strong> list before pairing (Not Connected, empty Services)
+            is normal. The browser reached <strong>LIVSMT-RO-EA2C</strong> but the device did not expose
+            any BLE GATT services this website may use — that usually means data stays in the
+            <strong>official Spirofy app</strong>, not third-party sites.
+          </p>
+          <p>
+            Incognito is fine; you can also try <strong>LIVSMT-RO-36BC</strong> once with the Spirofy app
+            quit. If the same message appears, record results in the Spirofy app and enter them manually
+            in the patient chart until Cipla provides Web Bluetooth service UUIDs.
+          </p>
+        </div>
+
+        <p
+          v-else-if="bluetooth.error.value"
+          class="text-sm text-red-700"
+          role="alert"
+        >
           {{ bluetooth.error.value }}
         </p>
 

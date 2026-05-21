@@ -1,3 +1,5 @@
+import { SPIROFY_BLE_ADVERTISED_SERVICES, SPIROFY_VENDOR_SERVICES } from './spirofyBleServices';
+
 export type DeviceType =
   | 'spirometer'
   | 'pulse_oximeter'
@@ -31,9 +33,72 @@ export interface BluetoothDeviceProfile {
   optionalServiceUUIDs?: string[];
   /** Alternate characteristics to try per service UUID (e.g. Environmental Sensing temp). */
   alternateCharacteristics?: Record<string, string[]>;
+  /** Shown in picker when set; use with `acceptAllDevices` for vendor hardware (e.g. Spirofy). */
+  namePrefixes?: string[];
+  /** Exact BLE names from bluetooth-internals (e.g. "LIVSMT-RO-EA2C"). */
+  exactDeviceNames?: string[];
+  /**
+   * Pair by device name (not acceptAllDevices). Required for Spirofy: Chrome then grants
+   * every service UUID advertised by that device.
+   */
+  preferNameBasedPairing?: boolean;
+  /** Extra OR filters in the device picker (e.g. vendor service UUIDs). */
+  pickerServiceFilters?: string[];
 }
 
 export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
+  SPIROFY_CIPLA: {
+    type: 'spirometer',
+    label: 'Spirofy (Cipla)',
+    icon: '🫁',
+    serviceUUIDs: [...SPIROFY_VENDOR_SERVICES, '0000fff0-0000-1000-8000-00805f9b34fb'],
+    characteristicUUID: '0000fff1-0000-1000-8000-00805f9b34fb',
+    measurementKeys: ['fev1', 'fvc', 'pef', 'fev1_fvc_ratio'],
+    unit: 'L / L/min',
+    acceptAllDevices: false,
+    preferNameBasedPairing: true,
+    namePrefixes: ['LIVSMT', 'LIVSMT-RO', 'Spirofy', 'SPIROFY', 'spirofy', 'Cipla', 'Dr Swati'],
+    exactDeviceNames: ['LIVSMT-RO-EA2C', 'LIVSMT-RO-36BC', 'Dr Swati Pandey'],
+    pickerServiceFilters: [...SPIROFY_VENDOR_SERVICES],
+    optionalServiceUUIDs: [
+      ...SPIROFY_BLE_ADVERTISED_SERVICES,
+      '0000fff0-0000-1000-8000-00805f9b34fb',
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+      '00001800-0000-1000-8000-00805f9b34fb',
+      '0000180a-0000-1000-8000-00805f9b34fb',
+      '0000180f-0000-1000-8000-00805f9b34fb'
+    ],
+    alternateCharacteristics: {
+      '0000fff0-0000-1000-8000-00805f9b34fb': [
+        '0000fff2-0000-1000-8000-00805f9b34fb',
+        '0000fff3-0000-1000-8000-00805f9b34fb'
+      ],
+      '6e400001-b5a3-f393-e0a9-e50e24dcca9e': [
+        '6e400002-b5a3-f393-e0a9-e50e24dcca9e',
+        '6e400003-b5a3-f393-e0a9-e50e24dcca9e'
+      ]
+    },
+    requiresUserAction:
+      'Quit the Spirofy phone app. "Paired" in Chrome means this site used the device before — Forget each LIVSMT-RO-… in chrome://bluetooth-internals (not finding it in macOS Settings is normal). Power on the spirometer, connect here, pick LIVSMT-RO-36BC or EA2C, then start a test blow.'
+  },
+  SPIROFY_SCAN_ALL: {
+    type: 'spirometer',
+    label: 'Spirofy (scan all — fallback)',
+    icon: '🫁',
+    serviceUUIDs: [...SPIROFY_VENDOR_SERVICES],
+    characteristicUUID: '0000fff1-0000-1000-8000-00805f9b34fb',
+    measurementKeys: ['fev1', 'fvc', 'pef', 'fev1_fvc_ratio'],
+    unit: 'L / L/min',
+    acceptAllDevices: true,
+    optionalServiceUUIDs: [
+      ...SPIROFY_BLE_ADVERTISED_SERVICES,
+      '0000fff0-0000-1000-8000-00805f9b34fb',
+      '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
+    ],
+    requiresUserAction:
+      'Fallback only if "Spirofy (Cipla)" does not list your device. Pick LIVSMT-RO-… from the full BLE list. Prefer "Spirofy (Cipla)" when possible.'
+  },
   MIR_SPIROBANK: {
     type: 'spirometer',
     label: 'MIR Spirobank',
@@ -42,6 +107,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
     characteristicUUID: '0000fff1-0000-1000-8000-00805f9b34fb',
     measurementKeys: ['fev1', 'fvc', 'pef', 'fev1_fvc_ratio'],
     unit: 'L / L/min',
+    acceptAllDevices: true,
+    optionalServiceUUIDs: ['0000fff0-0000-1000-8000-00805f9b34fb'],
     requiresUserAction: 'Blow steadily into the mouthpiece when prompted.'
   },
   NUVOAIR_AIR_NEXT: {
@@ -52,6 +119,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
     characteristicUUID: '00002a00-0000-1000-8000-00805f9b34fb',
     measurementKeys: ['fev1', 'fvc', 'pef'],
     unit: 'L / L/min',
+    acceptAllDevices: true,
+    optionalServiceUUIDs: ['00001800-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb'],
     requiresUserAction: 'Breathe in fully, then blow out as hard and fast as possible.'
   },
   GENERIC_SPIROMETER: {
@@ -62,7 +131,21 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
     characteristicUUID: '0000fff1-0000-1000-8000-00805f9b34fb',
     measurementKeys: ['fev1', 'fvc', 'pef'],
     unit: 'L / L/min',
-    requiresUserAction: 'Follow instructions on your spirometer device.'
+    acceptAllDevices: true,
+    optionalServiceUUIDs: [
+      '0000fff0-0000-1000-8000-00805f9b34fb',
+      '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+      '00001800-0000-1000-8000-00805f9b34fb'
+    ],
+    alternateCharacteristics: {
+      '0000fff0-0000-1000-8000-00805f9b34fb': ['0000fff2-0000-1000-8000-00805f9b34fb'],
+      '6e400001-b5a3-f393-e0a9-e50e24dcca9e': [
+        '6e400002-b5a3-f393-e0a9-e50e24dcca9e',
+        '6e400003-b5a3-f393-e0a9-e50e24dcca9e'
+      ]
+    },
+    requiresUserAction:
+      'Turn the spirometer on. In the browser list, pick your device by name — generic filters often hide BLE spirometers until you use this broad scan.'
   },
   GENERIC_OXIMETER: {
     type: 'pulse_oximeter',
@@ -141,5 +224,14 @@ export const DEVICE_TYPE_ICONS: Record<DeviceType, string> = {
 export function devicesForType(type: DeviceType): Array<{ key: string; profile: BluetoothDeviceProfile }> {
   return Object.entries(DEVICE_REGISTRY)
     .filter(([, profile]) => profile.type === type)
+    .sort(([keyA], [keyB]) => {
+      if (type === 'spirometer') {
+        if (keyA === 'SPIROFY_CIPLA') return -1;
+        if (keyB === 'SPIROFY_CIPLA') return 1;
+        if (keyA === 'SPIROFY_SCAN_ALL') return 1;
+        if (keyB === 'SPIROFY_SCAN_ALL') return -1;
+      }
+      return keyA.localeCompare(keyB);
+    })
     .map(([key, profile]) => ({ key, profile }));
 }

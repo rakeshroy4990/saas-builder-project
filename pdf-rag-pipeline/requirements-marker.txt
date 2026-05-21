@@ -1,0 +1,3 @@
+# Marker PDF ingest (install with Docker build-arg INSTALL_MARKER=1).
+# Pulls CPU torch + marker-pdf; needed only for /api/v1/ingest/marker* routes.
+marker-pdf==1.8.0

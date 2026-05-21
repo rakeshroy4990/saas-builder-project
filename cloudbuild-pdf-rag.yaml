@@ -1,49 +1,130 @@
 # Build and deploy only `pdf-rag-pipeline` to Cloud Run.
-# Uses:
-#   - `pdf-rag-pipeline/cloudrun-env.yaml` (committed, non-secret env vars)
-#   - Secret Manager via `--set-secrets` (no secret values in this file)
+#
+# Typical times (after warm cache):
+#   Code-only change:           ~2–3 min (Docker reuses apt + pip layers)
+#   requirements.txt change:  ~3–4 min
+#   INSTALL_MARKER=1 (torch):   ~7–8 min
+#   _DEPLOY_ONLY=1:             ~1–2 min (no docker build)
+#
+# Manual submit:
+#   gcloud builds submit --config=cloudbuild-pdf-rag.yaml .
+#
+# Query-only (no Marker/torch; use 2Gi memory — 1Gi may OOM on cold start):
+#   gcloud builds submit --config=cloudbuild-pdf-rag.yaml \
+#     --substitutions=_INSTALL_MARKER=0,_MEMORY=2Gi .
+#
+# Redeploy an existing image without rebuilding:
+#   gcloud builds submit --config=cloudbuild-pdf-rag.yaml \
+#     --substitutions=_DEPLOY_ONLY=1,_IMAGE_TAG=099eac6e-d99 .
+
+substitutions:
+  _INSTALL_MARKER: "1"
+  _MEMORY: "4Gi"
+  _CPU: "2"
+  _DEPLOY_ONLY: "0"
+  _IMAGE_TAG: ""
 
 steps:
-  - name: gcr.io/cloud-builders/docker
+  - id: pull-cache-rag
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']
+    entrypoint: bash
     args:
-      - build
-      - --no-cache
-      - -t
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$SHORT_SHA
-      - -t
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:latest
-      - -f
-      - pdf-rag-pipeline/Dockerfile
-      - .
+      - -c
+      - |
+        set -eo pipefail
+        IMAGE=asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+        if [ "${_INSTALL_MARKER}" = "0" ]; then
+          docker pull "$$IMAGE:query-latest" || docker pull "$$IMAGE:latest" || true
+        else
+          docker pull "$$IMAGE:latest" || docker pull "$$IMAGE:query-latest" || true
+        fi
 
-  - name: gcr.io/cloud-builders/docker
+  - id: build-rag
+    name: gcr.io/cloud-builders/docker
+    waitFor: [pull-cache-rag]
+    entrypoint: bash
     args:
-      - push
-      - --all-tags
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+      - -c
+      - |
+        set -eo pipefail
+        if [ "${_DEPLOY_ONLY}" = "1" ]; then
+          echo "Skipping docker build (_DEPLOY_ONLY=1)"
+          exit 0
+        fi
+        IMAGE=asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+        TAG="${SHORT_SHA}"
+        if [ -z "$$TAG" ]; then
+          TAG="${BUILD_ID}"
+          TAG="$${TAG:0:12}"
+          echo "SHORT_SHA unset; using BUILD_ID tag: $$TAG"
+        fi
+        echo "$$TAG" > /workspace/image_tag.txt
+        CACHE_TAG=latest
+        EXTRA_TAG=latest
+        if [ "${_INSTALL_MARKER}" = "0" ]; then
+          CACHE_TAG=query-latest
+          EXTRA_TAG=query-latest
+        fi
+        export DOCKER_BUILDKIT=1
+        docker build \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --cache-from "$$IMAGE:$$CACHE_TAG" \
+          --cache-from "$$IMAGE:latest" \
+          --build-arg "INSTALL_MARKER=${_INSTALL_MARKER}" \
+          -t "$$IMAGE:$$TAG" \
+          -t "$$IMAGE:$$EXTRA_TAG" \
+          -f pdf-rag-pipeline/Dockerfile \
+          .
 
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
-    entrypoint: gcloud
+  - id: push-rag
+    name: gcr.io/cloud-builders/docker
+    waitFor: [build-rag]
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - pdf-rag-pipeline
-      - --image
-      - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline:$SHORT_SHA
-      - --region
-      - asia-south1
-      - --platform
-      - managed
-      - --allow-unauthenticated
-      - --env-vars-file
-      - pdf-rag-pipeline/cloudrun-env.yaml
-      - --set-secrets
-      - MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest
-      - --quiet
+      - -c
+      - |
+        set -eo pipefail
+        if [ "${_DEPLOY_ONLY}" = "1" ]; then
+          echo "Skipping push (_DEPLOY_ONLY=1)"
+          exit 0
+        fi
+        docker push --all-tags asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+
+  - id: deploy-rag
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    waitFor: [push-rag]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -eo pipefail
+        IMAGE=asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
+        if [ -n "${_IMAGE_TAG}" ]; then
+          TAG="${_IMAGE_TAG}"
+        elif [ -f /workspace/image_tag.txt ]; then
+          TAG="$(cat /workspace/image_tag.txt)"
+        else
+          echo "No image tag: set _IMAGE_TAG or run a build step first"
+          exit 1
+        fi
+        gcloud run deploy pdf-rag-pipeline \
+          --image "$$IMAGE:$$TAG" \
+          --region asia-south1 \
+          --platform managed \
+          --allow-unauthenticated \
+          --memory "${_MEMORY}" \
+          --cpu "${_CPU}" \
+          --timeout 900 \
+          --cpu-boost \
+          --env-vars-file pdf-rag-pipeline/cloudrun-env.yaml \
+          --set-secrets "MONGO_URI=pdf-rag-pipeline-mongo-uri:latest,DATABASE_URL=pdf-rag-pipeline-database-url:latest,JWT_SECRET=pdf-rag-pipeline-jwt-secret:latest,OPENAI_API_KEY=pdf-rag-pipeline-openai-api-key:latest,SUPABASE_S3_ACCESS_KEY=backend-hospital-supabase-s3-access-key:latest,SUPABASE_S3_SECRET_KEY=backend-hospital-supabase-s3-secret-key:latest" \
+          --quiet
 
 images:
   - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
 
 options:
   logging: CLOUD_LOGGING_ONLY
-
+  env:
+    - 'DOCKER_BUILDKIT=1'

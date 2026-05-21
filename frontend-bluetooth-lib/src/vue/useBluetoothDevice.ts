@@ -1,4 +1,5 @@
 import { ref, onUnmounted, type Ref } from 'vue';
+import { BluetoothTimeoutError } from '../bluetooth/bluetoothTimeout';
 import {
   connectDevice,
   disconnectDevice,
@@ -77,9 +78,13 @@ export function useBluetoothDevice(options: UseBluetoothDeviceOptions = {}): Use
         isConnected.value = false;
       } else {
         status.value = 'error';
-        error.value = e.message ?? 'Failed to connect to device';
+        error.value =
+          err instanceof BluetoothTimeoutError
+            ? err.message
+            : (e.message ?? 'Failed to connect to device');
         isConnected.value = false;
       }
+      await disconnectDevice();
     }
   }
 

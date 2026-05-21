@@ -13,9 +13,24 @@ BUCKET = (os.environ.get("STORAGE_BUCKET") or os.environ.get("RAG_STORAGE_BUCKET
 
 _s3 = None
 
+
+def is_s3_configured() -> bool:
+    """True when Supabase Storage S3 credentials are present (Cloud Run: endpoint in env file, keys in secrets)."""
+    return bool(
+        os.environ.get("SUPABASE_S3_ENDPOINT", "").strip()
+        and os.environ.get("SUPABASE_S3_ACCESS_KEY", "").strip()
+        and os.environ.get("SUPABASE_S3_SECRET_KEY", "").strip()
+    )
+
+
 def _get_s3():
     global _s3
     if _s3 is None:
+        if not is_s3_configured():
+            raise RuntimeError(
+                "Supabase S3 not configured: set SUPABASE_S3_ENDPOINT plus "
+                "SUPABASE_S3_ACCESS_KEY and SUPABASE_S3_SECRET_KEY (Secret Manager on Cloud Run)"
+            )
         _s3 = boto3.client(
             "s3",
             endpoint_url=os.environ["SUPABASE_S3_ENDPOINT"],
@@ -83,6 +98,11 @@ def _delete_s3_keys(keys: list[str]) -> int:
 
 
 def ensure_bucket_exists() -> None:
+    if not is_s3_configured():
+        logger.warning(
+            "[ImageStore] Skipping bucket check — SUPABASE_S3_ENDPOINT and/or S3 access keys are unset"
+        )
+        return
     s3 = _get_s3()
     try:
         s3.head_bucket(Bucket=BUCKET)
