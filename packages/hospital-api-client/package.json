@@ -1,0 +1,13 @@
+{
+  "name": "@saas-builder/hospital-api-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared hospital API paths, envelope helpers, and JWT utilities for web and mobile",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}

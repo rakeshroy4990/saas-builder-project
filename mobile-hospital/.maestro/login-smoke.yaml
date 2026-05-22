@@ -1,0 +1,5 @@
+# Smoke: app launches to login (adjust appId after EAS build)
+appId: com.agastya.healthcare
+---
+- launchApp
+- assertVisible: "Sign in"

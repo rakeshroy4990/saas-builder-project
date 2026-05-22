@@ -3,7 +3,8 @@
   "private": true,
   "description": "Monorepo root (optional): install tooling for packages/*",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "mobile-hospital"
   ],
   "dependencies": {
     "openai": "^6.34.0"

@@ -1,0 +1,73 @@
+{
+  "app": {
+    "name": "Agastya Healthcare"
+  },
+  "hospital": {
+    "brandTitle": "Agastya Healthcare",
+    "logoAlt": "Agastya Healthcare logo"
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "invalidCredentials": "Invalid email or password",
+    "networkError": "Unable to reach the server. Check your connection and API URL."
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "appointments": "Appointments",
+    "prescriptions": "Prescriptions",
+    "blog": "Blog",
+    "aiDiagnosis": "AI Diagnosis",
+    "profile": "Profile",
+    "signOut": "Sign out"
+  },
+  "home": {
+    "hero": {
+      "title": "Your Health, Our Priority",
+      "subtitle": "Book visits, manage prescriptions, and stay connected with your care team."
+    },
+    "cards": {
+      "appointments": "View and manage your appointments",
+      "prescriptions": "Upload and view prescriptions",
+      "blog": "Wellness articles and health tips",
+      "aiDiagnosis": "Clinical learning workspace",
+      "profile": "Account settings and sign out"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "role": "Role: {{role}}",
+    "emptyAppointments": "No appointments found.",
+    "loading": "Loading appointments…",
+    "loadError": "Could not load appointments."
+  },
+  "appointment": {
+    "detailTitle": "Appointment",
+    "patient": "Patient",
+    "doctor": "Doctor",
+    "date": "Date",
+    "time": "Time",
+    "status": "Status",
+    "department": "Department"
+  },
+  "profile": {
+    "title": "Profile",
+    "email": "Email",
+    "userId": "User ID",
+    "loading": "Loading profile…"
+  },
+  "prescriptions": {
+    "title": "Prescriptions",
+    "comingSoon": "Prescription list will be available in a future update."
+  },
+  "blog": {
+    "comingSoon": "Blog articles will be available in a future update."
+  },
+  "aiDiagnosis": {
+    "comingSoon": "AI diagnosis workspace will be available in a future update."
+  }
+}
