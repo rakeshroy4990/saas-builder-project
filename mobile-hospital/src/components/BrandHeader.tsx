@@ -1,9 +1,8 @@
-import { Image, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { HOSPITAL_LOGO_URL } from '@/config/brand';
 import { colors } from '@/theme/colors';
-
-const logoSource = require('../../assets/images/logo.jpg') as ImageSourcePropType;
 
 type BrandHeaderProps = {
   subtitle?: string;
@@ -15,7 +14,11 @@ export function BrandHeader({ subtitle, centered = true }: BrandHeaderProps) {
 
   return (
     <View style={[styles.wrap, centered && styles.centered]}>
-      <Image source={logoSource} style={styles.logo} accessibilityLabel={t('hospital.logoAlt')} />
+      <Image
+        source={{ uri: HOSPITAL_LOGO_URL }}
+        style={styles.logo}
+        accessibilityLabel={t('hospital.logoAlt')}
+      />
       <Text style={styles.title}>{t('hospital.brandTitle')}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
@@ -32,9 +35,9 @@ const styles = StyleSheet.create({
   logo: {
     width: 88,
     height: 88,
-    borderRadius: 16,
+    borderRadius: 44,
     marginBottom: 12,
-    backgroundColor: colors.border
+    backgroundColor: colors.surface
   },
   title: {
     fontSize: 22,

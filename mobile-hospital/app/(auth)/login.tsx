@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +15,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/components/BrandHeader';
 import { getLoginErrorMessage, loginWithPassword } from '@/features/auth/api';
+import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton';
+import { isGoogleSignInConfigured } from '@/features/auth/googleLogin';
+import { useSessionStore } from '@/auth/sessionStore';
 import { colors } from '@/theme/colors';
 import { sharedStyles } from '@/theme/styles';
 
@@ -21,10 +25,24 @@ export default function LoginScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const enterGuestMode = useSessionStore((s) => s.enterGuestMode);
+  const accessToken = useSessionStore((s) => s.accessToken);
+  const sessionRestoreInFlight = useSessionStore((s) => s.sessionRestoreInFlight);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleConfigured = isGoogleSignInConfigured();
+  const onGoogleSuccess = useCallback(() => {
+    router.replace('/(app)/(tabs)/home' as never);
+  }, [router]);
+
+  useEffect(() => {
+    if (accessToken) {
+      router.replace('/(app)/(tabs)/home' as never);
+    }
+  }, [accessToken, router]);
 
   async function onSubmit() {
     setError('');
@@ -39,6 +57,11 @@ export default function LoginScreen() {
     }
   }
 
+  function onSkip() {
+    enterGuestMode();
+    router.replace('/(app)/(tabs)/home' as never);
+  }
+
   return (
     <KeyboardAvoidingView
       style={[sharedStyles.screen, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}
@@ -49,6 +72,13 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <BrandHeader subtitle={t('auth.loginTitle')} />
+
+        {sessionRestoreInFlight ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={{ color: colors.textMuted, fontSize: 15 }}>{t('auth.restoringSession')}</Text>
+          </View>
+        ) : null}
 
         <Text style={sharedStyles.label}>{t('auth.email')}</Text>
         <TextInput
@@ -74,14 +104,34 @@ export default function LoginScreen() {
           placeholderTextColor={colors.textMuted}
         />
 
-        {error ? <Text style={sharedStyles.errorText}>{error}</Text> : null}
+        {error ? (
+          <Text style={[sharedStyles.errorText, { lineHeight: 20 }]} selectable>
+            {error}
+          </Text>
+        ) : null}
 
         <Pressable
           style={[sharedStyles.button, { marginTop: 24, opacity: loading ? 0.7 : 1 }]}
           onPress={() => void onSubmit()}
-          disabled={loading}
+          disabled={loading || googleLoading}
         >
           <Text style={sharedStyles.buttonText}>{loading ? t('auth.signingIn') : t('auth.signIn')}</Text>
+        </Pressable>
+
+        {googleConfigured ? (
+          <GoogleSignInButton
+            email={email}
+            loading={loading}
+            googleLoading={googleLoading}
+            setGoogleLoading={setGoogleLoading}
+            setError={setError}
+            onSuccess={onGoogleSuccess}
+            getLoginErrorMessage={getLoginErrorMessage}
+          />
+        ) : null}
+
+        <Pressable style={{ marginTop: 20, alignItems: 'center' }} onPress={onSkip}>
+          <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>{t('auth.skipForNow')}</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

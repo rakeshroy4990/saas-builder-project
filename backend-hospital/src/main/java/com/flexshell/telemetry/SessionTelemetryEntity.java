@@ -60,6 +60,15 @@ public class SessionTelemetryEntity {
     @Field("SessionSummary")
     private List<SessionSummaryEntryDocument> sessionSummary = new ArrayList<>();
 
+    @Field("Os")
+    private String os;
+
+    @Field("DeviceId")
+    private String deviceId;
+
+    @Field("BrowserOrApp")
+    private String browserOrApp;
+
     public String getId() {
         return id;
     }
@@ -178,5 +187,29 @@ public class SessionTelemetryEntity {
 
     public void setSessionSummary(List<SessionSummaryEntryDocument> sessionSummary) {
         this.sessionSummary = sessionSummary;
+    }
+
+    public String getOs() {
+        return os;
+    }
+
+    public void setOs(String os) {
+        this.os = os;
+    }
+
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
+
+    public String getBrowserOrApp() {
+        return browserOrApp;
+    }
+
+    public void setBrowserOrApp(String browserOrApp) {
+        this.browserOrApp = browserOrApp;
     }
 }

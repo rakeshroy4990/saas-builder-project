@@ -56,6 +56,7 @@ public class SessionTelemetryService {
         }
 
         entity.setUpdatedAt(now);
+        applyClientContext(entity, request);
         // Session summary rows use the same POST body shape but must not count as telemetry "events"
         // (avoids EventCounts.session_summary_row, FlowCounts.session, LastEventName noise).
         if (request.getSessionSummaryEntry() == null) {
@@ -126,7 +127,25 @@ public class SessionTelemetryService {
         row.put("lastEventName", entity.getLastEventName());
         row.put("lastFlow", entity.getLastFlow());
         row.put("lastStatus", entity.getLastStatus());
+        row.put("os", entity.getOs());
+        row.put("deviceId", entity.getDeviceId());
+        row.put("browserOrApp", entity.getBrowserOrApp());
         return row;
+    }
+
+    private void applyClientContext(SessionTelemetryEntity entity, SessionTelemetryEventRequest request) {
+        String os = normalize(request.getOs());
+        if (!os.isEmpty()) {
+            entity.setOs(os);
+        }
+        String deviceId = normalize(request.getDeviceId());
+        if (!deviceId.isEmpty()) {
+            entity.setDeviceId(deviceId);
+        }
+        String browserOrApp = normalize(request.getBrowserOrApp());
+        if (!browserOrApp.isEmpty()) {
+            entity.setBrowserOrApp(browserOrApp);
+        }
     }
 
     private void mergeSessionSummary(SessionTelemetryEntity entity, SessionSummaryEntryDto incoming, Instant now) {

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 
+import { AuthGate } from '@/components/AuthGate';
 import { LoadingView } from '@/components/LoadingView';
 import { fetchAppointmentsPage } from '@/features/appointments/api';
 import type { AppointmentSummary } from '@/features/appointments/types';
@@ -34,40 +35,46 @@ export default function AppointmentsTab() {
     })();
   }, [load]);
 
-  async function onRefresh() {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  }
-
-  if (loading) {
-    return <LoadingView />;
-  }
-
   return (
-    <View style={sharedStyles.screenPadded}>
-      {error ? <Text style={sharedStyles.errorText}>{error}</Text> : null}
-
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void onRefresh()} />}
-        ListEmptyComponent={<Text style={sharedStyles.subtitle}>{t('dashboard.emptyAppointments')}</Text>}
-        renderItem={({ item }) => (
-          <Pressable
-            style={sharedStyles.card}
-            onPress={() => router.push(`/(app)/appointments/${item.id}`)}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#0f172a' }}>{item.patientName}</Text>
-            <Text style={sharedStyles.subtitle}>
-              {item.preferredDate} · {item.preferredTimeSlot || '—'}
-            </Text>
-            <Text style={sharedStyles.subtitle}>
-              {item.doctorName} · {item.status}
-            </Text>
-          </Pressable>
-        )}
-      />
-    </View>
+    <AuthGate>
+      {loading ? (
+        <LoadingView />
+      ) : (
+        <View style={sharedStyles.screenPadded}>
+          {error ? <Text style={sharedStyles.errorText}>{error}</Text> : null}
+          <FlatList
+            data={items}
+            keyExtractor={(item) => item.id}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  void (async () => {
+                    setRefreshing(true);
+                    await load();
+                    setRefreshing(false);
+                  })();
+                }}
+              />
+            }
+            ListEmptyComponent={<Text style={sharedStyles.subtitle}>{t('dashboard.emptyAppointments')}</Text>}
+            renderItem={({ item }) => (
+              <Pressable
+                style={sharedStyles.card}
+                onPress={() => router.push(`/(app)/appointments/${item.id}`)}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#0f172a' }}>{item.patientName}</Text>
+                <Text style={sharedStyles.subtitle}>
+                  {item.preferredDate} · {item.preferredTimeSlot || '—'}
+                </Text>
+                <Text style={sharedStyles.subtitle}>
+                  {item.doctorName} · {item.status}
+                </Text>
+              </Pressable>
+            )}
+          />
+        </View>
+      )}
+    </AuthGate>
   );
 }

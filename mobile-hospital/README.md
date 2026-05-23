@@ -76,10 +76,35 @@ maestro test .maestro/login-smoke.yaml
 
 Requires a dev build and test credentials in the flow file.
 
+## App icon assets
+
+Regenerate padded launcher icons (fixes cropped logo on Android home screen):
+
+```bash
+python3 scripts/generate-brand-icons.py
+```
+
+Uses the same Cloudinary logo as the web app (`src/config/brand.ts`).
+
+## Video calls (Agora WebView)
+
+Telemedicine video uses **agora-rtc-sdk-ng inside `react-native-webview`** (same backend tokens as web). No native `react-native-agora` — saves ~120–150 MB on APK.
+
+STOMP signaling + `join-call` API unchanged. See [docs/TESTING.md](./docs/TESTING.md#agora-video-calls-android).
+
+**Build profiles (`eas.json`):**
+
+| Profile | `expo-dev-client` | Android output |
+|---------|-------------------|----------------|
+| `development` | Yes | dev client |
+| `preview` | **No** | APK |
+| `production` | **No** | AAB |
+
+`app.config.js` only adds the `expo-dev-client` plugin when `EAS_BUILD_PROFILE=development`. Before a development build, run `npx expo install expo-dev-client`.
+
 ## Phase 2 (planned)
 
-- `react-native-agora` — video calls (`/api/hospital/video/session`)
 - `react-native-ble-plx` — device readings (reuse parsers from `frontend-bluetooth-lib`)
-- STOMP chat with Bearer WebSocket auth
+- STOMP human support chat (AI chat is available in the Chat tab)
 
 See [hospital mobile plan](../.cursor/plans/hospital_mobile_app_55e03f1a.plan.md).

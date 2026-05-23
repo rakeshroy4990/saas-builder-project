@@ -11,6 +11,92 @@ The Vue web app uses **httpOnly cookies**. The Expo app uses **Bearer tokens** i
 5. On each API request, set `Authorization: Bearer <accessToken>`
 6. On `401`, call `POST /api/auth/refresh` with `{ DeviceId: 'mobile', RefreshToken }`, then retry once
 
+## Google Sign-In (Android APK)
+
+### Do I need to regenerate client IDs?
+
+**Usually no.** If you only fixed the **package name** or **SHA-1** on the same Android OAuth client in Google Cloud Console, keep the same client ID:
+
+`148957600999-61r14rmr6ncldnnnep4aek6u7froej39.apps.googleusercontent.com`
+
+Update `eas.json` / `app.json` **only if** Google gave you a **new** Android client ID (after deleting and recreating the client).
+
+### Why does the error say "oshucare"?
+
+That is the **OAuth consent screen / GCP project name**, not your Android package. Your package is `com.agastya.healthcare`. A message like "oshucare sent an invalid request" still means OAuth config (SHA-1, redirect URI, or test users) — not that the wrong app name is installed.
+
+### Checklist (in order)
+
+#### 1. Android OAuth client (screenshot settings)
+
+| Field | Required value |
+|--------|----------------|
+| Type | **Android** (not Web) |
+| Package name | `com.agastya.healthcare` (exact match with `app.json`) |
+| SHA-1 | From **EAS signing key**, not only your laptop debug keystore |
+
+Get the correct SHA-1:
+
+```bash
+cd mobile-hospital
+eas credentials -p android
+```
+
+Open **Keystore** → copy **SHA-1 fingerprint(s)**. Add **every** SHA-1 listed to the Android OAuth client. If you use Google Play App Signing, also add the **App signing key certificate** SHA-1 from Play Console → Setup → App signing.
+
+Wait 5–10 minutes after saving in Google Cloud Console.
+
+#### 2. Web OAuth client — Authorized redirect URIs
+
+Open the **Web** client (`…k1e8jsn96vg893pifqchvqf241eot688…`) → **Authorized redirect URIs** → add:
+
+- `com.agastya.healthcare:/oauthredirect`
+
+Optional (if Google still complains):
+
+- `com.googleusercontent.apps.148957600999-61r14rmr6ncldnnnep4aek6u7froej39:/oauthredirect`
+- `mobilehospital://oauthredirect`
+
+#### 3. OAuth consent screen
+
+- **Publishing status:** If **Testing**, add your Google account under **Test users**.
+- **Authorized domains:** Include domains used by your backend if required.
+
+#### 4. Client IDs in the app (must match Console)
+
+In `eas.json` (all profiles that build APKs):
+
+```json
+"EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID": "148957600999-k1e8jsn96vg893pifqchvqf241eot688.apps.googleusercontent.com",
+"EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "148957600999-61r14rmr6ncldnnnep4aek6u7froej39.apps.googleusercontent.com"
+```
+
+`EXPO_PUBLIC_*` values are **baked in at build time**. After any change:
+
+```bash
+eas build --profile preview --platform android
+```
+
+Uninstall the old APK before installing the new one.
+
+#### 5. Verify on device
+
+After a failed sign-in, the login screen shows:
+
+- App package
+- Redirect URI to register on the Web client
+- Reminder to match EAS SHA-1
+
+### Common mistakes
+
+| Mistake | Result |
+|---------|--------|
+| Debug SHA-1 only, but APK signed by EAS | Invalid request |
+| Wrong package on Android client | Invalid request |
+| Redirect URI missing on **Web** client | redirect_uri_mismatch |
+| Testing mode without your email as test user | Access blocked |
+| Old APK after changing env / package | Still fails until rebuild |
+
 ## Backend
 
 `HospitalBearerTokenAuthenticator` validates Bearer JWTs the same way as cookie-based sessions.

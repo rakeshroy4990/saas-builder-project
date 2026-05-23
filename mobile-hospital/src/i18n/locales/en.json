@@ -12,8 +12,16 @@
     "password": "Password",
     "signIn": "Sign in",
     "signingIn": "Signing in…",
+    "skipForNow": "Skip for now",
+    "googleSignIn": "Sign in with Google",
+    "googleSigningIn": "Signing in with Google…",
+    "googleNotConfigured": "Google sign-in is not configured for this build.",
+    "googleFailed": "Google sign-in failed. Please try again.",
+    "gateTitle": "Sign in required",
+    "gateMessage": "Please sign in to use this section of the app.",
     "invalidCredentials": "Invalid email or password",
-    "networkError": "Unable to reach the server. Check your connection and API URL."
+    "networkError": "Unable to reach the server. Check your connection and API URL.",
+    "restoringSession": "Restoring your session…"
   },
   "nav": {
     "home": "Home",
@@ -22,20 +30,75 @@
     "prescriptions": "Prescriptions",
     "blog": "Blog",
     "aiDiagnosis": "AI Diagnosis",
+    "chat": "Chat AI",
     "profile": "Profile",
     "signOut": "Sign out"
+  },
+  "welcome": {
+    "tagline": "Compassionate care for your family — sign in to continue.",
+    "tapToContinue": "Tap anywhere to continue",
+    "skip": "Skip to sign in"
   },
   "home": {
     "hero": {
       "title": "Your Health, Our Priority",
-      "subtitle": "Book visits, manage prescriptions, and stay connected with your care team."
+      "subtitle": "Experience compassionate care with state-of-the-art medical facilities. Our team of expert physicians is dedicated to your wellbeing.",
+      "ctaPrimary": "Schedule Visit",
+      "ctaDoctor": "AI Diagnosis",
+      "featuredVideoTitle": "Featured video from Agastya Healthcare",
+      "videoTitle": "Featured video from Agastya Healthcare",
+      "videoUnavailable": "This video cannot play inside the app.",
+      "watchOnYoutube": "Watch on YouTube"
     },
-    "cards": {
-      "appointments": "View and manage your appointments",
-      "prescriptions": "Upload and view prescriptions",
-      "blog": "Wellness articles and health tips",
-      "aiDiagnosis": "Clinical learning workspace",
-      "profile": "Account settings and sign out"
+    "publicWelcome": "Welcome to Agastya Healthcare",
+    "useBottomNav": "Use the menu below for Dashboard and Prescriptions. Tap the chat button for AI assistance.",
+    "section": {
+      "doctors": {
+        "heading": "Meet Our Expert Doctors",
+        "subheading": "Our team of highly qualified and experienced medical professionals"
+      },
+      "services": {
+        "heading": "Our Medical Services",
+        "subheading": "Comprehensive healthcare services delivered with excellence and compassion"
+      },
+      "highlights": {
+        "heading": "Why Choose Agastya Healthcare?"
+      },
+      "contact": {
+        "heading": "Get In Touch"
+      }
+    },
+    "services": {
+      "pediatrics": {
+        "name": "Pediatrics",
+        "description": "Gentle and comprehensive care for children of all ages"
+      }
+    },
+    "doctors": {
+      "swati": {
+        "name": "Dr. Swati Pandey",
+        "speciality": "Pediatrics Specialist",
+        "degree": "MBBS, DNB Pediatrics, DCH (CMC Ludhiana)",
+        "experience": "5+ years experience"
+      }
+    },
+    "highlights": {
+      "tech": {
+        "title": "Advanced Technology",
+        "detail": "Latest medical equipment and diagnostic tools"
+      },
+      "team": {
+        "title": "Expert Medical Team",
+        "detail": "Board-certified physicians and specialists"
+      },
+      "care": {
+        "title": "Patient-Centered Care",
+        "detail": "Personalized treatment plans for every patient"
+      }
+    },
+    "contact": {
+      "whatsapp": "WhatsApp Only: 6360895190",
+      "email": "Email: pedsforpeople@gmail.com"
     }
   },
   "dashboard": {
@@ -54,20 +117,88 @@
     "status": "Status",
     "department": "Department"
   },
+  "video": {
+    "startCall": "Video call",
+    "notAvailable": "Video call opens 15 minutes before the appointment time, for confirmed visits.",
+    "incoming": "Incoming video call",
+    "accept": "Accept",
+    "reject": "Reject",
+    "connecting": "Connecting…",
+    "waitingRemote": "Waiting for the other party…",
+    "remoteParty": "Call",
+    "muteMic": "Mute",
+    "unmuteMic": "Unmute",
+    "camOff": "Camera off",
+    "camOn": "Camera on",
+    "flip": "Flip",
+    "end": "End call",
+    "close": "Close",
+    "errorJoin": "Unable to start video. Check your connection and try again.",
+    "errorSession": "Could not prepare the video session.",
+    "errorPermissions": "Camera and microphone permission are required for video calls."
+  },
   "profile": {
     "title": "Profile",
+    "name": "Name",
     "email": "Email",
+    "role": "Role",
     "userId": "User ID",
     "loading": "Loading profile…"
   },
   "prescriptions": {
     "title": "Prescriptions",
-    "comingSoon": "Prescription list will be available in a future update."
+    "comingSoon": "More prescription actions will be available soon.",
+    "empty": "No prescriptions uploaded yet.",
+    "loadError": "Could not load prescriptions."
   },
   "blog": {
-    "comingSoon": "Blog articles will be available in a future update."
+    "comingSoon": "Blog articles will be available in a future update.",
+    "empty": "No articles available right now.",
+    "readMore": "Open on web for the full article."
   },
   "aiDiagnosis": {
-    "comingSoon": "AI diagnosis workspace will be available in a future update."
+    "comingSoon": "Full doctor education workspace is coming to mobile.",
+    "hint": "Search ingested books and similar prescriptions.",
+    "openChat": "Open education workspace"
+  },
+  "education": {
+    "title": "Doctor Education",
+    "subtitle": "Grounded answers from ingested books and prescription similarity search.",
+    "doctorsOnlyTitle": "Doctor access only",
+    "doctorsOnlyMessage": "AI Diagnosis is available for doctor accounts. Sign in with a doctor profile to continue.",
+    "tabs": {
+      "books": "Books",
+      "prescription": "Prescription"
+    },
+    "filterBook": "Filter by book",
+    "quickStarts": "Quick starts",
+    "booksEmptyHint": "Pick a book and ask a clinical question grounded in the ingested corpus.",
+    "questionPlaceholder": "Example: Explain first-line management of pediatric nephrotic syndrome.",
+    "sendQuestion": "Send question",
+    "sending": "Sending…",
+    "userLabel": "Doctor",
+    "assistantLabel": "Education AI",
+    "emptyAnswer": "No grounded answer was returned.",
+    "chatFailed": "Could not reach the education assistant. Try again.",
+    "prescriptionBanner": "Search uploaded prescriptions by clinical text. Results are ranked by vector similarity.",
+    "prescriptionPlaceholder": "Example: diabetes metformin — or paste prescription text.",
+    "prescriptionSearch": "Find similar prescriptions",
+    "prescriptionNoResults": "No matching prescriptions were found.",
+    "prescriptionSearchFailed": "Could not search prescriptions. Try again.",
+    "unknownPatient": "Unknown patient",
+    "loadingBooks": "Loading books…",
+    "noBooks": "No books available",
+    "closePicker": "Done",
+    "attachFile": "Attach prescription file",
+    "attachGallery": "Choose photo from gallery",
+    "attachCamera": "Take photo of prescription",
+    "readingPrescription": "Reading prescription…",
+    "prescriptionReadFailed": "Could not read the prescription file. Try a clearer photo."
+  },
+  "chat": {
+    "welcome": "Hi — tell me your symptoms and I will guide you with what to do next.",
+    "placeholder": "Type your message…",
+    "send": "Send",
+    "sendError": "Could not send your message. Please try again."
   }
 }

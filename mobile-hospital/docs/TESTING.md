@@ -248,7 +248,65 @@ Run before promoting **preview → production**:
 7. [ ] API URL is **HTTPS** in production `.env` / EAS secrets  
 8. [ ] No tokens or PHI in logs  
 
-Phase 2 (when implemented): video call, BLE reading, chat — test on **real hardware** per platform.
+### App icon (logo not cut off)
+
+Android **adaptive icons** crop the outer ~17% into a circle/squircle. Icons must keep the logo in the center safe zone, not edge-to-edge.
+
+After updating [`logo.jpg`](../assets/images/logo.jpg), regenerate launcher assets:
+
+```bash
+cd mobile-hospital
+python3 scripts/generate-brand-icons.py
+```
+
+Then rebuild the APK (`eas build --profile preview --platform android`). OTA/JS updates cannot change the home-screen icon.
+
+### Why is the APK ~300MB+?
+
+Preview **APK** size is large mainly because of **native libraries**, not your JS:
+
+| Contributor | Typical impact |
+|-------------|----------------|
+| ~~react-native-agora~~ | **Removed** — WebView uses Agora Web SDK (~0 MB native) |
+| **expo-dev-client** | ~30–40 MB — **only** `development` profile (`app.config.js`) |
+| **react-native-reanimated + worklets** | ~25 MB |
+| **Expo base + other native modules** | ~80 MB |
+| **JS bundle** | ~6 MB |
+| **Two ABIs** (arm64 + armv7) | Still doubles some native libs — see `buildArchs` in [`app.config.js`](../app.config.js) |
+
+[`app.config.js`](../app.config.js) sets `expo-build-properties` → `buildArchs: ['arm64-v8a', 'armeabi-v7a']`. For smallest sideload builds use only `['arm64-v8a']`.
+
+### Agora video calls (Android)
+
+Video uses **Agora Web SDK in a WebView** (`AgoraWebRoom.tsx`) and **STOMP** signaling. Works in **preview APK** (no dev client, no native Agora). After changes, rebuild:
+
+```bash
+cd mobile-hospital
+eas build --profile preview --platform android
+```
+
+Or local dev client: `npx expo run:android` then `npx expo start --dev-client`.
+
+| Test | Steps |
+|------|--------|
+| Build | EAS preview APK or dev client on a **physical** Android device |
+| API | `EXPO_PUBLIC_API_BASE_URL` must point at backend with `APP_VIDEO_PROVIDER=agora` (Cloud Run oshucare does) |
+| Permissions | Accept camera + microphone when prompted |
+| Outbound | Sign in as **doctor** on device A → open appointment in call window → **Video call** → patient must be logged in on device B or web |
+| Inbound | Patient app **foreground** and logged in → doctor starts call → patient sees Accept / Reject |
+| Media | After accept, both sides see local preview and remote video |
+| End | Either party **End call** → other side closes; safe to tap again |
+
+**Two-device matrix**
+
+1. Doctor: mobile APK + appointment with assigned doctor and patient `CreatedBy` user id.  
+2. Patient: second APK **or** [frontend-hospital](https://oshucare.web.app) in browser (same backend).  
+3. Appointment status must be callable (e.g. CONFIRMED/Open) and within **15 minutes before** slot start (see disabled button hint on detail screen).
+
+**Limitations (v1)**
+
+- Incoming ring only while app is open and STOMP is connected (no FCM background ring).  
+- Rebuild APK after changing WebView video or Android permissions (not needed for JS-only STOMP tweaks).
 
 ---
 
@@ -316,6 +374,9 @@ export PATH=$PATH:$ANDROID_HOME/platform-tools
 | CORS errors | N/A on native | CORS is browser-only; if you see this, you may be on `expo web` |
 | iOS build fails on Windows | Expected | Use `eas build --platform ios` (cloud) |
 | Expo Go missing feature | Native module | `eas build --profile development` + dev client |
+| Black screen on video | Expo Go or missing permissions | Use EAS/dev APK; grant camera/mic |
+| No incoming ring on patient | App background or logged out | Open patient app and sign in before doctor calls |
+| App crashes on launch (Android) | Missing `react-native-gesture-handler`, old APK with native Agora/dev-client | Rebuild preview APK; uninstall old app first |
 
 ---
 

@@ -1,6 +1,7 @@
 import { getApiBaseUrl, SERVER_PATHS } from '../http/apiPaths';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { readLoginSessionId } from '../logging/loginSessionContext';
+import { getClientContext } from './clientContext';
 import { enqueueTelemetryBody, flushTelemetryOutbox } from './sessionTelemetryQueue';
 
 export type SessionSummaryEntryPayload = {
@@ -82,6 +83,7 @@ export async function ingestSessionTelemetry(payload: SessionTelemetryPayload): 
     const loginSessionId = (rest.login_session_id ?? readLoginSessionId()).trim();
     const { login_session_id: _ls, ...restWithoutLs } = rest;
     const body = JSON.stringify({
+      ...getClientContext(),
       ...restWithoutLs,
       ...(userId ? { user_id: userId } : {}),
       ...(loginSessionId ? { login_session_id: loginSessionId } : {})

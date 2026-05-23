@@ -1,6 +1,8 @@
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import { AppHeaderBrand } from '@/components/AppHeaderBrand';
+import { GuestHeaderButton, UserHeaderButton } from '@/components/UserHeaderButton';
 import { useSessionStore } from '@/auth/sessionStore';
 import { tabIcon } from '@/navigation/tabIcons';
 import { colors } from '@/theme/colors';
@@ -8,7 +10,8 @@ import { colors } from '@/theme/colors';
 export default function TabsLayout() {
   const { t } = useTranslation();
   const role = String(useSessionStore((s) => s.user?.role ?? 'PATIENT')).toUpperCase();
-  const isDoctor = role === 'DOCTOR';
+  const isDoctor = role === 'DOCTOR' || role === 'ADMIN';
+  const isLoggedIn = useSessionStore((s) => Boolean(s.accessToken));
 
   return (
     <Tabs
@@ -18,14 +21,18 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.textMuted,
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.text,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border }
+        headerTitle: () => <AppHeaderBrand />,
+        headerTitleAlign: 'left',
+        headerRight: () =>
+          isLoggedIn ? <UserHeaderButton /> : <GuestHeaderButton signInLabel={t('auth.signIn')} />,
+        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
+        tabBarLabelStyle: { fontSize: 11 }
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
           title: t('nav.home'),
-          headerTitle: t('hospital.brandTitle'),
           tabBarIcon: ({ focused }) => tabIcon(focused ? 'home' : 'home-outline', focused)
         }}
       />
@@ -41,6 +48,14 @@ export default function TabsLayout() {
         options={{
           title: t('nav.prescriptions'),
           tabBarIcon: ({ focused }) => tabIcon(focused ? 'document-text' : 'document-text-outline', focused)
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: t('nav.chat'),
+          href: null,
+          tabBarIcon: ({ focused }) => tabIcon(focused ? 'chatbubbles' : 'chatbubbles-outline', focused)
         }}
       />
       <Tabs.Screen

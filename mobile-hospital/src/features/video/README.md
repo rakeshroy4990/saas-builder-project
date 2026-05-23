@@ -1,5 +1,8 @@
-# Video (Phase 2)
+# Video (Agora Web + STOMP)
 
-Integrate `react-native-agora` using backend token from `SERVER_PATHS.hospitalVideoSession`.
+- RTC: **WebView + agora-rtc-sdk-ng** (same as web `VideoRoomAdapter`) — no native `react-native-agora`
+- Tokens: `POST /api/appointment/{id}/join-call`
+- Signaling: STOMP `/user/queue/webrtc`
+- UI: `VideoCallScreen.tsx`, `AgoraWebRoom.tsx`
 
-Reference web: `frontend-realtime-lib/src/components/DynVideoCall.vue`.
+Native `react-native-agora` was removed to keep preview APK size down (~150 MB saved).

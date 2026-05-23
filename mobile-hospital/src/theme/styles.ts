@@ -84,5 +84,40 @@ export const sharedStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
+  },
+  sectionHeading: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 24,
+    marginBottom: 6
+  },
+  sectionSubheading: {
+    fontSize: 14,
+    color: colors.textMuted,
+    marginBottom: 12
+  },
+  cardImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 10,
+    marginBottom: 12,
+    backgroundColor: colors.border
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4
+  },
+  cardMeta: {
+    fontSize: 14,
+    color: colors.textMuted,
+    marginBottom: 2
+  },
+  cardBody: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20
   }
 });

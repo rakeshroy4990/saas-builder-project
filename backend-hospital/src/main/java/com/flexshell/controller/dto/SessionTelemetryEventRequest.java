@@ -38,6 +38,15 @@ public class SessionTelemetryEventRequest {
     @JsonProperty("session_summary_entry")
     private SessionSummaryEntryDto sessionSummaryEntry;
 
+    @JsonProperty("os")
+    private String os;
+
+    @JsonProperty("device_id")
+    private String deviceId;
+
+    @JsonProperty("browser_or_app")
+    private String browserOrApp;
+
     public String getEventName() {
         return eventName;
     }
@@ -108,5 +117,29 @@ public class SessionTelemetryEventRequest {
 
     public void setSessionSummaryEntry(SessionSummaryEntryDto sessionSummaryEntry) {
         this.sessionSummaryEntry = sessionSummaryEntry;
+    }
+
+    public String getOs() {
+        return os;
+    }
+
+    public void setOs(String os) {
+        this.os = os;
+    }
+
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
+
+    public String getBrowserOrApp() {
+        return browserOrApp;
+    }
+
+    public void setBrowserOrApp(String browserOrApp) {
+        this.browserOrApp = browserOrApp;
     }
 }

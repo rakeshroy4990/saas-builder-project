@@ -1,16 +1,22 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { AuthGate } from '@/components/AuthGate';
 import { LoadingView } from '@/components/LoadingView';
 import { fetchAppointmentById } from '@/features/appointments/api';
 import type { AppointmentSummary } from '@/features/appointments/types';
+import {
+  openAppointmentVideoCall,
+  showOpenVideoCallError
+} from '@/features/video/openAppointmentVideoCall';
 import { colors } from '@/theme/colors';
 import { sharedStyles } from '@/theme/styles';
 
 export default function AppointmentDetailScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [appointment, setAppointment] = useState<AppointmentSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,19 +40,15 @@ export default function AppointmentDetailScreen() {
     })();
   }, [id, t]);
 
-  if (loading) {
-    return <LoadingView />;
-  }
-
-  if (!appointment) {
-    return (
-      <View style={sharedStyles.screenPadded}>
-        <Text style={sharedStyles.errorText}>{error || t('dashboard.loadError')}</Text>
-      </View>
-    );
-  }
-
   return (
+    <AuthGate>
+      {loading ? (
+        <LoadingView />
+      ) : !appointment ? (
+        <View style={sharedStyles.screenPadded}>
+          <Text style={sharedStyles.errorText}>{error || t('dashboard.loadError')}</Text>
+        </View>
+      ) : (
     <ScrollView style={sharedStyles.screenPadded}>
       <Text style={sharedStyles.title}>{t('appointment.detailTitle')}</Text>
       <View style={[sharedStyles.card, { marginTop: 16 }]}>
@@ -57,7 +59,26 @@ export default function AppointmentDetailScreen() {
         <DetailRow label={t('appointment.status')} value={appointment.status} />
         <DetailRow label={t('appointment.department')} value={appointment.department} />
       </View>
+      <Pressable
+        style={[sharedStyles.button, { marginTop: 20, opacity: appointment.canStartVideoCall ? 1 : 0.5 }]}
+        disabled={!appointment.canStartVideoCall}
+        onPress={() => {
+          const result = openAppointmentVideoCall(appointment);
+          if (!result.ok) {
+            showOpenVideoCallError(result.message);
+            return;
+          }
+          router.push('/(app)/video-call' as never);
+        }}
+      >
+        <Text style={sharedStyles.buttonText}>{t('video.startCall')}</Text>
+      </Pressable>
+      {!appointment.canStartVideoCall ? (
+        <Text style={[sharedStyles.subtitle, { marginTop: 8 }]}>{t('video.notAvailable')}</Text>
+      ) : null}
     </ScrollView>
+      )}
+    </AuthGate>
   );
 }
 

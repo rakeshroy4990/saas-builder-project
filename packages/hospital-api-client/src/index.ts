@@ -17,9 +17,17 @@ export function resolveSpringApiUrl(base: string, path: string): string {
 
 export const SERVER_PATHS = {
   login: '/api/auth/login',
+  googleLogin: '/api/auth/google-login',
   refresh: '/api/auth/refresh',
   logout: '/api/auth/logout',
   register: '/api/auth/register',
+  youtubeHeroVideo: '/api/youtube/hero-video',
+  hospitalBlogPreviews: '/api/hospital/blog/previews',
+  hospitalAiChat: '/api/hospital/ai/chat',
+  hospitalEducationBooks: '/api/hospital/education/books',
+  hospitalEducationKeyTopics: '/api/hospital/education/key-topics',
+  hospitalEducationPrescriptionTranscribe: '/api/hospital/education/prescription-transcribe',
+  patientPrescriptionsSimilaritySearch: '/api/v1/patient-prescriptions/similarity-search',
   user: '/api/user',
   appointmentGet: '/api/appointment/get',
   appointmentCreate: '/api/appointment/create',
@@ -27,8 +35,53 @@ export const SERVER_PATHS = {
   patientPrescriptions: '/api/v1/patient-prescriptions',
   hospitalVideoSession: '/api/hospital/video/session',
   chatRooms: '/api/chat/rooms',
-  patientDeviceReadings: '/api/v1/patient-device-readings'
+  patientDeviceReadings: '/api/v1/patient-device-readings',
+  telemetrySessionEvent: '/api/telemetry/session-event',
+  telemetrySessionEvents: '/api/telemetry/session-events',
+  telemetrySessionSnapshot: '/api/telemetry/session-snapshot'
 } as const;
+
+export function appointmentJoinCallPath(appointmentId: string): string {
+  return `/api/appointment/${encodeURIComponent(appointmentId)}/join-call`;
+}
+
+export function appointmentRenewTokenPath(appointmentId: string): string {
+  return `/api/appointment/${encodeURIComponent(appointmentId)}/renew-token`;
+}
+
+export function appointmentEndCallPath(appointmentId: string): string {
+  return `/api/appointment/${encodeURIComponent(appointmentId)}/end-call`;
+}
+
+export interface VideoSessionPayload {
+  provider: string;
+  roomId: string;
+  token: string;
+  appId: string;
+  uid: number;
+  expiresAt: string;
+}
+
+export function parseVideoSessionPayload(data: unknown): VideoSessionPayload | null {
+  if (data == null || typeof data !== 'object' || Array.isArray(data)) {
+    return null;
+  }
+  const row = data as Record<string, unknown>;
+  const provider = pickString(row, ['Provider', 'provider']) || 'agora';
+  const roomId = pickString(row, ['RoomId', 'roomId', 'ChannelName', 'channelName']);
+  const token = pickString(row, ['Token', 'token']);
+  const appId = pickString(row, ['AppId', 'appId']);
+  const uidRaw = row.Uid ?? row.uid;
+  const uid =
+    typeof uidRaw === 'number' && Number.isFinite(uidRaw)
+      ? uidRaw
+      : Number.parseInt(String(uidRaw ?? ''), 10);
+  const expiresAt = pickString(row, ['ExpiresAt', 'expiresAt']);
+  if (!roomId || !token || !appId || !Number.isFinite(uid) || uid === 0) {
+    return null;
+  }
+  return { provider, roomId, token, appId, uid, expiresAt };
+}
 
 export type ServerPathKey = keyof typeof SERVER_PATHS;
 

@@ -65,6 +65,9 @@ public class PostgresSessionTelemetryAccess implements SessionTelemetryAccess {
         e.setLastHttpStatus(j.getLastHttpStatus());
         e.setSessionSummary(
                 j.getSessionSummary() == null ? new ArrayList<>() : new ArrayList<>(j.getSessionSummary()));
+        e.setOs(j.getOs());
+        e.setDeviceId(j.getDeviceId());
+        e.setBrowserOrApp(j.getBrowserOrApp());
         return e;
     }
 
@@ -92,6 +95,9 @@ public class PostgresSessionTelemetryAccess implements SessionTelemetryAccess {
         row.setLastHttpStatus(d.getLastHttpStatus());
         List<SessionSummaryEntryDocument> summary = d.getSessionSummary();
         row.setSessionSummary(summary == null ? new ArrayList<>() : new ArrayList<>(summary));
+        row.setOs(d.getOs());
+        row.setDeviceId(d.getDeviceId());
+        row.setBrowserOrApp(d.getBrowserOrApp());
         row.setDeleted(false);
         return row;
     }

@@ -1,19 +1,14 @@
 import { Redirect } from 'expo-router';
 
 import { useSessionStore } from '@/auth/sessionStore';
-import { LoadingView } from '@/components/LoadingView';
 
 export default function Index() {
   const accessToken = useSessionStore((s) => s.accessToken);
-  const hydrated = useSessionStore((s) => s.hydrated);
+  const guestMode = useSessionStore((s) => s.guestMode);
 
-  if (!hydrated) {
-    return <LoadingView />;
-  }
-
-  if (accessToken) {
+  if (accessToken || guestMode) {
     return <Redirect href={'/(app)/(tabs)/home' as never} />;
   }
 
-  return <Redirect href="/(auth)/login" />;
+  return <Redirect href={'/(auth)/login' as never} />;
 }

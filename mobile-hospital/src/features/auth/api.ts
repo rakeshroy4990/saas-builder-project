@@ -6,6 +6,12 @@ import {
   unwrapEnvelope
 } from '@saas-builder/hospital-api-client';
 
+import {
+  clearLoginSessionId,
+  readLoginSessionId,
+  recordLogoutTelemetry,
+  recordSuccessfulLoginTelemetry
+} from '@/analytics/sessionTelemetry';
 import { apiClient } from '@/api/client';
 import {
   clearSecureAuth,
@@ -42,16 +48,23 @@ export async function loginWithPassword(identity: string, password: string): Pro
     await setStoredRefreshToken(parsed.refreshToken);
   }
   await setStoredSessionProfile(user);
+  recordSuccessfulLoginTelemetry('password');
+  const { connectRealtimeAfterAuth } = await import('@/features/video/connectOnAuth');
+  void connectRealtimeAfterAuth();
 }
 
 export async function logout(): Promise<void> {
+  recordLogoutTelemetry();
   try {
     await apiClient.post(SERVER_PATHS.logout);
   } catch {
     // Best-effort server logout
   } finally {
+    const { disconnectRealtimeOnLogout } = await import('@/features/video/connectOnAuth');
+    await disconnectRealtimeOnLogout();
     useSessionStore.getState().clearSession();
     await clearSecureAuth();
+    clearLoginSessionId();
   }
 }
 
@@ -71,14 +84,26 @@ export function getLoginErrorMessage(error: unknown): string {
   return 'Unable to sign in right now.';
 }
 
-export async function tryRestoreSessionFromRefresh(): Promise<boolean> {
-  const { getStoredSessionProfile } = await import('@/auth/secureTokens');
-  const profile = await getStoredSessionProfile();
+/** Fast local read — does not call the network. */
+export async function hydrateSessionFromStorage(): Promise<{ hasRefreshToken: boolean }> {
+  const { getStoredRefreshToken, getStoredSessionProfile } = await import('@/auth/secureTokens');
+  const [profile, refreshToken] = await Promise.all([getStoredSessionProfile(), getStoredRefreshToken()]);
   if (profile) {
     useSessionStore.setState({ user: profile });
   }
+  return { hasRefreshToken: Boolean(refreshToken?.trim()) };
+}
+
+export async function tryRestoreSessionFromRefresh(options?: { timeoutMs?: number }): Promise<boolean> {
   const { refreshAccessToken } = await import('@/api/client');
-  const ok = await refreshAccessToken();
+  const ok = await refreshAccessToken({ timeoutMs: options?.timeoutMs });
+  if (ok && useSessionStore.getState().accessToken) {
+    if (!readLoginSessionId()) {
+      recordSuccessfulLoginTelemetry('token_refresh');
+    }
+    const { connectRealtimeAfterAuth } = await import('@/features/video/connectOnAuth');
+    void connectRealtimeAfterAuth();
+  }
   return ok && Boolean(useSessionStore.getState().accessToken);
 }
 

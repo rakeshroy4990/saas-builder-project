@@ -75,6 +75,15 @@ public class SessionTelemetryJpaEntity {
     @Column(nullable = false)
     private boolean deleted = false;
 
+    @Column(name = "os")
+    private String os;
+
+    @Column(name = "device_id")
+    private String deviceId;
+
+    @Column(name = "browser_or_app")
+    private String browserOrApp;
+
     @PrePersist
     void prePersist() {
         if (externalId == null) {
@@ -225,5 +234,29 @@ public class SessionTelemetryJpaEntity {
 
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public String getOs() {
+        return os;
+    }
+
+    public void setOs(String os) {
+        this.os = os;
+    }
+
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
+
+    public String getBrowserOrApp() {
+        return browserOrApp;
+    }
+
+    public void setBrowserOrApp(String browserOrApp) {
+        this.browserOrApp = browserOrApp;
     }
 }
