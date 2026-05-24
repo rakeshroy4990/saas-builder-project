@@ -108,10 +108,7 @@ export function VideoCallScreen() {
         await publishCallAccept(callId);
       }
       useVideoCallStore.getState().patch({ incomingRing: false, webrtcCalleeAccepted: true });
-      const ok = await prepareVideoSession();
-      if (!ok) {
-        throw new Error(t('video.errorSession'));
-      }
+      await prepareVideoSession();
       await joinFromSession();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t('video.errorJoin');

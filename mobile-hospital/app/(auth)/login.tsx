@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,9 +14,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/components/BrandHeader';
+import { AuthBusyOverlay } from '@/components/AuthBusyOverlay';
 import { getLoginErrorMessage, loginWithPassword } from '@/features/auth/api';
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton';
-import { isGoogleSignInConfigured } from '@/features/auth/googleLogin';
+import { ensureGoogleSignInConfigured, isGoogleSignInConfigured } from '@/features/auth/googleLogin';
 import { useSessionStore } from '@/auth/sessionStore';
 import { colors } from '@/theme/colors';
 import { sharedStyles } from '@/theme/styles';
@@ -34,15 +35,21 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleConfigured = isGoogleSignInConfigured();
+  const authBusy = loading || googleLoading;
+
+  useEffect(() => {
+    if (googleConfigured && Platform.OS !== 'web') {
+      ensureGoogleSignInConfigured();
+    }
+  }, [googleConfigured]);
+
   const onGoogleSuccess = useCallback(() => {
     router.replace('/(app)/(tabs)/home' as never);
   }, [router]);
 
-  useEffect(() => {
-    if (accessToken) {
-      router.replace('/(app)/(tabs)/home' as never);
-    }
-  }, [accessToken, router]);
+  if (accessToken) {
+    return <Redirect href={'/(app)/(tabs)/home' as never} />;
+  }
 
   async function onSubmit() {
     setError('');
@@ -51,16 +58,18 @@ export default function LoginScreen() {
       await loginWithPassword(email, password);
       router.replace('/(app)/(tabs)/home' as never);
     } catch (err) {
-      setError(getLoginErrorMessage(err));
-    } finally {
       setLoading(false);
+      setError(getLoginErrorMessage(err));
     }
   }
 
   function onSkip() {
+    if (authBusy) return;
     enterGuestMode();
     router.replace('/(app)/(tabs)/home' as never);
   }
+
+  const busyMessage = googleLoading ? t('auth.googleSigningIn') : t('auth.signingIn');
 
   return (
     <KeyboardAvoidingView
@@ -70,6 +79,7 @@ export default function LoginScreen() {
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, flexGrow: 1, justifyContent: 'center', paddingVertical: 24 }}
         keyboardShouldPersistTaps="handled"
+        scrollEnabled={!authBusy}
       >
         <BrandHeader subtitle={t('auth.loginTitle')} />
 
@@ -82,7 +92,7 @@ export default function LoginScreen() {
 
         <Text style={sharedStyles.label}>{t('auth.email')}</Text>
         <TextInput
-          style={sharedStyles.input}
+          style={[sharedStyles.input, authBusy && { opacity: 0.5 }]}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
@@ -91,17 +101,19 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           placeholder="you@example.com"
           placeholderTextColor={colors.textMuted}
+          editable={!authBusy}
         />
 
         <Text style={[sharedStyles.label, { marginTop: 16 }]}>{t('auth.password')}</Text>
         <TextInput
-          style={sharedStyles.input}
+          style={[sharedStyles.input, authBusy && { opacity: 0.5 }]}
           secureTextEntry
           textContentType="password"
           value={password}
           onChangeText={setPassword}
           placeholder="••••••••"
           placeholderTextColor={colors.textMuted}
+          editable={!authBusy}
         />
 
         {error ? (
@@ -111,9 +123,9 @@ export default function LoginScreen() {
         ) : null}
 
         <Pressable
-          style={[sharedStyles.button, { marginTop: 24, opacity: loading ? 0.7 : 1 }]}
+          style={[sharedStyles.button, { marginTop: 24, opacity: authBusy ? 0.5 : 1 }]}
           onPress={() => void onSubmit()}
-          disabled={loading || googleLoading}
+          disabled={authBusy}
         >
           <Text style={sharedStyles.buttonText}>{loading ? t('auth.signingIn') : t('auth.signIn')}</Text>
         </Pressable>
@@ -130,10 +142,16 @@ export default function LoginScreen() {
           />
         ) : null}
 
-        <Pressable style={{ marginTop: 20, alignItems: 'center' }} onPress={onSkip}>
+        <Pressable
+          style={{ marginTop: 20, alignItems: 'center', opacity: authBusy ? 0.4 : 1 }}
+          onPress={onSkip}
+          disabled={authBusy}
+        >
           <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>{t('auth.skipForNow')}</Text>
         </Pressable>
       </ScrollView>
+
+      {authBusy ? <AuthBusyOverlay message={busyMessage} /> : null}
     </KeyboardAvoidingView>
   );
 }

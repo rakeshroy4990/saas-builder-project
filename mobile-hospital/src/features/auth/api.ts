@@ -13,12 +13,9 @@ import {
   recordSuccessfulLoginTelemetry
 } from '@/analytics/sessionTelemetry';
 import { apiClient } from '@/api/client';
-import {
-  clearSecureAuth,
-  setStoredRefreshToken,
-  setStoredSessionProfile
-} from '@/auth/secureTokens';
+import { clearSecureAuth, persistSessionSecrets } from '@/auth/secureTokens';
 import { useSessionStore, type SessionUser } from '@/auth/sessionStore';
+import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
 
 export async function loginWithPassword(identity: string, password: string): Promise<void> {
   const response = await apiClient.post(SERVER_PATHS.login, {
@@ -41,13 +38,10 @@ export async function loginWithPassword(identity: string, password: string): Pro
   useSessionStore.getState().setSession({
     accessToken: parsed.accessToken,
     user,
-    expiresInSeconds: parsed.expiresInSeconds ?? 900
+    expiresInSeconds: parsed.expiresInSeconds ?? DEFAULT_ACCESS_TOKEN_TTL_SECONDS
   });
 
-  if (parsed.refreshToken) {
-    await setStoredRefreshToken(parsed.refreshToken);
-  }
-  await setStoredSessionProfile(user);
+  persistSessionSecrets(parsed.refreshToken, user);
   recordSuccessfulLoginTelemetry('password');
   const { connectRealtimeAfterAuth } = await import('@/features/video/connectOnAuth');
   void connectRealtimeAfterAuth();

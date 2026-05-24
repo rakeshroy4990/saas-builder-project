@@ -21,6 +21,8 @@ import {
 } from '@/analytics/sessionTelemetry';
 import { shouldSkipTelemetrySessionSummaryForUrl } from '@/analytics/telemetryUrlSkip';
 import { isAccessTokenExpired, useSessionStore } from '@/auth/sessionStore';
+import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
+import { applyMultipartHeaders } from './multipart';
 import { getMobileApiBaseUrl } from './config';
 
 type TelemetryAxiosConfig = InternalAxiosRequestConfig & { __telemetryT0?: number };
@@ -91,7 +93,7 @@ export async function refreshAccessToken(options?: { timeoutMs?: number }): Prom
       useSessionStore.getState().setSession({
         accessToken: parsed.accessToken,
         user,
-        expiresInSeconds: parsed.expiresInSeconds
+        expiresInSeconds: parsed.expiresInSeconds ?? DEFAULT_ACCESS_TOKEN_TTL_SECONDS
       });
       await setStoredSessionProfile(user);
 
@@ -110,6 +112,7 @@ export async function refreshAccessToken(options?: { timeoutMs?: number }): Prom
 }
 
 apiClient.interceptors.request.use(async (config) => {
+  applyMultipartHeaders(config);
   const url = String(config.url ?? '');
   const isRefresh = url.includes(SERVER_PATHS.refresh);
   if (!isRefresh && isAccessTokenExpired()) {

@@ -4,6 +4,7 @@ import {
   unwrapEnvelope
 } from '@saas-builder/hospital-api-client';
 
+import { postHospitalAiChatNdjson } from '@/api/hospitalAiChatStream';
 import { apiClient } from '@/api/client';
 
 export async function fetchEducationBooks(): Promise<string[]> {
@@ -42,11 +43,17 @@ export async function fetchEducationKeyTopics(bookName: string, limit = 12): Pro
 
 export type EducationChatTurn = { role: 'user' | 'assistant'; content: string };
 
-export async function askEducationQuestion(
+export type EducationStreamHandlers = {
+  onStatus?: (phase: string) => void;
+  onDelta?: (textSoFar: string) => void;
+};
+
+export async function askEducationQuestionStreaming(
   question: string,
   bookName: string,
   history: EducationChatTurn[],
-  conversationId: string
+  conversationId: string,
+  handlers: EducationStreamHandlers = {}
 ): Promise<string> {
   const payload: Record<string, unknown> = {
     message: question,
@@ -57,16 +64,24 @@ export async function askEducationQuestion(
   const book = bookName.trim();
   if (book) payload.BookName = book;
 
-  const response = await apiClient.post(SERVER_PATHS.hospitalAiChat, payload, {
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    },
-    timeout: 180_000
+  let textSoFar = '';
+  return postHospitalAiChatNdjson(payload, {
+    onStatus: handlers.onStatus,
+    onDelta: (chunk) => {
+      textSoFar += chunk;
+      handlers.onDelta?.(textSoFar);
+    }
   });
-  const data = unwrapEnvelope<Record<string, unknown>>(response.data);
-  const reply = pickString(data, ['reply', 'Reply', 'answer', 'Answer', 'message', 'Message']);
-  return reply.trim();
+}
+
+/** @deprecated Use {@link askEducationQuestionStreaming} for progressive UI. */
+export async function askEducationQuestion(
+  question: string,
+  bookName: string,
+  history: EducationChatTurn[],
+  conversationId: string
+): Promise<string> {
+  return askEducationQuestionStreaming(question, bookName, history, conversationId);
 }
 
 export type PrescriptionSimilarityHit = {

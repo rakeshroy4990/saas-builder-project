@@ -2,6 +2,8 @@ import { create } from 'zustand';
 
 import type { UserRole } from '@saas-builder/hospital-api-client';
 
+import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from './tokenTtl';
+
 export interface SessionUser {
   userId: string;
   email: string;
@@ -33,9 +35,12 @@ interface SessionState {
 }
 
 function computeExpiryMs(seconds?: number): number | null {
-  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) return null;
-  const skewMs = 30_000;
-  return Date.now() + Math.floor(seconds * 1000) - skewMs;
+  const ttl =
+    seconds == null || !Number.isFinite(seconds) || seconds <= 0
+      ? DEFAULT_ACCESS_TOKEN_TTL_SECONDS
+      : seconds;
+  const skewMs = 60_000;
+  return Date.now() + Math.floor(ttl * 1000) - skewMs;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({

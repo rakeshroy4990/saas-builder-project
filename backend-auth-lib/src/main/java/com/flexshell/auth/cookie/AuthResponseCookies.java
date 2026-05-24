@@ -11,12 +11,13 @@ import java.time.Duration;
  * <strong>Invariant:</strong> {@code SameSite=None} is never applied without {@code Secure=true}
  * (browsers require it; misconfiguration is corrected here).
  * </p>
- * Refresh tokens are scoped to {@link #REFRESH_TOKEN_PATH} so they are not sent on unrelated API calls.
+ * Refresh tokens are scoped to {@link #REFRESH_TOKEN_PATH} so they are not sent on unrelated API calls,
+ * but still reach {@code /api/auth/logout} for server-side revocation.
  */
 public final class AuthResponseCookies {
 
-    /** Only refresh requests should carry the refresh JWT cookie. */
-    public static final String REFRESH_TOKEN_PATH = "/api/auth/refresh";
+    /** Sent on auth endpoints (refresh, logout) but not general {@code /api/v1/*} calls. */
+    public static final String REFRESH_TOKEN_PATH = "/api/auth";
 
     private AuthResponseCookies() {
     }

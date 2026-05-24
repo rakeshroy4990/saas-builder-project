@@ -13,6 +13,37 @@ The Vue web app uses **httpOnly cookies**. The Expo app uses **Bearer tokens** i
 
 ## Google Sign-In (Android APK)
 
+### Native sign-in (`@react-native-google-signin/google-signin`)
+
+The app uses **native** Google Sign-In (not browser OAuth). `DEVELOPER_ERROR` almost always means the **SHA-1 fingerprint** on your [Google Cloud Console](https://console.cloud.google.com/apis/credentials) **Android OAuth client** does not match the key that signed the installed APK.
+
+| Field | Required value |
+|--------|----------------|
+| Type | **Android** (not Web) |
+| Package name | `com.agastya.healthcare` (exact match with `app.json`) |
+| SHA-1 | From **EAS signing key** for the profile you built (`preview`, `development`, etc.) |
+
+`GoogleSignin.configure({ webClientId })` must use the **Web application** client ID (`…k1e8jsn96…`), not the Android client ID.
+
+Get SHA-1:
+
+```bash
+cd mobile-hospital
+eas credentials -p android
+```
+
+Open **Keystore** → copy **SHA-1** → add to the Android OAuth client → wait 5–10 minutes. **No rebuild** is required for SHA-1-only changes.
+
+**Firebase is not required.** Native Google Sign-In works with [Google Cloud Console](https://console.cloud.google.com/apis/credentials) OAuth clients only.
+
+If you add `google-services.json` (optional Firebase path), it must:
+
+- Use the **same GCP project** as `googleOAuthClientId` / `googleAndroidClientId` in `app.json` (project number prefix must match, e.g. `148957600999-…`).
+- Include a non-empty **`oauth_client`** array (enable **Google** under Firebase → Authentication → Sign-in method, add SHA-1 on the Android app, then re-download the file).
+- Keep **`package_name`**: `com.agastya.healthcare`.
+
+`app.config.js` runs `scripts/validateGoogleServices.js` at build time. If the file is invalid, the build falls back to the Google Cloud Console path and prints warnings.
+
 ### Do I need to regenerate client IDs?
 
 **Usually no.** If you only fixed the **package name** or **SHA-1** on the same Android OAuth client in Google Cloud Console, keep the same client ID:

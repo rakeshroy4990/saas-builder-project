@@ -51,3 +51,13 @@ export async function clearSecureAuth(): Promise<void> {
   await setStoredRefreshToken(null);
   await setStoredSessionProfile(null);
 }
+
+/** Persist refresh token and profile without blocking navigation after login. */
+export function persistSessionSecrets(refreshToken: string | undefined, user: SessionUser): void {
+  void (async () => {
+    if (refreshToken) {
+      await setStoredRefreshToken(refreshToken);
+    }
+    await setStoredSessionProfile(user);
+  })();
+}

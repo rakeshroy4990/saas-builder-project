@@ -50,7 +50,7 @@ public class AuthController {
             @Value("${app.auth.cookie.domain:}") String cookieDomain,
             @Value("${app.auth.cookie.cross-site-deployment:false}") boolean crossSiteCookieDeployment,
             @Value("${app.auth.cookie.refresh-max-age-seconds:2592000}") long refreshCookieMaxAgeSeconds,
-            @Value("${app.auth.cookie.access-max-age-seconds:900}") long accessCookieMaxAgeSeconds
+            @Value("${app.auth.cookie.access-max-age-seconds:43200}") long accessCookieMaxAgeSeconds
     ) {
         this.authFacade = authFacade;
         this.cookieSecure = cookieSecure;
@@ -178,12 +178,8 @@ public class AuthController {
         if (effectiveRequest.getRefreshToken() == null || effectiveRequest.getRefreshToken().isBlank()) {
             effectiveRequest.setRefreshToken(readCookieValue(servletRequest, REFRESH_TOKEN_COOKIE));
         }
-        boolean loggedOut = authFacade.logout(effectiveRequest);
+        authFacade.logout(effectiveRequest);
         clearAuthCookies(servletResponse);
-        if (!loggedOut) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Invalid refresh token", "AUTH_LOGOUT_INVALID"));
-        }
         return ResponseEntity.ok(ApiResponse.success("Logged out successfully", null));
     }
 

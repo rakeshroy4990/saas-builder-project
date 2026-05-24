@@ -49,8 +49,7 @@ export function getGoogleOAuthClientIds(): {
     webClientId: webFallback,
     androidClientId: pickConfigValue(
       process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-      extra.googleAndroidClientId,
-      webFallback
+      extra.googleAndroidClientId
     ),
     iosClientId: pickConfigValue(
       process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,

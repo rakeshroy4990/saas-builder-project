@@ -828,23 +828,33 @@ public class AuthService implements AuthFacade {
                 jwtService.getRefreshExpirationSeconds()));
     }
 
+    /**
+     * Revokes a refresh token when present. Idempotent: missing/unknown/stale tokens still succeed so
+     * logout never blocks sign-out (cookies are cleared at the controller).
+     */
     @Override
     public boolean logout(LogoutRequest request) {
         RefreshTokenAccess refreshTokens = refreshTokenAccessProvider.getIfAvailable();
-        if (refreshTokens == null || request == null) return false;
+        if (refreshTokens == null || request == null) {
+            return true;
+        }
 
         String suppliedRefreshToken = request.getRefreshToken() == null ? "" : request.getRefreshToken().trim();
-        if (suppliedRefreshToken.isEmpty()) return false;
+        if (suppliedRefreshToken.isEmpty()) {
+            return true;
+        }
 
         Optional<RefreshTokenEntity> tokenEntityOptional = refreshTokens.findByToken(suppliedRefreshToken);
-        if (tokenEntityOptional.isEmpty()) return false;
+        if (tokenEntityOptional.isEmpty()) {
+            return true;
+        }
         RefreshTokenEntity tokenEntity = tokenEntityOptional.get();
 
         String deviceId = request.getDeviceId() == null ? "" : request.getDeviceId().trim();
         if (!deviceId.isEmpty() && tokenEntity.getDeviceId() != null && !deviceId.equals(tokenEntity.getDeviceId())) {
             log.warn("Logout device mismatch userId={} expectedDevice={} actualDevice={}",
                     tokenEntity.getUserId(), tokenEntity.getDeviceId(), deviceId);
-            return false;
+            return true;
         }
 
         refreshTokens.delete(tokenEntity);

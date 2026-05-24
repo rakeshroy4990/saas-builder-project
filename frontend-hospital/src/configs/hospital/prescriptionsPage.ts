@@ -73,18 +73,6 @@ export const hospitalPrescriptionsPage: PageConfig = {
                 },
                 children: [
                   prescriptionNavButton(
-                    'hospital-prescriptions-menu-upload-active',
-                    'upload',
-                    true,
-                    'prescriptions.nav.upload'
-                  ),
-                  prescriptionNavButton(
-                    'hospital-prescriptions-menu-upload-inactive',
-                    'upload',
-                    false,
-                    'prescriptions.nav.upload'
-                  ),
-                  prescriptionNavButton(
                     'hospital-prescriptions-menu-view-active',
                     'view',
                     true,
@@ -97,6 +85,18 @@ export const hospitalPrescriptionsPage: PageConfig = {
                     false,
                     'prescriptions.nav.view',
                     { actionId: 'load-patient-prescriptions' }
+                  ),
+                  prescriptionNavButton(
+                    'hospital-prescriptions-menu-upload-active',
+                    'upload',
+                    true,
+                    'prescriptions.nav.upload'
+                  ),
+                  prescriptionNavButton(
+                    'hospital-prescriptions-menu-upload-inactive',
+                    'upload',
+                    false,
+                    'prescriptions.nav.upload'
                   )
                 ]
               }

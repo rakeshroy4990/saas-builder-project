@@ -41,7 +41,7 @@ SIGNED_URL_TTL: "900"
 # --- app.auth.jwt.* ---
 # APP_AUTH_JWT_SECRET: set via Secret Manager (min 32 bytes); never commit.
 APP_AUTH_JWT_ISSUER: flexshell-hospital
-APP_AUTH_JWT_ACCESS_EXPIRATION_SECONDS: "900"
+APP_AUTH_JWT_ACCESS_EXPIRATION_SECONDS: "43200"
 APP_AUTH_JWT_REFRESH_EXPIRATION_SECONDS: "2592000"
 
 # --- app.auth.password.* ---

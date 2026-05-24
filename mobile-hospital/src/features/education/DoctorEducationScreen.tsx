@@ -1,9 +1,10 @@
+import { useNavigation } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -12,17 +13,22 @@ import {
   TextInput,
   View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { KeyboardSafeView } from '@/components/KeyboardSafeView';
 import { useSessionStore } from '@/auth/sessionStore';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
 import {
-  askEducationQuestion,
+  askEducationQuestionStreaming,
   fetchEducationKeyTopics,
   searchSimilarPrescriptions,
   type EducationChatTurn,
   type PrescriptionSimilarityHit
 } from '@/features/education/api';
 import { loadEducationBooksCached, peekCachedEducationBooks } from '@/features/education/booksCache';
+import { ALL_EDUCATION_BOOKS } from '@/features/education/educationBooks';
 import { EducationBookPicker } from '@/features/education/EducationBookPicker';
 import {
   pickPrescriptionFromCamera,
@@ -76,7 +82,7 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
   );
 }
 
-function AttachToolbar({
+function AttachMenuButton({
   disabled,
   onDocument,
   onGallery,
@@ -88,48 +94,112 @@ function AttachToolbar({
   onCamera: () => void;
 }) {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  function closeAndRun(action: () => void) {
+    setOpen(false);
+    action();
+  }
 
   return (
-    <View style={styles.attachRow}>
+    <View style={styles.attachMenuAnchor}>
+      {open ? (
+        <View style={styles.attachMenuPopover}>
+          <Pressable
+            style={styles.attachMenuItem}
+            onPress={() => closeAndRun(onDocument)}
+            accessibilityRole="button"
+            accessibilityLabel={t('education.attachFile')}
+          >
+            <Ionicons name="attach" size={20} color={colors.primary} />
+            <Text style={styles.attachMenuLabel}>{t('education.attachFile')}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.attachMenuItem}
+            onPress={() => closeAndRun(onGallery)}
+            accessibilityRole="button"
+            accessibilityLabel={t('education.attachGallery')}
+          >
+            <Ionicons name="images-outline" size={20} color={colors.primary} />
+            <Text style={styles.attachMenuLabel}>{t('education.attachGallery')}</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.attachMenuItem, styles.attachMenuItemLast]}
+            onPress={() => closeAndRun(onCamera)}
+            accessibilityRole="button"
+            accessibilityLabel={t('education.attachCamera')}
+          >
+            <Ionicons name="camera-outline" size={20} color={colors.primary} />
+            <Text style={styles.attachMenuLabel}>{t('education.attachCamera')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <Pressable
-        style={styles.attachBtn}
-        onPress={onDocument}
+        style={[styles.plusBtn, open && styles.plusBtnActive, disabled && styles.plusBtnDisabled]}
+        onPress={() => setOpen((prev) => !prev)}
         disabled={disabled}
-        accessibilityLabel={t('education.attachFile')}
+        accessibilityRole="button"
+        accessibilityLabel={open ? t('education.closeAttachMenu') : t('education.openAttachMenu')}
       >
-        <Ionicons name="attach" size={22} color={disabled ? colors.textMuted : colors.primary} />
-      </Pressable>
-      <Pressable
-        style={styles.attachBtn}
-        onPress={onGallery}
-        disabled={disabled}
-        accessibilityLabel={t('education.attachGallery')}
-      >
-        <Ionicons name="images-outline" size={22} color={disabled ? colors.textMuted : colors.primary} />
-      </Pressable>
-      <Pressable
-        style={styles.attachBtn}
-        onPress={onCamera}
-        disabled={disabled}
-        accessibilityLabel={t('education.attachCamera')}
-      >
-        <Ionicons name="camera-outline" size={22} color={disabled ? colors.textMuted : colors.primary} />
+        <Ionicons
+          name={open ? 'close' : 'add'}
+          size={26}
+          color={disabled ? colors.textMuted : open ? colors.text : colors.primary}
+        />
       </Pressable>
     </View>
   );
 }
 
+function CollapsiblePanelHeader({
+  title,
+  subtitle,
+  expanded,
+  onToggle,
+  expandLabel,
+  collapseLabel
+}: {
+  title: string;
+  subtitle?: string;
+  expanded: boolean;
+  onToggle: () => void;
+  expandLabel: string;
+  collapseLabel: string;
+}) {
+  return (
+    <Pressable
+      onPress={onToggle}
+      style={styles.panelHeader}
+      accessibilityRole="button"
+      accessibilityLabel={expanded ? collapseLabel : expandLabel}
+      accessibilityState={{ expanded }}
+    >
+      <View style={styles.panelHeaderText}>
+        <Text style={styles.panelHeaderTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.panelHeaderSubtitle} numberOfLines={1}>{subtitle}</Text> : null}
+      </View>
+      <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+    </Pressable>
+  );
+}
+
 export function DoctorEducationScreen() {
   const { t } = useTranslation();
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
+  const keyboardInset = useKeyboardInset();
   const role = String(useSessionStore((s) => s.user?.role ?? '')).toUpperCase();
   const isDoctor = role === 'DOCTOR' || role === 'ADMIN';
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  const prescriptionScrollRef = useRef<ScrollView>(null);
+  const questionInputRef = useRef<TextInput>(null);
 
   const [tab, setTab] = useState<QueryTab>('books');
   const [books, setBooks] = useState<string[]>(() => peekCachedEducationBooks() ?? []);
   const [topics, setTopics] = useState<string[]>([]);
-  const [selectedBook, setSelectedBook] = useState(() => peekCachedEducationBooks()?.[0] ?? '');
-  const [loadingBooks, setLoadingBooks] = useState(() => !peekCachedEducationBooks());
+  const [selectedBook, setSelectedBook] = useState(ALL_EDUCATION_BOOKS);
+  const [loadingBooks, setLoadingBooks] = useState(false);
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [history, setHistory] = useState<EducationChatTurn[]>([]);
@@ -140,15 +210,22 @@ export function DoctorEducationScreen() {
   const [prescriptionResults, setPrescriptionResults] = useState<PrescriptionSimilarityHit[]>([]);
   const [prescriptionLoading, setPrescriptionLoading] = useState(false);
   const [prescriptionError, setPrescriptionError] = useState('');
+  const [educationExpanded, setEducationExpanded] = useState(false);
+  const [composerExpanded, setComposerExpanded] = useState(false);
+  const [prescriptionComposerExpanded, setPrescriptionComposerExpanded] = useState(false);
   const conversationId = 'mobile-education';
 
   const loadBooks = useCallback(async () => {
-    const hadCache = Boolean(peekCachedEducationBooks());
+    const hadCache = Boolean(peekCachedEducationBooks()?.length);
     if (!hadCache) setLoadingBooks(true);
     try {
       const list = await loadEducationBooksCached();
       setBooks(list);
-      setSelectedBook((prev) => (prev && list.includes(prev) ? prev : list[0] ?? ''));
+      setSelectedBook((prev) => {
+        if (prev === ALL_EDUCATION_BOOKS) return ALL_EDUCATION_BOOKS;
+        if (prev && list.includes(prev)) return prev;
+        return ALL_EDUCATION_BOOKS;
+      });
     } catch {
       if (!hadCache) setBooks([]);
     } finally {
@@ -162,7 +239,11 @@ export function DoctorEducationScreen() {
   }, [isDoctor, loadBooks]);
 
   useEffect(() => {
-    if (!isDoctor || !selectedBook) {
+    navigation.setOptions({ headerShown: tab === 'prescription' });
+  }, [navigation, tab]);
+
+  useEffect(() => {
+    if (!isDoctor || !selectedBook || selectedBook === ALL_EDUCATION_BOOKS) {
       setTopics([]);
       return;
     }
@@ -185,29 +266,62 @@ export function DoctorEducationScreen() {
     listRef.current?.scrollToEnd({ animated: true });
   }, [messages, sending]);
 
+  useEffect(() => {
+    if (tab !== 'books' || keyboardInset <= 0) return;
+    scrollChatToEnd();
+    const t = setTimeout(scrollChatToEnd, 120);
+    return () => clearTimeout(t);
+  }, [keyboardInset, tab]);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    setEducationExpanded(true);
+  }, [messages.length]);
+
+  useEffect(() => {
+    if (sending) setEducationExpanded(true);
+  }, [sending]);
+
+  useEffect(() => {
+    if (!composerExpanded) return;
+    const timer = setTimeout(() => questionInputRef.current?.focus(), 60);
+    return () => clearTimeout(timer);
+  }, [composerExpanded]);
+
   async function onSendQuestion(overrideText?: string) {
     const draft = (overrideText ?? question).trim();
     if (!draft || sending) return;
     setChatError('');
     setSending(true);
     const userMessage: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content: draft };
-    setMessages((prev) => [...prev, userMessage]);
+    const assistantId = `a-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      userMessage,
+      { id: assistantId, role: 'assistant', content: '' }
+    ]);
     if (!overrideText) setQuestion('');
     try {
-      const reply = await askEducationQuestion(draft, selectedBook, history, conversationId);
-      const assistantMessage: ChatMessage = {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: reply || t('education.emptyAnswer')
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      const reply = await askEducationQuestionStreaming(draft, selectedBook, history, conversationId, {
+        onDelta: (textSoFar) => {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, content: textSoFar } : m))
+          );
+        }
+      });
+      const finalText = reply.trim() || t('education.emptyAnswer');
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, content: finalText } : m))
+      );
       setHistory((prev) => [
         ...prev,
         { role: 'user', content: draft },
-        { role: 'assistant', content: assistantMessage.content }
+        { role: 'assistant', content: finalText }
       ]);
-    } catch {
-      setChatError(t('education.chatFailed'));
+    } catch (err) {
+      setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+      const msg = err instanceof Error ? err.message.trim() : '';
+      setChatError(msg || t('education.chatFailed'));
     } finally {
       setSending(false);
     }
@@ -276,19 +390,114 @@ export function DoctorEducationScreen() {
     );
   }
 
+  const typingFooter = sending ? (
+    <View style={styles.typingRow}>
+      <ActivityIndicator color={colors.primary} />
+      <Text style={styles.typingText}>{t('education.sending')}</Text>
+    </View>
+  ) : null;
+
+  function scrollChatToEnd() {
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToEnd({ animated: true });
+    });
+  }
+
+  function scrollPrescriptionToInput() {
+    requestAnimationFrame(() => {
+      prescriptionScrollRef.current?.scrollTo({ y: 140, animated: true });
+    });
+  }
+
+  function onQuestionFocus() {
+    scrollChatToEnd();
+    setTimeout(scrollChatToEnd, 120);
+    setTimeout(scrollChatToEnd, 320);
+  }
+
+  function collapseComposer() {
+    setComposerExpanded(false);
+    Keyboard.dismiss();
+  }
+
+  function collapsePrescriptionComposer() {
+    setPrescriptionComposerExpanded(false);
+    Keyboard.dismiss();
+  }
+
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === 'assistant' && m.content.trim());
+
+  function renderBooksComposer() {
+    return (
+      <View style={styles.composer}>
+        {chatError && !composerExpanded ? (
+          <Text style={[sharedStyles.errorText, styles.composerError]}>{chatError}</Text>
+        ) : null}
+        <CollapsiblePanelHeader
+          title={t('education.sendQuestion')}
+          subtitle={composerExpanded ? undefined : question.trim() || t('education.questionPlaceholder')}
+          expanded={composerExpanded}
+          onToggle={() => {
+            if (composerExpanded) collapseComposer();
+            else setComposerExpanded(true);
+          }}
+          expandLabel={t('education.expandComposer')}
+          collapseLabel={t('education.collapseComposer')}
+        />
+        {composerExpanded ? (
+          <>
+            {chatError ? <Text style={[sharedStyles.errorText, styles.composerError]}>{chatError}</Text> : null}
+            {readingFile ? (
+              <View style={styles.readingRow}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={styles.typingText}>{t('education.readingPrescription')}</Text>
+              </View>
+            ) : null}
+            <TextInput
+              ref={questionInputRef}
+              style={[styles.composerInput, keyboardVisible && styles.composerInputWithKeyboard]}
+              multiline
+              value={question}
+              onChangeText={setQuestion}
+              placeholder={t('education.questionPlaceholder')}
+              placeholderTextColor={colors.textMuted}
+              onFocus={onQuestionFocus}
+            />
+            <View style={styles.sendRow}>
+              <AttachMenuButton
+                disabled={sending || readingFile}
+                onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
+                onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
+                onCamera={() => void ingestPrescriptionFile(pickPrescriptionFromCamera)}
+              />
+              <Pressable
+                style={[sharedStyles.button, styles.sendBtn, { opacity: sending || readingFile ? 0.7 : 1 }]}
+                onPress={() => void onSendQuestion()}
+                disabled={sending || readingFile || !question.trim()}
+              >
+                <Text style={sharedStyles.buttonText}>
+                  {sending ? t('education.sending') : t('education.sendQuestion')}
+                </Text>
+              </Pressable>
+            </View>
+          </>
+        ) : null}
+      </View>
+    );
+  }
+
   if (!isDoctor) {
     return <DoctorOnlyGate />;
   }
 
   return (
-    <KeyboardAvoidingView
-      style={sharedStyles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      <View style={styles.header}>
-        <Text style={sharedStyles.subtitle}>{t('education.subtitle')}</Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+    <View style={sharedStyles.screen}>
+      <KeyboardSafeView style={styles.flex}>
+      <View style={[styles.header, tab === 'books' && { paddingTop: insets.top + 6 }]}>
+        {tab === 'prescription' ? (
+          <Text style={sharedStyles.subtitle}>{t('education.subtitle')}</Text>
+        ) : null}
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: tab === 'prescription' ? 10 : 0 }}>
           <TabButton
             label={t('education.tabs.books')}
             active={tab === 'books'}
@@ -311,12 +520,19 @@ export function DoctorEducationScreen() {
               loading={loadingBooks}
               onSelect={setSelectedBook}
             />
-            {topics.length > 0 ? (
+            {topics.length > 0 && !keyboardVisible ? (
               <>
                 <Text style={sharedStyles.label}>{t('education.quickStarts')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
                   {topics.map((topic) => (
-                    <Pressable key={topic} onPress={() => setQuestion(topic)} style={styles.topicChip}>
+                    <Pressable
+                      key={topic}
+                      onPress={() => {
+                        setQuestion(topic);
+                        setComposerExpanded(true);
+                      }}
+                      style={styles.topicChip}
+                    >
                       <Text style={styles.topicChipText} numberOfLines={2}>
                         {topic}
                       </Text>
@@ -327,98 +543,128 @@ export function DoctorEducationScreen() {
             ) : null}
           </View>
 
-          <FlatList
-            ref={listRef}
-            data={messages}
-            keyExtractor={(item) => item.id}
-            style={styles.messageList}
-            contentContainerStyle={styles.messageListContent}
-            keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={
-              <Text style={[sharedStyles.subtitle, { paddingVertical: 12 }]}>{t('education.booksEmptyHint')}</Text>
-            }
-            renderItem={renderMessage}
-            ListFooterComponent={
-              sending ? (
-                <View style={styles.typingRow}>
-                  <ActivityIndicator color={colors.primary} />
-                  <Text style={styles.typingText}>{t('education.sending')}</Text>
-                </View>
-              ) : null
-            }
-          />
-
-          <View style={styles.composer}>
-            {chatError ? <Text style={sharedStyles.errorText}>{chatError}</Text> : null}
-            <AttachToolbar
-              disabled={sending || readingFile}
-              onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
-              onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
-              onCamera={() => void ingestPrescriptionFile(pickPrescriptionFromCamera)}
+          <View style={[styles.educationPanel, educationExpanded ? styles.educationPanelExpanded : styles.educationPanelCollapsed]}>
+            <CollapsiblePanelHeader
+              title={t('education.assistantLabel')}
+              subtitle={
+                messages.length > 0
+                  ? t('education.messageCount', { count: messages.length })
+                  : t('education.noMessagesYet')
+              }
+              expanded={educationExpanded}
+              onToggle={() => setEducationExpanded((prev) => !prev)}
+              expandLabel={t('education.expandEducationAi')}
+              collapseLabel={t('education.collapseEducationAi')}
             />
-            {readingFile ? (
-              <View style={styles.readingRow}>
-                <ActivityIndicator color={colors.primary} />
-                <Text style={styles.typingText}>{t('education.readingPrescription')}</Text>
-              </View>
+            {educationExpanded ? (
+              <FlatList
+                ref={listRef}
+                data={messages}
+                keyExtractor={(item) => item.id}
+                style={styles.messageList}
+                contentContainerStyle={[
+                  styles.messageListContent,
+                  messages.length === 0 && styles.messageListContentEmpty
+                ]}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                automaticallyAdjustKeyboardInsets
+                onContentSizeChange={scrollChatToEnd}
+                renderItem={renderMessage}
+                ListFooterComponent={typingFooter}
+                ListEmptyComponent={
+                  <Text style={styles.emptyChatHint}>{t('education.booksEmptyHint')}</Text>
+                }
+              />
+            ) : lastAssistantMessage ? (
+              <Pressable
+                style={styles.collapsedPreview}
+                onPress={() => setEducationExpanded(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('education.expandEducationAi')}
+              >
+                <Text style={styles.collapsedPreviewText} numberOfLines={3}>
+                  {lastAssistantMessage.content}
+                </Text>
+              </Pressable>
             ) : null}
-            <TextInput
-              style={styles.composerInput}
-              multiline
-              value={question}
-              onChangeText={setQuestion}
-              placeholder={t('education.questionPlaceholder')}
-              placeholderTextColor={colors.textMuted}
-            />
-            <Pressable
-              style={[sharedStyles.button, { opacity: sending || readingFile ? 0.7 : 1 }]}
-              onPress={() => void onSendQuestion()}
-              disabled={sending || readingFile || !question.trim()}
-            >
-              <Text style={sharedStyles.buttonText}>
-                {sending ? t('education.sending') : t('education.sendQuestion')}
-              </Text>
-            </Pressable>
           </View>
+
+          {renderBooksComposer()}
         </View>
       ) : (
         <ScrollView
+          ref={prescriptionScrollRef}
           style={sharedStyles.screenPadded}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{
+            paddingBottom: 8 + keyboardInset
+          }}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
           <Text style={sharedStyles.subtitle}>{t('education.prescriptionBanner')}</Text>
-          <AttachToolbar
-            disabled={prescriptionLoading || readingFile}
-            onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
-            onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
-            onCamera={() => void ingestPrescriptionFile(pickPrescriptionFromCamera)}
-          />
           {readingFile ? (
             <View style={styles.readingRow}>
               <ActivityIndicator color={colors.primary} />
               <Text style={styles.typingText}>{t('education.readingPrescription')}</Text>
             </View>
           ) : null}
-          <TextInput
-            style={[sharedStyles.input, { minHeight: 140, textAlignVertical: 'top', marginTop: 8 }]}
-            multiline
-            value={prescriptionQuery}
-            onChangeText={setPrescriptionQuery}
-            placeholder={t('education.prescriptionPlaceholder')}
-            placeholderTextColor={colors.textMuted}
-          />
-          <Pressable
-            style={[sharedStyles.button, { marginTop: 12, opacity: prescriptionLoading ? 0.7 : 1 }]}
-            onPress={() => void onSearchPrescriptions()}
-            disabled={prescriptionLoading || readingFile || !prescriptionQuery.trim()}
-          >
-            {prescriptionLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={sharedStyles.buttonText}>{t('education.prescriptionSearch')}</Text>
-            )}
-          </Pressable>
+          <View style={styles.composer}>
+            <CollapsiblePanelHeader
+              title={t('education.prescriptionSearch')}
+              subtitle={
+                prescriptionComposerExpanded
+                  ? undefined
+                  : prescriptionQuery.trim() || t('education.prescriptionPlaceholder')
+              }
+              expanded={prescriptionComposerExpanded}
+              onToggle={() => {
+                if (prescriptionComposerExpanded) collapsePrescriptionComposer();
+                else setPrescriptionComposerExpanded(true);
+              }}
+              expandLabel={t('education.expandComposer')}
+              collapseLabel={t('education.collapseComposer')}
+            />
+            {prescriptionComposerExpanded ? (
+              <>
+                <TextInput
+                  style={[
+                    sharedStyles.input,
+                    { minHeight: keyboardVisible ? 80 : 120, textAlignVertical: 'top', marginTop: 4 }
+                  ]}
+                  multiline
+                  value={prescriptionQuery}
+                  onChangeText={setPrescriptionQuery}
+                  placeholder={t('education.prescriptionPlaceholder')}
+                  placeholderTextColor={colors.textMuted}
+                  onFocus={() => {
+                    scrollPrescriptionToInput();
+                    setTimeout(scrollPrescriptionToInput, 120);
+                    setTimeout(scrollPrescriptionToInput, 320);
+                  }}
+                />
+                <View style={[styles.sendRow, { marginTop: 8 }]}>
+                  <AttachMenuButton
+                    disabled={prescriptionLoading || readingFile}
+                    onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
+                    onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
+                    onCamera={() => void ingestPrescriptionFile(pickPrescriptionFromCamera)}
+                  />
+                  <Pressable
+                    style={[sharedStyles.button, styles.sendBtn, { opacity: prescriptionLoading ? 0.7 : 1 }]}
+                    onPress={() => void onSearchPrescriptions()}
+                    disabled={prescriptionLoading || readingFile || !prescriptionQuery.trim()}
+                  >
+                    {prescriptionLoading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={sharedStyles.buttonText}>{t('education.prescriptionSearch')}</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
+          </View>
           {prescriptionError ? <Text style={sharedStyles.errorText}>{prescriptionError}</Text> : null}
           {prescriptionResults.map((hit) => (
             <View key={hit.externalId || hit.searchText} style={sharedStyles.card}>
@@ -431,11 +677,15 @@ export function DoctorEducationScreen() {
           ))}
         </ScrollView>
       )}
-    </KeyboardAvoidingView>
+      </KeyboardSafeView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
   header: {
     paddingHorizontal: 16,
     paddingTop: 4,
@@ -448,8 +698,10 @@ const styles = StyleSheet.create({
   },
   booksMeta: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4
+    paddingTop: 6,
+    paddingBottom: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border
   },
   topicChip: {
     maxWidth: 200,
@@ -470,9 +722,64 @@ const styles = StyleSheet.create({
   },
   messageListContent: {
     paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 12,
-    flexGrow: 1
+    paddingTop: 4,
+    paddingBottom: 8
+  },
+  messageListContentEmpty: {
+    flexGrow: 1,
+    justifyContent: 'center'
+  },
+  emptyChatHint: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 16
+  },
+  educationPanel: {
+    flex: 1,
+    minHeight: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.background
+  },
+  educationPanelExpanded: {},
+  educationPanelCollapsed: {},
+  panelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border
+  },
+  panelHeaderText: {
+    flex: 1,
+    minWidth: 0
+  },
+  panelHeaderTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text
+  },
+  panelHeaderSubtitle: {
+    marginTop: 2,
+    fontSize: 13,
+    color: colors.textMuted
+  },
+  collapsedPreview: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.surface
+  },
+  collapsedPreviewText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text
   },
   messageRow: {
     width: '100%',
@@ -526,34 +833,96 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   composer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 4,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
-    backgroundColor: colors.surface
+    backgroundColor: colors.surface,
+    zIndex: 20,
+    elevation: 12
+  },
+  composerError: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 0
   },
   composerInput: {
     ...sharedStyles.input,
-    minHeight: 72,
+    minHeight: 88,
     maxHeight: 160,
     textAlignVertical: 'top',
+    marginHorizontal: 16,
     marginBottom: 8
   },
-  attachRow: {
+  composerInputWithKeyboard: {
+    minHeight: 48,
+    maxHeight: 120
+  },
+  sendRow: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: 8,
-    marginBottom: 8
+    paddingHorizontal: 16,
+    paddingBottom: 4
   },
-  attachBtn: {
-    width: 44,
-    height: 44,
+  sendBtn: {
+    flex: 1,
+    marginBottom: 0
+  },
+  attachMenuAnchor: {
+    position: 'relative',
+    justifyContent: 'center'
+  },
+  attachMenuPopover: {
+    position: 'absolute',
+    left: 0,
+    bottom: 52,
+    minWidth: 200,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+    overflow: 'hidden'
+  },
+  attachMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border
+  },
+  attachMenuItemLast: {
+    borderBottomWidth: 0
+  },
+  attachMenuLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text
+  },
+  plusBtn: {
+    width: 48,
+    height: 48,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background
+  },
+  plusBtnActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surface
+  },
+  plusBtnDisabled: {
+    opacity: 0.6
   },
   readingRow: {
     flexDirection: 'row',

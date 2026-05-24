@@ -30,10 +30,7 @@ export async function sendOutgoingAppointmentInvite(): Promise<void> {
 }
 
 export async function startOutgoingCall(): Promise<void> {
-  const ok = await prepareVideoSession();
-  if (!ok) {
-    throw new Error('Could not prepare video session');
-  }
+  await prepareVideoSession();
   await sendOutgoingAppointmentInvite();
 }
 

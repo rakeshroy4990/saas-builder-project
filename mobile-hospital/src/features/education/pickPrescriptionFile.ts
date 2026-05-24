@@ -1,6 +1,8 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 
+import { normalizeUploadMimeType } from '@/api/multipart';
+
 import type { PickedFile } from '@/features/education/prescriptionTranscribe';
 
 function fromImageAsset(asset: ImagePicker.ImagePickerAsset): PickedFile {
@@ -18,10 +20,12 @@ export async function pickPrescriptionFromDocuments(): Promise<PickedFile | null
   });
   if (result.canceled || !result.assets?.[0]) return null;
   const asset = result.assets[0];
+  const name = asset.name?.trim() || `prescription-${Date.now()}`;
+  const rawMime = asset.mimeType?.trim() || 'application/octet-stream';
   return {
     uri: asset.uri,
-    name: asset.name?.trim() || `prescription-${Date.now()}`,
-    mimeType: asset.mimeType?.trim() || 'application/octet-stream'
+    name,
+    mimeType: normalizeUploadMimeType(name, rawMime)
   };
 }
 

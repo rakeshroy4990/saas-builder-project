@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { ALL_EDUCATION_BOOKS } from '@/features/education/educationBooks';
 import { colors } from '@/theme/colors';
 import { sharedStyles } from '@/theme/styles';
 
@@ -24,14 +25,20 @@ type EducationBookPickerProps = {
 export function EducationBookPicker({ books, selectedBook, loading, onSelect }: EducationBookPickerProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const allLabel = t('education.allBooks');
+  const displayLabel = loading
+    ? t('education.loadingBooks')
+    : selectedBook === ALL_EDUCATION_BOOKS
+      ? allLabel
+      : selectedBook || t('education.noBooks');
 
   return (
     <>
       <Text style={sharedStyles.label}>{t('education.filterBook')}</Text>
       <Pressable
         style={styles.selector}
-        onPress={() => books.length > 0 && setOpen(true)}
-        disabled={loading || books.length === 0}
+        onPress={() => !loading && setOpen(true)}
+        disabled={loading}
         accessibilityRole="button"
       >
         {loading ? (
@@ -40,7 +47,7 @@ export function EducationBookPicker({ books, selectedBook, loading, onSelect }: 
           <Ionicons name="book-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
         )}
         <Text style={styles.selectorText} numberOfLines={2}>
-          {loading ? t('education.loadingBooks') : selectedBook || t('education.noBooks')}
+          {displayLabel}
         </Text>
         <Ionicons name="chevron-down" size={20} color={colors.textMuted} />
       </Pressable>
@@ -50,6 +57,28 @@ export function EducationBookPicker({ books, selectedBook, loading, onSelect }: 
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.sheetTitle}>{t('education.filterBook')}</Text>
             <ScrollView style={{ maxHeight: 360 }}>
+              <Pressable
+                onPress={() => {
+                  onSelect(ALL_EDUCATION_BOOKS);
+                  setOpen(false);
+                }}
+                style={[
+                  styles.option,
+                  selectedBook === ALL_EDUCATION_BOOKS && styles.optionActive
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    selectedBook === ALL_EDUCATION_BOOKS && styles.optionTextActive
+                  ]}
+                >
+                  {allLabel}
+                </Text>
+                {selectedBook === ALL_EDUCATION_BOOKS ? (
+                  <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+                ) : null}
+              </Pressable>
               {books.map((book) => {
                 const active = book === selectedBook;
                 return (

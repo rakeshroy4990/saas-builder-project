@@ -1,15 +1,14 @@
 import { joinAppointmentCall } from './api';
 import { useVideoCallStore } from './videoCallStore';
 
-export async function prepareVideoSession(): Promise<boolean> {
+export async function prepareVideoSession(): Promise<void> {
   const call = useVideoCallStore.getState();
   const appointmentId = String(call.inviteAppointmentId ?? '').trim();
   if (!appointmentId) {
-    return false;
+    throw new Error('Appointment id is missing for this video call');
   }
   const session = await joinAppointmentCall(appointmentId);
   useVideoCallStore.getState().patch({ videoSession: session });
-  return true;
 }
 
 export function hasJoinableVideoSession(): boolean {

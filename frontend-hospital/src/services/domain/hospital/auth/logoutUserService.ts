@@ -5,7 +5,11 @@ import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { clearAuthToken } from '../../../auth/authToken';
-import { buildLogoutRequestBody } from '../../../auth/logoutRequestBody';
+import {
+  buildLogoutRequestBody,
+  clearLogoutRefreshTokenHint
+} from '../../../auth/logoutRequestBody';
+import { getEphemeralRefreshToken, setEphemeralRefreshToken } from '../../../auth/refreshTokenEphemeral';
 import { clearPersistedAuthSessionProfile } from '../../../auth/authSessionStore';
 import { clearLoginSessionId } from '../../../logging/loginSessionContext';
 import { ok } from '../shared/response';
@@ -14,22 +18,42 @@ import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/call
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { flushSessionTelemetryQueue } from '../../../analytics/sessionTelemetry';
 import {
-  flushPendingSessionSummaryNavigate,
-  ingestUserInitiatedLogoutSessionTelemetry
+  emitSessionSummaryAuthLogout,
+  flushPendingSessionSummaryNavigate
 } from '../../../analytics/sessionSummary';
+
+async function ensureRefreshTokenForLogout(): Promise<void> {
+  if (getEphemeralRefreshToken()) return;
+  try {
+    const response = await apiClient.post(URLRegistry.paths.refresh, { DeviceId: 'browser' });
+    const root = response.data as Record<string, unknown> | undefined;
+    const dataNode = (root?.data ?? root?.Data ?? root ?? {}) as Record<string, unknown>;
+    const newRt = String(dataNode.refreshToken ?? dataNode.RefreshToken ?? '').trim();
+    if (newRt) {
+      setEphemeralRefreshToken(newRt);
+      return;
+    }
+  } catch {
+    // Fall through: rely on httpOnly refresh cookie on /api/auth/logout.
+  }
+  clearLogoutRefreshTokenHint();
+}
+
+async function postLogoutToServer(): Promise<void> {
+  await ensureRefreshTokenForLogout();
+  await apiClient.post(URLRegistry.paths.logout, buildLogoutRequestBody()).catch(() => undefined);
+}
 
 export const logoutUserHospitalServices: ServiceDefinition[] = [
   {
     packageName: 'hospital',
     serviceId: 'logout-user',
     execute: async () => {
-      await flushPendingSessionSummaryNavigate();
+      void flushPendingSessionSummaryNavigate();
       trackEvent('logout', undefined, { skipSessionTelemetry: true });
-      await ingestUserInitiatedLogoutSessionTelemetry({ reason: 'user_initiated' });
-      await Promise.all([
-        apiClient.post(URLRegistry.paths.logout, buildLogoutRequestBody()).catch(() => undefined)
-      ]);
-      await flushSessionTelemetryQueue();
+      void emitSessionSummaryAuthLogout({ reason: 'user_initiated' });
+      await postLogoutToServer();
+      void flushSessionTelemetryQueue();
       stompClient.disconnect();
       clearWebrtcSubscription();
       clearCallHeartbeatTimer();

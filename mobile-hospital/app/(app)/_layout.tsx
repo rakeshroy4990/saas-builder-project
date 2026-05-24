@@ -25,6 +25,10 @@ export default function AppLayout() {
       <ChatFab />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="ai-chat"
+          options={{ title: 'Chat', headerShown: false, presentation: 'modal' }}
+        />
         <Stack.Screen name="appointments/[id]" options={{ title: 'Appointment', headerShown: true }} />
         <Stack.Screen
           name="video-call"

@@ -13,6 +13,8 @@
     },
     "android": {
       "package": "com.agastya.healthcare",
+      "googleServicesFile": "./google-services.json",
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",

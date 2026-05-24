@@ -8,15 +8,20 @@ import {
 } from '@saas-builder/hospital-api-client';
 
 import { apiClient } from '@/api/client';
+import { extractApiErrorMessage } from '@/api/extractApiErrorMessage';
 
 export async function joinAppointmentCall(appointmentId: string): Promise<VideoSessionPayload> {
-  const response = await apiClient.post(appointmentJoinCallPath(appointmentId));
-  const data = unwrapEnvelope<unknown>(response.data);
-  const session = parseVideoSessionPayload(data);
-  if (!session) {
-    throw new Error('Invalid video session response');
+  try {
+    const response = await apiClient.post(appointmentJoinCallPath(appointmentId));
+    const data = unwrapEnvelope<unknown>(response.data);
+    const session = parseVideoSessionPayload(data);
+    if (!session) {
+      throw new Error('Invalid video session response');
+    }
+    return session;
+  } catch (err) {
+    throw new Error(extractApiErrorMessage(err, 'Could not join the video call'));
   }
-  return session;
 }
 
 export async function renewAppointmentCallToken(appointmentId: string): Promise<string> {

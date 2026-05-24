@@ -4,6 +4,7 @@
  */
 
 import { URLRegistry } from '../http/URLRegistry';
+import { getClientContext } from './clientContext';
 
 const DB_NAME = 'flexshell_session_telemetry_v1';
 const STORE = 'outbox';
@@ -166,16 +167,22 @@ async function deleteByIds(db: IDBDatabase, ids: number[]): Promise<void> {
 }
 
 async function postSessionEventsBatch(bodies: string[]): Promise<Response> {
-  let events: unknown[];
+  let events: Record<string, unknown>[];
   try {
-    events = bodies.map((b) => JSON.parse(b) as unknown);
+    events = bodies.map((b) => JSON.parse(b) as Record<string, unknown>);
   } catch {
     return new Response(null, { status: 400 });
   }
-  const wrapped = JSON.stringify({ events });
+  const clientContext = getClientContext();
+  const eventsForWire =
+    events.length > 0
+      ? events.map((event, index) => (index === 0 ? { ...clientContext, ...event } : event))
+      : events;
+  const wrapped = JSON.stringify({ events: eventsForWire });
   return URLRegistry.request('telemetrySessionEvents', {
     method: 'POST',
     credentials: 'omit',
+    keepalive: true,
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json'

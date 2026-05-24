@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "148957600999",
+    "project_id": "oshucare",
+    "storage_bucket": "oshucare.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:148957600999:android:f6328138f7505730c29642",
+        "android_client_info": {
+          "package_name": "com.agastya.healthcare"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "148957600999-61r14rmr6ncldnnnep4aek6u7froej39.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.agastya.healthcare",
+            "certificate_hash": "e62f5a89902830da90d44399ab778896290446a7"
+          }
+        },
+        {
+          "client_id": "148957600999-k1e8jsn96vg893pifqchvqf241eot688.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmLvVtzEg6d_dCHRBr38kprMFQG3PSQ0g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "148957600999-k1e8jsn96vg893pifqchvqf241eot688.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

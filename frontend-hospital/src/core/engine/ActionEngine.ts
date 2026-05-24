@@ -1,6 +1,10 @@
 import type { Router } from 'vue-router';
 import type { ActionConfig, ActionRunTelemetryContext, NavigationConfig, PopupRequest } from '../types/ActionConfig';
 import { emitLoggedInSessionSummary, SessionSummaryKind } from '../../services/analytics/sessionSummary';
+import {
+  shouldSkipButtonClickSessionSummary,
+  shortenTelemetryComponentId
+} from '../../services/analytics/sessionSummary/shouldSkipButtonClickSessionSummary';
 import type { PageConfig } from '../types/PageConfig';
 import { resolveMapping, resolveMappings } from './DataMapper';
 import { ServiceRegistry } from '../registry/ServiceRegistry';
@@ -20,12 +24,12 @@ export class ActionEngine {
     runTelemetry?: ActionRunTelemetryContext
   ): Promise<void> {
     const action = this.resolveAction(actionRef);
-    if (runTelemetry?.component_id) {
+    if (runTelemetry?.component_id && !shouldSkipButtonClickSessionSummary(action, runTelemetry)) {
       void emitLoggedInSessionSummary({
         kind: SessionSummaryKind.BUTTON_CLICK,
         page_id: this.pageConfig.pageId,
         package_name: this.pageConfig.packageName,
-        component_id: runTelemetry.component_id,
+        component_id: shortenTelemetryComponentId(runTelemetry.component_id),
         action_alias: action.alias,
         action_id: action.actionId
       });

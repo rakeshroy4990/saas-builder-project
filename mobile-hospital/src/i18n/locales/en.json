@@ -119,7 +119,7 @@
   },
   "video": {
     "startCall": "Video call",
-    "notAvailable": "Video call opens 15 minutes before the appointment time, for confirmed visits.",
+    "notAvailable": "Video call is available for Open or Confirmed appointments during the scheduled slot (±10 minutes, hospital time).",
     "incoming": "Incoming video call",
     "accept": "Accept",
     "reject": "Reject",
@@ -171,6 +171,15 @@
       "prescription": "Prescription"
     },
     "filterBook": "Filter by book",
+    "allBooks": "All",
+    "expandChat": "Open chat full screen",
+    "exitFullScreen": "Close full screen",
+    "expandEducationAi": "Expand Education AI",
+    "collapseEducationAi": "Collapse Education AI",
+    "expandComposer": "Expand question input",
+    "collapseComposer": "Minimize question input",
+    "noMessagesYet": "No messages yet",
+    "messageCount": "{{count}} messages",
     "quickStarts": "Quick starts",
     "booksEmptyHint": "Pick a book and ask a clinical question grounded in the ingested corpus.",
     "questionPlaceholder": "Example: Explain first-line management of pediatric nephrotic syndrome.",
@@ -192,6 +201,8 @@
     "attachFile": "Attach prescription file",
     "attachGallery": "Choose photo from gallery",
     "attachCamera": "Take photo of prescription",
+    "openAttachMenu": "Add prescription attachment",
+    "closeAttachMenu": "Close attachment options",
     "readingPrescription": "Reading prescription…",
     "prescriptionReadFailed": "Could not read the prescription file. Try a clearer photo."
   },

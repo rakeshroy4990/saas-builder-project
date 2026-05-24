@@ -64,11 +64,19 @@ function postSessionEventBody(body: string): Promise<Response> {
     Accept: 'application/json',
     'X-Trace-Id': getOrCreateTraceId()
   });
+  let wireBody = body;
+  try {
+    const parsed = JSON.parse(body) as Record<string, unknown>;
+    wireBody = JSON.stringify({ ...getClientContext(), ...parsed });
+  } catch {
+    // keep raw body
+  }
   return fetch(`${getApiBaseUrl()}${SERVER_PATHS.telemetrySessionEvent}`, {
     method: 'POST',
     credentials: 'omit',
+    keepalive: true,
     headers,
-    body
+    body: wireBody
   });
 }
 
@@ -83,7 +91,6 @@ export async function ingestSessionTelemetry(payload: SessionTelemetryPayload): 
     const loginSessionId = (rest.login_session_id ?? readLoginSessionId()).trim();
     const { login_session_id: _ls, ...restWithoutLs } = rest;
     const body = JSON.stringify({
-      ...getClientContext(),
       ...restWithoutLs,
       ...(userId ? { user_id: userId } : {}),
       ...(loginSessionId ? { login_session_id: loginSessionId } : {})

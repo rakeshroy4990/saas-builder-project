@@ -27,7 +27,7 @@ public class JwtService {
 
     public JwtService(
             @Value("${app.auth.jwt.secret:change-this-jwt-secret-min-32-bytes}") String secret,
-            @Value("${app.auth.jwt.access-expiration-seconds:900}") long accessExpirationSeconds,
+            @Value("${app.auth.jwt.access-expiration-seconds:43200}") long accessExpirationSeconds,
             @Value("${app.auth.jwt.refresh-expiration-seconds:2592000}") long refreshExpirationSeconds,
             @Value("${app.auth.jwt.issuer:flexshell-backend}") String issuer
     ) {

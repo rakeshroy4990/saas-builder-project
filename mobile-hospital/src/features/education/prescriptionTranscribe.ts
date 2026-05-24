@@ -1,6 +1,7 @@
-import { SERVER_PATHS, unwrapEnvelope } from '@saas-builder/hospital-api-client';
+import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
 
-import { apiClient } from '@/api/client';
+import { normalizeUploadMimeType } from '@/api/multipart';
+import { postMultipartLocalFile } from '@/api/postMultipart';
 
 export type EducationPrescriptionTranscribeResult = {
   diagnosis: string;
@@ -71,16 +72,13 @@ export function buildSimilarityQueryFromTranscribe(result: EducationPrescription
 }
 
 export async function postEducationPrescriptionTranscribe(file: PickedFile): Promise<EducationPrescriptionTranscribeResult> {
-  const formData = new FormData();
-  formData.append('file', {
-    uri: file.uri,
-    name: file.name,
-    type: file.mimeType
-  } as unknown as Blob);
-
-  const response = await apiClient.post(SERVER_PATHS.hospitalEducationPrescriptionTranscribe, formData, {
-    timeout: 180_000,
-    headers: { Accept: 'application/json' }
-  });
-  return readEnvelope(response.data);
+  const name = file.name.trim() || `prescription-${Date.now()}.jpg`;
+  const type = normalizeUploadMimeType(name, file.mimeType);
+  const data = await postMultipartLocalFile(
+    SERVER_PATHS.hospitalEducationPrescriptionTranscribe,
+    file.uri,
+    name,
+    type
+  );
+  return readEnvelope(data);
 }

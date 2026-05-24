@@ -9,10 +9,12 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "credentials:android": "eas credentials -p android"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-google-signin/google-signin": "^16.1.2",
     "@saas-builder/hospital-api-client": "file:../packages/hospital-api-client",
     "@saas-builder/i18n-contract": "file:../packages/i18n-contract",
     "@stomp/stompjs": "^7.3.0",
@@ -24,6 +26,7 @@
     "expo-constants": "~56.0.14",
     "expo-device": "~56.0.4",
     "expo-document-picker": "~56.0.4",
+    "expo-file-system": "~56.0.7",
     "expo-font": "~56.0.5",
     "expo-image-picker": "~56.0.12",
     "expo-keep-awake": "~56.0.3",

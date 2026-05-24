@@ -57,22 +57,22 @@ const hospitalPublicHeader: ComponentDefinition = {
               config: {
                 layoutTemplate: 'hosp.header.brand',
                 children: [
-                  {
-                    id: 'hospital-public-header-home-icon',
-                    type: 'button',
-                    config: {
-                      iconPreset: 'home',
-                      titleI18nKey: 'nav.home',
-                      styles: { styleTemplate: 'hosp.header.homeIcon' },
-                      click: {
-                        actionId: 'set-home-header-active',
-                        onSuccess: {
-                          actionType: 'navigate',
-                          navigate: { packageName: 'hospital', pageId: 'home' }
-                        }
-                      }
-                    }
-                  },
+                  // {
+                  //   id: 'hospital-public-header-home-icon',
+                  //   type: 'button',
+                  //   config: {
+                  //     iconPreset: 'home',
+                  //     titleI18nKey: 'nav.home',
+                  //     styles: { styleTemplate: 'hosp.header.homeIcon' },
+                  //     click: {
+                  //       actionId: 'set-home-header-active',
+                  //       onSuccess: {
+                  //         actionType: 'navigate',
+                  //         navigate: { packageName: 'hospital', pageId: 'home' }
+                  //       }
+                  //     }
+                  //   }
+                  // },
                   {
                     id: 'hospital-public-header-logo',
                     type: 'image',
@@ -234,45 +234,45 @@ const hospitalPublicHeader: ComponentDefinition = {
                 }
               }
             },
-            {
-              id: 'hospital-public-header-nav-blog-active',
-              type: 'button',
-              condition: {
-                expression: "activeMenu === 'BLOG'",
-                mappings: {
-                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                }
-              },
-              config: {
-                i18nKey: 'nav.blog',
-                styles: {
-                  styleTemplate: 'hosp.header.menuButton',
-                  utilityClasses: 'bg-emerald-100 text-emerald-700'
-                },
-                click: {
-                  actionId: 'set-blog-header-active',
-                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
-                }
-              }
-            },
-            {
-              id: 'hospital-public-header-nav-blog',
-              type: 'button',
-              condition: {
-                expression: "activeMenu !== 'BLOG'",
-                mappings: {
-                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                }
-              },
-              config: {
-                i18nKey: 'nav.blog',
-                styles: { styleTemplate: 'hosp.header.menuButton' },
-                click: {
-                  actionId: 'set-blog-header-active',
-                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
-                }
-              }
-            }
+            // {
+            //   id: 'hospital-public-header-nav-blog-active',
+            //   type: 'button',
+            //   condition: {
+            //     expression: "activeMenu === 'BLOG'",
+            //     mappings: {
+            //       activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+            //     }
+            //   },
+            //   config: {
+            //     i18nKey: 'nav.blog',
+            //     styles: {
+            //       styleTemplate: 'hosp.header.menuButton',
+            //       utilityClasses: 'bg-emerald-100 text-emerald-700'
+            //     },
+            //     click: {
+            //       actionId: 'set-blog-header-active',
+            //       onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+            //     }
+            //   }
+            // },
+            // {
+            //   id: 'hospital-public-header-nav-blog',
+            //   type: 'button',
+            //   condition: {
+            //     expression: "activeMenu !== 'BLOG'",
+            //     mappings: {
+            //       activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+            //     }
+            //   },
+            //   config: {
+            //     i18nKey: 'nav.blog',
+            //     styles: { styleTemplate: 'hosp.header.menuButton' },
+            //     click: {
+            //       actionId: 'set-blog-header-active',
+            //       onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+            //     }
+            //   }
+            // }
           ]
         }
       },
@@ -642,42 +642,42 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
           }
         }
       },
-      {
-        id: 'hospital-public-mobile-menu-blog-active',
-        type: 'button',
-        condition: {
-          expression: "activeMenu === 'BLOG'",
-          mappings: {
-            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-          }
-        },
-        config: {
-          i18nKey: 'nav.blog',
-          styles: { styleTemplate: 'hosp.header.menuButtonActive' },
-          click: {
-            actionId: 'set-blog-header-active',
-            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
-          }
-        }
-      },
-      {
-        id: 'hospital-public-mobile-menu-blog',
-        type: 'button',
-        condition: {
-          expression: "activeMenu !== 'BLOG'",
-          mappings: {
-            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-          }
-        },
-        config: {
-          i18nKey: 'nav.blog',
-          styles: { styleTemplate: 'hosp.header.menuButton' },
-          click: {
-            actionId: 'set-blog-header-active',
-            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
-          }
-        }
-      }
+      // {
+      //   id: 'hospital-public-mobile-menu-blog-active',
+      //   type: 'button',
+      //   condition: {
+      //     expression: "activeMenu === 'BLOG'",
+      //     mappings: {
+      //       activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+      //     }
+      //   },
+      //   config: {
+      //     i18nKey: 'nav.blog',
+      //     styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+      //     click: {
+      //       actionId: 'set-blog-header-active',
+      //       onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+      //     }
+      //   }
+      // },
+      // {
+      //   id: 'hospital-public-mobile-menu-blog',
+      //   type: 'button',
+      //   condition: {
+      //     expression: "activeMenu !== 'BLOG'",
+      //     mappings: {
+      //       activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
+      //     }
+      //   },
+      //   config: {
+      //     i18nKey: 'nav.blog',
+      //     styles: { styleTemplate: 'hosp.header.menuButton' },
+      //     click: {
+      //       actionId: 'set-blog-header-active',
+      //       onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
+      //     }
+      //   }
+      // }
     ]
   }
 };

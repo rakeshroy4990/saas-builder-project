@@ -24,7 +24,11 @@ export function ChatFab({ bottomOffset }: ChatFabProps) {
   const accessToken = useSessionStore((s) => s.accessToken);
   const bottom = bottomOffset ?? insets.bottom + TAB_BAR_CLEARANCE;
 
-  if (pathname.includes('/chat')) {
+  if (
+    pathname.includes('/ai-chat') ||
+    pathname.includes('ai-diagnosis') ||
+    pathname.includes('video-call')
+  ) {
     return null;
   }
 
@@ -33,7 +37,7 @@ export function ChatFab({ bottomOffset }: ChatFabProps) {
       router.push('/(auth)/login');
       return;
     }
-    router.push('/(app)/(tabs)/chat' as never);
+    router.push('/(app)/ai-chat' as never);
   }
 
   return (

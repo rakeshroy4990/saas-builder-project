@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Text } from 'react-native';
+import { Platform, Pressable, Text } from 'react-native';
 
 import { sharedStyles } from '@/theme/styles';
 
@@ -8,11 +8,17 @@ import { isGoogleOAuthConfigured } from '@/config/env';
 
 import { getOrCreateTraceId, ingestSessionTelemetry } from '@/analytics/sessionTelemetry';
 
-import { completeGoogleSignIn, useGoogleAuthRequest } from './googleLogin';
+import {
+  completeGoogleSignIn,
+  isGoogleWebAuthAvailable,
+  signInWithGoogle,
+  useGoogleWebAuthRequest
+} from './googleLogin';
 import { getGoogleSignInSetupLines } from './googleSetupHint';
 
 function formatGoogleError(base: string): string {
-  return `${base}\n\n${getGoogleSignInSetupLines().join('\n')}`;
+  const headline = base.trim() || 'Google sign-in failed';
+  return `${headline}\n\n${getGoogleSignInSetupLines(headline).join('\n')}`;
 }
 
 type GoogleSignInButtonProps = {
@@ -25,8 +31,18 @@ type GoogleSignInButtonProps = {
   getLoginErrorMessage: (error: unknown) => string;
 };
 
-/** Isolated so Google hooks run only when OAuth client IDs are configured. */
-function GoogleSignInButtonInner({
+function recordGoogleFailure() {
+  void ingestSessionTelemetry({
+    event_name: 'google_sign_in_failed',
+    flow: 'auth',
+    status: 'fail',
+    reason_code: 'google_oauth_error',
+    trace_id: getOrCreateTraceId()
+  });
+}
+
+/** Web-only OAuth hook branch (native Android/iOS use Google Play Services / Sign in with Apple style SDK). */
+function GoogleSignInButtonWeb({
   email,
   loading,
   googleLoading,
@@ -36,24 +52,25 @@ function GoogleSignInButtonInner({
   getLoginErrorMessage
 }: GoogleSignInButtonProps) {
   const { t } = useTranslation();
-  const [request, response, promptGoogle] = useGoogleAuthRequest();
+  const [request, response, promptGoogle] = useGoogleWebAuthRequest();
 
   useEffect(() => {
     if (!response) return;
     if (response.type === 'error') {
       setGoogleLoading(false);
+      recordGoogleFailure();
       const detail = String(response.error?.message ?? response.params?.error_description ?? '').trim();
-      void ingestSessionTelemetry({
-        event_name: 'google_sign_in_failed',
-        flow: 'auth',
-        status: 'fail',
-        reason_code: 'google_oauth_error',
-        trace_id: getOrCreateTraceId()
-      });
       setError(formatGoogleError(detail || t('auth.googleFailed')));
       return;
     }
-    if (response.type !== 'success') return;
+    if (response.type === 'dismiss' || response.type === 'cancel') {
+      setGoogleLoading(false);
+      return;
+    }
+    if (response.type !== 'success') {
+      setGoogleLoading(false);
+      return;
+    }
     const token = response.authentication?.accessToken;
     if (!token) return;
     (async () => {
@@ -63,9 +80,8 @@ function GoogleSignInButtonInner({
         await completeGoogleSignIn(token, email.trim() || 'google-user');
         onSuccess();
       } catch (err) {
-        setError(getLoginErrorMessage(err));
-      } finally {
         setGoogleLoading(false);
+        setError(getLoginErrorMessage(err));
       }
     })();
   }, [response, email, onSuccess, setError, setGoogleLoading, getLoginErrorMessage, t]);
@@ -80,28 +96,16 @@ function GoogleSignInButtonInner({
         onSuccess();
         return;
       }
+      setGoogleLoading(false);
       if (result?.type === 'error') {
+        recordGoogleFailure();
         const detail = String(result.error?.message ?? result.params?.error_description ?? '').trim();
-        void ingestSessionTelemetry({
-          event_name: 'google_sign_in_failed',
-          flow: 'auth',
-          status: 'fail',
-          reason_code: 'google_oauth_error',
-          trace_id: getOrCreateTraceId()
-        });
         setError(formatGoogleError(detail || t('auth.googleFailed')));
       }
     } catch (err) {
-      void ingestSessionTelemetry({
-        event_name: 'google_sign_in_failed',
-        flow: 'auth',
-        status: 'fail',
-        reason_code: 'google_oauth_error',
-        trace_id: getOrCreateTraceId()
-      });
-      setError(formatGoogleError(err instanceof Error ? err.message : t('auth.googleFailed')));
-    } finally {
       setGoogleLoading(false);
+      recordGoogleFailure();
+      setError(formatGoogleError(err instanceof Error ? err.message : t('auth.googleFailed')));
     }
   }
 
@@ -118,7 +122,44 @@ function GoogleSignInButtonInner({
   );
 }
 
+function GoogleSignInButtonNative(props: GoogleSignInButtonProps) {
+  const { t } = useTranslation();
+  const { email, loading, googleLoading, setGoogleLoading, setError, onSuccess, getLoginErrorMessage } = props;
+
+  async function onGoogle() {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      const token = await signInWithGoogle();
+      await completeGoogleSignIn(token, email.trim() || 'google-user');
+      onSuccess();
+    } catch (err) {
+      setGoogleLoading(false);
+      const msg = err instanceof Error ? err.message.trim() : '';
+      if (msg && !/cancel/i.test(msg)) {
+        recordGoogleFailure();
+      }
+      setError(formatGoogleError(msg || getLoginErrorMessage(err)));
+    }
+  }
+
+  return (
+    <Pressable
+      style={[sharedStyles.buttonSecondary, { marginTop: 12, opacity: googleLoading ? 0.7 : 1 }]}
+      onPress={() => void onGoogle()}
+      disabled={loading || googleLoading}
+    >
+      <Text style={sharedStyles.buttonSecondaryText}>
+        {googleLoading ? t('auth.googleSigningIn') : t('auth.googleSignIn')}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function GoogleSignInButton(props: GoogleSignInButtonProps) {
   if (!isGoogleOAuthConfigured()) return null;
-  return <GoogleSignInButtonInner {...props} />;
+  if (isGoogleWebAuthAvailable() && Platform.OS === 'web') {
+    return <GoogleSignInButtonWeb {...props} />;
+  }
+  return <GoogleSignInButtonNative {...props} />;
 }

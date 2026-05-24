@@ -73,6 +73,10 @@ const appStore = useAppStore(pinia);
 const toastStore = useToastStore(pinia);
 const threadRef = ref<HTMLElement | null>(null);
 const questionTextareaRef = ref<HTMLTextAreaElement | null>(null);
+function questionTextareaMaxHeightPx(): number {
+  if (typeof window === 'undefined') return 30 * 16;
+  return Math.min(window.innerHeight * 0.52, 30 * 16);
+}
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const cameraInputRef = ref<HTMLInputElement | null>(null);
 const prescriptionReading = ref(false);
@@ -229,8 +233,19 @@ const activeSessionTitle = computed(() => activeSession.value?.title || t('educa
 const activeSessionMessageCount = computed(() => messages.value.filter((message) => !message.loading).length);
 const activeBookLabel = computed(() => activeSession.value?.bookName || selectedBook.value);
 
+function syncQuestionTextareaHeight(): void {
+  const el = questionTextareaRef.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  const maxHeight = questionTextareaMaxHeightPx();
+  const nextHeight = Math.min(el.scrollHeight, maxHeight);
+  el.style.height = `${nextHeight}px`;
+  el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+}
+
 async function focusQuestionTextarea(): Promise<void> {
   await nextTick();
+  syncQuestionTextareaHeight();
   questionTextareaRef.value?.focus();
 }
 
@@ -244,6 +259,10 @@ function scrollThreadToEnd(): void {
 
 /** Keep the latest user turn + assistant reply in view (including NDJSON streaming). */
 watch(messages, () => scrollThreadToEnd(), { deep: true, flush: 'post' });
+
+watch(conversationDraft, () => {
+  void nextTick(() => syncQuestionTextareaHeight());
+});
 
 onMounted(() => {
   if (typeof localStorage === 'undefined') {
@@ -320,7 +339,9 @@ async function onModeChange(event: Event) {
 }
 
 async function onDraftInput(event: Event) {
-  const value = (event.target as HTMLTextAreaElement).value;
+  const el = event.target as HTMLTextAreaElement;
+  const value = el.value;
+  syncQuestionTextareaHeight();
   await execute({ actionId: 'set-doctor-education-conversation-draft', data: { value } });
 }
 
@@ -821,7 +842,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
           </div>
         </div>
 
-        <div v-if="isBooksTab" class="order-3 shrink-0 space-y-3 border-t border-slate-200 bg-white/95 pt-4 pb-2">
+        <div v-if="isBooksTab" class="order-3 shrink-0 space-y-3 bg-white/95 pt-4 pb-2">
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2 min-w-0">
               <label for="doctor-education-conversation-draft" class="text-xs font-semibold uppercase tracking-wide text-slate-500 min-w-0">
@@ -874,8 +895,8 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
               ref="questionTextareaRef"
               id="doctor-education-conversation-draft"
               :value="conversationDraft"
-              rows="10"
-              class="w-full min-h-[min(38vh,18rem)] max-h-[min(52vh,30rem)] resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:opacity-60"
+              rows="1"
+              class="w-full resize-none overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:opacity-60"
               :disabled="conversationLoading || prescriptionReading"
               :placeholder="t('education.conversation.inputPlaceholder')"
               @input="onDraftInput"
