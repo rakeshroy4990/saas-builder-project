@@ -290,10 +290,10 @@ steps:
         done
         exit "$$FAIL"
 
+# Only images produced on every run. Optional services use explicit docker push steps;
+# listing skipped images here fails the build (e.g. _SKIP_EMAIL=1 → no email-notify image).
 images:
   - asia-south1-docker.pkg.dev/oshucare/oshucare/backend-hospital
-  - asia-south1-docker.pkg.dev/oshucare/oshucare/pdf-rag-pipeline
-  - asia-south1-docker.pkg.dev/oshucare/oshucare/email-notify
 
 options:
   logging: CLOUD_LOGGING_ONLY
