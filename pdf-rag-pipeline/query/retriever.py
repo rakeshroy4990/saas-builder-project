@@ -2,11 +2,26 @@ from __future__ import annotations
 
 import re
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
-from config.settings import RAG_LOG_FULL_PROMPT, RAG_LOG_PROMPT_PREVIEW_CHARS, is_postgres_persistence
+from config.settings import (
+    RAG_HYDE_INCLUDE_ORIGINAL_QUERY,
+    RAG_HYDE_RRF_TOP_K,
+    RAG_HYDE_SEARCH_TOP_K,
+    RAG_HYDE_VARIANT_COUNT,
+    RAG_LOG_FULL_PROMPT,
+    RAG_LOG_PROMPT_PREVIEW_CHARS,
+    is_postgres_persistence,
+)
 from config.domain_points import query_aliases
+from db import postgres_backend as pg
+from query.embedding_service import embed_query, embed_texts_same_order
+from query.fusion import reciprocal_rank_fusion
+from query.hyde import generate_hypothetical_answer
 from query.keyword_extractor import SHORT_MEDICAL_TERMS, extract_keywords
+from query.multi_query import generate_query_variants
+from query.vector_retriever import build_llm_chunks_and_response_images
 
 LOG = logging.getLogger(__name__)
 
@@ -297,6 +312,97 @@ def _run_text_pipeline_backend(
         {"$project": {"text": 1, "source_file": 1, "page_num": 1, "tags": 1, "metadata": 1, "score": 1, "_id": 0}},
     ]
     return list(mongo_db.chunks.aggregate(base_pipeline))
+
+
+def _vector_text_search_with_embedding(
+    embedding: list[float],
+    *,
+    top_k: int,
+    chapter_topics: Optional[list[str]],
+    audience: Optional[str],
+    book_name: Optional[str],
+    include_outdated_books: bool,
+) -> list[dict]:
+    if not embedding:
+        return []
+    try:
+        return pg.retrieval_vector_search(
+            embedding,
+            "text",
+            top_k,
+            chapter_topics=chapter_topics,
+            audience=audience,
+            book_name=book_name,
+            include_outdated_books=include_outdated_books,
+        )
+    except Exception as exc:
+        LOG.error("[Retrieve] pgvector search failed: %s", exc)
+        return []
+
+
+def retrieve(
+    user_query: str,
+    top_k: int = RAG_HYDE_RRF_TOP_K,
+    include_original_query: bool = RAG_HYDE_INCLUDE_ORIGINAL_QUERY,
+    chapter_topics: Optional[list[str]] = None,
+    audience: Optional[str] = None,
+    *,
+    book_name: Optional[str] = None,
+    include_outdated_books: bool = False,
+) -> list[dict]:
+    query = str(user_query or "").strip()
+    if not query:
+        return []
+    if not is_postgres_persistence():
+        return []
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            hyde_future = pool.submit(generate_hypothetical_answer, query)
+            original_embed_future = pool.submit(embed_texts_same_order, [query])
+            hypothesis = str(hyde_future.result() or "").strip() or query
+            original_embed_list = original_embed_future.result()
+    except Exception as exc:
+        LOG.warning("[HyDE] block1_failed_fallbacking: %s", exc)
+        hypothesis = query
+        original_embed_list = [embed_query(query)]
+
+    variants = generate_query_variants(query, hypothesis, n=RAG_HYDE_VARIANT_COUNT)
+    embed_inputs = [hypothesis] + variants[: max(1, int(RAG_HYDE_VARIANT_COUNT))]
+    LOG.info("[Retrieve] embedding %s queries", len(embed_inputs))
+    embedded = embed_texts_same_order(embed_inputs)
+
+    all_embeddings: list[list[float]] = [v for v in embedded if v]
+    if include_original_query:
+        original_embed = original_embed_list[0] if original_embed_list else []
+        if original_embed:
+            all_embeddings.append(original_embed)
+    if not all_embeddings:
+        return []
+
+    with ThreadPoolExecutor(max_workers=len(all_embeddings)) as pool:
+        ranked_lists = list(
+            pool.map(
+                lambda emb: _vector_text_search_with_embedding(
+                    emb,
+                    top_k=max(top_k, RAG_HYDE_SEARCH_TOP_K),
+                    chapter_topics=chapter_topics,
+                    audience=audience,
+                    book_name=book_name,
+                    include_outdated_books=include_outdated_books,
+                ),
+                all_embeddings,
+            )
+        )
+    LOG.info("[Retrieve] raw results per query: %s", [len(rows) for rows in ranked_lists])
+    fused_rows = reciprocal_rank_fusion(ranked_lists, top_n=top_k, k=60)
+    llm_chunks, _ = build_llm_chunks_and_response_images(fused_rows, [])
+    LOG.info(
+        "[Retrieve] fused chunks=%s top_score=%.4f",
+        len(llm_chunks),
+        float(fused_rows[0].get("rrf_score") or 0.0) if fused_rows else 0.0,
+    )
+    return llm_chunks[:top_k]
 
 
 def retrieve_top_chunks(

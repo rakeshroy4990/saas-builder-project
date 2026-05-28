@@ -167,3 +167,10 @@ IMAGE_CONTEXT_PAGE_WINDOW = _env_int_clamped(
     0,
     30,
 )
+
+# HyDE + Multi-query retrieval (feature-gated; default off for safe rollout).
+RAG_ENABLE_HYDE = _env_bool("RAG_ENABLE_HYDE", True)
+RAG_HYDE_VARIANT_COUNT = max(1, int(os.getenv("RAG_HYDE_VARIANT_COUNT", "3")))
+RAG_HYDE_RRF_TOP_K = max(1, int(os.getenv("RAG_HYDE_RRF_TOP_K", "8")))
+RAG_HYDE_INCLUDE_ORIGINAL_QUERY = _env_bool("RAG_HYDE_INCLUDE_ORIGINAL_QUERY", True)
+RAG_HYDE_SEARCH_TOP_K = max(1, int(os.getenv("RAG_HYDE_SEARCH_TOP_K", "10")))

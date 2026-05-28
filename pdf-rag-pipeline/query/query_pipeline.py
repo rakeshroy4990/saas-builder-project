@@ -8,6 +8,7 @@ from config.settings import (
     RAG_CHAT_INCLUDE_SOURCE_FIGURES,
     RAG_LOG_FULL_PROMPT,
     RAG_LOG_PROMPT_PREVIEW_CHARS,
+    RAG_ENABLE_HYDE,
     RAG_USE_VECTOR_RETRIEVAL,
     TEXT_SEARCH_MIN_SCORE,
     VECTOR_CONTEXT_MAX_TEXT_CHUNKS,
@@ -28,7 +29,7 @@ from query.llm_service import (
 )
 from query import llm_service
 from query.rag_timing import bind_query_wall_clock, log_timing
-from query.retriever import retrieve_top_chunks
+from query.retriever import retrieve as retrieve_hyde_chunks, retrieve_top_chunks
 from query.safety_layer import check_safety
 from db.image_store import build_public_image_url
 from perf.perf_context import PERF_ENABLED, PerfTrace, finalize_perf, timed_span
@@ -606,38 +607,80 @@ async def handle_query(
                 # when page_topic_classifier labeled chunks with different `chapter_topic` strings.
                 vector_topics = None if _is_broad_definition_query(effective_question) else allowed_topics
 
-                fetch_image_ann = stream_queue is None
-                if stream_queue is not None:
-                    text_hits, image_hits = await asyncio.to_thread(
-                        retrieve_vector_dual,
-                        effective_question,
-                        vector_topics,
-                        audience,
-                        book_name=book_scope or None,
-                        include_outdated_books=include_outdated_books,
-                        fetch_image_ann=fetch_image_ann,
-                    )
-                else:
-                    text_hits, image_hits = retrieve_vector_dual(
-                        effective_question,
-                        chapter_topics=vector_topics,
-                        audience=audience,
-                        book_name=book_scope or None,
-                        include_outdated_books=include_outdated_books,
-                        fetch_image_ann=fetch_image_ann,
-                    )
-                llm_chunks, api_images = build_llm_chunks_and_response_images(text_hits, image_hits)
-                log_timing("T3d_after_chunk_build", chunks=str(len(llm_chunks)))
-                if len(llm_chunks) >= MIN_CHUNKS_REQUIRED:
-                    chunks = llm_chunks
-                    used_vector = True
-                    LOG.info(
-                        "[RAG][RETRIEVE] vector hits text=%s image_pool=%s",
-                        len(text_hits),
-                        len(image_hits),
-                    )
+                LOG.info(
+                    "[RAG][SEARCH_PATH] hyde_enabled=%s path=%s",
+                    RAG_ENABLE_HYDE,
+                    "hyde" if RAG_ENABLE_HYDE else "legacy_vector",
+                )
+                if RAG_ENABLE_HYDE:
+                    LOG.info("[RAG][HYDE] attempting_hyde_retrieval")
+                    if stream_queue is not None:
+                        chunks = await asyncio.to_thread(
+                            retrieve_hyde_chunks,
+                            effective_question,
+                            6,
+                            True,
+                            vector_topics,
+                            audience,
+                            book_name=book_scope or None,
+                            include_outdated_books=include_outdated_books,
+                        )
+                    else:
+                        chunks = retrieve_hyde_chunks(
+                            effective_question,
+                            top_k=6,
+                            include_original_query=True,
+                            chapter_topics=vector_topics,
+                            audience=audience,
+                            book_name=book_scope or None,
+                            include_outdated_books=include_outdated_books,
+                        )
+                    if len(chunks) >= MIN_CHUNKS_REQUIRED:
+                        used_vector = True
+                        api_images = []
+                        LOG.info("[RAG][HYDE] selected_hyde_results text_hits=%s", len(chunks))
+                        log_timing("T3d_after_chunk_build", chunks=str(len(chunks)))
+                    else:
+                        LOG.info(
+                            "[RAG][HYDE] insufficient_hyde_results hits=%s min_required=%s fallback=legacy_vector",
+                            len(chunks),
+                            MIN_CHUNKS_REQUIRED,
+                        )
+
+                if not used_vector:
+                    LOG.info("[RAG][VECTOR] using_legacy_vector_retrieval")
+                    fetch_image_ann = stream_queue is None
+                    if stream_queue is not None:
+                        text_hits, image_hits = await asyncio.to_thread(
+                            retrieve_vector_dual,
+                            effective_question,
+                            vector_topics,
+                            audience,
+                            book_name=book_scope or None,
+                            include_outdated_books=include_outdated_books,
+                            fetch_image_ann=fetch_image_ann,
+                        )
+                    else:
+                        text_hits, image_hits = retrieve_vector_dual(
+                            effective_question,
+                            chapter_topics=vector_topics,
+                            audience=audience,
+                            book_name=book_scope or None,
+                            include_outdated_books=include_outdated_books,
+                            fetch_image_ann=fetch_image_ann,
+                        )
+                    llm_chunks, api_images = build_llm_chunks_and_response_images(text_hits, image_hits)
+                    log_timing("T3d_after_chunk_build", chunks=str(len(llm_chunks)))
+                    if len(llm_chunks) >= MIN_CHUNKS_REQUIRED:
+                        chunks = llm_chunks
+                        used_vector = True
+                        LOG.info(
+                            "[RAG][RETRIEVE] vector hits text=%s image_pool=%s",
+                            len(text_hits),
+                            len(image_hits),
+                        )
             except Exception as exc:
-                LOG.warning("[RAG][VECTOR] retrieval skipped: %s", exc)
+                LOG.warning("[RAG][SEARCH_PATH] vector_branch_failed fallback=text_retriever error=%s", exc)
 
         if not used_vector:
             if stream_queue is not None:
