@@ -17,6 +17,7 @@ from config.settings import (
     MARKER_IMAGE_BLOCKLIST_AHASHES,
     MARKER_IMAGE_BLOCKLIST_HAMMING_MAX,
     MARKER_LOG_IMAGE_AHASH,
+    MARKER_SKIP_TABLE_PROCESSOR,
     MARKER_USE_LLM,
 )
 
@@ -361,21 +362,46 @@ def extract_marker_image_description(path: Path) -> str:
     return best
 
 
-def convert_pdf_with_marker(
-    pdf_path: str | Path,
-    force_ocr: bool = False,
+# marker-pdf 1.8.x can IndexError in TableProcessor.combine_dollar_column on odd table layouts.
+_MARKER_TABLE_PROCESSOR_MODULES = frozenset({
+    "marker.processors.table.TableProcessor",
+    "marker.processors.llm.llm_table.LLMTableProcessor",
+    "marker.processors.llm.llm_table_merge.LLMTableMergeProcessor",
+})
+
+
+def _marker_processor_paths(*, skip_table_processors: bool) -> list[str] | None:
+    """Return explicit processor module paths, or None to use PdfConverter defaults."""
+    if not skip_table_processors:
+        return None
+    from marker.converters.pdf import PdfConverter
+    from marker.util import classes_to_strings
+
+    paths = classes_to_strings(list(PdfConverter.default_processors))
+    filtered = [p for p in paths if p not in _MARKER_TABLE_PROCESSOR_MODULES]
+    return filtered
+
+
+def _is_marker_table_processor_index_error(exc: BaseException) -> bool:
+    if not isinstance(exc, IndexError):
+        return False
+    tb = exc.__traceback__
+    while tb is not None:
+        frame = tb.tb_frame
+        path = frame.f_code.co_filename.replace("\\", "/")
+        if path.endswith("marker/processors/table.py") or "/processors/table.py" in path:
+            return True
+        tb = tb.tb_next
+    return "combine_dollar_column" in str(exc)
+
+
+def _run_marker_conversion(
+    pdf_path: Path,
     *,
     marker_output_base_dir: str,
+    force_ocr: bool,
+    skip_table_processors: bool,
 ) -> tuple[str, dict[str, Path], dict]:
-    """
-    Run Marker on a PDF path. Returns markdown, map name->ephemeral image path, metadata.
-
-    ``marker_output_base_dir`` must be an application-controlled directory (e.g. inside a
-    ``tempfile.TemporaryDirectory``). Marker defaults would otherwise write under its package
-    ``conversion_results`` folder on disk; we force all artifact paths under this base so nothing
-    persists locally beyond the temp scope. Callers upload bytes to S3 and delete files promptly.
-    """
-    pdf_path = Path(pdf_path)
     base = Path(marker_output_base_dir)
     base.mkdir(parents=True, exist_ok=True)
 
@@ -391,22 +417,17 @@ def convert_pdf_with_marker(
     if MARKER_DISABLE_MULTIPROCESSING:
         opts["disable_multiprocessing"] = True
 
-    try:
-        from marker.config.parser import ConfigParser
-        from marker.converters.pdf import PdfConverter
-        from marker.models import create_model_dict
-        from marker.settings import settings as marker_settings
-    except ModuleNotFoundError as exc:
-        raise RuntimeError(
-            "Marker ingest requires the marker-pdf package (imports 'marker'). "
-            "From pdf-rag-pipeline/: pip install -r requirements.txt "
-            "or pip install marker-pdf==1.8.0"
-        ) from exc
+    processor_override = _marker_processor_paths(skip_table_processors=skip_table_processors)
+    if processor_override is not None:
+        opts["processors"] = ",".join(processor_override)
+
+    from marker.config.parser import ConfigParser
+    from marker.converters.pdf import PdfConverter
+    from marker.models import create_model_dict
+    from marker.settings import settings as marker_settings
 
     cfg = ConfigParser(opts)
     marker_config = cfg.generate_config_dict()
-    # Marker skips falsy cli_options; omitting use_llm left Gemini-backed processors ambiguous.
-    # Explicit False avoids accidental LLM calls/hangs when only GOOGLE_API_KEY is present.
     marker_config["use_llm"] = bool(MARKER_USE_LLM)
 
     converter = PdfConverter(
@@ -463,4 +484,57 @@ def convert_pdf_with_marker(
             if p.is_file():
                 resolved[key] = p
 
+    if skip_table_processors:
+        meta_dict = {**meta_dict, "marker_skip_table_processor": True}
+
     return markdown, resolved, meta_dict
+
+
+def convert_pdf_with_marker(
+    pdf_path: str | Path,
+    force_ocr: bool = False,
+    *,
+    marker_output_base_dir: str,
+) -> tuple[str, dict[str, Path], dict]:
+    """
+    Run Marker on a PDF path. Returns markdown, map name->ephemeral image path, metadata.
+
+    ``marker_output_base_dir`` must be an application-controlled directory (e.g. inside a
+    ``tempfile.TemporaryDirectory``). Marker defaults would otherwise write under its package
+    ``conversion_results`` folder on disk; we force all artifact paths under this base so nothing
+    persists locally beyond the temp scope. Callers upload bytes to S3 and delete files promptly.
+    """
+    pdf_path = Path(pdf_path)
+
+    try:
+        from marker.config.parser import ConfigParser  # noqa: F401
+        from marker.converters.pdf import PdfConverter  # noqa: F401
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "Marker ingest requires the marker-pdf package (imports 'marker'). "
+            "From pdf-rag-pipeline/: pip install -r requirements.txt "
+            "or pip install marker-pdf==1.8.0"
+        ) from exc
+
+    skip_tables = MARKER_SKIP_TABLE_PROCESSOR
+    try:
+        return _run_marker_conversion(
+            pdf_path,
+            marker_output_base_dir=marker_output_base_dir,
+            force_ocr=force_ocr,
+            skip_table_processors=skip_tables,
+        )
+    except IndexError as exc:
+        if skip_tables or not _is_marker_table_processor_index_error(exc):
+            raise
+        LOG.warning(
+            "Marker TableProcessor failed (%s); retrying without table processors for %s",
+            exc,
+            pdf_path.name,
+        )
+        return _run_marker_conversion(
+            pdf_path,
+            marker_output_base_dir=marker_output_base_dir,
+            force_ocr=force_ocr,
+            skip_table_processors=True,
+        )

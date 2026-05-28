@@ -8,11 +8,14 @@ from ingestion.marker_worker import (
     _page_linked_figure_description,
 )
 from ingestion.marker_pipeline import (
+    _MARKER_TABLE_PROCESSOR_MODULES,
     _is_caption_like_text,
+    _marker_processor_paths,
     _normalize_marker_ocr_text,
     extract_segment_figure_descriptions,
     marker_image_crop_suspect,
 )
+from ingestion.chunker import chunk_text, _merge_short_blocks
 from query.query_pipeline import _images_from_vector_api
 from query import vector_retriever
 
@@ -191,3 +194,68 @@ def test_images_from_vector_api_uses_page_preview_for_suspect_crop():
             "source_file": "Ghai Essential Pediatrics 10edition.pdf",
         }
     ]
+
+
+def test_chunk_text_merges_line_wrapped_pdf_prose():
+    text = (
+        "Chapter 1\n"
+        "Introduction to Anatomy\n\n"
+        "The human\n"
+        "body has multiple\n"
+        "organ systems that\n"
+        "work together for health.\n"
+        "These systems interact\n"
+        "continuously in daily life.\n"
+    )
+
+    chunks = chunk_text(text, chunk_size=60, overlap=10)
+
+    assert len(chunks) == 1
+    assert "The human body has multiple organ systems" in chunks[0]
+    assert "These systems interact continuously in daily life." in chunks[0]
+
+
+def test_chunk_text_keeps_image_markers_as_boundaries():
+    text = (
+        "This paragraph explains the diagram and its relevance to diagnosis.\n"
+        "It should remain near the image marker for retrieval quality.\n"
+        "[IMAGE:0 | page=3 | ext=png | Diagnostic flowchart]\n"
+        "Follow-up text continues with treatment recommendations.\n"
+        "Monitoring and review are important in chronic care.\n"
+    )
+
+    chunks = chunk_text(text, chunk_size=80, overlap=10)
+
+    assert chunks
+    assert any("[IMAGE:0 | page=3 | ext=png | Diagnostic flowchart]" in c for c in chunks)
+
+
+def test_merge_short_blocks_merges_small_paragraphs_into_neighbors():
+    blocks = [
+        "Pulmonary Tuberculosis",
+        (
+            "Pulmonary tuberculosis commonly presents with persistent cough, fever, "
+            "weight loss, and night sweats in endemic settings."
+        ),
+        "Treatment",
+        (
+            "Standard therapy includes multi-drug regimens with adherence support, "
+            "monitoring for toxicity, and follow-up sputum evaluation."
+        ),
+    ]
+
+    merged = _merge_short_blocks(blocks, min_words=10)
+
+    assert len(merged) == 2
+    assert "Pulmonary Tuberculosis" in merged[0]
+    assert "Pulmonary tuberculosis commonly presents" in merged[0]
+    assert "Treatment" in merged[1]
+    assert "Standard therapy includes multi-drug regimens" in merged[1]
+
+
+def test_marker_processor_paths_can_omit_table_processors():
+    paths = _marker_processor_paths(skip_table_processors=True)
+    assert paths is not None
+    assert len(paths) == 25
+    assert not any(p in _MARKER_TABLE_PROCESSOR_MODULES for p in paths)
+    assert _marker_processor_paths(skip_table_processors=False) is None

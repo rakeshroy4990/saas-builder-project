@@ -676,7 +676,11 @@
       "tabs": {
         "books": "Books",
         "prescription": "Prescription"
-      }
+      },
+      "bookFilterSelectedCount": "{count} selected",
+      "bookFilterReset": "Reset",
+      "bookFilterSearchPlaceholder": "Search books…",
+      "bookFilterNoResults": "No books match your search."
     },
     "prescriptionSimilarity": {
       "banner": "Search your uploaded prescriptions by clinical text or file. Results are ranked by vector similarity (cosine match).",
@@ -745,7 +749,29 @@
   },
   "devices": {
     "title": "Medical devices",
-    "intro": "Connect supported Bluetooth devices to record readings on your profile. Use Chrome or Edge on desktop or Android."
+    "intro": "Connect supported Bluetooth devices to record readings on your profile. Use Chrome or Edge on desktop or Android.",
+    "connectTitle": "Connect a device",
+    "integration": {
+      "architectureTitle": "Device integration architecture",
+      "architectureIntro": "Readings from bedside and home devices flow through adapters and an integration service, normalized to healthcare interchange standards, then into Agastya Healthcare.",
+      "flow": {
+        "medicalDevice": "Medical Device",
+        "deviceAdapter": "Device Adapter",
+        "integrationService": "Integration Service",
+        "fhirHl7": "FHIR / HL7 Standard",
+        "agastya": "Agastya Healthcare"
+      },
+      "standardsTitle": "Recommended standards",
+      "standardsIntro": "Learn and adopt these interoperability standards for clinical data exchange:",
+      "standards": {
+        "hl7": "HL7 International",
+        "fhir": "FHIR",
+        "dicom": "DICOM (Radiology)",
+        "snomed": "SNOMED CT",
+        "loinc": "LOINC"
+      },
+      "fhirInternalStandard": "FHIR should become your internal data standard — map device readings and clinical records to FHIR resources (e.g. Observation, Device) at the integration layer."
+    }
   },
   "serverCopy": {
     "acceptLanguageHint": "APIs should honor Accept-Language (e.g. hi, en) for server-rendered copy or return stable codes for client translation."

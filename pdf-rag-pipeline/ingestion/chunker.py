@@ -40,6 +40,78 @@ def _normalize_chunk_text(text: str) -> str:
     return normalized
 
 
+def _normalize_pdf_line_wraps(text: str) -> str:
+    """
+    Merge PDF line-wrapped prose back into paragraph-like blocks.
+
+    Many PDF extractors emit one sentence as multiple short lines. If those line
+    breaks are treated as hard boundaries, chunk counts explode and context quality
+    drops sharply.
+    """
+    raw = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+    if not raw.strip():
+        return ""
+
+    # Rejoin hyphenated words split across lines (e.g., "classi-\nfication").
+    raw = re.sub(r"([A-Za-z])-\n([A-Za-z])", r"\1\2", raw)
+
+    lines = raw.split("\n")
+    paragraphs: list[str] = []
+    current: list[str] = []
+
+    def flush() -> None:
+        if not current:
+            return
+        joined = re.sub(r"\s+", " ", " ".join(current)).strip()
+        if joined:
+            paragraphs.append(joined)
+        current.clear()
+
+    def is_hard_boundary(line: str) -> bool:
+        s = line.strip()
+        if not s:
+            return True
+        if s.startswith("[IMAGE:") or s.startswith("[IMAGE_DATA:"):
+            return True
+        if s.startswith("#"):
+            return True
+        if re.match(r"^(\*|-|\+)\s+", s):
+            return True
+        if re.match(r"^\d+[\).]\s+", s):
+            return True
+        return False
+
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            flush()
+            continue
+        if is_hard_boundary(line):
+            flush()
+            paragraphs.append(line)
+            continue
+        if not current:
+            current.append(line)
+            continue
+
+        prev = current[-1]
+        # Keep probable section titles as standalone paragraphs.
+        if len(prev.split()) <= 3 and line[:1].isupper() and prev[:1].isupper():
+            flush()
+            current.append(line)
+            continue
+        # If previous line ended as a sentence, start a new paragraph.
+        if re.search(r"[.!?:]\s*$", prev):
+            flush()
+            current.append(line)
+            continue
+
+        current.append(line)
+
+    flush()
+    return "\n\n".join(paragraphs)
+
+
 def _word_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
     words = text.split()
     if not words:
@@ -65,7 +137,28 @@ def _looks_like_table_block(block: str) -> bool:
     return False
 
 
-def _table_line_chunks(block: str, max_words: int = 120) -> list[str]:
+def _merge_short_blocks(blocks: list[str], min_words: int = 60) -> list[str]:
+    """Merge short paragraph blocks into neighboring text to reduce over-fragmentation."""
+    merged: list[str] = []
+    buffer = ""
+    for block in blocks:
+        candidate = block
+        if buffer:
+            candidate = f"{buffer}\n\n{candidate}".strip()
+            buffer = ""
+        if len(candidate.split()) < min_words:
+            buffer = candidate
+            continue
+        merged.append(candidate)
+    if buffer:
+        if merged:
+            merged[-1] = f"{merged[-1]}\n\n{buffer}".strip()
+        else:
+            merged.append(buffer)
+    return merged
+
+
+def _table_line_chunks(block: str, max_words: int = 200) -> list[str]:
     lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
     if not lines:
         return []
@@ -86,8 +179,8 @@ def _table_line_chunks(block: str, max_words: int = 120) -> list[str]:
     return chunks
 
 
-def chunk_text(text: str, chunk_size: int = 220, overlap: int = 30) -> list[str]:
-    normalized = _normalize_chunk_text(text)
+def chunk_text(text: str, chunk_size: int = 400, overlap: int = 50) -> list[str]:
+    normalized = _normalize_pdf_line_wraps(_normalize_chunk_text(text))
     if not normalized.strip():
         return []
 
@@ -98,6 +191,7 @@ def chunk_text(text: str, chunk_size: int = 220, overlap: int = 30) -> list[str]
         blocks = [normalized.strip()]
     else:
         blocks = [b.strip() for b in re.split(r"\n{2,}", normalized) if b.strip()]
+        blocks = _merge_short_blocks(blocks, min_words=60)
     if not blocks:
         blocks = [normalized]
 

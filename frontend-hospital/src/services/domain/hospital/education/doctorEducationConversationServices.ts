@@ -53,6 +53,8 @@ type ConversationSession = {
 type EducationConversationState = {
   uiMode?: EducationViewMode;
   selectedBook?: string;
+  /** Multi-book scope for RAG (preferred over selectedBook when present). */
+  selectedBooks?: string[];
   conversationDraft?: string;
   conversationSessions?: ConversationSession[];
   activeConversationId?: string;
@@ -379,7 +381,7 @@ function buildConversationHistory(
 function educationConversationPayload(
   question: string,
   history: Array<{ role: 'user' | 'assistant'; content: string }>,
-  bookName: string,
+  bookNames: string[],
   conversationId: string
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {
@@ -388,8 +390,14 @@ function educationConversationPayload(
     conversationId,
     RetrievalQuestion: question
   };
-  const bn = bookName.trim();
-  if (bn) payload.BookName = bn;
+  const normalized = Array.isArray(bookNames)
+    ? bookNames.map((b) => String(b ?? '').trim()).filter(Boolean)
+    : [];
+  if (normalized.length > 0) {
+    // Backend supports legacy single BookName, but also accept multi-book BookNames for wider retrieval scope.
+    payload.BookNames = normalized;
+    if (normalized.length === 1) payload.BookName = normalized[0];
+  }
   return payload;
 }
 
@@ -423,6 +431,24 @@ function doctorOnlyError() {
 }
 
 export const doctorEducationConversationHospitalServices: ServiceDefinition[] = [
+  {
+    packageName: 'hospital',
+    serviceId: 'set-doctor-education-books',
+    execute: async (request) => {
+      const appStore = useAppStore(pinia);
+      const prev = getEducationState(appStore);
+      const raw = Array.isArray(request.data?.books) ? request.data?.books : [];
+      const normalized = raw.map((b) => String(b ?? '').trim()).filter(Boolean);
+      appStore.setData('hospital', 'DoctorEducationUiState', {
+        ...prev,
+        selectedBooks: normalized,
+        // Keep legacy single-book field populated (first selection) for other features.
+        selectedBook: normalized[0] ?? '',
+        conversationError: ''
+      });
+      return ok({ count: normalized.length });
+    }
+  },
   {
     packageName: 'hospital',
     serviceId: 'init-doctor-education-conversation',
@@ -502,11 +528,13 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
       const ensured = ensureConversationState(prev);
       const match = ensured.conversationSessions.find((session) => session.id === sessionId);
       if (!match) return ok();
+      const matchBook = String(match.bookName ?? '').trim();
       appStore.setData('hospital', 'DoctorEducationUiState', {
         ...prev,
         uiMode: 'conversation',
         activeConversationId: match.id,
-        selectedBook: match.bookName?.trim() || String(prev.selectedBook ?? '').trim(),
+        selectedBook: matchBook || String(prev.selectedBook ?? '').trim(),
+        selectedBooks: matchBook ? [matchBook] : (Array.isArray(prev.selectedBooks) ? prev.selectedBooks : []),
         conversationError: ''
       });
       return ok({ sessionId: match.id });
@@ -536,10 +564,13 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
       }
 
       const ensured = ensureConversationState(prev);
-      const selectedBook = String(prev.selectedBook ?? '').trim();
+      const legacySelectedBook = String(prev.selectedBook ?? '').trim();
+      const selectedBooksRaw = Array.isArray(prev.selectedBooks) ? prev.selectedBooks : [];
+      const selectedBooks = selectedBooksRaw.map((b) => String(b ?? '').trim()).filter(Boolean);
+      const bookScope = selectedBooks.length > 0 ? selectedBooks : (legacySelectedBook ? [legacySelectedBook] : []);
       const sessionId = ensured.activeConversationId || ensured.conversationSessions[0]?.id || '';
       const activeSession = ensured.conversationSessions.find((session) => session.id === sessionId)
-        ?? createConversationSession(selectedBook);
+        ?? createConversationSession(bookScope[0] ?? legacySelectedBook);
       const stripped = stripEducationSendTimeoutFlags(activeSession.messages);
       const baseMessages = replaceUserMessageId
         ? truncateMessagesForResend(stripped, replaceUserMessageId)
@@ -562,7 +593,7 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
         ...activeSession,
         title: hadPriorUserTurns ? activeSession.title : firstMeaningfulQuestionTitle(draft),
         updatedAt: new Date().toISOString(),
-        bookName: selectedBook,
+        bookName: bookScope[0] ?? '',
         messages: [...baseMessages, userMessage, loadingMessage]
       };
       const nextSessions = ensured.conversationSessions.some((session) => session.id === nextActiveSession.id)
@@ -624,7 +655,7 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
         };
 
         await postHospitalAiChatNdjson(
-          educationConversationPayload(draft, history, selectedBook, nextActiveSession.id),
+          educationConversationPayload(draft, history, bookScope, nextActiveSession.id),
           {
             onReady: (data) => {
               if (data && typeof data === 'object' && !Array.isArray(data)) {
@@ -667,7 +698,7 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
                     ? session.title
                     : firstMeaningfulQuestionTitle(draft),
                   updatedAt: new Date().toISOString(),
-                  bookName: selectedBook,
+                  bookName: bookScope[0] ?? '',
                   messages: session.messages.map((message) => {
                     if (message.id !== loadingMessage.id) return message;
                     return {

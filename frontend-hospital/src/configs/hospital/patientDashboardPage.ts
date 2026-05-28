@@ -1,5 +1,6 @@
 import type { ConditionConfig } from '../../core/types/ComponentDefinition';
 import type { PageConfig } from '../../core/types/PageConfig';
+import { devicesPanelContentChildren } from './devicesDashboardPanel';
 import { hospitalPublicChromeTop, hospitalSiteFooter } from './hospitalPublicChrome';
 
 const patientDashNavActive = (section: string): ConditionConfig => ({
@@ -191,32 +192,7 @@ export const hospitalPatientDashboardPage: PageConfig = {
                           condition: patientDashNavActive('devices'),
                           config: {
                             styles: { utilityClasses: 'space-y-4' },
-                            children: [
-                              {
-                                id: 'hospital-patient-dashboard-devices-title',
-                                type: 'text',
-                                config: {
-                                  i18nKey: 'devices.title',
-                                  styles: {
-                                    styleTemplate: 'hosp.section.heading',
-                                    utilityClasses: 'text-2xl'
-                                  }
-                                }
-                              },
-                              {
-                                id: 'hospital-patient-dashboard-devices-intro',
-                                type: 'text',
-                                config: {
-                                  i18nKey: 'devices.intro',
-                                  styles: { styleTemplate: 'hosp.section.subheading' }
-                                }
-                              },
-                              {
-                                id: 'hospital-patient-dashboard-devices-ui',
-                                type: 'bluetooth-devices',
-                                config: {}
-                              }
-                            ]
+                            children: devicesPanelContentChildren('hospital-patient-dashboard-devices')
                           }
                         }
                       ]

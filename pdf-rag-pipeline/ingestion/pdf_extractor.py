@@ -25,6 +25,31 @@ def clean_pdf_text(text: str) -> str:
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
 
+
+def _extraction_quality_stats(text: str) -> dict:
+    lines = [ln.strip() for ln in str(text or "").splitlines() if ln.strip()]
+    if not lines:
+        return {"line_count": 0, "avg_words": 0.0, "short_line_ratio": 0.0, "fragmented": False}
+    word_counts = [len(ln.split()) for ln in lines]
+    short_lines = sum(1 for wc in word_counts if wc <= 4)
+    avg_words = sum(word_counts) / len(word_counts)
+    short_ratio = short_lines / len(lines)
+    fragmented = len(lines) >= 8 and short_ratio >= 0.55 and avg_words <= 6.0
+    return {
+        "line_count": len(lines),
+        "avg_words": round(avg_words, 2),
+        "short_line_ratio": round(short_ratio, 2),
+        "fragmented": fragmented,
+    }
+
+
+def _preview_text(text: str, chars: int = 260) -> str:
+    preview = str(text or "").replace("\n", "\\n")
+    if len(preview) <= chars:
+        return preview
+    return preview[:chars] + "..."
+
+
 def is_junk_image(img_bytes: bytes, black_ratio_threshold: float = 0.65) -> bool:
     try:
         img = Image.open(io.BytesIO(img_bytes)).convert("L")
@@ -159,6 +184,19 @@ def extract_pages(filepath: str, include_diagnostics: bool = False):
                 except Exception as e:
                     print(f"  [OCR ERROR] page {page_num}: {e}")
                     text = ""
+
+            stats = _extraction_quality_stats(text)
+            if page_num < 3:
+                print(
+                    f"  [Parse p{page_num}] lines={stats['line_count']} avg_words={stats['avg_words']} "
+                    f"short_ratio={stats['short_line_ratio']} fragmented={stats['fragmented']}"
+                )
+                print(f"  [Parse preview p{page_num}] {_preview_text(text)}")
+            elif stats["fragmented"] and page_num % 20 == 0:
+                print(
+                    f"  [Parse warning] page {page_num}: fragmented text detected; "
+                    f"lines={stats['line_count']} avg_words={stats['avg_words']} short_ratio={stats['short_line_ratio']}"
+                )
 
             images = extract_page_images(doc, page, text_len=len(text.strip()))
 

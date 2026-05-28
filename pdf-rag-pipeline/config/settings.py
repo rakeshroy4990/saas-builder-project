@@ -107,6 +107,8 @@ MARKER_BATCH_PAGES = max(1, int(os.getenv("MARKER_BATCH_PAGES", "12")))
 MARKER_FORCE_OCR = _env_bool("MARKER_FORCE_OCR", False)
 MARKER_DISABLE_MULTIPROCESSING = _env_bool("MARKER_DISABLE_MULTIPROCESSING", True)
 MARKER_USE_LLM = _env_bool("MARKER_USE_LLM", False)
+# Skip TableProcessor (+ LLM table merge) — avoids marker-pdf IndexError on malformed table grids.
+MARKER_SKIP_TABLE_PROCESSOR = _env_bool("MARKER_SKIP_TABLE_PROCESSOR", False)
 
 
 def _parse_hex_u64_csv(raw: str) -> list[int]:

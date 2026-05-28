@@ -106,6 +106,14 @@ const topics = computed(() => {
 });
 
 const selectedBook = computed(() => String(education.value.selectedBook ?? '').trim());
+const selectedBooks = computed<string[]>(() => {
+  const raw = (education.value as Record<string, unknown>).selectedBooks;
+  if (!Array.isArray(raw)) {
+    const legacy = selectedBook.value.trim();
+    return legacy ? [legacy] : [];
+  }
+  return raw.map((b) => String(b ?? '').trim()).filter(Boolean);
+});
 const conversationDraft = computed(() => String(education.value.conversationDraft ?? ''));
 const conversationLoading = computed(() => Boolean(education.value.conversationLoading));
 const conversationError = computed(() => String(education.value.conversationError ?? '').trim());
@@ -118,6 +126,56 @@ const uiMode = computed<'flashcards' | 'conversation'>(() => {
 const hasBooks = computed(() => books.value.length > 0);
 const isBooksTab = computed(() => queryTab.value === 'books');
 const isPrescriptionTab = computed(() => queryTab.value === 'prescription');
+
+const bookFilterOpen = ref(false);
+const bookFilterQuery = ref('');
+const bookFilterButtonRef = ref<HTMLButtonElement | null>(null);
+const bookFilterPanelRef = ref<HTMLDivElement | null>(null);
+
+const filteredBooks = computed(() => {
+  const q = bookFilterQuery.value.trim().toLowerCase();
+  if (!q) return books.value;
+  return books.value.filter((b) => b.toLowerCase().includes(q));
+});
+
+const selectedBooksCountLabel = computed(() => {
+  const count = selectedBooks.value.length;
+  if (count <= 0) return t('education.allBooks');
+  return t('education.conversation.bookFilterSelectedCount', { count });
+});
+
+async function setSelectedBooks(nextBooks: string[]): Promise<void> {
+  const normalized = nextBooks.map((b) => String(b ?? '').trim()).filter(Boolean);
+  await execute({ actionId: 'set-doctor-education-books', data: { books: normalized } });
+}
+
+async function toggleBookSelection(book: string): Promise<void> {
+  const b = String(book ?? '').trim();
+  if (!b) return;
+  const current = selectedBooks.value;
+  const next = current.includes(b) ? current.filter((x) => x !== b) : [...current, b];
+  await setSelectedBooks(next);
+}
+
+async function resetBookSelection(): Promise<void> {
+  bookFilterQuery.value = '';
+  await setSelectedBooks([]);
+}
+
+function closeBookFilter(): void {
+  bookFilterOpen.value = false;
+  bookFilterQuery.value = '';
+}
+
+function onBookFilterGlobalPointerDown(event: Event): void {
+  if (!bookFilterOpen.value) return;
+  const target = event.target as Node | null;
+  const btn = bookFilterButtonRef.value;
+  const panel = bookFilterPanelRef.value;
+  if (!target || !btn || !panel) return;
+  if (btn.contains(target) || panel.contains(target)) return;
+  closeBookFilter();
+}
 
 function setQueryTab(tab: QueryTab) {
   queryTab.value = tab;
@@ -294,7 +352,16 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('pointerdown', onBookFilterGlobalPointerDown, true);
+  }
   closePrescriptionCameraModal();
+});
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pointerdown', onBookFilterGlobalPointerDown, true);
+  }
 });
 
 watch(
@@ -324,11 +391,6 @@ watch(
     }
   }
 );
-
-async function onBookFilterChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value;
-  await execute({ actionId: 'set-doctor-education-book', data: { book: value } });
-}
 
 async function onModeChange(event: Event) {
   const value = String((event.target as HTMLSelectElement).value ?? '').trim().toLowerCase();
@@ -585,15 +647,82 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
           <label for="doctor-education-conversation-book" class="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {{ t('education.filterBook') }}
           </label>
-          <select
-            id="doctor-education-conversation-book"
-            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-            :value="selectedBook"
-            @change="onBookFilterChange"
-          >
-            <option value="">{{ t('education.allBooks') }}</option>
-            <option v-for="book in books" :key="book" :value="book">{{ book }}</option>
-          </select>
+          <div class="relative">
+            <button
+              ref="bookFilterButtonRef"
+              type="button"
+              class="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+              :aria-expanded="bookFilterOpen ? 'true' : 'false'"
+              aria-haspopup="listbox"
+              @click="bookFilterOpen = !bookFilterOpen"
+            >
+              <span class="min-w-0 truncate">{{ selectedBooksCountLabel }}</span>
+              <span class="shrink-0 text-slate-500" aria-hidden="true">▾</span>
+            </button>
+
+            <div
+              v-if="bookFilterOpen"
+              ref="bookFilterPanelRef"
+              class="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+              role="dialog"
+              :aria-label="t('education.filterBook')"
+            >
+              <div class="border-b border-slate-100 p-3">
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model="bookFilterQuery"
+                    type="text"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                    :placeholder="t('education.conversation.bookFilterSearchPlaceholder')"
+                  />
+                  <button
+                    type="button"
+                    class="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="selectedBooks.length === 0 && !bookFilterQuery.trim()"
+                    @click="resetBookSelection"
+                  >
+                    {{ t('education.conversation.bookFilterReset') }}
+                  </button>
+                </div>
+                <p class="mt-2 text-xs text-slate-500">
+                  {{ t('education.conversation.bookFilterSelectedCount', { count: selectedBooks.length }) }}
+                </p>
+              </div>
+
+              <div class="max-h-72 overflow-y-auto p-2" role="listbox" :aria-multiselectable="'true'">
+                <button
+                  v-for="book in filteredBooks"
+                  :key="book"
+                  type="button"
+                  class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-slate-800 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-sky-100"
+                  @click="toggleBookSelection(book)"
+                >
+                  <span
+                    class="grid h-5 w-5 place-items-center rounded border border-slate-300 bg-white text-[12px] font-bold text-sky-700"
+                    :class="selectedBooks.includes(book) ? 'border-sky-300 bg-sky-50' : ''"
+                    aria-hidden="true"
+                  >
+                    {{ selectedBooks.includes(book) ? '✓' : '' }}
+                  </span>
+                  <span class="min-w-0 flex-1 truncate">{{ book }}</span>
+                </button>
+
+                <p v-if="filteredBooks.length === 0" class="px-3 py-3 text-sm text-slate-500">
+                  {{ t('education.conversation.bookFilterNoResults') }}
+                </p>
+              </div>
+
+              <div class="flex items-center justify-end gap-2 border-t border-slate-100 bg-white p-3">
+                <button
+                  type="button"
+                  class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
+                  @click="closeBookFilter"
+                >
+                  {{ t('common.close') }}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div

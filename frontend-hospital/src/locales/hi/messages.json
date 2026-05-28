@@ -676,7 +676,11 @@
       "tabs": {
         "books": "पुस्तकें",
         "prescription": "प्रिस्क्रिप्शन"
-      }
+      },
+      "bookFilterSelectedCount": "{count} चयनित",
+      "bookFilterReset": "रीसेट",
+      "bookFilterSearchPlaceholder": "पुस्तक खोजें…",
+      "bookFilterNoResults": "आपकी खोज से कोई पुस्तक नहीं मिली।"
     },
     "prescriptionSimilarity": {
       "banner": "क्लिनिकल टेक्स्ट या फाइल से अपलोड की गई प्रिस्क्रिप्शन खोजें। परिणाम वेक्टर समानता (कोसाइन मैच) से क्रमबद्ध हैं।",
@@ -745,7 +749,29 @@
   },
   "devices": {
     "title": "मेडिकल डिवाइस",
-    "intro": "अपने प्रोफ़ाइल पर रीडिंग सहेजने के लिए समर्थित ब्लूटूथ डिवाइस कनेक्ट करें। डेस्कटॉप या Android पर Chrome या Edge का उपयोग करें।"
+    "intro": "अपने प्रोफ़ाइल पर रीडिंग सहेजने के लिए समर्थित ब्लूटूथ डिवाइस कनेक्ट करें। डेस्कटॉप या Android पर Chrome या Edge का उपयोग करें।",
+    "connectTitle": "डिवाइस कनेक्ट करें",
+    "integration": {
+      "architectureTitle": "डिवाइस इंटीग्रेशन आर्किटेक्चर",
+      "architectureIntro": "बेडसाइड और होम डिवाइस की रीडिंग एडाप्टर और इंटीग्रेशन सेवा से गुजरकर स्वास्थ्य इंटरऑपरेबिलिटी मानकों में सामान्य होकर Agastya Healthcare में आती हैं।",
+      "flow": {
+        "medicalDevice": "मेडिकल डिवाइस",
+        "deviceAdapter": "डिवाइस एडाप्टर",
+        "integrationService": "इंटीग्रेशन सेवा",
+        "fhirHl7": "FHIR / HL7 मानक",
+        "agastya": "Agastya Healthcare"
+      },
+      "standardsTitle": "अनुशंसित मानक",
+      "standardsIntro": "क्लिनिकल डेटा आदान-प्रदान के लिए इन इंटरऑपरेबिलिटी मानकों को सीखें और अपनाएँ:",
+      "standards": {
+        "hl7": "HL7 International",
+        "fhir": "FHIR",
+        "dicom": "DICOM (रेडियोलॉजी)",
+        "snomed": "SNOMED CT",
+        "loinc": "LOINC"
+      },
+      "fhirInternalStandard": "FHIR को आपका आंतरिक डेटा मानक बनना चाहिए — इंटीग्रेशन परत पर डिवाइस रीडिंग और क्लिनिकल रिकॉर्ड को FHIR संसाधनों (जैसे Observation, Device) में मैप करें।"
+    }
   },
   "serverCopy": {
     "acceptLanguageHint": "API को सर्वर-प्रदत्त पाठ के लिए Accept-Language (उदा. hi, en) का सम्मान करना चाहिए, या स्थिर कोड लौटाकर क्लाइंट अनुवाद करवाएँ।"

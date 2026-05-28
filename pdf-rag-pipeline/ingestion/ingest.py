@@ -15,6 +15,7 @@ from ingestion.pre_filter.filter_pipeline import run_pre_filter
 from query.audience_classifier import infer_source_audience
 
 logger = logging.getLogger(__name__)
+PAGE_WINDOW_MIN_WORDS = 600
 
 
 def _build_image_caption(img: dict, chapter_topic: str | None, page_num: int) -> str:
@@ -120,6 +121,125 @@ def _extract_image_refs_from_chunk(chunk_str: str) -> list[dict]:
     return images
 
 
+def _rewrite_inline_image_index(marker: str, new_idx: int) -> str:
+    return re.sub(r"\[IMAGE:\d+\s*\|", f"[IMAGE:{new_idx} |", str(marker or ""), count=1)
+
+
+def _process_page_window(
+    *,
+    window_pages: list[dict],
+    file_hash: str,
+    filename: str,
+    source_audience: str,
+    image_stats: dict,
+    all_chunks: list[dict],
+    chunk_counter: list[int],
+    topic_cache: dict[str, str | None],
+) -> None:
+    if not window_pages:
+        return
+
+    combined_parts: list[str] = []
+    combined_image_map: dict[int, dict] = {}
+    global_img_index = 0
+    window_topics: list[str] = []
+
+    for idx, page in enumerate(window_pages):
+        page_text = str(page.get("text", "") or "").strip()
+        page_images = page.get("images", []) or []
+        orig_page = int(page.get("page_idx", idx))
+
+        chapter_topic: str | None = None
+        if page_text:
+            chapter_topic = topic_cache.get(page_text)
+            if chapter_topic is None and page_text not in topic_cache:
+                chapter_topic = classify_chapter_topic(page_text)
+                topic_cache[page_text] = chapter_topic
+        if chapter_topic:
+            window_topics.append(chapter_topic)
+
+        blocks = _interleave_text_and_images(page_text, page_images, chapter_topic, orig_page)
+        normalized_blocks: list[dict] = []
+        for block in blocks:
+            if block.get("kind") != "image":
+                normalized_blocks.append(block)
+                continue
+            new_idx = global_img_index
+            global_img_index += 1
+            block_copy = dict(block)
+            block_copy["img_index"] = new_idx
+            block_copy["inline_marker"] = _rewrite_inline_image_index(block_copy.get("inline_marker", ""), new_idx)
+            block_copy["orig_page"] = orig_page
+            combined_image_map[new_idx] = block_copy
+            normalized_blocks.append(block_copy)
+
+        searchable = _blocks_to_searchable_text(normalized_blocks)
+        if searchable:
+            combined_parts.append(searchable)
+
+    combined_text = "\n\n".join(combined_parts).strip()
+    if not combined_text:
+        return
+
+    unique_topics: list[str] = []
+    seen_topics: set[str] = set()
+    for topic in window_topics:
+        if topic in seen_topics:
+            continue
+        seen_topics.add(topic)
+        unique_topics.append(topic)
+    merged_topic = " | ".join(unique_topics[:3]) if unique_topics else None
+    first_page_num = int(window_pages[0].get("page_idx", 0))
+
+    for chunk in split_into_chunks(combined_text):
+        chunk_str = chunk if isinstance(chunk, str) else chunk.get("text", "")
+        if not chunk_str.strip():
+            continue
+        image_refs_in_chunk = _extract_image_refs_from_chunk(chunk_str)
+        chunk_index = chunk_counter[0]
+        chunk_counter[0] += 1
+
+        uploaded_images = 0
+        for ref in image_refs_in_chunk:
+            idx = int(ref["img_index"])
+            block = combined_image_map.get(idx)
+            if block is None:
+                continue
+            img_page = int(block.get("orig_page", max(int(ref.get("page", 1)) - 1, 0)))
+            url = upload_image(
+                file_hash=file_hash,
+                page_num=img_page,
+                chunk_index=chunk_index,
+                img_index=idx,
+                img_bytes=block["image_data"],
+                ext=block.get("image_ext", "png"),
+            )
+            if url:
+                uploaded_images += 1
+                image_stats["uploaded_total"] = int(image_stats.get("uploaded_total", 0)) + 1
+            else:
+                image_stats["upload_failed_total"] = int(image_stats.get("upload_failed_total", 0)) + 1
+
+        all_chunks.append({
+            "chunk_id": f"{file_hash}_c{chunk_index}",
+            "type": "mixed" if image_refs_in_chunk else "text",
+            "text": chunk_str,
+            "has_images": bool(image_refs_in_chunk),
+            "images_uploaded": uploaded_images,
+            "source_file": filename,
+            "file_hash": file_hash,
+            "page_num": first_page_num,
+            "chunk_index": chunk_index,
+            "metadata": {
+                "chapter_topic": merged_topic,
+                "audience": source_audience,
+                "window_start_page": first_page_num,
+                "window_end_page": int(window_pages[-1].get("page_idx", first_page_num)),
+            },
+            "created_at": datetime.now(timezone.utc),
+        })
+
+
 def process_pdf(filepath: str, force: bool = False) -> dict | None:
     file_hash       = compute_file_hash(filepath)
     filename        = filepath.split("/")[-1]
@@ -141,66 +261,45 @@ def process_pdf(filepath: str, force: bool = False) -> dict | None:
             clean_pages, prefilter_stats = run_pre_filter(raw_pages, source_file=filename)
 
             all_chunks: list[dict] = []
+            window_pages: list[dict] = []
+            window_words = 0
+            chunk_counter = [0]
+            topic_cache: dict[str, str | None] = {}
 
             for page_num, page in enumerate(clean_pages):
                 if isinstance(page, str):
                     page = {"text": page, "images": [], "page_idx": page_num}
+                if page.get("page_idx") is None:
+                    page["page_idx"] = page_num
 
-                page_text   = page.get("text", "").strip()
-                page_images = page.get("images", [])
-                orig_page   = page.get("page_idx", page_num)
+                page_text = str(page.get("text", "") or "").strip()
+                window_pages.append(page)
+                window_words += len(page_text.split())
 
-                chapter_topic = classify_chapter_topic(page_text) if page_text else None
+                if window_words >= PAGE_WINDOW_MIN_WORDS:
+                    _process_page_window(
+                        window_pages=window_pages,
+                        file_hash=file_hash,
+                        filename=filename,
+                        source_audience=source_audience,
+                        image_stats=image_stats,
+                        all_chunks=all_chunks,
+                        chunk_counter=chunk_counter,
+                        topic_cache=topic_cache,
+                    )
+                    window_pages = []
+                    window_words = 0
 
-                blocks          = _interleave_text_and_images(page_text, page_images, chapter_topic, orig_page)
-                searchable_text = _blocks_to_searchable_text(blocks)
-
-                image_block_map: dict[int, dict] = {
-                    b["img_index"]: b
-                    for b in blocks
-                    if b["kind"] == "image"
-                }
-
-                for chunk_index, chunk in enumerate(split_into_chunks(searchable_text)):
-                    chunk_str           = chunk if isinstance(chunk, str) else chunk.get("text", "")
-                    image_refs_in_chunk = _extract_image_refs_from_chunk(chunk_str)
-
-                    uploaded_images = 0
-                    for ref in image_refs_in_chunk:
-                        idx   = ref["img_index"]
-                        block = image_block_map.get(idx)
-                        if block is None:
-                            continue
-                        url = upload_image(
-                            file_hash   = file_hash,
-                            page_num    = orig_page,
-                            chunk_index = chunk_index,
-                            img_index   = idx,
-                            img_bytes   = block["image_data"],
-                            ext         = block.get("image_ext", "png"),
-                        )
-                        if url:
-                            uploaded_images += 1
-                            image_stats["uploaded_total"] = int(image_stats.get("uploaded_total", 0)) + 1
-                        else:
-                            image_stats["upload_failed_total"] = int(image_stats.get("upload_failed_total", 0)) + 1
-
-                    all_chunks.append({
-                        "chunk_id":    f"{file_hash}_p{orig_page}_c{chunk_index}",
-                        "type":        "mixed" if image_refs_in_chunk else "text",
-                        "text":        chunk_str,
-                        "has_images":  bool(image_refs_in_chunk),
-                        "images_uploaded": uploaded_images,
-                        "source_file": filename,
-                        "file_hash":   file_hash,
-                        "page_num":    orig_page,
-                        "chunk_index": chunk_index,
-                        "metadata": {
-                            "chapter_topic": chapter_topic,
-                            "audience":      source_audience,
-                        },
-                        "created_at":  datetime.now(timezone.utc),
-                    })
+            _process_page_window(
+                window_pages=window_pages,
+                file_hash=file_hash,
+                filename=filename,
+                source_audience=source_audience,
+                image_stats=image_stats,
+                all_chunks=all_chunks,
+                chunk_counter=chunk_counter,
+                topic_cache=topic_cache,
+            )
 
             logger.info(f"[Ingest] {filename}: {len(all_chunks)} chunks built, persisting...")
 
