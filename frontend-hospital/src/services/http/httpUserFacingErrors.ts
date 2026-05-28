@@ -5,6 +5,20 @@ import { i18n } from '../../i18n';
 /** Axios uses this message shape when `timeout` is exceeded. */
 const AXIOS_TIMEOUT_MS_RE = /timeout\s+of\s+\d+\s*ms\s+exceeded/i;
 
+export function isRecoverableStreamError(error: unknown): boolean {
+  if (isRequestTimeoutError(error)) return true;
+  const msg =
+    error instanceof Error
+      ? String(error.message ?? '').trim().toLowerCase()
+      : String(error ?? '').trim().toLowerCase();
+  if (!msg) return false;
+  return (
+    msg.includes('stream_incomplete') ||
+    msg.includes('stream_no_body') ||
+    msg.includes('stream ended before')
+  );
+}
+
 export function isRequestTimeoutError(error: unknown): boolean {
   if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
     if (error.name === 'TimeoutError') return true;

@@ -7,10 +7,17 @@ import { pinia } from '../../../../store/pinia';
 import { i18n } from '../../../../i18n';
 import { apiClient } from '../../../http/apiClient';
 import { postHospitalAiChatNdjson } from '../../../http/hospitalAiChatStream';
-import { isRequestTimeoutError, resolveUserFacingErrorMessage } from '../../../http/httpUserFacingErrors';
+import { isRecoverableStreamError, resolveUserFacingErrorMessage } from '../../../http/httpUserFacingErrors';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 import { assistantDisplayBody, assistantDisplayFollowUps, tryParseEmbeddedAssistantJson } from './educationAssistantPayload';
+import {
+  buildEducationAttachmentDisplayContent,
+  buildEducationRetrievalQuestionWithAttachments,
+  normalizeEducationClinicalAttachments,
+  type EducationClinicalAttachment
+} from './educationClinicalAttachments';
+import { usePopupStore } from '../../../../store/usePopupStore';
 
 type EducationViewMode = 'flashcards' | 'conversation';
 type ConversationFigure = {
@@ -41,6 +48,12 @@ type ConversationMessage = {
   reference?: ConversationReference[];
   /** Set after a failed send; UI may emphasize the resend control until cleared on the next send. */
   sendFailedTimeout?: boolean;
+  /** Retrieval seed used for this turn (includes attached file text when applicable). */
+  retrievalQuestion?: string;
+  /** Generic auto prompt from file attach — hide per-message resend (use composer instead). */
+  autoAttachmentPrompt?: boolean;
+  /** Question string sent as `message` to the chat API (may differ from bubble `content`). */
+  submittedQuestion?: string;
 };
 type ConversationSession = {
   id: string;
@@ -50,6 +63,16 @@ type ConversationSession = {
   updatedAt: string;
   messages: ConversationMessage[];
 };
+type AttachmentSequenceSendRequest = {
+  token: string;
+  payload: {
+    question: string;
+    retrievalQuestion: string;
+    userDisplayContent: string;
+    autoAttachmentPrompt: boolean;
+  };
+};
+
 type EducationConversationState = {
   uiMode?: EducationViewMode;
   selectedBook?: string;
@@ -60,6 +83,9 @@ type EducationConversationState = {
   activeConversationId?: string;
   conversationLoading?: boolean;
   conversationError?: string;
+  clinicalAttachments?: EducationClinicalAttachment[];
+  attachmentSequencePending?: EducationClinicalAttachment[];
+  attachmentSequenceSendRequest?: AttachmentSequenceSendRequest;
 };
 
 function educationStreamStatusLabel(phase: string): string {
@@ -162,6 +188,9 @@ function normalizeConversationMessage(raw: unknown, fallbackIndex: number): Conv
     chunksUsed: Number(row.chunksUsed ?? 0) || undefined,
     followUpQuestions: readFollowUpList(row),
     sendFailedTimeout: Boolean(row.sendFailedTimeout),
+    retrievalQuestion: String(row.retrievalQuestion ?? '').trim(),
+    autoAttachmentPrompt: Boolean(row.autoAttachmentPrompt),
+    submittedQuestion: String(row.submittedQuestion ?? '').trim(),
     images: imagesRaw
       .map((item, idx) => normalizeConversationFigure(item, idx))
       .filter((item): item is ConversationFigure => item !== null),
@@ -382,13 +411,15 @@ function educationConversationPayload(
   question: string,
   history: Array<{ role: 'user' | 'assistant'; content: string }>,
   bookNames: string[],
-  conversationId: string
+  conversationId: string,
+  retrievalQuestion?: string
 ): Record<string, unknown> {
+  const retrievalSeed = String(retrievalQuestion ?? '').trim() || question;
   const payload: Record<string, unknown> = {
     message: question,
     history,
     conversationId,
-    RetrievalQuestion: question
+    RetrievalQuestion: retrievalSeed
   };
   const normalized = Array.isArray(bookNames)
     ? bookNames.map((b) => String(b ?? '').trim()).filter(Boolean)
@@ -431,6 +462,69 @@ function doctorOnlyError() {
 }
 
 export const doctorEducationConversationHospitalServices: ServiceDefinition[] = [
+  {
+    packageName: 'hospital',
+    serviceId: 'open-education-attachment-sequence-popup',
+    execute: async () => {
+      const appStore = useAppStore(pinia);
+      const prev = getEducationState(appStore);
+      const source = normalizeEducationClinicalAttachments(prev.clinicalAttachments);
+      if (source.length < 2) return ok();
+      appStore.setData('hospital', 'DoctorEducationUiState', {
+        ...prev,
+        attachmentSequencePending: source.map((row) => ({ ...row }))
+      });
+      usePopupStore(pinia).open({
+        packageName: 'hospital',
+        pageId: 'education-attachment-sequence-popup',
+        initKey: source.map((row) => row.id).join(',')
+      });
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'confirm-education-attachment-sequence-send',
+    execute: async () => {
+      const appStore = useAppStore(pinia);
+      const prev = getEducationState(appStore);
+      const pending = normalizeEducationClinicalAttachments(prev.attachmentSequencePending);
+      if (pending.length < 2) {
+        return {
+          responseCode: 'DOCTOR_EDUCATION_ATTACHMENT_SEQUENCE_EMPTY',
+          message: educationComposer().t('popup.educationAttachmentSequence.empty')
+        };
+      }
+      if (prev.conversationLoading) {
+        return {
+          responseCode: 'DOCTOR_EDUCATION_CONVERSATION_BUSY',
+          message: educationComposer().t('education.conversation.loadingAnswer')
+        };
+      }
+      const draft = String(prev.conversationDraft ?? '').trim();
+      const autoQuestion = educationComposer().t('education.conversation.autoQuestionFromAttachments');
+      const question = draft || autoQuestion;
+      const retrievalQuestion = buildEducationRetrievalQuestionWithAttachments(question, pending);
+      const userDisplayContent = buildEducationAttachmentDisplayContent(question, pending, {
+        autoQuestion
+      });
+      appStore.setData('hospital', 'DoctorEducationUiState', {
+        ...prev,
+        clinicalAttachments: [],
+        attachmentSequencePending: undefined,
+        attachmentSequenceSendRequest: {
+          token: crypto.randomUUID(),
+          payload: {
+            question,
+            retrievalQuestion,
+            userDisplayContent,
+            autoAttachmentPrompt: !draft
+          }
+        }
+      });
+      return ok();
+    }
+  },
   {
     packageName: 'hospital',
     serviceId: 'set-doctor-education-books',
@@ -556,6 +650,9 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
       const draft = String(request.data?.question ?? prev.conversationDraft ?? '').trim();
       const replaceUserMessageId = String(request.data?.replaceUserMessageId ?? '').trim();
       const includeHistory = Boolean(request.data?.includeHistory);
+      const retrievalQuestion = String(request.data?.retrievalQuestion ?? '').trim();
+      const userDisplayContent = String(request.data?.userDisplayContent ?? '').trim();
+      const autoAttachmentPrompt = Boolean(request.data?.autoAttachmentPrompt);
       if (!draft) {
         return {
           responseCode: 'DOCTOR_EDUCATION_CONVERSATION_EMPTY',
@@ -578,8 +675,11 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
       const userMessage: ConversationMessage = {
         id: `education-user-${crypto.randomUUID()}`,
         role: 'user',
-        content: draft,
-        createdAt: new Date().toISOString()
+        content: userDisplayContent || draft,
+        createdAt: new Date().toISOString(),
+        retrievalQuestion: retrievalQuestion || draft,
+        autoAttachmentPrompt,
+        submittedQuestion: draft
       };
       const loadingMessage: ConversationMessage = {
         id: `education-assistant-${crypto.randomUUID()}`,
@@ -655,7 +755,13 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
         };
 
         await postHospitalAiChatNdjson(
-          educationConversationPayload(draft, history, bookScope, nextActiveSession.id),
+          educationConversationPayload(
+            draft,
+            history,
+            bookScope,
+            nextActiveSession.id,
+            retrievalQuestion
+          ),
           {
             onReady: (data) => {
               if (data && typeof data === 'object' && !Array.isArray(data)) {
@@ -731,7 +837,7 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
       } catch (error: unknown) {
         streamSettled = true;
         cancelPendingBubblePatch();
-        const timedOut = isRequestTimeoutError(error);
+        const recoverable = isRecoverableStreamError(error);
         const exactMessage = localizedConversationError('education.conversation.unavailable', error);
         const latest = getEducationState(appStore);
         const latestEnsured = ensureConversationState(latest);
@@ -741,15 +847,21 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
           (session) => ({
             ...session,
             updatedAt: new Date().toISOString(),
-            messages: timedOut
+            messages: recoverable
               ? session.messages
                 .filter((message) => message.id !== loadingMessage.id)
-                .map((message) =>
-                  message.id === userMessage.id ? { ...message, sendFailedTimeout: true } : message
-                )
+                .map((message) => {
+                  if (message.id !== userMessage.id) return message;
+                  if (autoAttachmentPrompt) {
+                    return { ...message, sendFailedTimeout: false };
+                  }
+                  return { ...message, sendFailedTimeout: true };
+                })
               : session.messages.map((message) => {
                 if (message.id === userMessage.id) {
-                  return { ...message, sendFailedTimeout: true };
+                  return autoAttachmentPrompt
+                    ? { ...message, sendFailedTimeout: false }
+                    : { ...message, sendFailedTimeout: true };
                 }
                 if (message.id !== loadingMessage.id) return message;
                 return {
@@ -768,6 +880,7 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
           ...latest,
           conversationLoading: false,
           conversationError: exactMessage,
+          conversationDraft: recoverable ? draft : String(latest.conversationDraft ?? ''),
           conversationSessions: updatedSessions
         });
         const statusErr =

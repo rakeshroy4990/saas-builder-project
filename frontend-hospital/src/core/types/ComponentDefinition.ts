@@ -24,7 +24,8 @@ export type ComponentType =
   | 'video-call'
   | 'doctor-schedule-editor'
   | 'medicine-list-editor'
-  | 'doctor-education-workspace';
+  | 'doctor-education-workspace'
+  | 'education-attachment-sequence';
 
 export interface LayoutConfig {
   type: 'flex' | 'grid';

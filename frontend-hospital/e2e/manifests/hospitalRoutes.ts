@@ -28,6 +28,7 @@ export const hospitalRouteManifest: HospitalRouteManifestEntry[] = [
   { packageName: 'hospital', pageId: 'reset-password-popup' },
   { packageName: 'hospital', pageId: 'register-success-popup' },
   { packageName: 'hospital', pageId: 'prescription-upload-success-popup', skipRouteSmoke: true },
+  { packageName: 'hospital', pageId: 'education-attachment-sequence-popup', skipRouteSmoke: true },
   { packageName: 'hospital', pageId: 'appointment-popup' },
   { packageName: 'hospital', pageId: 'appointment-success-popup' },
   { packageName: 'hospital', pageId: 'book-appointment', skipRouteSmoke: true },

@@ -8,7 +8,6 @@ import { useToastStore } from '../../store/useToastStore';
 import { pinia } from '../../store/pinia';
 import {
   postEducationPrescriptionTranscribe,
-  formatPrescriptionForChat,
   isPrescriptionFullyNotStated,
   buildPrescriptionQuestionDraft
 } from '../../services/http/educationPrescriptionTranscribe';
@@ -16,11 +15,17 @@ import {
   assistantDisplayBody,
   assistantDisplayFollowUps
 } from '../../services/domain/hospital/education/educationAssistantPayload';
+import {
+  buildEducationAttachmentDisplayContent,
+  buildEducationRetrievalQuestionWithAttachments,
+  normalizeEducationClinicalAttachments,
+  stripEducationAttachedFileHeaders,
+  type EducationClinicalAttachment
+} from '../../services/domain/hospital/education/educationClinicalAttachments';
 import { resolveStyle } from '../../core/engine/StyleResolver';
 import DynDoctorEducationPrescriptionSimilarity from './DynDoctorEducationPrescriptionSimilarity.vue';
 
 type QueryTab = 'books' | 'prescription';
-
 type ConversationFigure = {
   imgIndex: number;
   page: number;
@@ -50,6 +55,9 @@ type ConversationMessage = {
   reference?: ConversationReference[];
   /** After a failed request, resend button uses stronger styling until the next send. */
   sendFailedTimeout?: boolean;
+  retrievalQuestion?: string;
+  autoAttachmentPrompt?: boolean;
+  submittedQuestion?: string;
 };
 
 type ConversationSession = {
@@ -90,6 +98,24 @@ const showSavedThreads = ref(false);
 const PANEL_PREFS_KEY = 'hospital.doctorEducationConversation.panelPrefs.v1';
 const hasLoadedPanelPrefs = ref(false);
 const queryTab = ref<QueryTab>('books');
+const MAX_CONVERSATION_ATTACHMENTS = 3;
+const showAutoSentNotice = ref(false);
+let autoSentNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+const lastSequenceSendToken = ref('');
+
+function readClinicalAttachments(): EducationClinicalAttachment[] {
+  return normalizeEducationClinicalAttachments(education.value.clinicalAttachments);
+}
+
+function writeClinicalAttachments(rows: EducationClinicalAttachment[]): void {
+  const prev = (appStore.getData('hospital', 'DoctorEducationUiState') ?? {}) as Record<string, unknown>;
+  appStore.setData('hospital', 'DoctorEducationUiState', {
+    ...prev,
+    clinicalAttachments: rows
+  });
+}
+
+const attachedClinicalFiles = computed(() => readClinicalAttachments());
 
 const education = computed(() => {
   return (appStore.getData('hospital', 'DoctorEducationUiState') ?? {}) as Record<string, unknown>;
@@ -241,6 +267,8 @@ const sessions = computed<ConversationSession[]>(() => {
               : [];
           })(),
           sendFailedTimeout: Boolean(msg.sendFailedTimeout),
+          retrievalQuestion: String(msg.retrievalQuestion ?? '').trim(),
+          autoAttachmentPrompt: Boolean(msg.autoAttachmentPrompt),
           reference: (() => {
             const raw = msg.Reference ?? msg.reference;
             if (!Array.isArray(raw)) return [] as ConversationReference[];
@@ -290,6 +318,19 @@ const messages = computed(() => activeSession.value?.messages ?? []);
 const activeSessionTitle = computed(() => activeSession.value?.title || t('education.conversation.untitledSession'));
 const activeSessionMessageCount = computed(() => messages.value.filter((message) => !message.loading).length);
 const activeBookLabel = computed(() => activeSession.value?.bookName || selectedBook.value);
+
+const canSendComposer = computed(() => {
+  if (conversationLoading.value || prescriptionReading.value) return false;
+  return Boolean(String(conversationDraft.value ?? '').trim());
+});
+
+function doctorBubbleDisplayContent(message: ConversationMessage): string {
+  return stripEducationAttachedFileHeaders(String(message.content ?? ''));
+}
+
+function shouldShowResendForUserMessage(message: ConversationMessage): boolean {
+  return Boolean(doctorBubbleDisplayContent(message));
+}
 
 function syncQuestionTextareaHeight(): void {
   const el = questionTextareaRef.value;
@@ -356,6 +397,10 @@ onUnmounted(() => {
     window.removeEventListener('pointerdown', onBookFilterGlobalPointerDown, true);
   }
   closePrescriptionCameraModal();
+  if (autoSentNoticeTimer) {
+    clearTimeout(autoSentNoticeTimer);
+    autoSentNoticeTimer = null;
+  }
 });
 
 onMounted(() => {
@@ -392,6 +437,31 @@ watch(
   }
 );
 
+watch(
+  () => {
+    const raw = education.value.attachmentSequenceSendRequest as { token?: string } | undefined;
+    return String(raw?.token ?? '');
+  },
+  async (token) => {
+    if (!token || token === lastSequenceSendToken.value) return;
+    lastSequenceSendToken.value = token;
+    const raw = education.value.attachmentSequenceSendRequest as
+      | { payload?: Record<string, unknown> }
+      | undefined;
+    const payload = raw?.payload ?? {};
+    const prev = (appStore.getData('hospital', 'DoctorEducationUiState') ?? {}) as Record<string, unknown>;
+    appStore.setData('hospital', 'DoctorEducationUiState', {
+      ...prev,
+      attachmentSequenceSendRequest: undefined
+    });
+    await execute({
+      actionId: 'submit-doctor-education-conversation',
+      data: payload
+    });
+    triggerAutoSentNotice();
+  }
+);
+
 async function onModeChange(event: Event) {
   const value = String((event.target as HTMLSelectElement).value ?? '').trim().toLowerCase();
   await execute({
@@ -408,10 +478,12 @@ async function onDraftInput(event: Event) {
 }
 
 async function startNewConversation() {
+  writeClinicalAttachments([]);
   await execute({ actionId: 'start-new-doctor-education-conversation' });
 }
 
 async function openConversation(sessionId: string) {
+  writeClinicalAttachments([]);
   await execute({ actionId: 'open-doctor-education-conversation', data: { sessionId } });
 }
 
@@ -419,22 +491,64 @@ async function setPrompt(prompt: string) {
   await execute({ actionId: 'set-doctor-education-conversation-draft', data: { value: prompt } });
 }
 
-async function submitConversation(question?: string, opts?: { includeHistory?: boolean }) {
+async function submitConversation(
+  question?: string,
+  opts?: {
+    includeHistory?: boolean;
+    skipSequenceModal?: boolean;
+    retrievalQuestion?: string;
+    /** Auto-send after file attach (no typed draft required). */
+    bypassComposerGate?: boolean;
+  }
+) {
   const value = String(question ?? conversationDraft.value).trim();
-  if (!value || conversationLoading.value) return;
+  if (!value) return;
+  if (!opts?.bypassComposerGate && !canSendComposer.value) return;
+  if (readClinicalAttachments().length > 1 && !opts?.skipSequenceModal) {
+    await openAttachmentSequenceModal();
+    return;
+  }
+  const filesSnapshot = readClinicalAttachments();
+  const autoQuestion = buildAutoQuestionFromAttachments().trim();
+  const retrievalQuestion =
+    opts?.retrievalQuestion ??
+    buildEducationRetrievalQuestionWithAttachments(value, filesSnapshot);
+  const userDisplayContent = buildEducationAttachmentDisplayContent(value, filesSnapshot, {
+    autoQuestion
+  });
+  const hadAttachments = filesSnapshot.length > 0;
+  if (hadAttachments) {
+    writeClinicalAttachments([]);
+  }
   await execute({
     actionId: 'submit-doctor-education-conversation',
-    data: { question: value, includeHistory: Boolean(opts?.includeHistory) }
+    data: {
+      question: value,
+      retrievalQuestion,
+      userDisplayContent,
+      autoAttachmentPrompt: value === autoQuestion && hadAttachments,
+      includeHistory: Boolean(opts?.includeHistory)
+    }
   });
 }
 
 async function resendUserQuestion(message: ConversationMessage) {
   if (conversationLoading.value) return;
-  const value = String(message.content ?? '').trim();
-  if (!value) return;
+  const display = doctorBubbleDisplayContent(message);
+  if (!display) return;
+  const question = String(message.submittedQuestion ?? '').trim() || display;
+  const storedRetrieval = String(message.retrievalQuestion ?? '').trim();
+  const retrievalQuestion =
+    storedRetrieval || buildEducationRetrievalQuestionWithAttachments(question, []);
   await execute({
     actionId: 'submit-doctor-education-conversation',
-    data: { question: value, replaceUserMessageId: message.id }
+    data: {
+      question,
+      retrievalQuestion,
+      userDisplayContent: display,
+      replaceUserMessageId: message.id,
+      autoAttachmentPrompt: Boolean(message.autoAttachmentPrompt)
+    }
   });
 }
 
@@ -446,6 +560,33 @@ async function onComposerKeydown(event: KeyboardEvent) {
 
 function openPrescriptionFilePicker() {
   fileInputRef.value?.click();
+}
+
+function removeAttachedClinicalFile(id: string): void {
+  writeClinicalAttachments(readClinicalAttachments().filter((row) => row.id !== id));
+}
+
+async function openAttachmentSequenceModal(): Promise<void> {
+  await execute({ actionId: 'open-education-attachment-sequence-popup' });
+}
+
+async function sendWithAttachedFiles(): Promise<void> {
+  const autoQuestion = String(conversationDraft.value ?? '').trim() || buildAutoQuestionFromAttachments();
+  await submitConversation(autoQuestion, { skipSequenceModal: true, bypassComposerGate: true });
+  triggerAutoSentNotice();
+}
+
+function buildAutoQuestionFromAttachments(): string {
+  return t('education.conversation.autoQuestionFromAttachments');
+}
+
+function triggerAutoSentNotice(): void {
+  showAutoSentNotice.value = true;
+  if (autoSentNoticeTimer) clearTimeout(autoSentNoticeTimer);
+  autoSentNoticeTimer = setTimeout(() => {
+    showAutoSentNotice.value = false;
+    autoSentNoticeTimer = null;
+  }, 2600);
 }
 
 function closePrescriptionCameraModal(): void {
@@ -523,33 +664,54 @@ async function capturePrescriptionCameraFrame() {
     return;
   }
   const file = new File([blob], 'prescription-camera.jpg', { type: 'image/jpeg' });
-  await ingestPrescriptionFile(file);
+  await ingestPrescriptionFiles([file]);
 }
 
 async function onPrescriptionFileInput(event: Event) {
   const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
+  const files = Array.from(input.files ?? []);
   input.value = '';
-  if (!file) return;
-  await ingestPrescriptionFile(file);
+  if (!files.length) return;
+  await ingestPrescriptionFiles(files);
 }
 
-async function ingestPrescriptionFile(file: File) {
+async function ingestPrescriptionFiles(files: File[]) {
   if (conversationLoading.value || prescriptionReading.value) return;
+  const remainingSlots = MAX_CONVERSATION_ATTACHMENTS - readClinicalAttachments().length;
+  if (remainingSlots <= 0) {
+    toastStore.show(t('education.conversation.attachmentLimitReached', { count: MAX_CONVERSATION_ATTACHMENTS }), 'info');
+    return;
+  }
+  const nextFiles = files.slice(0, remainingSlots);
+  if (files.length > remainingSlots) {
+    toastStore.show(t('education.conversation.attachmentLimitReached', { count: MAX_CONVERSATION_ATTACHMENTS }), 'info');
+  }
   prescriptionReading.value = true;
+  const added: EducationClinicalAttachment[] = [];
   try {
-    const extracted = await postEducationPrescriptionTranscribe(file);
-    prescriptionReading.value = false;
-    if (isPrescriptionFullyNotStated(extracted)) {
-      const draft = buildPrescriptionQuestionDraft(extracted);
-      await execute({ actionId: 'set-doctor-education-conversation-draft', data: { value: draft } });
-      await focusQuestionTextarea();
-      toastStore.show(t('education.conversation.prescriptionDraftOnly'), 'info');
-      return;
+    for (const file of nextFiles) {
+      const extracted = await postEducationPrescriptionTranscribe(file);
+      const draft = buildPrescriptionQuestionDraft(extracted).trim();
+      if (!draft) continue;
+      added.push({
+        id: `clinical-file-${crypto.randomUUID()}`,
+        name: file.name || 'attachment',
+        retrievalText: draft
+      });
+      if (isPrescriptionFullyNotStated(extracted)) {
+        toastStore.show(t('education.conversation.prescriptionDraftOnly'), 'info');
+      }
     }
-    const question = formatPrescriptionForChat(extracted);
-    await submitConversation(question);
-    // toastStore.show(t('education.conversation.prescriptionSentToChat'), 'success');
+    if (added.length > 0) {
+      const merged = [...readClinicalAttachments(), ...added].slice(0, MAX_CONVERSATION_ATTACHMENTS);
+      writeClinicalAttachments(merged);
+      toastStore.show(t('education.conversation.filesAttached', { count: merged.length }), 'success');
+      if (merged.length > 1) {
+        await openAttachmentSequenceModal();
+      } else {
+        await sendWithAttachedFiles();
+      }
+    }
   } catch (err) {
     const msg =
       err instanceof Error && err.message.trim()
@@ -865,10 +1027,12 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                   <p :class="userMessageLabelClass">
                     {{ t('education.conversation.userLabel') }}
                   </p>
-                  <p :class="userMessageBodyClass">{{ message.content }}</p>
+                  <p :class="[userMessageBodyClass, 'whitespace-pre-wrap']">
+                    {{ doctorBubbleDisplayContent(message) }}
+                  </p>
                 </article>
                 <button
-                  v-if="message.content.trim()"
+                  v-if="shouldShowResendForUserMessage(message)"
                   type="button"
                   :class="message.sendFailedTimeout ? resendButtonFailedClass : resendButtonClass"
                   :disabled="conversationLoading"
@@ -982,6 +1146,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                   ref="fileInputRef"
                   type="file"
                   class="sr-only"
+                  multiple
                   accept="application/pdf,image/jpeg,image/png,image/webp"
                   @change="onPrescriptionFileInput"
                 />
@@ -1031,6 +1196,39 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
               @input="onDraftInput"
               @keydown="onComposerKeydown"
             />
+            <div v-if="attachedClinicalFiles.length > 0" class="flex flex-wrap items-center gap-2 pt-1">
+              <div
+                v-for="(file, fileIndex) in attachedClinicalFiles"
+                :key="file.id"
+                class="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-900"
+              >
+                <span
+                  class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-sky-300 bg-white px-1 text-[10px] font-bold text-sky-700"
+                  :title="t('education.conversation.attachmentOrderLabel', { order: fileIndex + 1 })"
+                >
+                  {{ fileIndex + 1 }}
+                </span>
+                <span class="max-w-[18rem] truncate">
+                  {{ t('education.conversation.attachedFile', { name: file.name }) }}
+                </span>
+                <button
+                  v-if="attachedClinicalFiles.length === 1"
+                  type="button"
+                  class="rounded-full border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-sky-800 transition hover:bg-sky-100"
+                  @click="removeAttachedClinicalFile(file.id)"
+                >
+                  {{ t('education.conversation.removeFile') }}
+                </button>
+              </div>
+              <button
+                v-if="attachedClinicalFiles.length > 1"
+                type="button"
+                class="rounded-full border border-sky-300 bg-white px-3 py-1 text-xs font-semibold text-sky-800 shadow-sm transition hover:bg-sky-50"
+                @click="openAttachmentSequenceModal"
+              >
+                {{ t('education.conversation.reviewSequence') }}
+              </button>
+            </div>
           </div>
 
           <p v-if="conversationError" class="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
@@ -1040,12 +1238,24 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
           <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <p class="text-xs leading-5 text-slate-500">
               <span v-if="prescriptionReading" class="font-medium text-sky-700">{{ t('education.conversation.readingPrescription') }}</span>
+              <span v-else-if="attachedClinicalFiles.length > 1">
+                {{ t('education.conversation.attachmentsConfirmSequenceHint', { count: attachedClinicalFiles.length }) }}
+              </span>
+              <span v-else-if="attachedClinicalFiles.length === 1">
+                {{ t('education.conversation.attachmentsReadyHint', { count: 1 }) }}
+              </span>
               <span v-else>{{ t('education.conversation.submitHint') }}</span>
+              <span
+                v-if="showAutoSentNotice"
+                class="ml-2 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700"
+              >
+                {{ t('education.conversation.autoSentNotice') }}
+              </span>
             </p>
             <button
               type="button"
               class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-              :disabled="conversationLoading || prescriptionReading || !conversationDraft.trim()"
+              :disabled="!canSendComposer"
               @click="submitConversation()"
             >
               {{ conversationLoading ? t('education.conversation.sending') : t('education.conversation.send') }}

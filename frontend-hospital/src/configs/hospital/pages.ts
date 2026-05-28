@@ -3,6 +3,7 @@ import { hospitalBookAppointmentPage, hospitalBookAppointmentPopupPage } from '.
 import { hospitalEprescriptionPopupPage } from './eprescriptionPopupPage';
 import { hospitalPrescriptionsPage } from './prescriptionsPage';
 import { hospitalPrescriptionUploadSuccessPopupPage } from './prescriptionUploadSuccessPopupPage';
+import { hospitalEducationAttachmentSequencePopupPage } from './educationAttachmentSequencePopupPage';
 import { hospitalProfilePage } from './profilePage';
 import { dashboardDevicesNavButtons, hospitalDashboardDevicesPanel } from './devicesDashboardPanel';
 import { hospitalPatientDashboardPage } from './patientDashboardPage';
@@ -1705,6 +1706,7 @@ export const hospitalPages: PageConfig[] = [
   },
   hospitalPrescriptionsPage,
   hospitalPrescriptionUploadSuccessPopupPage,
+  hospitalEducationAttachmentSequencePopupPage,
   hospitalPatientDashboardPage,
   {
     packageName: 'hospital',
