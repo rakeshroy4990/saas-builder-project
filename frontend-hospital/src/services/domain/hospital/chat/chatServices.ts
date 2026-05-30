@@ -1,6 +1,7 @@
 import type { ServiceDefinition } from '../../../../core/types/ServiceDefinition';
 import { isAxiosError } from 'axios';
 import { useAppStore } from '../../../../store/useAppStore';
+import { usePopupStore } from '../../../../store/usePopupStore';
 import { useToastStore } from '../../../../store/useToastStore';
 import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
@@ -30,25 +31,45 @@ import {
   normalizedAiReply,
   requiresEscalation
 } from './aiSafety';
+import { i18n } from '../../../../i18n';
+import type { Composer } from 'vue-i18n';
+import { isSupportedLocale, type LocaleCode } from '@saas-builder/i18n-contract';
 
 type HospitalAppStore = ReturnType<typeof useAppStore>;
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 const SMART_AI_ROOM_ID = 'smart-ai';
-const SMART_AI_WELCOME_MESSAGE = [
-  'Hi 👋 I’m here to help.',
-  '',
-  'Tell me your symptoms and I’ll guide you with what to do next.',
-  '',
-  'You can say things like:',
-  '• "I have fever for 2 days"',
-  '• "My child has cough"',
-  '• "Stomach pain after eating"'
-].join('\n');
 
-function supportOpenApiEnabled(): boolean {
-  return String(import.meta.env.VITE_ENABLE_SUPPORT_OPEN_API ?? '')
-    .trim()
-    .toLowerCase() === 'true';
+const chatTr = (): Composer['t'] => (i18n.global as Composer).t.bind(i18n.global as Composer);
+
+function smartAiWelcomeMessage(): string {
+  return chatTr()('chat.widget.welcomeMessage');
+}
+
+function resolveHospitalChatLocale(): LocaleCode {
+  const appStore = useAppStore(pinia);
+  const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+  const fromSession = String(session.preferredLocale ?? '').trim().toLowerCase();
+  if (isSupportedLocale(fromSession)) return fromSession;
+  const globalLocale = String((i18n.global as Composer).locale.value ?? '').trim().toLowerCase();
+  return isSupportedLocale(globalLocale) ? globalLocale : 'en';
+}
+
+function withLocaleReplyInstruction(message: string, locale: LocaleCode): string {
+  if (locale !== 'hi') return message;
+  return `कृपया हिंदी (देवनागरी) में उत्तर दें।\n\n${message}`;
+}
+
+function isSmartAiWelcomeMessage(row: Record<string, unknown>): boolean {
+  if (String(row.kind ?? '').trim() === 'welcome') return true;
+  const body = String(row.body ?? '').trim();
+  if (!body) return false;
+  // Legacy welcome bodies before locale tagging.
+  return (
+    body.includes('Hi 👋') ||
+    body.includes('I’m here to help') ||
+    body.includes("I'm here to help") ||
+    body.includes('मदद के लिए यहाँ')
+  );
 }
 
 function getChatStore(appStore: HospitalAppStore): Record<string, unknown> {
@@ -72,6 +93,56 @@ function buildAiHistory(messagesByRoomId: Record<string, unknown>, roomId: strin
 function roleIsAdmin(appStore: HospitalAppStore): boolean {
   const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
   return String(authSession.role ?? '').trim().toUpperCase() === 'ADMIN';
+}
+
+function withHumanSupportChatFields(
+  chat: Record<string, unknown>,
+  extra: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    ...chat,
+    ...extra,
+    mode: 'human',
+    aiProcessing: false,
+    aiDisclaimerVisible: false
+  };
+}
+
+function withHumanSupportRoom(
+  chat: Record<string, unknown>,
+  roomId: string,
+  extra: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return withHumanSupportChatFields(chat, {
+    ...extra,
+    humanActiveRoomId: roomId,
+    activeRoomId: roomId
+  });
+}
+
+function resolveStoredMessageKey(row: Record<string, unknown>): string {
+  const mid = String(row.messageId ?? '').trim();
+  if (mid) return mid;
+  const cid = String(row.clientMessageId ?? '').trim();
+  if (cid) return cid;
+  return `${String(row.senderId ?? '').trim()}-${String(row.createdTimestamp ?? '').trim()}`;
+}
+
+function findChatMessageIndex(
+  messages: unknown[],
+  clientMessageId: string,
+  messageId: string,
+  messageKey: string
+): number {
+  return messages.findIndex((raw) => {
+    const row = (raw ?? {}) as Record<string, unknown>;
+    const cid = String(row.clientMessageId ?? '').trim();
+    const mid = String(row.messageId ?? '').trim();
+    const key = resolveStoredMessageKey(row);
+    if (clientMessageId && cid === clientMessageId) return true;
+    if (messageId && mid === messageId) return true;
+    return Boolean(messageKey) && key === messageKey;
+  });
 }
 
 function clearSmartAiSendTimeoutFlags(messages: unknown[]): unknown[] {
@@ -143,6 +214,12 @@ function createSupportQueueStompHandler(appStore: HospitalAppStore) {
           ...chat,
           supportRequests: [{ requestId, requesterUserId, requesterDisplayName }, ...existing].slice(0, 20)
         });
+        const popupStore = usePopupStore(pinia);
+        const chatPopupOpen = popupStore.isOpen && popupStore.pageId === 'chat-popup';
+        if (!chatPopupOpen) {
+          const label = requesterDisplayName || requesterUserId || chatTr()('chat.widget.patient');
+          useToastStore(pinia).show(chatTr()('chat.widget.newSupportRequestToast', { name: label }), 'info');
+        }
         return;
       }
 
@@ -174,13 +251,11 @@ function createSupportQueueStompHandler(appStore: HospitalAppStore) {
         const messages = Array.isArray(messagesNode) ? messagesNode : [];
         const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
 
-        appStore.setData('hospital', 'Chat', {
-          ...chat,
+        appStore.setData('hospital', 'Chat', withHumanSupportRoom(chat, roomId, {
           status: 'connected',
-          activeRoomId: roomId,
           supportRequests: remaining,
           messagesByRoomId: { ...messagesByRoomId, [roomId]: messages }
-        });
+        }));
 
         await flushQueuedSupportMessages(roomId, appStore);
         return;
@@ -209,7 +284,6 @@ function subscribeHospitalSupportQueueIfNeeded(appStore: HospitalAppStore): void
 
 async function mergeOpenSupportRequestsFromApi(appStore: HospitalAppStore): Promise<void> {
   if (!roleIsAdmin(appStore)) return;
-  if (!supportOpenApiEnabled()) return;
   try {
     const openResponse = await apiClient.get(URLRegistry.paths.chatSupportOpen);
     const openNode = (openResponse.data?.Data ?? openResponse.data?.data ?? []) as unknown;
@@ -235,29 +309,12 @@ async function mergeOpenSupportRequestsFromApi(appStore: HospitalAppStore): Prom
           value !== null
       );
 
-    if (normalized.length > 0) {
-      const latestChat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
-      const existing = Array.isArray(latestChat.supportRequests) ? (latestChat.supportRequests as unknown[]) : [];
-      const seen = new Set<string>();
-      const merged = [...normalized, ...existing]
-        .map((item) => {
-          const row = (item ?? {}) as Record<string, unknown>;
-          const requestId = String(row.requestId ?? row.id ?? '').trim();
-          const requesterUserId = String(row.requesterUserId ?? '').trim();
-          const requesterDisplayName = String(row.requesterDisplayName ?? '').trim();
-          if (!requestId || !requesterUserId) return null;
-          if (seen.has(requestId)) return null;
-          seen.add(requestId);
-          return { requestId, requesterUserId, requesterDisplayName };
-        })
-        .filter(
-          (value): value is { requestId: string; requesterUserId: string; requesterDisplayName: string } =>
-            value !== null
-        )
-        .slice(0, 20);
-
-      appStore.setData('hospital', 'Chat', { ...latestChat, supportRequests: merged });
-    }
+    const latestChat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
+    appStore.setData('hospital', 'Chat', {
+      ...latestChat,
+      supportRequests: normalized.slice(0, 20),
+      ...(normalized.length > 0 ? { mode: 'human' } : {})
+    });
   } catch {
     // no-op: live websocket events still update support requests
   }
@@ -272,13 +329,27 @@ export async function ensureHospitalAdminSupportInboxReady(): Promise<void> {
   if (!roleIsAdmin(appStore)) return;
   const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
   if (!String(session.userId ?? '').trim()) return;
+  let wsConnected = false;
   try {
     await stompClient.connect();
+    wsConnected = true;
   } catch {
-    return;
+    wsConnected = false;
   }
-  subscribeHospitalChatQueueIfNeeded(appStore);
-  subscribeHospitalSupportQueueIfNeeded(appStore);
+  if (getChatSubscription()) {
+    clearChatSubscription();
+  }
+  if (getSupportSubscription()) {
+    clearSupportSubscription();
+  }
+  if (wsConnected) {
+    try {
+      subscribeHospitalChatQueueIfNeeded(appStore);
+      subscribeHospitalSupportQueueIfNeeded(appStore);
+    } catch {
+      // Subscriptions require an active STOMP session.
+    }
+  }
   await mergeOpenSupportRequestsFromApi(appStore);
 }
 
@@ -437,7 +508,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
         ? (messagesByRoomId[SMART_AI_ROOM_ID] as unknown[])
         : [];
       const hasWelcomeMessage = existingAiMessages.some((item) =>
-        String((item as Record<string, unknown>)?.body ?? '').includes('Hi 👋 I’m here to help.')
+        isSmartAiWelcomeMessage((item ?? {}) as Record<string, unknown>)
       );
       const nextAiMessages = hasWelcomeMessage
         ? existingAiMessages
@@ -446,7 +517,8 @@ export const chatHospitalServices: ServiceDefinition[] = [
             {
               roomId: SMART_AI_ROOM_ID,
               senderId: 'ai',
-              body: SMART_AI_WELCOME_MESSAGE,
+              kind: 'welcome',
+              body: smartAiWelcomeMessage(),
               createdTimestamp: new Date().toISOString(),
               status: 'sent'
             }
@@ -487,12 +559,11 @@ export const chatHospitalServices: ServiceDefinition[] = [
         const requestId = String(dataNode.id ?? dataNode.Id ?? '').trim();
         trackEvent('chat_support_request_created', { requestId });
         const chat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
-        appStore.setData('hospital', 'Chat', {
-          ...chat,
+        appStore.setData('hospital', 'Chat', withHumanSupportChatFields(chat, {
           status: 'waiting_for_admin',
           activeRoomId: '',
           supportRequestId: requestId
-        });
+        }));
 
         try {
           await stompClient.connect();
@@ -522,6 +593,63 @@ export const chatHospitalServices: ServiceDefinition[] = [
         toastStore.show('Unable to start chat right now.', 'error');
         return { responseCode: 'CHAT_START_FAILED', message: 'Unable to start chat right now.' };
       }
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'chat-edit-message',
+    execute: async (request) => {
+      const roomId = String(request.data.roomId ?? '').trim();
+      const body = String(request.data.body ?? '').trim();
+      const clientMessageId = String(request.data.clientMessageId ?? '').trim();
+      const messageId = String(request.data.messageId ?? '').trim();
+      const messageKey = String(request.data.messageKey ?? '').trim();
+      if (!body) return { responseCode: 'CHAT_EDIT_FAILED', message: 'Message is empty' };
+
+      const appStore = useAppStore(pinia);
+      const chat = getChatStore(appStore);
+
+      if (!roomId) {
+        const pending = Array.isArray(chat.pendingMessages) ? (chat.pendingMessages as unknown[]) : [];
+        const idx = findChatMessageIndex(pending, clientMessageId, messageId, messageKey);
+        if (idx < 0) return { responseCode: 'CHAT_EDIT_FAILED', message: 'Message not found' };
+        const row = pending[idx] as Record<string, unknown>;
+        const previous = String(row.body ?? '').trim();
+        if (body === previous) return ok({ unchanged: true });
+        const next = [...pending];
+        next[idx] = { ...row, body, status: 'queued' };
+        appStore.setData('hospital', 'Chat', { ...chat, pendingMessages: next });
+        return ok({ clientMessageId, queued: true });
+      }
+
+      const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
+      const existing = Array.isArray(messagesByRoomId[roomId]) ? (messagesByRoomId[roomId] as unknown[]) : [];
+      const idx = findChatMessageIndex(existing, clientMessageId, messageId, messageKey);
+      if (idx < 0) return { responseCode: 'CHAT_EDIT_FAILED', message: 'Message not found' };
+
+      const row = existing[idx] as Record<string, unknown>;
+      const previous = String(row.body ?? '').trim();
+      if (body === previous) return ok({ unchanged: true });
+
+      const status = String(row.status ?? '').trim();
+      const resend = status === 'pending' || status === '';
+      const cid = clientMessageId || String(row.clientMessageId ?? '').trim() || crypto.randomUUID();
+      const next = [...existing];
+      next[idx] = { ...row, body, clientMessageId: cid, ...(resend ? { status: 'pending' } : {}) };
+      appStore.setData('hospital', 'Chat', {
+        ...chat,
+        messagesByRoomId: { ...messagesByRoomId, [roomId]: next }
+      });
+
+      if (resend) {
+        try {
+          stompClient.publish('/app/chat.send', { roomId, body, clientMessageId: cid });
+        } catch {
+          await stompClient.connect();
+          stompClient.publish('/app/chat.send', { roomId, body, clientMessageId: cid });
+        }
+      }
+      return ok({ roomId, clientMessageId: cid, resent: resend });
     }
   },
   {
@@ -691,8 +819,9 @@ export const chatHospitalServices: ServiceDefinition[] = [
         };
 
         let acc = '';
+        const chatLocale = resolveHospitalChatLocale();
         await postHospitalAiChatNdjson(
-          { message: body, history },
+          { message: withLocaleReplyInstruction(body, chatLocale), history },
           {
             onDelta: (chunk) => {
               acc += chunk;
@@ -830,19 +959,26 @@ export const chatHospitalServices: ServiceDefinition[] = [
           : [];
         const remaining = existingReqs.filter((r) => String(r?.requestId ?? r?.id ?? '') !== requestId);
 
-        appStore.setData('hospital', 'Chat', {
-          ...chat,
+        appStore.setData('hospital', 'Chat', withHumanSupportRoom(chat, roomId, {
           status: 'connected',
-          activeRoomId: roomId,
           supportRequests: remaining,
           messagesByRoomId: { ...messagesByRoomId, [roomId]: messages }
-        });
+        }));
 
         await flushQueuedSupportMessages(roomId, appStore);
 
         return ok({ roomId });
-      } catch {
-        toastStore.show('Unable to accept chat right now.', 'error');
+      } catch (err) {
+        await mergeOpenSupportRequestsFromApi(appStore);
+        const message = isAxiosError(err)
+          ? String(err.response?.data?.message ?? err.response?.data?.Message ?? '').trim()
+          : '';
+        toastStore.show(
+          message && /already claimed|already handled/i.test(message)
+            ? 'That chat request was already handled. The list has been refreshed.'
+            : 'Unable to accept chat right now.',
+          'error'
+        );
         return { responseCode: 'CHAT_SUPPORT_ACCEPT_FAILED', message: 'Unable to accept chat right now.' };
       }
     }

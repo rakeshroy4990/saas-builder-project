@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   FlatList,
   Keyboard,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,8 +27,15 @@ import {
   type PrescriptionSimilarityHit
 } from '@/features/education/api';
 import { loadEducationBooksCached, peekCachedEducationBooks } from '@/features/education/booksCache';
-import { ALL_EDUCATION_BOOKS } from '@/features/education/educationBooks';
 import { EducationBookPicker } from '@/features/education/EducationBookPicker';
+import { EducationAttachmentSequenceModal } from '@/features/education/EducationAttachmentSequenceModal';
+import {
+  buildEducationAttachmentDisplayContent,
+  buildEducationRetrievalQuestionWithAttachments,
+  newClinicalAttachmentId,
+  stripEducationAttachedFileHeaders,
+  type EducationClinicalAttachment
+} from '@/features/education/educationClinicalAttachments';
 import {
   pickPrescriptionFromCamera,
   pickPrescriptionFromDocuments,
@@ -38,7 +44,6 @@ import {
 import {
   buildPrescriptionQuestionDraft,
   buildSimilarityQueryFromTranscribe,
-  formatPrescriptionForChat,
   isPrescriptionFullyNotStated,
   postEducationPrescriptionTranscribe
 } from '@/features/education/prescriptionTranscribe';
@@ -47,10 +52,28 @@ import { sharedStyles } from '@/theme/styles';
 
 type QueryTab = 'books' | 'prescription';
 
+const MAX_CONVERSATION_ATTACHMENTS = 3;
+
 type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  retrievalQuestion?: string;
+  submittedQuestion?: string;
+  autoAttachmentPrompt?: boolean;
+  sendFailedTimeout?: boolean;
+};
+
+type SubmitConversationOpts = {
+  question?: string;
+  userDisplayContent?: string;
+  retrievalQuestion?: string;
+  submittedQuestion?: string;
+  autoAttachmentPrompt?: boolean;
+  replaceUserMessageId?: string;
+  bypassComposerGate?: boolean;
+  skipSequenceModal?: boolean;
+  attachments?: EducationClinicalAttachment[];
 };
 
 function DoctorOnlyGate() {
@@ -198,7 +221,7 @@ export function DoctorEducationScreen() {
   const [tab, setTab] = useState<QueryTab>('books');
   const [books, setBooks] = useState<string[]>(() => peekCachedEducationBooks() ?? []);
   const [topics, setTopics] = useState<string[]>([]);
-  const [selectedBook, setSelectedBook] = useState(ALL_EDUCATION_BOOKS);
+  const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(false);
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -213,6 +236,11 @@ export function DoctorEducationScreen() {
   const [educationExpanded, setEducationExpanded] = useState(false);
   const [composerExpanded, setComposerExpanded] = useState(false);
   const [prescriptionComposerExpanded, setPrescriptionComposerExpanded] = useState(false);
+  const [clinicalAttachments, setClinicalAttachments] = useState<EducationClinicalAttachment[]>([]);
+  const [sequenceModalVisible, setSequenceModalVisible] = useState(false);
+  const [sequencePending, setSequencePending] = useState<EducationClinicalAttachment[]>([]);
+  const [showAutoSentNotice, setShowAutoSentNotice] = useState(false);
+  const autoSentNoticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conversationId = 'mobile-education';
 
   const loadBooks = useCallback(async () => {
@@ -221,11 +249,7 @@ export function DoctorEducationScreen() {
     try {
       const list = await loadEducationBooksCached();
       setBooks(list);
-      setSelectedBook((prev) => {
-        if (prev === ALL_EDUCATION_BOOKS) return ALL_EDUCATION_BOOKS;
-        if (prev && list.includes(prev)) return prev;
-        return ALL_EDUCATION_BOOKS;
-      });
+      setSelectedBooks((prev) => prev.filter((b) => list.includes(b)));
     } catch {
       if (!hadCache) setBooks([]);
     } finally {
@@ -243,15 +267,31 @@ export function DoctorEducationScreen() {
   }, [navigation, tab]);
 
   useEffect(() => {
-    if (!isDoctor || !selectedBook || selectedBook === ALL_EDUCATION_BOOKS) {
+    if (!isDoctor || selectedBooks.length === 0) {
       setTopics([]);
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const list = await fetchEducationKeyTopics(selectedBook, 10);
-        if (!cancelled) setTopics(list);
+        const booksForTopics =
+          selectedBooks.length === 1 ? selectedBooks : selectedBooks.slice(0, 5);
+        const perBookLimit = selectedBooks.length === 1 ? 10 : 4;
+        const lists = await Promise.all(
+          booksForTopics.map((book) => fetchEducationKeyTopics(book, perBookLimit))
+        );
+        const merged: string[] = [];
+        const seen = new Set<string>();
+        for (const list of lists) {
+          for (const topic of list) {
+            const key = topic.toLowerCase();
+            if (!seen.has(key)) {
+              seen.add(key);
+              merged.push(topic);
+            }
+          }
+        }
+        if (!cancelled) setTopics(merged.slice(0, 10));
       } catch {
         if (!cancelled) setTopics([]);
       }
@@ -259,7 +299,7 @@ export function DoctorEducationScreen() {
     return () => {
       cancelled = true;
     };
-  }, [isDoctor, selectedBook]);
+  }, [isDoctor, selectedBooks]);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -288,43 +328,197 @@ export function DoctorEducationScreen() {
     return () => clearTimeout(timer);
   }, [composerExpanded]);
 
-  async function onSendQuestion(overrideText?: string) {
-    const draft = (overrideText ?? question).trim();
+  useEffect(() => {
+    return () => {
+      if (autoSentNoticeTimer.current) clearTimeout(autoSentNoticeTimer.current);
+    };
+  }, []);
+
+  function autoQuestionFromAttachments(): string {
+    return t('education.autoQuestionFromAttachments');
+  }
+
+  function doctorBubbleDisplayContent(message: ChatMessage): string {
+    return stripEducationAttachedFileHeaders(String(message.content ?? ''));
+  }
+
+  function canSendComposer(): boolean {
+    if (sending || readingFile) return false;
+    return Boolean(question.trim());
+  }
+
+  function moveAttachmentRows(
+    rows: EducationClinicalAttachment[],
+    index: number,
+    direction: -1 | 1
+  ): EducationClinicalAttachment[] {
+    const next = [...rows];
+    const nextIndex = index + direction;
+    if (index < 0 || index >= next.length) return next;
+    if (nextIndex < 0 || nextIndex >= next.length) return next;
+    const current = next[index];
+    next[index] = next[nextIndex];
+    next[nextIndex] = current;
+    return next;
+  }
+
+  function openSequenceModal(files: EducationClinicalAttachment[]): void {
+    setSequencePending(files.map((row) => ({ ...row })));
+    setSequenceModalVisible(true);
+  }
+
+  function closeSequenceModal(): void {
+    setSequenceModalVisible(false);
+  }
+
+  function triggerAutoSentNotice(): void {
+    setShowAutoSentNotice(true);
+    if (autoSentNoticeTimer.current) clearTimeout(autoSentNoticeTimer.current);
+    autoSentNoticeTimer.current = setTimeout(() => {
+      setShowAutoSentNotice(false);
+      autoSentNoticeTimer.current = null;
+    }, 2600);
+  }
+
+  function removeClinicalAttachment(id: string): void {
+    setClinicalAttachments((prev) => prev.filter((row) => row.id !== id));
+  }
+
+  async function sendWithAttachedFiles(filesSnapshot = clinicalAttachments): Promise<void> {
+    const apiQuestion = question.trim() || autoQuestionFromAttachments();
+    await submitConversation({
+      question: apiQuestion,
+      attachments: filesSnapshot,
+      bypassComposerGate: true,
+      skipSequenceModal: true
+    });
+    triggerAutoSentNotice();
+  }
+
+  async function confirmSequenceAndSend(): Promise<void> {
+    if (sequencePending.length < 2) {
+      closeSequenceModal();
+      return;
+    }
+    setClinicalAttachments(sequencePending.map((row) => ({ ...row })));
+    closeSequenceModal();
+    await sendWithAttachedFiles([...sequencePending]);
+  }
+
+  async function submitConversation(opts: SubmitConversationOpts = {}): Promise<void> {
+    const draft = String(opts.question ?? question).trim();
     if (!draft || sending) return;
+    if (!opts.bypassComposerGate && !canSendComposer()) return;
+
+    const filesSnapshot = opts.attachments ?? clinicalAttachments;
+    if (filesSnapshot.length > 1 && !opts.skipSequenceModal) {
+      openSequenceModal(filesSnapshot);
+      return;
+    }
+
+    const autoQuestion = autoQuestionFromAttachments();
+    const retrievalQuestion =
+      String(opts.retrievalQuestion ?? '').trim() ||
+      buildEducationRetrievalQuestionWithAttachments(draft, filesSnapshot);
+    const userDisplayContent =
+      String(opts.userDisplayContent ?? '').trim() ||
+      buildEducationAttachmentDisplayContent(draft, filesSnapshot, { autoQuestion });
+    const submittedQuestion = String(opts.submittedQuestion ?? draft).trim();
+    const autoAttachmentPrompt =
+      opts.autoAttachmentPrompt ?? (draft === autoQuestion && filesSnapshot.length > 0);
+    const hadAttachments = filesSnapshot.length > 0;
+
     setChatError('');
     setSending(true);
-    const userMessage: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content: draft };
+    if (hadAttachments) setClinicalAttachments([]);
+    if (!opts.question) setQuestion('');
+
+    const userMessageId = `u-${Date.now()}`;
+    const userMessage: ChatMessage = {
+      id: userMessageId,
+      role: 'user',
+      content: userDisplayContent || draft,
+      retrievalQuestion,
+      submittedQuestion,
+      autoAttachmentPrompt
+    };
     const assistantId = `a-${Date.now()}`;
-    setMessages((prev) => [
-      ...prev,
-      userMessage,
-      { id: assistantId, role: 'assistant', content: '' }
-    ]);
-    if (!overrideText) setQuestion('');
+
+    const priorMessages = opts.replaceUserMessageId
+      ? messages.slice(
+          0,
+          Math.max(0, messages.findIndex((m) => m.id === opts.replaceUserMessageId))
+        )
+      : messages;
+
+    let priorHistory = history;
+    if (opts.replaceUserMessageId) {
+      const replaceIdx = messages.findIndex((m) => m.id === opts.replaceUserMessageId);
+      let userTurnsBefore = 0;
+      for (let i = 0; i < replaceIdx; i += 1) {
+        if (messages[i]?.role === 'user') userTurnsBefore += 1;
+      }
+      priorHistory = history.slice(0, userTurnsBefore * 2);
+    }
+
+    setMessages([...priorMessages, userMessage, { id: assistantId, role: 'assistant', content: '' }]);
+
     try {
-      const reply = await askEducationQuestionStreaming(draft, selectedBook, history, conversationId, {
-        onDelta: (textSoFar) => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, content: textSoFar } : m))
-          );
-        }
-      });
+      const reply = await askEducationQuestionStreaming(
+        submittedQuestion,
+        selectedBooks,
+        priorHistory,
+        conversationId,
+        {
+          onDelta: (textSoFar) => {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: textSoFar } : m))
+            );
+          }
+        },
+        retrievalQuestion
+      );
       const finalText = reply.trim() || t('education.emptyAnswer');
       setMessages((prev) =>
         prev.map((m) => (m.id === assistantId ? { ...m, content: finalText } : m))
       );
-      setHistory((prev) => [
-        ...prev,
-        { role: 'user', content: draft },
-        { role: 'assistant', content: finalText }
-      ]);
+      setHistory([...priorHistory, { role: 'user', content: submittedQuestion }, { role: 'assistant', content: finalText }]);
     } catch (err) {
-      setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+      setMessages((prev) =>
+        prev
+          .filter((m) => m.id !== assistantId)
+          .map((m) => (m.id === userMessageId ? { ...m, sendFailedTimeout: true } : m))
+      );
       const msg = err instanceof Error ? err.message.trim() : '';
       setChatError(msg || t('education.chatFailed'));
     } finally {
       setSending(false);
     }
+  }
+
+  async function onSendQuestion(overrideText?: string) {
+    await submitConversation({
+      question: overrideText,
+      bypassComposerGate: Boolean(overrideText?.trim())
+    });
+  }
+
+  async function resendUserQuestion(message: ChatMessage) {
+    const display = doctorBubbleDisplayContent(message);
+    if (!display || sending) return;
+    const submittedQuestion = String(message.submittedQuestion ?? '').trim() || display;
+    const retrievalQuestion =
+      String(message.retrievalQuestion ?? '').trim() ||
+      buildEducationRetrievalQuestionWithAttachments(submittedQuestion, []);
+    await submitConversation({
+      question: submittedQuestion,
+      userDisplayContent: display,
+      retrievalQuestion,
+      submittedQuestion,
+      autoAttachmentPrompt: Boolean(message.autoAttachmentPrompt),
+      replaceUserMessageId: message.id,
+      bypassComposerGate: true
+    });
   }
 
   async function ingestPrescriptionFile(pick: () => Promise<{ uri: string; name: string; mimeType: string } | null>) {
@@ -341,12 +535,31 @@ export function DoctorEducationScreen() {
         setPrescriptionQuery(query || buildPrescriptionQuestionDraft(extracted));
         return;
       }
+      const draft = buildPrescriptionQuestionDraft(extracted).trim();
+      if (!draft) return;
       if (isPrescriptionFullyNotStated(extracted)) {
         setQuestion(buildPrescriptionQuestionDraft(extracted));
+        setComposerExpanded(true);
         return;
       }
-      const formatted = formatPrescriptionForChat(extracted);
-      await onSendQuestion(formatted);
+      const remainingSlots = MAX_CONVERSATION_ATTACHMENTS - clinicalAttachments.length;
+      if (remainingSlots <= 0) {
+        setChatError(t('education.attachmentLimitReached', { count: MAX_CONVERSATION_ATTACHMENTS }));
+        return;
+      }
+      const added: EducationClinicalAttachment = {
+        id: newClinicalAttachmentId(),
+        name: file.name || 'attachment',
+        retrievalText: draft
+      };
+      const merged = [...clinicalAttachments, added].slice(0, MAX_CONVERSATION_ATTACHMENTS);
+      setClinicalAttachments(merged);
+      setComposerExpanded(true);
+      if (merged.length > 1) {
+        openSequenceModal(merged);
+      } else {
+        await sendWithAttachedFiles(merged);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message.trim() : '';
       const fail = t('education.prescriptionReadFailed');
@@ -378,14 +591,30 @@ export function DoctorEducationScreen() {
 
   function renderMessage({ item }: { item: ChatMessage }) {
     const isUser = item.role === 'user';
+    const display = isUser ? doctorBubbleDisplayContent(item) : item.content;
     return (
       <View style={[styles.messageRow, isUser ? styles.messageRowUser : styles.messageRowAssistant]}>
         <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
           <Text style={styles.messageLabel}>
             {isUser ? t('education.userLabel') : t('education.assistantLabel')}
           </Text>
-          <Text style={isUser ? styles.messageBodyUser : styles.messageBodyAssistant}>{item.content}</Text>
+          <Text style={isUser ? styles.messageBodyUser : styles.messageBodyAssistant}>{display}</Text>
         </View>
+        {isUser && display ? (
+          <Pressable
+            style={[styles.resendBtn, item.sendFailedTimeout && styles.resendBtnFailed]}
+            onPress={() => void resendUserQuestion(item)}
+            disabled={sending}
+            accessibilityRole="button"
+            accessibilityLabel={t('education.resendAria')}
+          >
+            <Ionicons
+              name="refresh"
+              size={20}
+              color={item.sendFailedTimeout ? '#b45309' : colors.textMuted}
+            />
+          </Pressable>
+        ) : null}
       </View>
     );
   }
@@ -463,17 +692,59 @@ export function DoctorEducationScreen() {
               placeholderTextColor={colors.textMuted}
               onFocus={onQuestionFocus}
             />
+            {clinicalAttachments.length > 0 ? (
+              <View style={styles.attachmentChipRow}>
+                {clinicalAttachments.map((file, fileIndex) => (
+                  <View key={file.id} style={styles.attachmentChip}>
+                    <View style={styles.attachmentOrderBadge}>
+                      <Text style={styles.attachmentOrderText}>{fileIndex + 1}</Text>
+                    </View>
+                    <Text style={styles.attachmentName} numberOfLines={1}>
+                      {t('education.attachedFile', { name: file.name })}
+                    </Text>
+                    {clinicalAttachments.length === 1 ? (
+                      <Pressable onPress={() => removeClinicalAttachment(file.id)}>
+                        <Text style={styles.attachmentRemove}>{t('education.removeFile')}</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ))}
+                {clinicalAttachments.length > 1 ? (
+                  <Pressable style={styles.reviewSequenceBtn} onPress={() => openSequenceModal(clinicalAttachments)}>
+                    <Text style={styles.reviewSequenceText}>{t('education.reviewSequence')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+            <Text style={styles.composerHint}>
+              {readingFile ? (
+                t('education.readingPrescription')
+              ) : clinicalAttachments.length > 1 ? (
+                t('education.attachmentsConfirmSequenceHint', { count: clinicalAttachments.length })
+              ) : clinicalAttachments.length === 1 ? (
+                t('education.attachmentsReadyHint', { count: 1 })
+              ) : (
+                t('education.composerHint')
+              )}
+              {showAutoSentNotice ? (
+                <Text style={styles.autoSentNotice}> {t('education.autoSentNotice')}</Text>
+              ) : null}
+            </Text>
             <View style={styles.sendRow}>
               <AttachMenuButton
-                disabled={sending || readingFile}
+                disabled={sending || readingFile || clinicalAttachments.length >= MAX_CONVERSATION_ATTACHMENTS}
                 onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
                 onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
                 onCamera={() => void ingestPrescriptionFile(pickPrescriptionFromCamera)}
               />
               <Pressable
-                style={[sharedStyles.button, styles.sendBtn, { opacity: sending || readingFile ? 0.7 : 1 }]}
-                onPress={() => void onSendQuestion()}
-                disabled={sending || readingFile || !question.trim()}
+                style={[
+                  sharedStyles.button,
+                  styles.sendBtn,
+                  { opacity: sending || readingFile || !canSendComposer() ? 0.7 : 1 }
+                ]}
+                onPress={() => void submitConversation()}
+                disabled={sending || readingFile || !canSendComposer()}
               >
                 <Text style={sharedStyles.buttonText}>
                   {sending ? t('education.sending') : t('education.sendQuestion')}
@@ -516,9 +787,9 @@ export function DoctorEducationScreen() {
           <View style={styles.booksMeta}>
             <EducationBookPicker
               books={books}
-              selectedBook={selectedBook}
+              selectedBooks={selectedBooks}
               loading={loadingBooks}
-              onSelect={setSelectedBook}
+              onChange={setSelectedBooks}
             />
             {topics.length > 0 && !keyboardVisible ? (
               <>
@@ -677,6 +948,16 @@ export function DoctorEducationScreen() {
           ))}
         </ScrollView>
       )}
+      <EducationAttachmentSequenceModal
+        visible={sequenceModalVisible}
+        files={sequencePending}
+        busy={sending || readingFile}
+        onClose={closeSequenceModal}
+        onConfirm={() => void confirmSequenceAndSend()}
+        onMove={(index, direction) => {
+          setSequencePending((prev) => moveAttachmentRows(prev, index, direction));
+        }}
+      />
       </KeyboardSafeView>
     </View>
   );
@@ -786,7 +1067,10 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   messageRowUser: {
-    alignItems: 'flex-end'
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+    gap: 8
   },
   messageRowAssistant: {
     alignItems: 'flex-start'
@@ -799,7 +1083,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border
   },
   bubbleUser: {
-    maxWidth: '88%',
+    flex: 1,
+    maxWidth: '82%',
     backgroundColor: '#ecfdf5'
   },
   bubbleAssistant: {
@@ -816,6 +1101,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: colors.text
+  },
+  resendBtn: {
+    width: 40,
+    height: 40,
+    marginTop: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface
+  },
+  resendBtnFailed: {
+    borderColor: '#fcd34d',
+    backgroundColor: '#fffbeb'
   },
   messageBodyAssistant: {
     fontSize: 16,
@@ -929,5 +1229,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 8
+  },
+  attachmentChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 8
+  },
+  attachmentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '100%',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    backgroundColor: '#f0f9ff'
+  },
+  attachmentOrderBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff'
+  },
+  attachmentOrderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0369a1'
+  },
+  attachmentName: {
+    flexShrink: 1,
+    fontSize: 12,
+    color: '#0c4a6e',
+    maxWidth: 180
+  },
+  attachmentRemove: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#0369a1'
+  },
+  reviewSequenceBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#7dd3fc',
+    backgroundColor: '#fff'
+  },
+  reviewSequenceText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0369a1'
+  },
+  composerHint: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textMuted
+  },
+  autoSentNotice: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#047857'
   }
 });

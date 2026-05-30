@@ -104,6 +104,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@realtime': fileURLToPath(new URL('../frontend-realtime-lib/src', import.meta.url)),
       '@bluetooth': fileURLToPath(new URL('../frontend-bluetooth-lib/src', import.meta.url)),
+      'vue-i18n': fileURLToPath(new URL('./node_modules/vue-i18n/dist/vue-i18n.esm-bundler.js', import.meta.url)),
       '@stomp/stompjs': fileURLToPath(
         new URL('./node_modules/@stomp/stompjs/esm6/index.js', import.meta.url)
       )

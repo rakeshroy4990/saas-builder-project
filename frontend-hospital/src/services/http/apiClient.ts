@@ -9,6 +9,7 @@ import { URLRegistry } from './URLRegistry';
 import { shouldSkipTelemetrySessionSummaryForApiUrl } from './telemetryUrlSkip';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { logClient } from '../logging/clientLogger';
+import { openHospitalLoginPopup } from '../auth/hospitalLoginGate';
 import {
   applyAccessExpiryHintFromAuthPayload,
   clearAuthToken,
@@ -108,10 +109,9 @@ function clearAuthSessionUi(): void {
 }
 
 function navigateToLogin(): void {
-  const popupStore = usePopupStore(pinia);
   // Open a popup instead of navigating to a dedicated route.
   // We never want to redirect users to `/page/hospital/login-popup`.
-  popupStore.open({ packageName: 'hospital', pageId: 'login-popup', title: 'Login' });
+  openHospitalLoginPopup();
 }
 
 function setLoginErrorMessage(message: string): void {

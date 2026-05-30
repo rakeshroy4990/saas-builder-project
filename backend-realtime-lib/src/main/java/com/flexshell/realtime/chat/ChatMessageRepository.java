@@ -6,5 +6,7 @@ import java.util.List;
 
 public interface ChatMessageRepository extends MongoRepository<ChatMessageEntity, String> {
     List<ChatMessageEntity> findTop50ByRoomIdOrderBySequenceNumberDesc(String roomId);
+
+    java.util.Optional<ChatMessageEntity> findFirstByRoomIdAndClientMessageId(String roomId, String clientMessageId);
 }
 

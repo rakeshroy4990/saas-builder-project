@@ -7,6 +7,10 @@
     "@stomp/stompjs": "^7.2.1",
     "agora-rtc-sdk-ng": "^4.24.3"
   },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "vue-i18n": "^9.0.0 || ^10.0.0"
+  },
   "devDependencies": {
     "typescript": "~5.9.0",
     "vue": "^3.5.32"

@@ -6,6 +6,9 @@ import {
 
 import { postHospitalAiChatNdjson } from '@/api/hospitalAiChatStream';
 import { apiClient } from '@/api/client';
+import { buildEducationChatPayload } from '@/features/education/educationChatPayload';
+
+export { buildEducationChatPayload } from '@/features/education/educationChatPayload';
 
 export async function fetchEducationBooks(): Promise<string[]> {
   const response = await apiClient.get(SERVER_PATHS.hospitalEducationBooks);
@@ -50,19 +53,19 @@ export type EducationStreamHandlers = {
 
 export async function askEducationQuestionStreaming(
   question: string,
-  bookName: string,
+  bookNames: string[],
   history: EducationChatTurn[],
   conversationId: string,
-  handlers: EducationStreamHandlers = {}
+  handlers: EducationStreamHandlers = {},
+  retrievalQuestion?: string
 ): Promise<string> {
-  const payload: Record<string, unknown> = {
-    message: question,
+  const payload = buildEducationChatPayload(
+    question,
+    bookNames,
     history,
     conversationId,
-    RetrievalQuestion: question
-  };
-  const book = bookName.trim();
-  if (book) payload.BookName = book;
+    retrievalQuestion
+  );
 
   let textSoFar = '';
   return postHospitalAiChatNdjson(payload, {
@@ -77,11 +80,11 @@ export async function askEducationQuestionStreaming(
 /** @deprecated Use {@link askEducationQuestionStreaming} for progressive UI. */
 export async function askEducationQuestion(
   question: string,
-  bookName: string,
+  bookNames: string[],
   history: EducationChatTurn[],
   conversationId: string
 ): Promise<string> {
-  return askEducationQuestionStreaming(question, bookName, history, conversationId);
+  return askEducationQuestionStreaming(question, bookNames, history, conversationId);
 }
 
 export type PrescriptionSimilarityHit = {

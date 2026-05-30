@@ -124,6 +124,24 @@
       "doctorsOnly": "Education is available for doctor users only."
     }
   },
+  "profilePage": {
+    "yourDetails": "Your details",
+    "inactiveHeading": "Inactive account",
+    "inactiveCopy": "Deactivating will sign you out immediately. You will not be able to log in again until an administrator reactivates your account.",
+    "deactivateButton": "Deactivate my account",
+    "fields": {
+      "firstName": "First name *",
+      "lastName": "Last name *",
+      "email": "Email *",
+      "mobileNumber": "Mobile number *",
+      "gender": "Gender *",
+      "department": "Department",
+      "qualifications": "Qualifications *",
+      "smcName": "State Medical Council *",
+      "smcRegistrationNumber": "SMC registration number *",
+      "address": "Address *"
+    }
+  },
   "errors": {
     "notFound": "Page not found: {package}/{page}",
     "notFoundTitle": "Page not found"
@@ -530,6 +548,7 @@
       "processingRequest": "Health Assistant is processing your request...",
       "incomingRequestTitle": "Incoming chat request",
       "incomingRequestSubtitle": "An admin can accept to start a 1:1 chat.",
+      "newSupportRequestToast": "New chat request from {name}",
       "waitingAcceptance": "Waiting for acceptance",
       "reject": "Reject",
       "accept": "Accept",
@@ -545,12 +564,17 @@
       "sending": "sending…",
       "message": "Message",
       "edit": "Edit",
+      "editAria": "Edit message",
+      "editAndSend": "Update message and press Enter or Send",
       "assistantTyping": "Health Assistant is typing",
       "assistantProcessing": "Health Assistant is processing",
       "clickUnderstand": "Please click I understand to continue...",
       "tellSymptoms": "Tell Health Assistant your symptoms...",
       "typeMessage": "Type a message…",
       "send": "Send",
+      "resend": "Resend after timeout",
+      "resendAria": "Resend this message after a timeout",
+      "welcomeMessage": "Hi 👋 I'm here to help.\n\nTell me your symptoms and I'll guide you with what to do next.\n\nYou can say things like:\n• \"I have fever for 2 days\"\n• \"My child has cough\"\n• \"Stomach pain after eating\"",
       "quickPrompts": {
         "fever": "I have fever for 2 days",
         "coldCough": "I have cold and cough",

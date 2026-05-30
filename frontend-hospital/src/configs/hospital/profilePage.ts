@@ -66,7 +66,7 @@ export const hospitalProfilePage: PageConfig = {
                                 type: 'button',
                                 condition: profileNavButtonActive('profile'),
                                 config: {
-                                  text: 'Profile',
+                                  i18nKey: 'nav.profile',
                                   styles: {
                                     utilityClasses:
                                       'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
@@ -79,7 +79,7 @@ export const hospitalProfilePage: PageConfig = {
                                 type: 'button',
                                 condition: profileNavButtonInactive('profile'),
                                 config: {
-                                  text: 'Profile',
+                                  i18nKey: 'nav.profile',
                                   styles: {
                                     utilityClasses:
                                       'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -92,7 +92,7 @@ export const hospitalProfilePage: PageConfig = {
                                 type: 'button',
                                 condition: profileNavButtonActive('inactive'),
                                 config: {
-                                  text: 'Inactive account',
+                                  i18nKey: 'nav.inactiveAccount',
                                   styles: {
                                     utilityClasses:
                                       'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
@@ -105,7 +105,7 @@ export const hospitalProfilePage: PageConfig = {
                                 type: 'button',
                                 condition: profileNavButtonInactive('inactive'),
                                 config: {
-                                  text: 'Inactive account',
+                                  i18nKey: 'nav.inactiveAccount',
                                   styles: {
                                     utilityClasses:
                                       'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -138,7 +138,7 @@ export const hospitalProfilePage: PageConfig = {
                                       id: 'hospital-profile-main-title',
                                       type: 'text',
                                       config: {
-                                        text: 'Profile',
+                                        i18nKey: 'page.profile.title',
                                         styles: { styleTemplate: 'hosp.section.heading' }
                                       }
                                     }
@@ -162,72 +162,8 @@ export const hospitalProfilePage: PageConfig = {
                                       id: 'hospital-profile-form-heading',
                                       type: 'text',
                                       config: {
-                                        text: 'Your details',
+                                        i18nKey: 'profilePage.yourDetails',
                                         styles: { utilityClasses: 'text-lg font-semibold text-slate-900' }
-                                      }
-                                    },
-                                    {
-                                      id: 'hospital-profile-language-block',
-                                      type: 'container',
-                                      config: {
-                                        styles: {
-                                          utilityClasses:
-                                            'rounded-xl border border-slate-200 bg-slate-50/80 p-4 space-y-3 w-full'
-                                        },
-                                        children: [
-                                          {
-                                            id: 'hospital-profile-language-title',
-                                            type: 'text',
-                                            config: {
-                                              i18nKey: 'nav.language',
-                                              styles: { utilityClasses: 'text-base font-semibold text-slate-900' }
-                                            }
-                                          },
-                                          {
-                                            id: 'hospital-profile-language-hint',
-                                            type: 'text',
-                                            config: {
-                                              i18nKey: 'nav.languageHint',
-                                              styles: { utilityClasses: 'text-sm text-slate-600' }
-                                            }
-                                          },
-                                          {
-                                            id: 'hospital-profile-language-buttons',
-                                            type: 'container',
-                                            config: {
-                                              layout: {
-                                                type: 'flex',
-                                                flex: ['flex', 'flex-col', 'sm:flex-row', 'gap-3', 'w-full']
-                                              },
-                                              children: [
-                                                {
-                                                  id: 'hospital-profile-lang-en',
-                                                  type: 'button',
-                                                  config: {
-                                                    text: 'English',
-                                                    styles: {
-                                                      styleTemplate: 'hosp.popup.button.secondary',
-                                                      utilityClasses: 'w-full sm:flex-1 min-h-[44px]'
-                                                    },
-                                                    click: { actionId: 'save-preferred-locale', data: { locale: 'en' } }
-                                                  }
-                                                },
-                                                {
-                                                  id: 'hospital-profile-lang-hi',
-                                                  type: 'button',
-                                                  config: {
-                                                    text: 'हिंदी',
-                                                    styles: {
-                                                      styleTemplate: 'hosp.popup.button.secondary',
-                                                      utilityClasses: 'w-full sm:flex-1 min-h-[44px]'
-                                                    },
-                                                    click: { actionId: 'save-preferred-locale', data: { locale: 'hi' } }
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        ]
                                       }
                                     },
                                     {
@@ -240,7 +176,7 @@ export const hospitalProfilePage: PageConfig = {
                                             id: 'hospital-profile-fn',
                                             type: 'input',
                                             config: {
-                                              label: 'First name *',
+                                              labelI18nKey: 'profilePage.fields.firstName',
                                               mapping: { packageName: 'hospital', key: 'ProfileForm', property: 'firstName' },
                                               change: { actionId: 'set-profile-form-field', data: { field: 'firstName' } },
                                               styles: { styleTemplate: 'hosp.form.input' }
@@ -250,7 +186,7 @@ export const hospitalProfilePage: PageConfig = {
                                             id: 'hospital-profile-ln',
                                             type: 'input',
                                             config: {
-                                              label: 'Last name *',
+                                              labelI18nKey: 'profilePage.fields.lastName',
                                               mapping: { packageName: 'hospital', key: 'ProfileForm', property: 'lastName' },
                                               change: { actionId: 'set-profile-form-field', data: { field: 'lastName' } },
                                               styles: { styleTemplate: 'hosp.form.input' }
@@ -260,7 +196,7 @@ export const hospitalProfilePage: PageConfig = {
                                             id: 'hospital-profile-email',
                                             type: 'input',
                                             config: {
-                                              label: 'Email *',
+                                              labelI18nKey: 'profilePage.fields.email',
                                               inputType: 'email',
                                               mapping: { packageName: 'hospital', key: 'ProfileForm', property: 'email' },
                                               change: { actionId: 'set-profile-form-field', data: { field: 'email' } },
@@ -271,7 +207,7 @@ export const hospitalProfilePage: PageConfig = {
                                             id: 'hospital-profile-mobile',
                                             type: 'input',
                                             config: {
-                                              label: 'Mobile number *',
+                                              labelI18nKey: 'profilePage.fields.mobileNumber',
                                               mapping: {
                                                 packageName: 'hospital',
                                                 key: 'ProfileForm',
@@ -285,7 +221,7 @@ export const hospitalProfilePage: PageConfig = {
                                             id: 'hospital-profile-gender',
                                             type: 'input',
                                             config: {
-                                              label: 'Gender *',
+                                              labelI18nKey: 'profilePage.fields.gender',
                                               mapping: { packageName: 'hospital', key: 'ProfileForm', property: 'gender' },
                                               change: { actionId: 'set-profile-form-field', data: { field: 'gender' } },
                                               styles: { styleTemplate: 'hosp.form.input' }
@@ -296,7 +232,7 @@ export const hospitalProfilePage: PageConfig = {
                                             type: 'input',
                                             condition: profileDoctorRoleOnly,
                                             config: {
-                                              label: 'Department',
+                                              labelI18nKey: 'profilePage.fields.department',
                                               mapping: { packageName: 'hospital', key: 'ProfileForm', property: 'department' },
                                               change: { actionId: 'set-profile-form-field', data: { field: 'department' } },
                                               styles: { styleTemplate: 'hosp.form.input' }
@@ -307,7 +243,7 @@ export const hospitalProfilePage: PageConfig = {
                                             type: 'input',
                                             condition: profileDoctorRoleOnly,
                                             config: {
-                                              label: 'Qualifications *',
+                                              labelI18nKey: 'profilePage.fields.qualifications',
                                               mapping: {
                                                 packageName: 'hospital',
                                                 key: 'ProfileForm',
@@ -322,7 +258,7 @@ export const hospitalProfilePage: PageConfig = {
                                             type: 'input',
                                             condition: profileDoctorRoleOnly,
                                             config: {
-                                              label: 'State Medical Council *',
+                                              labelI18nKey: 'profilePage.fields.smcName',
                                               mapping: { packageName: 'hospital', key: 'ProfileForm', property: 'smcName' },
                                               change: { actionId: 'set-profile-form-field', data: { field: 'smcName' } },
                                               styles: { styleTemplate: 'hosp.form.input' }
@@ -333,7 +269,7 @@ export const hospitalProfilePage: PageConfig = {
                                             type: 'input',
                                             condition: profileDoctorRoleOnly,
                                             config: {
-                                              label: 'SMC registration number *',
+                                              labelI18nKey: 'profilePage.fields.smcRegistrationNumber',
                                               mapping: {
                                                 packageName: 'hospital',
                                                 key: 'ProfileForm',
@@ -350,7 +286,7 @@ export const hospitalProfilePage: PageConfig = {
                                             id: 'hospital-profile-address',
                                             type: 'input',
                                             config: {
-                                              label: 'Address *',
+                                              labelI18nKey: 'profilePage.fields.address',
                                               inputType: 'textarea',
                                               rows: 3,
                                               mapping: { packageName: 'hospital', key: 'ProfileForm', property: 'address' },
@@ -385,7 +321,7 @@ export const hospitalProfilePage: PageConfig = {
                                             id: 'hospital-profile-save',
                                             type: 'button',
                                             config: {
-                                              text: 'Save',
+                                              i18nKey: 'common.save',
                                               styles: { styleTemplate: 'hosp.popup.button.primary' },
                                               click: { actionId: 'save-user-profile' }
                                             }
@@ -407,7 +343,7 @@ export const hospitalProfilePage: PageConfig = {
                                       id: 'hospital-profile-inactive-heading',
                                       type: 'text',
                                       config: {
-                                        text: 'Inactive account',
+                                        i18nKey: 'profilePage.inactiveHeading',
                                         styles: { utilityClasses: 'text-lg font-semibold text-slate-900' }
                                       }
                                     },
@@ -415,7 +351,7 @@ export const hospitalProfilePage: PageConfig = {
                                       id: 'hospital-profile-inactive-copy',
                                       type: 'text',
                                       config: {
-                                        text: 'Deactivating will sign you out immediately. You will not be able to log in again until an administrator reactivates your account.',
+                                        i18nKey: 'profilePage.inactiveCopy',
                                         styles: { utilityClasses: 'text-sm leading-relaxed text-slate-600' }
                                       }
                                     },
@@ -423,7 +359,7 @@ export const hospitalProfilePage: PageConfig = {
                                       id: 'hospital-profile-deactivate',
                                       type: 'button',
                                       config: {
-                                        text: 'Deactivate my account',
+                                        i18nKey: 'profilePage.deactivateButton',
                                         styles: {
                                           utilityClasses:
                                             'self-start rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700'

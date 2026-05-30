@@ -4305,6 +4305,7 @@ export const hospitalPages: PageConfig[] = [
                   acceptSupportRequestAction: { actionId: 'chat-support-accept' },
                   rejectSupportRequestAction: { actionId: 'chat-support-reject' },
                   sendMessageAction: { actionId: 'chat-send-message' },
+                  editMessageAction: { actionId: 'chat-edit-message' },
                   supportUserId: 'support',
                   autoStart: false,
                   termsUrl: '/terms'
@@ -4428,6 +4429,7 @@ export const hospitalPages: PageConfig[] = [
                   acceptSupportRequestAction: { actionId: 'chat-support-accept' },
                   rejectSupportRequestAction: { actionId: 'chat-support-reject' },
                   sendMessageAction: { actionId: 'chat-send-message' },
+                  editMessageAction: { actionId: 'chat-edit-message' },
                   supportUserId: 'support',
                   autoStart: false,
                   embedded: true,

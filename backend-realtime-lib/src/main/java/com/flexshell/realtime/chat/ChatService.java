@@ -2,70 +2,30 @@ package com.flexshell.realtime.chat;
 
 import com.flexshell.compliance.PhiRetentionPolicy;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.data.mongodb.core.FindAndModifyOptions;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class ChatService {
-    private final ObjectProvider<ChatRoomRepository> roomRepositoryProvider;
-    private final ObjectProvider<ChatMessageRepository> messageRepositoryProvider;
-    private final ObjectProvider<ChatAckRepository> ackRepositoryProvider;
-    private final ObjectProvider<MongoTemplate> mongoTemplateProvider;
+    private final ObjectProvider<ChatPersistence> chatPersistenceProvider;
     private final PhiRetentionPolicy retentionPolicy;
 
-    public ChatService(
-            ObjectProvider<ChatRoomRepository> roomRepositoryProvider,
-            ObjectProvider<ChatMessageRepository> messageRepositoryProvider,
-            ObjectProvider<ChatAckRepository> ackRepositoryProvider,
-            ObjectProvider<MongoTemplate> mongoTemplateProvider,
-            PhiRetentionPolicy retentionPolicy
-    ) {
-        this.roomRepositoryProvider = roomRepositoryProvider;
-        this.messageRepositoryProvider = messageRepositoryProvider;
-        this.ackRepositoryProvider = ackRepositoryProvider;
-        this.mongoTemplateProvider = mongoTemplateProvider;
+    public ChatService(ObjectProvider<ChatPersistence> chatPersistenceProvider, PhiRetentionPolicy retentionPolicy) {
+        this.chatPersistenceProvider = chatPersistenceProvider;
         this.retentionPolicy = retentionPolicy;
     }
 
-    private ChatRoomRepository rooms() {
-        ChatRoomRepository r = roomRepositoryProvider.getIfAvailable();
-        if (r == null) {
+    private ChatPersistence persistence() {
+        ChatPersistence p = chatPersistenceProvider.getIfAvailable();
+        if (p == null) {
             throw new IllegalStateException("Chat persistence is unavailable");
         }
-        return r;
-    }
-
-    private ChatMessageRepository messages() {
-        ChatMessageRepository r = messageRepositoryProvider.getIfAvailable();
-        if (r == null) {
-            throw new IllegalStateException("Chat persistence is unavailable");
-        }
-        return r;
-    }
-
-    private ChatAckRepository acks() {
-        ChatAckRepository r = ackRepositoryProvider.getIfAvailable();
-        if (r == null) {
-            throw new IllegalStateException("Chat persistence is unavailable");
-        }
-        return r;
-    }
-
-    private MongoTemplate mongo() {
-        MongoTemplate t = mongoTemplateProvider.getIfAvailable();
-        if (t == null) {
-            throw new IllegalStateException("MongoDB template is unavailable");
-        }
-        return t;
+        return p;
     }
 
     public ChatRoomEntity ensureDirectRoom(String userA, String userB) {
@@ -75,8 +35,7 @@ public class ChatService {
         List<String> participants = List.of(a, b).stream().distinct().sorted().toList();
         if (participants.size() != 2) throw new IllegalArgumentException("Invalid participants");
 
-        ChatRoomRepository roomRepository = rooms();
-        List<ChatRoomEntity> rooms = roomRepository.findByParticipantsContaining(a).stream()
+        List<ChatRoomEntity> rooms = persistence().findRoomsByParticipant(a).stream()
                 .filter(r -> r.getParticipants() != null && r.getParticipants().size() == 2
                         && r.getParticipants().containsAll(participants))
                 .toList();
@@ -91,21 +50,29 @@ public class ChatService {
         room.setNextSequence(0L);
         room.setCreatedTimestamp(Instant.now());
         room.setUpdatedTimestamp(Instant.now());
-        return rooms().save(room);
+        return persistence().saveRoom(room);
     }
 
     public List<ChatRoomEntity> listRoomsForUser(String userId) {
         String u = normalize(userId);
         if (u.isEmpty()) return List.of();
-        return rooms().findByParticipantsContaining(u);
+        return persistence().findRoomsByParticipant(u);
     }
 
     public List<ChatMessageEntity> loadRecentMessages(String roomId) {
         String rid = normalize(roomId);
         if (rid.isEmpty()) return List.of();
-        List<ChatMessageEntity> recent = messages().findTop50ByRoomIdOrderBySequenceNumberDesc(rid);
-        recent.sort(Comparator.comparingLong(ChatMessageEntity::getSequenceNumber));
-        return recent;
+        return persistence().findRecentMessages(rid, 50).stream()
+                .sorted(Comparator.comparingLong(ChatMessageEntity::getSequenceNumber))
+                .toList();
+    }
+
+    public List<String> roomParticipants(String roomId) {
+        String rid = normalize(roomId);
+        if (rid.isEmpty()) return List.of();
+        return persistence().findRoomById(rid)
+                .map(room -> room.getParticipants() == null ? List.<String>of() : List.copyOf(room.getParticipants()))
+                .orElse(List.of());
     }
 
     public ChatMessageEntity sendMessage(String roomId, String senderId, String body, String clientMessageId) {
@@ -114,12 +81,28 @@ public class ChatService {
         String text = body == null ? "" : body.trim();
         if (rid.isEmpty() || sid.isEmpty() || text.isEmpty()) throw new IllegalArgumentException("Invalid message");
 
-        ChatRoomEntity room = rooms().findById(rid).orElseThrow(() -> new IllegalArgumentException("Room not found"));
+        ChatRoomEntity room = persistence().findRoomById(rid).orElseThrow(() -> new IllegalArgumentException("Room not found"));
         if (room.getParticipants() == null || !room.getParticipants().contains(sid)) {
             throw new IllegalStateException("Not a participant in this room");
         }
 
-        long seq = nextSequence(rid);
+        String cmid = normalize(clientMessageId);
+        if (!cmid.isEmpty()) {
+            Optional<ChatMessageEntity> existing = persistence().findMessageByRoomAndClientMessageId(rid, cmid);
+            if (existing.isPresent()) {
+                ChatMessageEntity msg = existing.get();
+                if (!sid.equals(normalize(msg.getSenderId()))) {
+                    throw new IllegalStateException("Not permitted to update this message");
+                }
+                if (text.equals(String.valueOf(msg.getBody()).trim())) {
+                    return msg;
+                }
+                msg.setBody(text);
+                return persistence().saveMessage(msg);
+            }
+        }
+
+        long seq = persistence().incrementRoomSequence(rid);
         ChatMessageEntity msg = new ChatMessageEntity();
         msg.setRoomId(rid);
         msg.setSenderId(sid);
@@ -128,7 +111,7 @@ public class ChatService {
         msg.setSequenceNumber(seq);
         msg.setCreatedTimestamp(Instant.now());
         msg.setExpiresAt(retentionPolicy.expiresAtFromNow());
-        return messages().save(msg);
+        return persistence().saveMessage(msg);
     }
 
     public void ack(String roomId, String userId, long upToSequenceNumber) {
@@ -137,31 +120,15 @@ public class ChatService {
         if (rid.isEmpty() || uid.isEmpty()) return;
         if (upToSequenceNumber <= 0) return;
 
-        ChatAckEntity ack = acks().findByRoomIdAndUserId(rid, uid).orElseGet(ChatAckEntity::new);
+        ChatAckEntity ack = persistence().findAck(rid, uid).orElseGet(ChatAckEntity::new);
         ack.setRoomId(rid);
         ack.setUserId(uid);
         ack.setUpToSequenceNumber(Math.max(ack.getUpToSequenceNumber(), upToSequenceNumber));
         ack.setUpdatedTimestamp(Instant.now());
-        acks().save(ack);
-    }
-
-    private long nextSequence(String roomId) {
-        Query q = new Query(Criteria.where("_id").is(roomId));
-        Update u = new Update()
-                .inc("NextSequence", 1)
-                .set("UpdatedTimestamp", Instant.now());
-        ChatRoomEntity updated = mongo().findAndModify(
-                q,
-                u,
-                FindAndModifyOptions.options().returnNew(true),
-                ChatRoomEntity.class
-        );
-        if (updated == null) throw new IllegalStateException("Unable to increment sequence");
-        return updated.getNextSequence();
+        persistence().saveAck(ack);
     }
 
     private String normalize(String value) {
         return Objects.toString(value, "").trim();
     }
 }
-

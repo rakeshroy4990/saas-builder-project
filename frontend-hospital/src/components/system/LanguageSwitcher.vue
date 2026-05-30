@@ -28,6 +28,7 @@ async function onSelectChange(ev: Event) {
   const next = raw as LocaleCode;
   await setAppLocale(next);
   appStore.setProperty('hospital', 'AuthSession', 'preferredLocale', next);
+  appStore.setProperty('hospital', 'ProfileForm', 'preferredLocale', next);
   persistAuthSessionProfile({ preferredLocale: next });
   const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
   const userId = String(session.userId ?? '').trim();

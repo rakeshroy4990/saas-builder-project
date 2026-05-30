@@ -2,10 +2,7 @@ package com.flexshell.realtime.chat.ws;
 
 import com.flexshell.compliance.AuditLogService;
 import com.flexshell.realtime.chat.ChatMessageEntity;
-import com.flexshell.realtime.chat.ChatRoomEntity;
-import com.flexshell.realtime.chat.ChatRoomRepository;
 import com.flexshell.realtime.chat.ChatService;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
@@ -17,18 +14,15 @@ import java.util.Map;
 @Controller
 public class ChatWsController {
     private final ChatService chatService;
-    private final ObjectProvider<ChatRoomRepository> roomRepositoryProvider;
     private final SimpMessagingTemplate messagingTemplate;
     private final AuditLogService auditLogService;
 
     public ChatWsController(
             ChatService chatService,
-            ObjectProvider<ChatRoomRepository> roomRepositoryProvider,
             SimpMessagingTemplate messagingTemplate,
             AuditLogService auditLogService
     ) {
         this.chatService = chatService;
-        this.roomRepositoryProvider = roomRepositoryProvider;
         this.messagingTemplate = messagingTemplate;
         this.auditLogService = auditLogService;
     }
@@ -39,14 +33,12 @@ public class ChatWsController {
         ChatMessageEntity saved = chatService.sendMessage(request.getRoomId(), userId, request.getBody(), request.getClientMessageId());
         auditLogService.log(userId, "CHAT_MESSAGE_SENT", "ChatRoom", saved.getRoomId(), Map.of("sequence", saved.getSequenceNumber()));
 
-        ChatRoomRepository roomRepository = roomRepositoryProvider.getIfAvailable();
-        ChatRoomEntity room = roomRepository == null ? null
-                : roomRepository.findById(saved.getRoomId()).orElse(null);
-        List<String> participants = room == null ? List.of() : (room.getParticipants() == null ? List.of() : room.getParticipants());
+        List<String> participants = chatService.roomParticipants(saved.getRoomId());
         ChatMessageEvent event = toEvent(saved);
 
         for (String participant : participants) {
-            messagingTemplate.convertAndSendToUser(participant, "/queue/chat", event);
+            if (participant == null || participant.isBlank()) continue;
+            messagingTemplate.convertAndSendToUser(participant.trim(), "/queue/chat", event);
         }
     }
 
@@ -69,4 +61,3 @@ public class ChatWsController {
         return event;
     }
 }
-

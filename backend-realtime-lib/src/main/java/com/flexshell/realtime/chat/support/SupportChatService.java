@@ -3,57 +3,43 @@ package com.flexshell.realtime.chat.support;
 import com.flexshell.realtime.chat.ChatRoomEntity;
 import com.flexshell.realtime.chat.ChatService;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.data.mongodb.core.FindAndModifyOptions;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class SupportChatService {
-    private final ObjectProvider<SupportRequestRepository> supportRequestRepositoryProvider;
+    private final ObjectProvider<SupportChatPersistence> supportChatPersistenceProvider;
     private final SupportAgentPicker agentPicker;
     private final SupportRequesterProfileResolver requesterProfileResolver;
     private final SimpMessagingTemplate messagingTemplate;
-    private final ObjectProvider<MongoTemplate> mongoTemplateProvider;
     private final ChatService chatService;
 
     public SupportChatService(
-            ObjectProvider<SupportRequestRepository> supportRequestRepositoryProvider,
+            ObjectProvider<SupportChatPersistence> supportChatPersistenceProvider,
             SupportAgentPicker agentPicker,
             SupportRequesterProfileResolver requesterProfileResolver,
             SimpMessagingTemplate messagingTemplate,
-            ObjectProvider<MongoTemplate> mongoTemplateProvider,
             ChatService chatService
     ) {
-        this.supportRequestRepositoryProvider = supportRequestRepositoryProvider;
+        this.supportChatPersistenceProvider = supportChatPersistenceProvider;
         this.agentPicker = agentPicker;
         this.requesterProfileResolver = requesterProfileResolver;
         this.messagingTemplate = messagingTemplate;
-        this.mongoTemplateProvider = mongoTemplateProvider;
         this.chatService = chatService;
     }
 
-    private SupportRequestRepository requests() {
-        SupportRequestRepository r = supportRequestRepositoryProvider.getIfAvailable();
-        if (r == null) {
+    private SupportChatPersistence persistence() {
+        SupportChatPersistence p = supportChatPersistenceProvider.getIfAvailable();
+        if (p == null) {
             throw new IllegalStateException("Support chat persistence is unavailable");
         }
-        return r;
-    }
-
-    private MongoTemplate mongo() {
-        MongoTemplate t = mongoTemplateProvider.getIfAvailable();
-        if (t == null) {
-            throw new IllegalStateException("MongoDB template is unavailable");
-        }
-        return t;
+        return p;
     }
 
     public SupportRequestEntity createRequest(String requesterUserId) {
@@ -65,7 +51,7 @@ public class SupportChatService {
         req.setStatus(SupportRequestStatus.OPEN);
         req.setCreatedTimestamp(Instant.now());
         req.setUpdatedTimestamp(Instant.now());
-        SupportRequestEntity saved = requests().save(req);
+        SupportRequestEntity saved = persistence().save(req);
 
         List<String> onlineAgents = agentPicker.listOnlineAgentUserIds();
         String requesterDisplayName = requesterProfileResolver.resolveDisplayName(requester);
@@ -79,26 +65,15 @@ public class SupportChatService {
 
     /**
      * First-wins claim: only one agent can assign an OPEN request.
+     * Idempotent when the same agent retries after a partial failure (request already ASSIGNED to them).
      */
+    @Transactional
     public ChatRoomEntity acceptRequest(String requestId, String agentUserId) {
         String rid = normalize(requestId);
         String agent = normalize(agentUserId);
         if (rid.isEmpty() || agent.isEmpty()) throw new IllegalArgumentException("Missing accept details");
 
-        Query q = new Query(Criteria.where("_id").is(rid).and("Status").is(SupportRequestStatus.OPEN));
-        Update u = new Update()
-                .set("Status", SupportRequestStatus.ASSIGNED)
-                .set("AssignedAgentUserId", agent)
-                .set("UpdatedTimestamp", Instant.now());
-        SupportRequestEntity claimed = mongo().findAndModify(
-                q,
-                u,
-                FindAndModifyOptions.options().returnNew(true),
-                SupportRequestEntity.class
-        );
-        if (claimed == null) {
-            throw new IllegalStateException("Request already claimed");
-        }
+        SupportRequestEntity claimed = resolveClaimedRequest(rid, agent);
 
         String requester = normalize(claimed.getRequesterUserId());
         ChatRoomEntity room = chatService.ensureDirectRoom(requester, agent);
@@ -121,20 +96,8 @@ public class SupportChatService {
         String agent = normalize(agentUserId);
         if (rid.isEmpty() || agent.isEmpty()) throw new IllegalArgumentException("Missing reject details");
 
-        Query q = new Query(Criteria.where("_id").is(rid).and("Status").is(SupportRequestStatus.OPEN));
-        Update u = new Update()
-                .set("Status", SupportRequestStatus.CLOSED)
-                .set("AssignedAgentUserId", agent)
-                .set("UpdatedTimestamp", Instant.now());
-        SupportRequestEntity closed = mongo().findAndModify(
-                q,
-                u,
-                FindAndModifyOptions.options().returnNew(true),
-                SupportRequestEntity.class
-        );
-        if (closed == null) {
-            throw new IllegalStateException("Request already handled");
-        }
+        SupportRequestEntity closed = persistence().closeOpenRequest(rid, agent)
+                .orElseThrow(() -> new IllegalStateException("Request already handled"));
 
         String requester = normalize(closed.getRequesterUserId());
         String requesterDisplayName = requesterProfileResolver.resolveDisplayName(requester);
@@ -148,7 +111,7 @@ public class SupportChatService {
     }
 
     public List<SupportRequestView> listOpenRequests() {
-        return requests().findTop20ByStatusOrderByCreatedTimestampDesc(SupportRequestStatus.OPEN)
+        return persistence().listOpenRequests(20)
                 .stream()
                 .map(req -> new SupportRequestView(
                         req.getId(),
@@ -158,8 +121,21 @@ public class SupportChatService {
                 .toList();
     }
 
+    private SupportRequestEntity resolveClaimedRequest(String requestId, String agentUserId) {
+        Optional<SupportRequestEntity> claimed = persistence().claimOpenRequest(requestId, agentUserId);
+        if (claimed.isPresent()) {
+            return claimed.get();
+        }
+        SupportRequestEntity existing = persistence().findRequestById(requestId)
+                .orElseThrow(() -> new IllegalStateException("Support request not found"));
+        if (existing.getStatus() == SupportRequestStatus.ASSIGNED
+                && agentUserId.equals(normalize(existing.getAssignedAgentUserId()))) {
+            return existing;
+        }
+        throw new IllegalStateException("Request already claimed");
+    }
+
     private String normalize(String v) {
         return Objects.toString(v, "").trim();
     }
 }
-

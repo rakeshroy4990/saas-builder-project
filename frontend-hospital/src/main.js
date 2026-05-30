@@ -11,6 +11,8 @@ import { pinia } from './store/pinia'
 import { hasPersistedAuthSessionProfile, hydrateAuthSessionProfile } from './services/auth/authSessionStore'
 import { ensureLoginSessionIdForPersistedAuth } from './services/logging/loginSessionContext'
 import { bootstrapSessionCookiesFromRefresh } from './services/auth/sessionCookieBootstrap'
+import { ensureHospitalAdminSupportInboxReady } from './services/domain/hospital/chat/chatServices'
+import { useAppStore } from './store/useAppStore'
 import { initFirebaseAnalytics } from './services/analytics/firebaseAnalytics'
 import { initSessionSummaryNavigation } from './services/analytics/sessionSummary'
 import { initSentry } from './services/observability/sentry'
@@ -25,6 +27,14 @@ async function start() {
   if (hasPersistedAuthSessionProfile()) {
     ensureLoginSessionIdForPersistedAuth()
     await bootstrapSessionCookiesFromRefresh()
+    const appStore = useAppStore(pinia)
+    const session = appStore.getData('hospital', 'AuthSession') ?? {}
+    if (
+      String(session.userId ?? '').trim() &&
+      String(session.role ?? '').trim().toUpperCase() === 'ADMIN'
+    ) {
+      void ensureHospitalAdminSupportInboxReady().catch(() => {})
+    }
   }
   bindHttpRouter(router)
   initSessionSummaryNavigation(router)

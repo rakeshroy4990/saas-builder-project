@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { usePopupStore } from '../../store/usePopupStore';
@@ -14,6 +15,18 @@ import { ActionEngine } from '../../core/engine/ActionEngine';
 import { messageLooksLikeRequestTimeout } from '../../services/http/httpUserFacingErrors';
 
 const popupStore = usePopupStore(pinia);
+const {
+  isOpen: popupIsOpen,
+  isError: popupIsError,
+  inlineErrorMessage: popupInlineErrorMessage,
+  errorMessage: popupErrorMessage,
+  activeRequest: popupActiveRequest,
+  packageName: popupPackageName,
+  pageId: popupPageId,
+  title: popupTitle,
+  activePackageName: popupActivePackageName,
+  activePageId: popupActivePageId
+} = storeToRefs(popupStore);
 const router = useRouter();
 const { t } = useI18n();
 
@@ -24,13 +37,13 @@ const normalizePopupValue = (value: string | undefined, fallback: string) => {
 };
 
 const activePopupRequest = computed(() => {
-  const req = popupStore.activeRequest;
+  const req = popupActiveRequest.value;
   if (req) return req;
   // Backward-compatible fallback if store was initialized before activeRequest existed.
   return {
-    packageName: popupStore.activePackageName ?? popupStore.packageName,
-    pageId: popupStore.activePageId ?? popupStore.pageId,
-    title: popupStore.title
+    packageName: popupActivePackageName.value ?? popupPackageName.value,
+    pageId: popupActivePageId.value ?? popupPageId.value,
+    title: popupTitle.value
   };
 });
 
@@ -52,7 +65,7 @@ const resolvePopupPage = (packageName: string, pageId: string, title?: string) =
 
 const pageConfig = computed(() => {
   void pageRegistryRevision.value;
-  if (!popupStore.isOpen || popupStore.isError) return null;
+  if (!popupIsOpen.value || popupIsError.value) return null;
 
   const packageName = normalizePopupValue(activePopupRequest.value.packageName, 'hospital');
   const pageId = normalizePopupValue(activePopupRequest.value.pageId, '');
@@ -92,7 +105,7 @@ function onBackdropMouseDown(): void {
 }
 
 const normalizedPopupErrorMessage = computed(() => {
-  const raw = String(popupStore.errorMessage ?? '').trim();
+  const raw = String(popupErrorMessage.value ?? '').trim();
   if (!raw) {
     return t('popup.error.generic');
   }
@@ -118,8 +131,8 @@ let lastInitializedPopupKey = '';
 watch(
   () =>
     [
-      popupStore.isOpen,
-      popupStore.isError,
+      popupIsOpen.value,
+      popupIsError.value,
       normalizePopupValue(activePopupRequest.value.packageName, 'hospital'),
       normalizePopupValue(activePopupRequest.value.pageId, ''),
       pageConfig.value
@@ -145,7 +158,7 @@ watch(
 );
 
 const popupPageRootId = computed(() => {
-  if (!popupStore.isOpen || popupStore.isError) return 'system-popup-page';
+  if (!popupIsOpen.value || popupIsError.value) return 'system-popup-page';
 
   const packageName = normalizePopupValue(activePopupRequest.value.packageName, 'hospital');
   const pageId = normalizePopupValue(activePopupRequest.value.pageId, '');
@@ -192,7 +205,7 @@ const resolveSecondaryButton = (): HTMLButtonElement | null => {
 };
 
 const onGlobalKeydown = (event: KeyboardEvent): void => {
-  if (!popupStore.isOpen) return;
+  if (!popupIsOpen.value) return;
   const target = event.target as HTMLElement | null;
   const isTypingField = Boolean(
     target &&
@@ -228,7 +241,7 @@ const onGlobalKeydown = (event: KeyboardEvent): void => {
 };
 
 watch(
-  () => popupStore.isOpen,
+  popupIsOpen,
   async (isOpen) => {
     if (isOpen) {
       window.addEventListener('keydown', onGlobalKeydown);
@@ -248,13 +261,13 @@ onBeforeUnmount(() => {
 <template>
   <Teleport to="body">
     <div
-      v-if="popupStore.isOpen && !isChatPopup"
+      v-if="popupIsOpen && !isChatPopup"
       id="system-popup-backdrop"
       :class="backdropClass"
       @click.self="onBackdropMouseDown"
     >
       <div id="system-popup-panel" :class="panelClass" tabindex="-1">
-        <template v-if="popupStore.isError">
+        <template v-if="popupIsError">
           <h2 id="system-popup-error-title" :class="errorTitleClass">{{ t('popup.error.title') }}</h2>
           <p id="system-popup-error-body" :class="errorBodyClass">{{ normalizedPopupErrorMessage }}</p>
           <button
@@ -273,13 +286,13 @@ onBeforeUnmount(() => {
             :html-id="popupPageRootId"
           />
           <p
-            v-if="popupStore.inlineErrorMessage"
+            v-if="popupInlineErrorMessage"
             id="system-popup-inline-error"
             role="alert"
             aria-live="assertive"
             :class="inlineErrorClass"
           >
-            {{ popupStore.inlineErrorMessage }}
+            {{ popupInlineErrorMessage }}
           </p>
         </template>
         <template v-else>
@@ -293,13 +306,13 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-else-if="popupStore.isOpen && isChatPopup" id="system-popup-chat-backdrop">
+    <div v-else-if="popupIsOpen && isChatPopup" id="system-popup-chat-backdrop">
       <div
         id="system-popup-panel"
         :class="resolveStyle({ styleTemplate: 'system.popup.panel.chatWidget' })"
         tabindex="-1"
       >
-        <template v-if="popupStore.isError">
+        <template v-if="popupIsError">
           <h2 id="system-popup-error-title" :class="errorTitleClass">{{ t('popup.error.title') }}</h2>
           <p id="system-popup-error-body" :class="errorBodyClass">{{ normalizedPopupErrorMessage }}</p>
           <button
@@ -318,13 +331,13 @@ onBeforeUnmount(() => {
             :html-id="popupPageRootId"
           />
           <p
-            v-if="popupStore.inlineErrorMessage"
+            v-if="popupInlineErrorMessage"
             id="system-popup-inline-error"
             role="alert"
             aria-live="assertive"
             :class="inlineErrorClass"
           >
-            {{ popupStore.inlineErrorMessage }}
+            {{ popupInlineErrorMessage }}
           </p>
         </template>
         <template v-else>

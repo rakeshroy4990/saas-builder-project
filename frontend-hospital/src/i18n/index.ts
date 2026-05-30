@@ -7,6 +7,7 @@ import { isSupportedLocale, type LocaleCode } from '@saas-builder/i18n-contract'
 import { useAppStore } from '../store/useAppStore';
 import { pinia } from '../store/pinia';
 import { refreshHospitalLocalizedUi } from '../services/domain/hospital/i18n/refreshLocalizedUi';
+import { refreshHospitalLocalizedChatWelcome } from '../services/domain/hospital/chat/localizedChatWelcome';
 
 const initial = readInitialLocale();
 
@@ -37,6 +38,7 @@ export async function setAppLocale(next: LocaleCode): Promise<void> {
   const composer = i18n.global as Composer;
   composer.locale.value = next;
   refreshHospitalLocalizedUi(composer);
+  refreshHospitalLocalizedChatWelcome(composer);
 }
 
 /** After session hydrate: align vue-i18n with persisted profile `preferredLocale` when supported. */

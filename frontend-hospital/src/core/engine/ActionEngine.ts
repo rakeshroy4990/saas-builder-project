@@ -11,6 +11,12 @@ import { ServiceRegistry } from '../registry/ServiceRegistry';
 import { usePopupStore } from '../../store/usePopupStore';
 import { pinia } from '../../store/pinia';
 import { logClient } from '../../services/logging/clientLogger';
+import {
+  ensureHospitalSessionOrOpenLogin,
+  hospitalPageRequiresAuth,
+  hospitalPageRoleAllowed,
+  hospitalSessionUserId
+} from '../../services/auth/hospitalLoginGate';
 
 export class ActionEngine {
   constructor(
@@ -96,7 +102,22 @@ export class ActionEngine {
 
   private navigate(nav: NavigationConfig): void {
     if (String(nav.packageName ?? '').trim().toLowerCase() === 'hospital') {
-      this.router.push(`/${nav.pageId}`);
+      const pageId = String(nav.pageId ?? '').trim();
+      if (pageId && hospitalPageRequiresAuth(pageId)) {
+        if (!hospitalSessionUserId()) {
+          ensureHospitalSessionOrOpenLogin();
+          const currentPath = String(this.router.currentRoute.value.path ?? '').trim();
+          if (currentPath !== '/home' && currentPath !== '/') {
+            void this.router.replace('/home');
+          }
+          return;
+        }
+        if (!hospitalPageRoleAllowed(pageId)) {
+          void this.router.replace('/home');
+          return;
+        }
+      }
+      this.router.push(`/${pageId}`);
       return;
     }
     this.router.push(`/${nav.packageName}/${nav.pageId}`);

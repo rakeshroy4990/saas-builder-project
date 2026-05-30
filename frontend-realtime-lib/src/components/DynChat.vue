@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { ActionConfig } from '@/core/types/ActionConfig';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveStyle } from '@/core/engine/StyleResolver';
@@ -20,6 +21,7 @@ type DynChatConfig = {
   acceptSupportRequestAction?: ActionConfig;
   rejectSupportRequestAction?: ActionConfig;
   sendMessageAction?: ActionConfig;
+  editMessageAction?: ActionConfig;
   /**
    * Used by `startChatAction` payload as `otherUserId`.
    * Default in services is a "support" placeholder.
@@ -43,66 +45,14 @@ type DynChatConfig = {
 const props = defineProps<{ config?: DynChatConfig; htmlId?: string }>();
 const emit = defineEmits<{ action: [event: { action?: ActionConfig; payload?: Record<string, unknown> }] }>();
 
-const CHAT_TEXT: Record<string, string> = {
-  'chat.title': 'Health Assistant',
-  'chat.widget.me': 'Me',
-  'chat.widget.support': 'Support',
-  'chat.widget.patient': 'Patient',
-  'chat.widget.mode.smartAi': 'Smart AI',
-  'chat.widget.mode.humanSupport': 'Human Support',
-  'chat.widget.generalGuidance': 'General health guidance only',
-  'chat.widget.safetyNoticeTitle': 'Safety notice',
-  'chat.widget.safetyNoticeBody':
-    'This is general guidance, not medical diagnosis. For emergencies, contact your nearest emergency service immediately.',
-  'chat.widget.iUnderstand': 'I understand',
-  'chat.widget.processingRequest': 'Health Assistant is processing your request...',
-  'chat.widget.incomingRequestTitle': 'Incoming chat request',
-  'chat.widget.incomingRequestSubtitle': 'An admin can accept to start a 1:1 chat.',
-  'chat.widget.waitingAcceptance': 'Waiting for acceptance',
-  'chat.widget.reject': 'Reject',
-  'chat.widget.accept': 'Accept',
-  'chat.widget.starting': 'Starting...',
-  'chat.widget.waitingAdmin': 'Waiting for Admin...',
-  'chat.widget.startChat': 'Start a Chat',
-  'chat.widget.adminHintPrefix': 'When a patient clicks',
-  'chat.widget.adminHintMiddle': 'their request appears here with',
-  'chat.widget.adminHintSuffix': 'You do not need to click Start a Chat first.',
-  'chat.widget.supportWarning': "You'll be connected to support. Please don't share passwords or sensitive info.",
-  'chat.widget.queuedMessages': 'Queued messages (will send after admin accepts)',
-  'chat.widget.sayHi': 'Say hi-support will respond here.',
-  'chat.widget.sending': 'sending...',
-  'chat.widget.message': 'Message',
-  'chat.widget.edit': 'Edit',
-  'chat.widget.assistantTyping': 'Health Assistant is typing',
-  'chat.widget.assistantProcessing': 'Health Assistant is processing',
-  'chat.widget.clickUnderstand': 'Please click I understand to continue...',
-  'chat.widget.tellSymptoms': 'Tell Health Assistant your symptoms...',
-  'chat.widget.typeMessage': 'Type a message...',
-  'chat.widget.send': 'Send',
-  'chat.widget.resend': 'Resend after timeout',
-  'chat.widget.resendAria': 'Resend this message after a timeout',
-  'chat.widget.quickPrompts.fever': 'I have fever for 2 days',
-  'chat.widget.quickPrompts.coldCough': 'I have cold and cough',
-  'chat.widget.quickPrompts.stomachPain': 'I have stomach pain after eating',
-  'chat.widget.quickPrompts.childCough': 'My child has cough',
-  'chat.widget.quickPills.fever': 'Fever',
-  'chat.widget.quickPills.coldCough': 'Cold & cough',
-  'chat.widget.quickPills.stomachPain': 'Stomach pain',
-  'chat.widget.quickPills.childCough': 'Child Cough',
-  'common.save': 'Save',
-  'common.cancel': 'Cancel'
-};
-
-const t = (key: string): string => CHAT_TEXT[key] ?? key;
+const { t, locale } = useI18n();
 
 const packageName = computed(() => props.config?.packageName ?? 'hospital');
 const storeKey = computed(() => props.config?.storeKey ?? 'Chat');
 const appStore = useAppStore();
 
 const chat = computed(() => (appStore.getData(packageName.value, storeKey.value) ?? {}) as Record<string, unknown>);
-const chatMode = computed(() => String(chat.value.mode ?? (props.config?.enableSmartAi ? 'smart_ai' : 'human')).trim().toLowerCase());
 const smartAiEnabled = computed(() => Boolean(props.config?.enableSmartAi));
-const smartAiMode = computed(() => smartAiEnabled.value && chatMode.value === 'smart_ai');
 const chatStatus = computed(() => String(chat.value.status ?? '').trim());
 const isWaitingForAdmin = computed(() => chatStatus.value === 'waiting_for_admin');
 const activeRoomId = computed(() => String(chat.value.activeRoomId ?? '').trim());
@@ -111,6 +61,9 @@ const pendingMessages = computed(() => {
   const arr = (chat.value.pendingMessages ?? []) as unknown;
   return Array.isArray(arr) ? (arr as any[]) : [];
 });
+const typedPendingMessages = computed(() =>
+  pendingMessages.value.filter((m) => String(m?.body ?? '').trim().length > 0)
+);
 const supportRequests = computed(() => {
   const arr = (chat.value.supportRequests ?? []) as unknown;
   return Array.isArray(arr) ? (arr as any[]) : [];
@@ -119,6 +72,21 @@ const authSession = computed(() => (appStore.getData(packageName.value, 'AuthSes
 const myUserId = computed(() => String(authSession.value.userId ?? '').trim());
 const myRole = computed(() => String(authSession.value.role ?? '').trim().toUpperCase());
 const isAdmin = computed(() => myRole.value === 'ADMIN');
+const chatMode = computed(() => {
+  const stored = String(chat.value.mode ?? '').trim().toLowerCase();
+  if (stored) return stored;
+  if (!smartAiEnabled.value) return 'human';
+  const rid = String(chat.value.activeRoomId ?? '').trim();
+  if (rid && rid !== 'smart-ai') return 'human';
+  const humanRoomId = String(chat.value.humanActiveRoomId ?? '').trim();
+  if (humanRoomId) return 'human';
+  const status = String(chat.value.status ?? '').trim();
+  if (status === 'waiting_for_admin' || status === 'starting' || status === 'connecting') return 'human';
+  const reqs = chat.value.supportRequests;
+  if (isAdmin.value && Array.isArray(reqs) && reqs.length > 0) return 'human';
+  return 'smart_ai';
+});
+const smartAiMode = computed(() => smartAiEnabled.value && chatMode.value === 'smart_ai');
 const myDisplayName = computed(() => {
   const fullName = String(authSession.value.fullName ?? '').trim();
   if (fullName) return fullName;
@@ -130,12 +98,15 @@ const myDisplayName = computed(() => {
 });
 const aiDisclaimerVisible = computed(() => Boolean(chat.value.aiDisclaimerVisible));
 const aiProcessing = computed(() => Boolean(chat.value.aiProcessing));
-const smartAiQuickPrompts = [
-  t('chat.widget.quickPrompts.fever'),
-  t('chat.widget.quickPrompts.coldCough'),
-  t('chat.widget.quickPrompts.stomachPain'),
-  t('chat.widget.quickPrompts.childCough')
-];
+const smartAiQuickPrompts = computed(() => {
+  void locale.value;
+  return [
+    t('chat.widget.quickPrompts.fever'),
+    t('chat.widget.quickPrompts.coldCough'),
+    t('chat.widget.quickPrompts.stomachPain'),
+    t('chat.widget.quickPrompts.childCough')
+  ];
+});
 
 const looksLikeMongoId = (value: string): boolean => /^[a-f0-9]{24}$/i.test(value);
 
@@ -236,6 +207,7 @@ const activeMessages = computed(() => {
 
 const draft = ref('');
 const messagesScrollEl = ref<HTMLElement | null>(null);
+const inlineEditInputEl = ref<HTMLInputElement | null>(null);
 const processingDots = ref('.');
 let processingDotsTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -275,6 +247,7 @@ watch(
 
 const activeInlineEditKey = ref('');
 const inlineEditText = ref('');
+const editingMessage = ref<any | null>(null);
 const rootClass = computed(() =>
   resolveStyle({ utilityClasses: props.config?.styles?.utilityClasses ?? 'w-full' })
 );
@@ -344,6 +317,10 @@ onBeforeUnmount(() => {
 });
 
 const send = async () => {
+  if (activeInlineEditKey.value) {
+    await commitInlineEdit();
+    return;
+  }
   await sendBody(draft.value.trim());
 };
 
@@ -352,6 +329,7 @@ const sendBody = async (body: string) => {
   if (!body) return;
   if (smartAiMode.value && aiDisclaimerVisible.value) return;
   if (!smartAiMode.value && !rid && !isWaitingForAdmin.value && chatStatus.value !== 'starting' && chatStatus.value !== 'connecting') return;
+  cancelInlineEdit();
   draft.value = '';
   if (smartAiMode.value && props.config?.aiSendMessageAction) {
     emit('action', {
@@ -388,14 +366,56 @@ const canSendNow = computed(() => {
   );
 });
 
-const messageKey = (m: any): string =>
-  String(m?.messageId ?? m?.clientMessageId ?? `${m?.senderId ?? ''}-${m?.createdTimestamp ?? ''}`);
+const composerText = computed({
+  get: () => (activeInlineEditKey.value ? inlineEditText.value : draft.value),
+  set: (value: string) => {
+    if (activeInlineEditKey.value) inlineEditText.value = value;
+    else draft.value = value;
+  }
+});
+
+const canSubmitComposer = computed(() => {
+  if (!canSendNow.value) return false;
+  const text = activeInlineEditKey.value ? inlineEditText.value.trim() : draft.value.trim();
+  return text.length > 0;
+});
+
+const messageKey = (m: any): string => {
+  const messageId = String(m?.messageId ?? '').trim();
+  if (messageId) return messageId;
+  const clientMessageId = String(m?.clientMessageId ?? '').trim();
+  if (clientMessageId) return clientMessageId;
+  return `${String(m?.senderId ?? '').trim()}-${String(m?.createdTimestamp ?? '').trim()}`;
+};
+
+const isEditingMessage = (m: any): boolean =>
+  Boolean(activeInlineEditKey.value) && activeInlineEditKey.value === messageKey(m);
+
+const humanMessageBubbleClass = 'bg-white text-slate-900 border border-slate-200';
+
+const messageBubbleClass = (m: any): string => {
+  if (!smartAiMode.value) return humanMessageBubbleClass;
+  return isMine(m) ? 'bg-emerald-600 text-white' : humanMessageBubbleClass;
+};
+
+const editIconButtonClass = (m: any): string =>
+  smartAiMode.value && isMine(m)
+    ? 'text-white/90 hover:bg-white/20 focus:ring-white/60'
+    : 'text-slate-500 hover:bg-slate-100 focus:ring-slate-200';
+
+const canEditMessage = (m: any): boolean => {
+  if (smartAiMode.value || !isMine(m)) return false;
+  const body = String(m?.body ?? '').trim();
+  return body.length > 0;
+};
 
 const editMessage = (m: any) => {
   const body = String(m?.body ?? '').trim();
   if (!body) return;
+  editingMessage.value = m;
   activeInlineEditKey.value = messageKey(m);
   inlineEditText.value = body;
+  void nextTick(() => inlineEditInputEl.value?.focus());
 };
 
 const resendMessage = (m: any) => {
@@ -418,18 +438,38 @@ const resendMessage = (m: any) => {
 const cancelInlineEdit = () => {
   activeInlineEditKey.value = '';
   inlineEditText.value = '';
+  editingMessage.value = null;
 };
 
-const sendInlineEdit = (m: any) => {
-  if (!canSendNow.value) return;
+const commitInlineEdit = async () => {
+  if (!canSendNow.value || !activeInlineEditKey.value || !editingMessage.value) return;
   const body = inlineEditText.value.trim();
   if (!body) return;
+  const m = editingMessage.value;
+  const original = String(m?.body ?? '').trim();
+  if (body === original) {
+    cancelInlineEdit();
+    return;
+  }
+  const editAction = props.config?.editMessageAction ?? props.config?.sendMessageAction;
+  if (!editAction) return;
+  const clientMessageId = String(m?.clientMessageId ?? '').trim();
+  const messageId = String(m?.messageId ?? '').trim();
   emit('action', {
-    action: props.config?.sendMessageAction,
-    payload: { roomId: activeRoomId.value, body, clientMessageId: crypto.randomUUID() }
+    action: editAction,
+    payload: {
+      roomId: activeRoomId.value,
+      body,
+      clientMessageId: clientMessageId || undefined,
+      messageId: messageId || undefined,
+      messageKey: messageKey(m)
+    }
   });
-  // Keep original message immutable; edited text is sent as a new message.
   cancelInlineEdit();
+};
+
+const sendInlineEdit = async () => {
+  await commitInlineEdit();
 };
 </script>
 
@@ -438,22 +478,38 @@ const sendInlineEdit = (m: any) => {
     <div :class="shellClass">
       <div
         v-if="smartAiEnabled"
-        class="sticky top-0 z-20 shrink-0 border-b border-slate-200 bg-white/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/85 sm:px-4"
+        class="sticky top-0 z-20 shrink-0 border-b border-slate-200 bg-white/95 px-4 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-white/85"
       >
-        <div class="flex items-center justify-end">
-          <div class="flex items-center gap-1 rounded-full bg-slate-100 p-1">
+        <div class="flex items-center justify-center sm:justify-end">
+          <div
+            class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 p-1"
+            role="tablist"
+            :aria-label="t('chat.widget.mode.smartAi')"
+          >
             <button
               type="button"
-              class="rounded-full px-3 py-1 text-xs font-semibold"
-              :class="smartAiMode ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:bg-slate-200'"
+              role="tab"
+              :aria-selected="smartAiMode"
+              class="rounded-full px-4 py-1.5 text-xs font-semibold transition-colors"
+              :class="
+                smartAiMode
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-700 hover:bg-white/90'
+              "
               @click="setChatMode('smart_ai')"
             >
               {{ t('chat.widget.mode.smartAi') }}
             </button>
             <button
               type="button"
-              class="rounded-full px-3 py-1 text-xs font-semibold"
-              :class="!smartAiMode ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-200'"
+              role="tab"
+              :aria-selected="!smartAiMode"
+              class="rounded-full px-4 py-1.5 text-xs font-semibold transition-colors"
+              :class="
+                !smartAiMode
+                  ? 'bg-slate-800 text-white shadow-sm'
+                  : 'text-slate-700 hover:bg-white/90'
+              "
               @click="setChatMode('human')"
             >
               {{ t('chat.widget.mode.humanSupport') }}
@@ -463,23 +519,23 @@ const sendInlineEdit = (m: any) => {
       </div>
       <div
         ref="messagesScrollEl"
-        class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain bg-slate-50/50 p-3 sm:p-4 [-webkit-overflow-scrolling:touch]"
+        class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain bg-slate-50/50 p-4 sm:p-5 [-webkit-overflow-scrolling:touch]"
       >
-        <div v-if="smartAiEnabled" class="rounded-2xl border border-slate-200 bg-white p-3">
-          <div class="text-[11px] text-slate-600">
-            <span class="font-semibold text-indigo-700">{{ t('chat.title') }}</span>
-            <span class="ml-1">{{ t('chat.widget.generalGuidance') }}</span>
+        <div v-if="smartAiEnabled" class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <div class="text-xs leading-relaxed text-slate-600">
+            <span class="font-semibold text-emerald-800">{{ t('chat.title') }}</span>
+            <span class="ml-1.5">{{ t('chat.widget.generalGuidance') }}</span>
           </div>
         </div>
 
-        <div v-if="smartAiMode && aiDisclaimerVisible" class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+        <div v-if="smartAiMode && aiDisclaimerVisible" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
           <div class="text-xs font-semibold text-amber-900">{{ t('chat.widget.safetyNoticeTitle') }}</div>
-          <p class="mt-1 text-xs leading-relaxed text-amber-800">
+          <p class="mt-2 text-xs leading-relaxed text-amber-800">
             {{ t('chat.widget.safetyNoticeBody') }}
           </p>
           <button
             type="button"
-            class="mt-2 rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+            class="mt-3 rounded-full border border-amber-300 bg-white px-4 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
             @click="emit('action', { action: config?.aiDismissDisclaimerAction, payload: {} })"
           >
             {{ t('chat.widget.iUnderstand') }}
@@ -487,12 +543,12 @@ const sendInlineEdit = (m: any) => {
         </div>
         <div
           v-if="smartAiMode && aiProcessing"
-          class="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-800"
+          class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-900"
         >
           {{ t('chat.widget.processingRequest') }}
         </div>
 
-        <div v-if="isAdmin && supportRequests.length > 0" class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+        <div v-if="isAdmin && supportRequests.length > 0" class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
           <div class="text-sm font-semibold text-amber-900">{{ t('chat.widget.incomingRequestTitle') }}</div>
           <div class="mt-1 text-xs text-amber-800">{{ t('chat.widget.incomingRequestSubtitle') }}</div>
           <div class="mt-3 flex flex-col gap-2">
@@ -548,7 +604,7 @@ const sendInlineEdit = (m: any) => {
           </button>
           <div
             v-if="isAdmin && supportRequests.length === 0 && chatStatus === 'connected'"
-            class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs leading-relaxed text-slate-600"
+            class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-relaxed text-slate-600"
           >
             {{ t('chat.widget.adminHintPrefix') }} <span class="font-semibold">{{ t('chat.widget.startChat') }}</span>,
             {{ t('chat.widget.adminHintMiddle') }} <span class="font-semibold">{{ t('chat.widget.accept') }}</span>.
@@ -557,31 +613,40 @@ const sendInlineEdit = (m: any) => {
           <div class="text-xs text-slate-500">
             {{ t('chat.widget.supportWarning') }}
           </div>
-          <div v-if="pendingMessages.length > 0" class="rounded-xl border border-slate-200 bg-white p-3">
-            <div class="mb-2 text-xs font-semibold text-slate-600">{{ t('chat.widget.queuedMessages') }}</div>
-            <div class="flex flex-col gap-1.5">
-              <div
-                v-for="m in pendingMessages"
-                :key="String(m?.clientMessageId ?? Math.random())"
-                class="rounded-lg bg-slate-50 px-2.5 py-2 text-xs text-slate-700"
-              >
-                {{ String(m?.body ?? '') }}
+          <div v-if="!smartAiMode && typedPendingMessages.length > 0" class="flex flex-col gap-2">
+            <div
+              v-for="m in typedPendingMessages"
+              :key="String(m?.clientMessageId ?? `${m?.createdTimestamp ?? ''}-${m?.body ?? ''}`)"
+              class="flex min-w-0 justify-end"
+            >
+              <div class="min-w-0 max-w-[85%]">
+                <div
+                  class="inline-flex w-full min-w-0 flex-col gap-1.5 overflow-hidden rounded-2xl px-4 py-3 text-sm shadow-sm"
+                  :class="humanMessageBubbleClass"
+                >
+                  <div class="truncate text-[11px] font-semibold opacity-80">
+                    {{ myDisplayName }}
+                  </div>
+                  <div class="whitespace-pre-wrap break-words leading-relaxed">
+                    {{ String(m?.body ?? '').trim() }}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <div v-else class="flex flex-col gap-2">
-          <div v-if="activeMessages.length === 0" class="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+          <div v-if="activeMessages.length === 0" class="rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm leading-relaxed text-slate-600">
             {{ t('chat.widget.sayHi') }}
           </div>
           <div
             v-if="smartAiMode && !aiDisclaimerVisible && !aiProcessing"
-            class="flex flex-wrap gap-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3"
+            class="flex flex-wrap gap-2 rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3"
           >
             <button
               type="button"
-              class="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-800 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+              class="rounded-full border border-emerald-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="!canSendNow"
               @click="sendSmartAiQuickPrompt(smartAiQuickPrompts[0])"
             >
@@ -589,7 +654,7 @@ const sendInlineEdit = (m: any) => {
             </button>
             <button
               type="button"
-              class="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-800 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+              class="rounded-full border border-emerald-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="!canSendNow"
               @click="sendSmartAiQuickPrompt(smartAiQuickPrompts[1])"
             >
@@ -597,7 +662,7 @@ const sendInlineEdit = (m: any) => {
             </button>
             <button
               type="button"
-              class="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-800 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+              class="rounded-full border border-emerald-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="!canSendNow"
               @click="sendSmartAiQuickPrompt(smartAiQuickPrompts[2])"
             >
@@ -605,7 +670,7 @@ const sendInlineEdit = (m: any) => {
             </button>
             <button
               type="button"
-              class="rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-800 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+              class="rounded-full border border-emerald-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="!canSendNow"
               @click="sendSmartAiQuickPrompt(smartAiQuickPrompts[3])"
             >
@@ -624,21 +689,43 @@ const sendInlineEdit = (m: any) => {
             >
               <div class="min-w-0 max-w-[85%]">
                 <div
-                  class="inline-flex w-full min-w-0 flex-col gap-1 overflow-hidden rounded-2xl px-3.5 py-2.5 text-sm shadow-sm"
-                  :class="
-                    isMine(m)
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-white text-slate-900 border border-slate-200'
-                  "
+                  class="inline-flex w-full min-w-0 flex-col gap-1.5 overflow-hidden rounded-2xl px-4 py-3 text-sm shadow-sm"
+                  :class="messageBubbleClass(m)"
                 >
                   <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0 truncate text-[11px] font-semibold opacity-80">
                       {{ resolveSenderLabel(m) }}
                       <span v-if="m?.status === 'pending'" class="font-normal"> · {{ t('chat.widget.sending') }}</span>
                     </div>
-                    <div v-if="formatTime(m)" class="text-[11px] opacity-70">{{ formatTime(m) }}</div>
+                    <div class="flex shrink-0 items-center gap-1.5">
+                      <button
+                        v-if="canEditMessage(m) && !isEditingMessage(m)"
+                        type="button"
+                        class="inline-flex h-6 w-6 items-center justify-center rounded-full transition focus:outline-none focus:ring-2"
+                        :class="editIconButtonClass(m)"
+                        :title="t('chat.widget.edit')"
+                        :aria-label="t('chat.widget.editAria')"
+                        @click="editMessage(m)"
+                      >
+                        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M12 20h9" stroke-linecap="round" />
+                          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" stroke-linejoin="round" />
+                        </svg>
+                      </button>
+                      <div v-if="formatTime(m)" class="text-[11px] opacity-70">{{ formatTime(m) }}</div>
+                    </div>
                   </div>
-                  <div class="whitespace-pre-wrap break-words leading-relaxed">
+                  <input
+                    v-if="isEditingMessage(m)"
+                    :ref="(el) => { if (isEditingMessage(m)) inlineEditInputEl = el as HTMLInputElement | null }"
+                    v-model="inlineEditText"
+                    type="text"
+                    class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    :placeholder="t('chat.widget.message')"
+                    @keydown.enter.prevent="sendInlineEdit"
+                    @keydown.escape.prevent="cancelInlineEdit"
+                  />
+                  <div v-else class="whitespace-pre-wrap break-words leading-relaxed">
                     {{ parseAiMessageBody(m?.body).text || m?.body }}
                   </div>
                   <div
@@ -649,52 +736,11 @@ const sendInlineEdit = (m: any) => {
                       v-for="option in parseAiMessageBody(m?.body).options"
                       :key="`${messageKey(m)}-${option}`"
                       type="button"
-                      class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      class="rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
                       :disabled="!canSendNow || aiProcessing"
                       @click="sendQuickOption(option)"
                     >
                       {{ option }}
-                    </button>
-                  </div>
-                  <div
-                    v-if="!smartAiMode && isMine(m) && activeInlineEditKey === messageKey(m)"
-                    class="mt-2 rounded-lg border border-white/40 bg-white/10 p-2 text-white"
-                  >
-                    <input
-                      v-model="inlineEditText"
-                      type="text"
-                      class="w-full rounded-md border border-white/70 bg-white px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-emerald-300"
-                      :placeholder="t('chat.widget.message')"
-                      @keydown.enter.prevent="sendInlineEdit(m)"
-                    />
-                    <div class="mt-2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        class="rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-white disabled:opacity-50"
-                        :disabled="!canSendNow || !inlineEditText.trim()"
-                        @click="sendInlineEdit(m)"
-                      >
-                        {{ t('common.save') }}
-                      </button>
-                      <button
-                        type="button"
-                        class="rounded-full border border-white/80 bg-transparent px-3 py-1 text-xs font-semibold text-white hover:bg-white/10"
-                        @click="cancelInlineEdit"
-                      >
-                        {{ t('common.cancel') }}
-                      </button>
-                    </div>
-                  </div>
-                  <div
-                    v-if="!smartAiMode && isMine(m) && m?.status !== 'pending' && activeInlineEditKey !== messageKey(m)"
-                    class="mt-1 flex items-center gap-2"
-                  >
-                    <button
-                      type="button"
-                      class="rounded-full border border-emerald-300 bg-white/15 px-3 py-1 text-xs font-semibold text-white hover:bg-white/25"
-                      @click="editMessage(m)"
-                    >
-                      {{ t('chat.widget.edit') }}
                     </button>
                   </div>
                 </div>
@@ -719,7 +765,7 @@ const sendInlineEdit = (m: any) => {
             aria-live="polite"
             :aria-label="t('chat.widget.assistantTyping')"
           >
-            <div class="max-w-[85%] rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-sm">
+            <div class="max-w-[85%] rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
               <div class="mb-1 text-[11px] font-semibold text-slate-500">{{ t('chat.title') }}</div>
               <div class="text-sm font-semibold tracking-[0.15em] text-black">{{ processingDots }}</div>
             </div>
@@ -727,10 +773,10 @@ const sendInlineEdit = (m: any) => {
         </div>
       </div>
 
-      <div class="shrink-0 border-t border-slate-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:pb-3">
+      <div class="shrink-0 border-t border-slate-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:pb-3">
         <div
           v-if="smartAiMode && aiProcessing"
-          class="mb-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+          class="mb-2.5 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5"
           aria-live="polite"
           :aria-label="t('chat.widget.assistantProcessing')"
         >
@@ -739,25 +785,27 @@ const sendInlineEdit = (m: any) => {
         </div>
         <div class="flex items-center gap-2">
           <input
-            v-model="draft"
-            class="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+            v-model="composerText"
+            class="flex-1 rounded-full border border-slate-300 bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
             type="text"
             :disabled="!canSendNow"
             :placeholder="
-              smartAiMode
-                ? aiDisclaimerVisible
-                  ? t('chat.widget.clickUnderstand')
-                  : aiProcessing
-                    ? t('chat.widget.processingRequest')
-                  : t('chat.widget.tellSymptoms')
-                : t('chat.widget.typeMessage')
+              activeInlineEditKey
+                ? t('chat.widget.editAndSend')
+                : smartAiMode
+                  ? aiDisclaimerVisible
+                    ? t('chat.widget.clickUnderstand')
+                    : aiProcessing
+                      ? t('chat.widget.processingRequest')
+                      : t('chat.widget.tellSymptoms')
+                  : t('chat.widget.typeMessage')
             "
             @keydown.enter.prevent="send"
           />
           <button
             class="rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
             type="button"
-            :disabled="!canSendNow"
+            :disabled="!canSubmitComposer"
             @click="send"
           >
             {{ t('chat.widget.send') }}
