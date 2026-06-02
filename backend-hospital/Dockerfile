@@ -8,9 +8,10 @@ COPY backend-hospital/build.gradle   ./
 COPY backend-hospital/settings.gradle ./
 
 # ── Layer 2: Sibling composite builds (required for includeBuild) ─
-COPY backend-uimetadata-lib/ ../backend-uimetadata-lib/
-COPY backend-auth-lib/       ../backend-auth-lib/
-COPY backend-realtime-lib/   ../backend-realtime-lib/
+COPY backend-uimetadata-lib/      ../backend-uimetadata-lib/
+COPY backend-auth-lib/            ../backend-auth-lib/
+COPY backend-realtime-lib/        ../backend-realtime-lib/
+COPY backend-extensibility-lib/   ../backend-extensibility-lib/
 
 # ── Layer 3: App source ─────────────────────────────────────────
 COPY backend-hospital/src/ ./src/
