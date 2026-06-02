@@ -1,11 +1,26 @@
 package com.flexshell.uimetadata.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class UiMetadataGetResponse {
     private String version = "1.0";
     private List<UiMetadataPackageDto> packages = new ArrayList<>();
+    /** L1 brand, flags, SEO (extensibility static layer). */
+    private Map<String, Object> staticConfig = new LinkedHashMap<>();
+    /** L2 nav, actions, slots (extensibility dynamic layer). */
+    private Map<String, Object> dynamicConfig = new LinkedHashMap<>();
+    /**
+     * CMS copy per locale, merged into vue-i18n at runtime (e.g. {@code en → { "cms.clinicTitle": "..." }}).
+     */
+    @JsonProperty("i18nBundles")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private Map<String, Map<String, Object>> i18nBundles = new LinkedHashMap<>();
 
     public String getVersion() {
         return version;
@@ -21,6 +36,30 @@ public class UiMetadataGetResponse {
 
     public void setPackages(List<UiMetadataPackageDto> packages) {
         this.packages = packages;
+    }
+
+    public Map<String, Object> getStaticConfig() {
+        return staticConfig;
+    }
+
+    public void setStaticConfig(Map<String, Object> staticConfig) {
+        this.staticConfig = staticConfig != null ? staticConfig : new LinkedHashMap<>();
+    }
+
+    public Map<String, Object> getDynamicConfig() {
+        return dynamicConfig;
+    }
+
+    public void setDynamicConfig(Map<String, Object> dynamicConfig) {
+        this.dynamicConfig = dynamicConfig != null ? dynamicConfig : new LinkedHashMap<>();
+    }
+
+    public Map<String, Map<String, Object>> getI18nBundles() {
+        return i18nBundles;
+    }
+
+    public void setI18nBundles(Map<String, Map<String, Object>> i18nBundles) {
+        this.i18nBundles = i18nBundles != null ? i18nBundles : new LinkedHashMap<>();
     }
 }
 

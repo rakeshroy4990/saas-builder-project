@@ -2,6 +2,7 @@ package com.flexshell.service;
 
 import com.flexshell.logging.CommonLogger;
 import com.flexshell.uimetadata.UiMetadataPersistenceService;
+import com.flexshell.uimetadata.api.UiMetadataDocumentMerge;
 import com.flexshell.uimetadata.api.UiMetadataGetResponse;
 import com.flexshell.uimetadata.api.UiMetadataSaveRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -42,9 +43,13 @@ public class UiMetadataService {
             COMMON_LOGGER.methodExit("save", "result=false");
             return false;
         }
-        persistenceService.saveDocument(body);
-        LOG.info("ui-metadata service save successful packageCount={}",
-                body.getPackages() == null ? 0 : body.getPackages().size());
+        Optional<UiMetadataGetResponse> stored = persistenceService.loadDocument();
+        UiMetadataSaveRequest merged = UiMetadataDocumentMerge.merge(stored, body);
+        persistenceService.saveDocument(merged);
+        LOG.info("ui-metadata service save successful packageCount={} staticKeys={} dynamicKeys={}",
+                merged.getPackages() == null ? 0 : merged.getPackages().size(),
+                merged.getStaticConfig() == null ? 0 : merged.getStaticConfig().size(),
+                merged.getDynamicConfig() == null ? 0 : merged.getDynamicConfig().size());
         COMMON_LOGGER.methodExit("save", "result=true");
         return true;
     }

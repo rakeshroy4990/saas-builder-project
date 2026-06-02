@@ -3,6 +3,25 @@ import { useAppStore } from '../../../../store/useAppStore';
 
 type AppStore = ReturnType<typeof useAppStore>;
 
+function resolveMessageId(row: Record<string, unknown>): string {
+  return String(row.messageId ?? row.id ?? row.Id ?? row._id ?? '').trim();
+}
+
+function findExistingMessageIndex(
+  existing: unknown[],
+  clientMessageId: string,
+  messageId: string
+): number {
+  return existing.findIndex((raw) => {
+    const row = (raw ?? {}) as Record<string, unknown>;
+    const existingClientMessageId = String(row.clientMessageId ?? '').trim();
+    const existingMessageId = resolveMessageId(row);
+    if (clientMessageId && existingClientMessageId === clientMessageId) return true;
+    if (messageId && existingMessageId === messageId) return true;
+    return false;
+  });
+}
+
 /** STOMP `/user/queue/chat` handler shared by `chat-connect` and `chat-start`. */
 export function createChatQueueMessageHandler(appStore: AppStore) {
   return (msg: { body?: string }) => {
@@ -20,20 +39,29 @@ export function createChatQueueMessageHandler(appStore: AppStore) {
       const chat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
       const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
       const existing = Array.isArray(messagesByRoomId[roomId]) ? (messagesByRoomId[roomId] as unknown[]) : [];
+      const idx = findExistingMessageIndex(existing, clientMessageId, messageId);
       let didChange = false;
       let next = existing;
 
-        if (clientMessageId) {
-        const idx = existing.findIndex((raw) => {
-          const m = raw as { clientMessageId?: string; messageId?: string; status?: string };
-          const existingClientMessageId = String(m?.clientMessageId ?? '').trim();
-          const existingMessageId = String(m?.messageId ?? '').trim();
-          return existingClientMessageId === clientMessageId && (!existingMessageId || m?.status === 'pending');
-        });
-
-        if (idx >= 0) {
-          next = [...existing];
-          next[idx] = {
+      if (idx >= 0) {
+        const prior = (existing[idx] ?? {}) as Record<string, unknown>;
+        next = [...existing];
+        next[idx] = {
+          ...prior,
+          roomId,
+          messageId: messageId || resolveMessageId(prior),
+          sequenceNumber: sequenceNumber || Number(prior.sequenceNumber ?? 0),
+          senderId: senderId || String(prior.senderId ?? '').trim(),
+          body,
+          clientMessageId: clientMessageId || String(prior.clientMessageId ?? '').trim(),
+          createdTimestamp: createdTimestamp || String(prior.createdTimestamp ?? '').trim(),
+          status: 'received'
+        };
+        didChange = true;
+      } else {
+        next = [
+          ...existing,
+          {
             roomId,
             messageId,
             sequenceNumber,
@@ -42,31 +70,9 @@ export function createChatQueueMessageHandler(appStore: AppStore) {
             clientMessageId,
             createdTimestamp,
             status: 'received'
-          };
-          didChange = true;
-        }
-      }
-
-      if (!didChange) {
-        const already = messageId
-          ? existing.some((m) => (m as { messageId?: string })?.messageId === messageId)
-          : false;
-        if (!already) {
-          next = [
-            ...existing,
-            {
-              roomId,
-              messageId,
-              sequenceNumber,
-              senderId,
-              body,
-              clientMessageId,
-              createdTimestamp,
-              status: 'received'
-            }
-          ];
-          didChange = true;
-        }
+          }
+        ];
+        didChange = true;
       }
 
       if (didChange) {

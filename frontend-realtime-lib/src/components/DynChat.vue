@@ -381,7 +381,7 @@ const canSubmitComposer = computed(() => {
 });
 
 const messageKey = (m: any): string => {
-  const messageId = String(m?.messageId ?? '').trim();
+  const messageId = String(m?.messageId ?? m?.id ?? m?.Id ?? '').trim();
   if (messageId) return messageId;
   const clientMessageId = String(m?.clientMessageId ?? '').trim();
   if (clientMessageId) return clientMessageId;
@@ -454,7 +454,7 @@ const commitInlineEdit = async () => {
   const editAction = props.config?.editMessageAction ?? props.config?.sendMessageAction;
   if (!editAction) return;
   const clientMessageId = String(m?.clientMessageId ?? '').trim();
-  const messageId = String(m?.messageId ?? '').trim();
+  const messageId = String(m?.messageId ?? m?.id ?? m?.Id ?? '').trim();
   emit('action', {
     action: editAction,
     payload: {

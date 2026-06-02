@@ -30,7 +30,13 @@ public class ChatWsController {
     @MessageMapping("/chat.send")
     public void send(ChatSendRequest request, Principal principal) {
         String userId = principal == null ? "" : String.valueOf(principal.getName());
-        ChatMessageEntity saved = chatService.sendMessage(request.getRoomId(), userId, request.getBody(), request.getClientMessageId());
+        ChatMessageEntity saved = chatService.sendMessage(
+                request.getRoomId(),
+                userId,
+                request.getBody(),
+                request.getClientMessageId(),
+                request.getMessageId()
+        );
         auditLogService.log(userId, "CHAT_MESSAGE_SENT", "ChatRoom", saved.getRoomId(), Map.of("sequence", saved.getSequenceNumber()));
 
         List<String> participants = chatService.roomParticipants(saved.getRoomId());

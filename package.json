@@ -4,8 +4,14 @@
   "description": "Monorepo root (optional): install tooling for packages/*",
   "workspaces": [
     "packages/*",
+    "packages/extensibility-contract",
+    "packages/extensibility-vue",
     "mobile-hospital"
   ],
+  "scripts": {
+    "check:extensibility": "bash scripts/check-extensibility-conventions.sh",
+    "check:ui-ids": "bash scripts/check-ui-component-ids.sh"
+  },
   "dependencies": {
     "openai": "^6.34.0"
   }

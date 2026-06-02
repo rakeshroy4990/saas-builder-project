@@ -9,6 +9,9 @@ import java.util.Optional;
  * Service implementations in each backend can plug in their own persistence logic.
  */
 public interface UiMetadataFacade {
+
+    String DEFAULT_DOCUMENT_ID = "default";
+
     boolean isStorageAvailable();
 
     boolean save(UiMetadataSaveRequest body) throws JsonProcessingException;

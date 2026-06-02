@@ -1,0 +1,42 @@
+---
+description: Unique component ids in declarative UI configs and UI metadata patches
+globs:
+  - frontend-*/src/configs/**/*
+  - frontend-*/src/core/bootstrap/mergeServerUiMetadata.ts
+  - packages/extensibility-*/**/*
+  - backend-uimetadata-lib/**/*
+---
+
+# UI component ids (required)
+
+## Rule
+
+Every `ComponentDefinition.id` in a page/config file must be **unique within that file** (sibling nodes and nested `container.children` / list `itemTemplate` trees).
+
+Server UI metadata (`POST /api/uiMetdata/save`) merges overrides **by `id`**. Duplicate ids cause one patch to update **every** matching node (e.g. three “phone” lines).
+
+## Naming
+
+- Pattern: `{package}-{pageOrArea}-{role}` (e.g. `hospital-home-contact-whatsapp`, `hospital-dashboard-filter-status`).
+- Do not reuse the same id for phone / WhatsApp / email lines — use distinct suffixes.
+- List `itemTemplate` children may repeat structurally; ids in the template still must be unique **within the file** (DOM scoping uses `idScope` at runtime, but merge and tests use file-level uniqueness).
+
+## CMS / UI metadata patches
+
+When patching `packages[].pages[].container.children`, use the **exact** bundled ids. To override only one contact line:
+
+```json
+{ "id": "hospital-home-contact-phone", "type": "text", "config": { "text": "Phone: …", "mapping": null } }
+```
+
+Do not use one id for multiple logical fields.
+
+## CI
+
+Run from repo root:
+
+```bash
+npm run check:ui-ids
+```
+
+Fix any reported duplicates before merging.

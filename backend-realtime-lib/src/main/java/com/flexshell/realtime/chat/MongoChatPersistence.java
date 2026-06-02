@@ -81,6 +81,15 @@ public class MongoChatPersistence implements ChatPersistence {
     }
 
     @Override
+    public Optional<ChatMessageEntity> findMessageByRoomAndId(String roomId, String messageId) {
+        String rid = normalize(roomId);
+        String mid = normalize(messageId);
+        if (rid.isEmpty() || mid.isEmpty()) return Optional.empty();
+        return messageRepository.findById(mid)
+                .filter(msg -> rid.equals(normalize(msg.getRoomId())));
+    }
+
+    @Override
     public List<ChatMessageEntity> findRecentMessages(String roomId, int limit) {
         int capped = Math.max(1, Math.min(limit, 100));
         return messageRepository.findTop50ByRoomIdOrderBySequenceNumberDesc(normalize(roomId))

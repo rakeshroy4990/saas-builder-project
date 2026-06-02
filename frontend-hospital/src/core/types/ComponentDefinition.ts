@@ -3,8 +3,10 @@ import type { MappingConfig } from './MappingConfig';
 import type { StyleConfig } from './StyleConfig';
 
 export interface ConditionConfig {
-  expression: string;
+  expression?: string;
   mappings?: Record<string, MappingConfig>;
+  /** L1 feature flag from static/dynamic extensibility config. */
+  flag?: string;
 }
 
 export type ComponentType =

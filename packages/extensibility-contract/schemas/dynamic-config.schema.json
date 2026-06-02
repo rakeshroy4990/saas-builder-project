@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agastya.dev/schemas/dynamic-config.json",
+  "title": "DynamicConfig",
+  "type": "object",
+  "properties": {
+    "tenantId": { "type": ["string", "null"] },
+    "navigation": {
+      "type": "object",
+      "properties": {
+        "sidebar": { "$ref": "#/$defs/navItems" },
+        "topbar": { "$ref": "#/$defs/navItems" },
+        "footer": { "$ref": "#/$defs/navItems" },
+        "publicHeader": { "$ref": "#/$defs/navItems" }
+      }
+    },
+    "actions": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/uiAction" }
+    },
+    "componentOverrides": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "slots": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "$ref": "#/$defs/slotComponent" }
+      }
+    },
+    "flags": { "type": "object", "additionalProperties": { "type": "boolean" } }
+  },
+  "$defs": {
+    "navItems": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/navItem" }
+    },
+    "navItem": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "path": { "type": "string" },
+        "pageId": { "type": "string" },
+        "icon": { "type": "string" },
+        "roles": {
+          "type": "array",
+          "items": { "enum": ["patient", "doctor", "admin", "public"] }
+        },
+        "children": { "$ref": "#/$defs/navItems" },
+        "action": { "type": "string" },
+        "hidden": { "type": "boolean" },
+        "badge": { "type": ["string", "number"] },
+        "order": { "type": "number" }
+      }
+    },
+    "uiAction": {
+      "type": "object",
+      "required": ["id", "label", "handler"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "icon": { "type": "string" },
+        "variant": { "enum": ["primary", "secondary", "danger", "ghost"] },
+        "handler": { "type": "string" },
+        "handlerType": { "enum": ["service", "navigate", "showPopup"] },
+        "navigatePageId": { "type": "string" },
+        "popupPageId": { "type": "string" },
+        "condition": { "type": "string" },
+        "confirm": { "type": "string" }
+      }
+    },
+    "slotComponent": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "config": { "type": "object" },
+        "styleTemplate": { "type": "string" },
+        "condition": { "type": "object" }
+      }
+    }
+  }
+}

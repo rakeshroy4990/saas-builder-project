@@ -10,6 +10,7 @@ import { resolvePageRootDomId } from '../../core/utils/domId';
 import { pageRegistryRevision } from '../../core/registry/pageRegistryRevision';
 import { useAppStore } from '../../store/useAppStore';
 import { pinia } from '../../store/pinia';
+import ExtensionSlotHost from '../extensibility/ExtensionSlotHost.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -84,6 +85,7 @@ watch(
 
 <template>
   <div v-if="pageConfig" :id="`${pageRootHtmlId}-host`" :class="shellPageHost">
+    <ExtensionSlotHost :slot-id="`page.${pageId}.top`" :page-config="pageConfig" />
     <DynamicContainer
       :config="pageConfig.container"
       :page-config="pageConfig"

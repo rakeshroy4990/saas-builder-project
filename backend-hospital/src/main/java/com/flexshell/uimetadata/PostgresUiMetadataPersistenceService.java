@@ -2,6 +2,7 @@ package com.flexshell.uimetadata;
 
 import com.flexshell.logging.CommonLogger;
 import com.flexshell.uimetadata.api.UiMetadataGetResponse;
+import com.flexshell.uimetadata.api.UiMetadataJsonMapper;
 import com.flexshell.uimetadata.api.UiMetadataSaveRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,7 +37,7 @@ public class PostgresUiMetadataPersistenceService implements UiMetadataPersisten
         COMMON_LOGGER.methodEntry("saveDocument", "id=default");
         UiMetadataJpaEntity row = repository.findByIdAndDeletedFalse(UiMetadataEntity.SINGLETON_ID).orElseGet(UiMetadataJpaEntity::new);
         row.setId(UiMetadataEntity.SINGLETON_ID);
-        row.setBodyJson(objectMapper.writeValueAsString(body));
+        row.setBodyJson(UiMetadataJsonMapper.toJson(objectMapper, body));
         row.setUpdatedAt(Instant.now());
         row.setDeleted(false);
         COMMON_LOGGER.serviceEntry("PostgreSQL", "repository.save", "id=" + row.getId());
@@ -62,8 +63,9 @@ public class PostgresUiMetadataPersistenceService implements UiMetadataPersisten
             COMMON_LOGGER.methodExit("loadDocument", "found=false");
             return Optional.empty();
         }
-        UiMetadataGetResponse mapped = objectMapper.readValue(json, UiMetadataGetResponse.class);
-        LOG.info("ui-metadata persistence load completed, id={}", UiMetadataEntity.SINGLETON_ID);
+        UiMetadataGetResponse mapped = UiMetadataJsonMapper.fromJson(objectMapper, json);
+        int locales = mapped.getI18nBundles() == null ? 0 : mapped.getI18nBundles().size();
+        LOG.info("ui-metadata persistence load completed, id={} i18nLocales={}", UiMetadataEntity.SINGLETON_ID, locales);
         COMMON_LOGGER.methodExit("loadDocument", "found=true");
         return Optional.of(mapped);
     }

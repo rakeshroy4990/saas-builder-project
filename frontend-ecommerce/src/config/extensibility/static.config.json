@@ -1,0 +1,51 @@
+{
+  "tenantId": null,
+  "app": {
+    "name": "FlexShell Shop",
+    "tagline": "Config-driven commerce",
+    "logoUrl": "/assets/logo.svg",
+    "faviconUrl": "/favicon.ico"
+  },
+  "brand": {
+    "colors": {
+      "primary": "#2563eb",
+      "secondary": "#1d4ed8",
+      "accent": "#f59e0b",
+      "danger": "#dc2626",
+      "background": "#f8fafc",
+      "surface": "#ffffff",
+      "textPrimary": "#0f172a",
+      "textSecondary": "#64748b"
+    },
+    "fonts": {
+      "heading": "ui-sans-serif, system-ui, sans-serif",
+      "body": "ui-sans-serif, system-ui, sans-serif",
+      "mono": "ui-monospace, monospace"
+    },
+    "fontSizes": {
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem"
+    },
+    "borderRadius": "0.375rem",
+    "shadowStyle": "soft"
+  },
+  "flags": {
+    "enableBlog": false,
+    "enableAIChat": false,
+    "enableVideoCall": false,
+    "enableEducationSection": false,
+    "enableYoutubeEmbed": false,
+    "enablePrescriptionDownload": false,
+    "maintenanceMode": false
+  },
+  "seo": {
+    "defaultTitle": "FlexShell Shop",
+    "defaultDescription": "E-commerce demo storefront",
+    "ogImage": "/assets/og-image.jpg"
+  }
+}

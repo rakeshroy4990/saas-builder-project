@@ -1,0 +1,51 @@
+{
+  "tenantId": null,
+  "app": {
+    "name": "FlexShell Social",
+    "tagline": "Connect and share",
+    "logoUrl": "/assets/logo.svg",
+    "faviconUrl": "/favicon.ico"
+  },
+  "brand": {
+    "colors": {
+      "primary": "#7c3aed",
+      "secondary": "#6d28d9",
+      "accent": "#ec4899",
+      "danger": "#dc2626",
+      "background": "#faf5ff",
+      "surface": "#ffffff",
+      "textPrimary": "#1e1b4b",
+      "textSecondary": "#6b7280"
+    },
+    "fonts": {
+      "heading": "ui-sans-serif, system-ui, sans-serif",
+      "body": "ui-sans-serif, system-ui, sans-serif",
+      "mono": "ui-monospace, monospace"
+    },
+    "fontSizes": {
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem"
+    },
+    "borderRadius": "0.5rem",
+    "shadowStyle": "soft"
+  },
+  "flags": {
+    "enableBlog": true,
+    "enableAIChat": false,
+    "enableVideoCall": false,
+    "enableEducationSection": false,
+    "enableYoutubeEmbed": false,
+    "enablePrescriptionDownload": false,
+    "maintenanceMode": false
+  },
+  "seo": {
+    "defaultTitle": "FlexShell Social",
+    "defaultDescription": "Social demo application",
+    "ogImage": "/assets/og-image.jpg"
+  }
+}

@@ -11,11 +11,10 @@ export interface UiMetadataPackage {
 export interface UiMetadataResponse {
   version?: string;
   packages?: UiMetadataPackage[];
-}
-
-export interface UiMetadataResponse {
-  version?: string;
-  packages?: UiMetadataPackage[];
+  staticConfig?: Record<string, unknown>;
+  dynamicConfig?: Record<string, unknown>;
+  /** Per-locale message keys merged into vue-i18n (CMS copy). */
+  i18nBundles?: Record<string, Record<string, unknown>>;
 }
 
 function mergeChildrenById(
@@ -90,6 +89,7 @@ function mergeComponentConfig(
   };
 
   const out: Record<string, unknown> = deepMerge(localConfig, remoteConfig);
+  applyRemoteConfigOverrides(type, out, remoteConfig);
 
   if (type === 'container') {
     const lc = localConfig as { children?: ComponentDefinition[] };
@@ -112,6 +112,42 @@ function mergeComponentConfig(
   }
 
   return out;
+}
+
+/**
+ * CMS patches often set {@code text} or {@code mapping: null}; drop bundled {@code i18nKey}/{@code mapping}
+ * when the server payload explicitly replaces them.
+ */
+function applyRemoteConfigOverrides(
+  type: ComponentType,
+  merged: Record<string, unknown>,
+  remote: Record<string, unknown> | undefined
+): void {
+  if (!remote) return;
+
+  if ('mapping' in remote && remote.mapping == null) {
+    delete merged.mapping;
+  }
+
+  if (type === 'text') {
+    if ('i18nKey' in remote) {
+      if (remote.i18nKey == null || remote.i18nKey === '') {
+        delete merged.i18nKey;
+      }
+    } else if (typeof remote.text === 'string' && remote.text.trim() !== '') {
+      delete merged.i18nKey;
+    }
+  }
+
+  if (type === 'image') {
+    if ('altI18nKey' in remote) {
+      if (remote.altI18nKey == null || remote.altI18nKey === '') {
+        delete merged.altI18nKey;
+      }
+    } else if (typeof remote.alt === 'string' && remote.alt.trim() !== '') {
+      delete merged.altI18nKey;
+    }
+  }
 }
 
 function mergeComponentDefinition(

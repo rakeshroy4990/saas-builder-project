@@ -121,11 +121,40 @@ function withHumanSupportRoom(
 }
 
 function resolveStoredMessageKey(row: Record<string, unknown>): string {
-  const mid = String(row.messageId ?? '').trim();
+  const mid = String(row.messageId ?? row.id ?? row.Id ?? row._id ?? '').trim();
   if (mid) return mid;
   const cid = String(row.clientMessageId ?? '').trim();
   if (cid) return cid;
   return `${String(row.senderId ?? '').trim()}-${String(row.createdTimestamp ?? '').trim()}`;
+}
+
+function normalizeChatMessage(raw: unknown): Record<string, unknown> {
+  const row = (raw ?? {}) as Record<string, unknown>;
+  const messageId = String(row.messageId ?? row.id ?? row.Id ?? row._id ?? '').trim();
+  const clientMessageId = String(row.clientMessageId ?? row.ClientMessageId ?? '').trim();
+  const senderId = String(row.senderId ?? row.SenderId ?? '').trim();
+  const body = String(row.body ?? row.Body ?? '');
+  const roomId = String(row.roomId ?? row.RoomId ?? '').trim();
+  const sequenceNumber = Number(row.sequenceNumber ?? row.SequenceNumber ?? 0);
+  const createdTimestamp = String(
+    row.createdTimestamp ?? row.CreatedTimestamp ?? row.createdAt ?? row.created_at ?? ''
+  ).trim();
+  const status = String(row.status ?? '').trim() || 'received';
+  return {
+    ...(roomId ? { roomId } : {}),
+    messageId,
+    clientMessageId,
+    senderId,
+    body,
+    sequenceNumber,
+    createdTimestamp,
+    status
+  };
+}
+
+function normalizeChatMessages(raw: unknown): unknown[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(normalizeChatMessage);
 }
 
 function findChatMessageIndex(
@@ -137,7 +166,7 @@ function findChatMessageIndex(
   return messages.findIndex((raw) => {
     const row = (raw ?? {}) as Record<string, unknown>;
     const cid = String(row.clientMessageId ?? '').trim();
-    const mid = String(row.messageId ?? '').trim();
+    const mid = String(row.messageId ?? row.id ?? row.Id ?? row._id ?? '').trim();
     const key = resolveStoredMessageKey(row);
     if (clientMessageId && cid === clientMessageId) return true;
     if (messageId && mid === messageId) return true;
@@ -248,7 +277,7 @@ function createSupportQueueStompHandler(appStore: HospitalAppStore) {
 
         const messagesResponse = await apiClient.get(`${URLRegistry.paths.chatRooms}/${roomId}/messages`);
         const messagesNode = (messagesResponse.data?.Data ?? messagesResponse.data?.data ?? []) as unknown;
-        const messages = Array.isArray(messagesNode) ? messagesNode : [];
+        const messages = normalizeChatMessages(messagesNode);
         const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
 
         appStore.setData('hospital', 'Chat', withHumanSupportRoom(chat, roomId, {
@@ -431,7 +460,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
       if (!roomId) return { responseCode: 'CHAT_OPEN_FAILED', message: 'Missing roomId' };
       const response = await apiClient.get(`${URLRegistry.paths.chatRooms}/${roomId}/messages`);
       const dataNode = (response.data?.Data ?? response.data?.data ?? []) as unknown;
-      const messages = Array.isArray(dataNode) ? dataNode : [];
+      const messages = normalizeChatMessages(dataNode);
       const chat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
       const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;
       appStore.setData('hospital', 'Chat', {
@@ -631,25 +660,28 @@ export const chatHospitalServices: ServiceDefinition[] = [
       const previous = String(row.body ?? '').trim();
       if (body === previous) return ok({ unchanged: true });
 
-      const status = String(row.status ?? '').trim();
-      const resend = status === 'pending' || status === '';
       const cid = clientMessageId || String(row.clientMessageId ?? '').trim() || crypto.randomUUID();
+      const mid = messageId || String(row.messageId ?? row.id ?? '').trim();
       const next = [...existing];
-      next[idx] = { ...row, body, clientMessageId: cid, ...(resend ? { status: 'pending' } : {}) };
+      next[idx] = { ...row, body, clientMessageId: cid, ...(mid ? { messageId: mid } : {}) };
       appStore.setData('hospital', 'Chat', {
         ...chat,
         messagesByRoomId: { ...messagesByRoomId, [roomId]: next }
       });
 
-      if (resend) {
-        try {
-          stompClient.publish('/app/chat.send', { roomId, body, clientMessageId: cid });
-        } catch {
-          await stompClient.connect();
-          stompClient.publish('/app/chat.send', { roomId, body, clientMessageId: cid });
-        }
+      const payload = {
+        roomId,
+        body,
+        clientMessageId: cid,
+        ...(mid ? { messageId: mid } : {})
+      };
+      try {
+        stompClient.publish('/app/chat.send', payload);
+      } catch {
+        await stompClient.connect();
+        stompClient.publish('/app/chat.send', payload);
       }
-      return ok({ roomId, clientMessageId: cid, resent: resend });
+      return ok({ roomId, clientMessageId: cid, messageId: mid || undefined, updated: true });
     }
   },
   {
@@ -950,7 +982,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
 
         const messagesResponse = await apiClient.get(`${URLRegistry.paths.chatRooms}/${roomId}/messages`);
         const messagesNode = (messagesResponse.data?.Data ?? messagesResponse.data?.data ?? []) as unknown;
-        const messages = Array.isArray(messagesNode) ? messagesNode : [];
+        const messages = normalizeChatMessages(messagesNode);
 
         const chat = (appStore.getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
         const messagesByRoomId = (chat.messagesByRoomId ?? {}) as Record<string, unknown>;

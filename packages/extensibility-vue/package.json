@@ -1,0 +1,24 @@
+{
+  "name": "@saas-builder/extensibility-vue",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue 3 Pinia integration for L1/L2 extensibility (static brand, dynamic UI)",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "pinia": "^3.0.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.0.0"
+  },
+  "dependencies": {
+    "@saas-builder/extensibility-contract": "file:../extensibility-contract"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2",
+    "vue": "^3.5.32",
+    "pinia": "^3.0.4",
+    "vue-router": "^4.6.4"
+  }
+}

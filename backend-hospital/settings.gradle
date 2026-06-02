@@ -2,3 +2,4 @@ rootProject.name = 'flexshell-backend-hospital'
 includeBuild('../backend-uimetadata-lib')
 includeBuild('../backend-auth-lib')
 includeBuild('../backend-realtime-lib')
+includeBuild('../backend-extensibility-lib')

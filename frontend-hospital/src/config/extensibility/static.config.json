@@ -1,0 +1,52 @@
+{
+  "tenantId": null,
+  "app": {
+    "name": "Agastya Healthcare",
+    "tagline": "AI-Powered Care, Anytime",
+    "logoUrl": "https://res.cloudinary.com/dbke33vfd/image/upload/v1776158879/Dr_Swati_Pandey_rtmfqj.jpg",
+    "faviconUrl": "/favicon.ico",
+    "supportEmail": "support@agastyahealthcare.com"
+  },
+  "brand": {
+    "colors": {
+      "primary": "#0F6B5E",
+      "secondary": "#1A9E8B",
+      "accent": "#F5A623",
+      "danger": "#E53E3E",
+      "background": "#F7FAFA",
+      "surface": "#FFFFFF",
+      "textPrimary": "#1A202C",
+      "textSecondary": "#718096"
+    },
+    "fonts": {
+      "heading": "'Sora', 'Noto Sans Devanagari', sans-serif",
+      "body": "'DM Sans', 'Noto Sans Devanagari', sans-serif",
+      "mono": "'JetBrains Mono', monospace"
+    },
+    "fontSizes": {
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem"
+    },
+    "borderRadius": "0.5rem",
+    "shadowStyle": "soft"
+  },
+  "flags": {
+    "enableBlog": true,
+    "enableAIChat": true,
+    "enableVideoCall": true,
+    "enableEducationSection": true,
+    "enableYoutubeEmbed": true,
+    "enablePrescriptionDownload": true,
+    "maintenanceMode": false
+  },
+  "seo": {
+    "defaultTitle": "Agastya Healthcare — AI-Powered Telemedicine",
+    "defaultDescription": "Book appointments, consult doctors, and manage your health online.",
+    "ogImage": "/og-share.jpg"
+  }
+}

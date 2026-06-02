@@ -18,4 +18,10 @@ export class PageRegistry {
   get(packageName: string, pageId: string): PageConfig | undefined {
     return this.pages.get(`${packageName}::${pageId}`);
   }
+
+  forEachPage(visitor: (page: PageConfig) => void): void {
+    for (const page of this.pages.values()) {
+      visitor(page);
+    }
+  }
 }

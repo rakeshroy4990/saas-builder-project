@@ -7,7 +7,11 @@ import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.email.AppointmentCreatedEmailNotifier;
 import com.flexshell.email.AppointmentEmailNotifyOutcome;
+import com.flexshell.extension.ExtensionContext;
+import com.flexshell.extension.ExtensionHookInvoker;
 import com.flexshell.observability.ObservabilityLogger;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.controller.dto.AppointmentFileResponse;
 import com.flexshell.controller.dto.AppointmentRequest;
 import com.flexshell.controller.dto.AppointmentResponse;
@@ -34,6 +38,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -52,25 +57,32 @@ public class AppointmentService {
     private final ObjectProvider<DoctorScheduleAccess> doctorScheduleAccessProvider;
     private final ZoneId hospitalZoneId;
     private final AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier;
+    private final ExtensionHookInvoker extensionHookInvoker;
+    private final ObjectMapper objectMapper;
 
     public AppointmentService(
             ObjectProvider<AppointmentAccess> appointmentAccessProvider,
             ObjectProvider<UserAccess> userAccessProvider,
             ObjectProvider<DoctorScheduleAccess> doctorScheduleAccessProvider,
             @Qualifier("hospitalZoneId") ZoneId hospitalZoneId,
-            AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier
+            AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier,
+            ExtensionHookInvoker extensionHookInvoker,
+            ObjectMapper objectMapper
     ) {
         this.appointmentAccessProvider = appointmentAccessProvider;
         this.userAccessProvider = userAccessProvider;
         this.doctorScheduleAccessProvider = doctorScheduleAccessProvider;
         this.hospitalZoneId = hospitalZoneId;
         this.appointmentCreatedEmailNotifier = appointmentCreatedEmailNotifier;
+        this.extensionHookInvoker = extensionHookInvoker;
+        this.objectMapper = objectMapper;
     }
 
     public AppointmentResponse create(AppointmentRequest request, List<MultipartFile> prescriptionFiles, String actorUserId) {
+        AppointmentRequest effectiveRequest = runAppointmentCreateBeforeHooks(request, actorUserId);
         AppointmentAccess repository = requireAppointmentAccess();
         AppointmentEntity entity = new AppointmentEntity();
-        applyRequest(entity, request, prescriptionFiles);
+        applyRequest(entity, effectiveRequest, prescriptionFiles);
         assertPreferredSlotAllowed(
                 normalize(entity.getDoctorId()),
                 normalize(entity.getPreferredDate()),
@@ -116,7 +128,24 @@ public class AppointmentService {
                     "reason_code", "notification_failed",
                     "appointment_id", saved.getId()));
         }
-        return toResponse(saved);
+        AppointmentResponse response = toResponse(saved);
+        runAppointmentCreateAfterHooks(response, actorUserId);
+        return response;
+    }
+
+    private AppointmentRequest runAppointmentCreateBeforeHooks(AppointmentRequest request, String actorUserId) {
+        String endpoint = "POST /api/appointment/create";
+        ExtensionContext context = ExtensionContext.of(actorUserId, "", "", "");
+        Map<String, Object> payload = objectMapper.convertValue(request, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> updated = extensionHookInvoker.runBefore(endpoint, payload, context);
+        return objectMapper.convertValue(updated, AppointmentRequest.class);
+    }
+
+    private void runAppointmentCreateAfterHooks(AppointmentResponse response, String actorUserId) {
+        String endpoint = "POST /api/appointment/create";
+        ExtensionContext context = ExtensionContext.of(actorUserId, "", "", "");
+        Map<String, Object> payload = objectMapper.convertValue(response, new TypeReference<Map<String, Object>>() {});
+        extensionHookInvoker.runAfter(endpoint, payload, context);
     }
 
     public AppointmentResponse update(String id, AppointmentRequest request, List<MultipartFile> prescriptionFiles, String actorUserId) {

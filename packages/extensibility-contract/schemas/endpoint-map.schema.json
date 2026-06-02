@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agastya.dev/schemas/endpoint-map.json",
+  "title": "EndpointMap",
+  "type": "object",
+  "required": ["routes"],
+  "properties": {
+    "tenantId": { "type": ["string", "null"] },
+    "routes": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/routeConfig" }
+    }
+  },
+  "$defs": {
+    "routeConfig": {
+      "type": "object",
+      "properties": {
+        "reroute": { "type": ["string", "null"] },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "hooks": {
+          "type": "object",
+          "properties": {
+            "before": { "type": "array", "items": { "type": "string" } },
+            "after": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    }
+  }
+}

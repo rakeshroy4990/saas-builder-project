@@ -1,0 +1,14 @@
+{
+  "name": "@saas-builder/extensibility-contract",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared L1/L2/L3 extensibility schemas and TypeScript types for FlexShell apps and backends",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas/*": "./schemas/*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}

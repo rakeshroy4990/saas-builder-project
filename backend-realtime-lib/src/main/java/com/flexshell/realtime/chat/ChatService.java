@@ -76,6 +76,16 @@ public class ChatService {
     }
 
     public ChatMessageEntity sendMessage(String roomId, String senderId, String body, String clientMessageId) {
+        return sendMessage(roomId, senderId, body, clientMessageId, null);
+    }
+
+    public ChatMessageEntity sendMessage(
+            String roomId,
+            String senderId,
+            String body,
+            String clientMessageId,
+            String messageId
+    ) {
         String rid = normalize(roomId);
         String sid = normalize(senderId);
         String text = body == null ? "" : body.trim();
@@ -86,20 +96,17 @@ public class ChatService {
             throw new IllegalStateException("Not a participant in this room");
         }
 
-        String cmid = normalize(clientMessageId);
-        if (!cmid.isEmpty()) {
-            Optional<ChatMessageEntity> existing = persistence().findMessageByRoomAndClientMessageId(rid, cmid);
-            if (existing.isPresent()) {
-                ChatMessageEntity msg = existing.get();
-                if (!sid.equals(normalize(msg.getSenderId()))) {
-                    throw new IllegalStateException("Not permitted to update this message");
-                }
-                if (text.equals(String.valueOf(msg.getBody()).trim())) {
-                    return msg;
-                }
-                msg.setBody(text);
-                return persistence().saveMessage(msg);
+        Optional<ChatMessageEntity> existing = findExistingMessage(rid, normalize(clientMessageId), normalize(messageId));
+        if (existing.isPresent()) {
+            ChatMessageEntity msg = existing.get();
+            if (!sid.equals(normalize(msg.getSenderId()))) {
+                throw new IllegalStateException("Not permitted to update this message");
             }
+            if (text.equals(String.valueOf(msg.getBody()).trim())) {
+                return msg;
+            }
+            msg.setBody(text);
+            return persistence().saveMessage(msg);
         }
 
         long seq = persistence().incrementRoomSequence(rid);
@@ -126,6 +133,17 @@ public class ChatService {
         ack.setUpToSequenceNumber(Math.max(ack.getUpToSequenceNumber(), upToSequenceNumber));
         ack.setUpdatedTimestamp(Instant.now());
         persistence().saveAck(ack);
+    }
+
+    private Optional<ChatMessageEntity> findExistingMessage(String roomId, String clientMessageId, String messageId) {
+        if (!clientMessageId.isEmpty()) {
+            Optional<ChatMessageEntity> byClientId = persistence().findMessageByRoomAndClientMessageId(roomId, clientMessageId);
+            if (byClientId.isPresent()) return byClientId;
+        }
+        if (!messageId.isEmpty()) {
+            return persistence().findMessageByRoomAndId(roomId, messageId);
+        }
+        return Optional.empty();
     }
 
     private String normalize(String value) {

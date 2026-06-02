@@ -1,0 +1,49 @@
+---
+description: 3-layer extensibility (L1 static, L2 dynamic UI, L3 server hooks)
+globs:
+  - frontend-*/**/*
+  - packages/extensibility-*/**/*
+  - backend-hospital/**/*
+  - backend-extensibility-lib/**/*
+---
+
+# Extensibility (L1 / L2 / L3)
+
+## L1 — Static (boot)
+
+- Brand values (colors, fonts, logo, SEO) live in `config/extensibility/static.config.json`, merged with server `staticConfig` from `GET /api/uiMetdata`.
+- Use `useStaticConfig()` / CSS variables (`var(--brand-primary)`) — never hardcode hex in page configs.
+- Gate optional features with `condition.flag` or `<FeatureGate flag="enableBlog">`.
+
+## L2 — Dynamic (runtime)
+
+- Navigation, action descriptors, and slots: `dynamicConfig` on the same UI metadata document, merged with bundled defaults.
+- Use `useNavigation(zone)` for chrome nav; do not hardcode nav arrays.
+- UI actions must reference bundled `ServiceRegistry` handlers (`package::serviceId`) or built-in navigate/popup — no arbitrary JS from server.
+- Add `<ExtensionSlotHost slot-id="..." />` at extension points.
+
+## L1/L2 persistence (Supabase / PostgreSQL)
+
+- Page patches, `staticConfig`, and `dynamicConfig` are stored together in `ui_metadata.body_json`.
+- Requires `APP_PERSISTENCE_PROVIDER=postgres` and `SPRING_DATASOURCE_*` (Supabase).
+- **Write (only):** `POST /api/uiMetdata/save` — include any of `packages`, `staticConfig`, `dynamicConfig`, `i18nBundles`; omitted/empty sections are merged with the stored document (partial saves supported).
+- **`i18nBundles`:** per-locale strings merged into vue-i18n. Use **nested** keys (preferred) `{ "hospital": { "brandTitle": "..." } }` or flat `hospital.brandTitle` (expanded on the client). Components need `i18nKey: "hospital.brandTitle"`, not hardcoded `text`.
+- **Delete:** `DELETE /api/uiMetdata` or `DELETE /api/uiMetdata/default` (soft-delete singleton row).
+- **Read:** `GET /api/uiMetdata` (permitAll). No server restart; hard-refresh the browser after save.
+- Merge matches components by **`id`** — ids must be unique per config file (`ui-component-ids.mdc`, `npm run check:ui-ids`).
+
+## L3 — Server
+
+- All writes that support hooks call `ExtensionHookInvoker.runBefore` / `runAfter` with key `METHOD /api/path`.
+- Register hooks in `HospitalExtensionHooks`; list routes in `extension/endpoint_map.json`.
+- Admin ops: `POST /api/v1/admin/extensions/reload`, `GET .../map`, `GET .../hooks` (not for L1/L2 JSON).
+- Reroute only to allowlisted URLs; no PHI in hook logs.
+
+## HTTP
+
+- Browser → Spring only via `URLRegistry` / `apiClient` (no raw `fetch` to API except extensibility loaders).
+
+## Packages
+
+- Types/schemas: `@saas-builder/extensibility-contract`
+- Vue integration: `@saas-builder/extensibility-vue`

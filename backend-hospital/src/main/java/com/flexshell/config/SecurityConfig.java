@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/medical-department/get", "/api/medical-department/get/**").permitAll()
                         .requestMatchers("/api/youtube/hero-video").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/hospital/blog", "/api/hospital/blog/**").permitAll()
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         // Spring Boot forwards failures to `/error`; must not require auth or the real error is masked.
                         .requestMatchers("/error", "/error/**").permitAll()
                         .requestMatchers("/api/medical-department/create").authenticated()

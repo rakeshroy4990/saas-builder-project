@@ -1,0 +1,54 @@
+{
+  "tenantId": null,
+  "routes": {
+    "POST /api/appointment/create": {
+      "reroute": null,
+      "hooks": {
+        "before": ["enrich_appointment_metadata"],
+        "after": ["log_appointment_audit"]
+      }
+    },
+    "POST /api/auth/register": {
+      "reroute": null,
+      "hooks": {
+        "before": ["sanitize_user_input"],
+        "after": []
+      }
+    },
+    "POST /api/v1/patient-prescriptions": {
+      "reroute": null,
+      "hooks": {
+        "before": ["validate_prescription_schema"],
+        "after": []
+      }
+    },
+    "POST /api/v1/patient-prescriptions/upload": {
+      "reroute": null,
+      "hooks": {
+        "before": ["validate_prescription_schema"],
+        "after": []
+      }
+    },
+    "PUT /api/appointment/update": {
+      "reroute": null,
+      "hooks": {
+        "before": [],
+        "after": ["log_appointment_audit"]
+      }
+    },
+    "DELETE /api/appointment/delete": {
+      "reroute": null,
+      "hooks": {
+        "before": [],
+        "after": ["log_appointment_audit"]
+      }
+    },
+    "POST /api/hospital/ai/chat": {
+      "reroute": null,
+      "hooks": {
+        "before": ["filter_pii_from_chat"],
+        "after": ["log_chat_audit"]
+      }
+    }
+  }
+}

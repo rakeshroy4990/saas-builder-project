@@ -1,0 +1,28 @@
+{
+  "tenantId": null,
+  "navigation": {
+    "publicHeader": [
+      {
+        "id": "nav-home",
+        "label": "Home",
+        "pageId": "home",
+        "roles": ["public"],
+        "order": 1
+      },
+      {
+        "id": "nav-login",
+        "label": "Login",
+        "pageId": "login",
+        "roles": ["public"],
+        "order": 2
+      }
+    ],
+    "sidebar": [],
+    "topbar": [],
+    "footer": []
+  },
+  "actions": {},
+  "componentOverrides": {},
+  "slots": {},
+  "flags": {}
+}

@@ -2,6 +2,7 @@ package com.flexshell.uimetadata;
 
 import com.flexshell.logging.CommonLogger;
 import com.flexshell.uimetadata.api.UiMetadataGetResponse;
+import com.flexshell.uimetadata.api.UiMetadataJsonMapper;
 import com.flexshell.uimetadata.api.UiMetadataSaveRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,7 +37,7 @@ public class MongoUiMetadataPersistenceService implements UiMetadataPersistenceP
         COMMON_LOGGER.methodEntry("saveDocument", "id=default");
         UiMetadataEntity entity = new UiMetadataEntity();
         entity.setId(UiMetadataEntity.SINGLETON_ID);
-        entity.setBodyJson(objectMapper.writeValueAsString(body));
+        entity.setBodyJson(UiMetadataJsonMapper.toJson(objectMapper, body));
         entity.setUpdatedAt(Instant.now());
         COMMON_LOGGER.serviceEntry("MongoDB", "repository.save", "id=" + entity.getId());
         repository.save(entity);
@@ -56,7 +57,7 @@ public class MongoUiMetadataPersistenceService implements UiMetadataPersistenceP
             COMMON_LOGGER.methodExit("loadDocument", "found=false");
             return Optional.empty();
         }
-        UiMetadataGetResponse mapped = objectMapper.readValue(row.get().getBodyJson(), UiMetadataGetResponse.class);
+        UiMetadataGetResponse mapped = UiMetadataJsonMapper.fromJson(objectMapper, row.get().getBodyJson());
         LOG.info("ui-metadata persistence load completed, id={}", UiMetadataEntity.SINGLETON_ID);
         COMMON_LOGGER.methodExit("loadDocument", "found=true");
         return Optional.of(mapped);

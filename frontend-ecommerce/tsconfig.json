@@ -16,7 +16,9 @@
       "@realtime/*": ["../frontend-realtime-lib/src/*"]
     },
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+    "noEmit": true,
+    "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.js", "src/**/*.jsx", "src/env.d.ts"]
 }

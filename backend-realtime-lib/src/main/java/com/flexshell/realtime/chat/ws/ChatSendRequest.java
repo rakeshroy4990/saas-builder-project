@@ -4,6 +4,7 @@ public class ChatSendRequest {
     private String roomId;
     private String body;
     private String clientMessageId;
+    private String messageId;
 
     public String getRoomId() {
         return roomId;
@@ -27,6 +28,14 @@ public class ChatSendRequest {
 
     public void setClientMessageId(String clientMessageId) {
         this.clientMessageId = clientMessageId;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
     }
 }
 

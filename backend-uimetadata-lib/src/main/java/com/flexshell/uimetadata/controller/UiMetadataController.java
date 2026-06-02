@@ -38,8 +38,11 @@ public class UiMetadataController {
 
     @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> save(@Valid @RequestBody UiMetadataSaveRequest body) throws JsonProcessingException {
-        LOG.info("ui-metadata save request received packageCount={}",
-                body.getPackages() == null ? 0 : body.getPackages().size());
+        LOG.info("ui-metadata save request received packageCount={} staticKeys={} dynamicKeys={} i18nLocales={}",
+                body.getPackages() == null ? 0 : body.getPackages().size(),
+                body.getStaticConfig() == null ? 0 : body.getStaticConfig().size(),
+                body.getDynamicConfig() == null ? 0 : body.getDynamicConfig().size(),
+                body.getI18nBundles() == null ? 0 : body.getI18nBundles().size());
         if (!uiMetadataFacade.save(body)) {
             LOG.warn("ui-metadata save skipped storageUnavailable=true");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
@@ -60,12 +63,22 @@ public class UiMetadataController {
         }
         Optional<UiMetadataGetResponse> doc = uiMetadataFacade.loadStored();
         if (doc.isPresent()) {
-            LOG.info("ui-metadata load completed documentFound=true packageCount={}",
-                    doc.get().getPackages() == null ? 0 : doc.get().getPackages().size());
-            return ResponseEntity.ok(doc.get());
+            UiMetadataGetResponse body = doc.get();
+            LOG.info("ui-metadata load completed documentFound=true packageCount={} i18nLocales={}",
+                    body.getPackages() == null ? 0 : body.getPackages().size(),
+                    body.getI18nBundles() == null ? 0 : body.getI18nBundles().size());
+            return ResponseEntity.ok(body);
         }
         LOG.warn("ui-metadata load completed documentFound=false");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    /**
+     * Soft-deletes the singleton UI metadata row ({@code id=default}).
+     */
+    @DeleteMapping
+    public ResponseEntity<Void> deleteDefault() {
+        return delete(UiMetadataFacade.DEFAULT_DOCUMENT_ID);
     }
 
     @DeleteMapping("/{id}")

@@ -3,6 +3,7 @@ import { registerDefaultBusyIndicators } from '@saas-builder/vue-async-ui'
 import App from './App.vue'
 import './styles.css'
 import { bootstrap } from './core/bootstrap/AppBootstrap'
+import { bootstrapExtensibility } from './core/extensibility/bootstrapExtensibility'
 import { hydrateUiMetadataFromServer } from './core/bootstrap/hydrateUiMetadata'
 import { router } from './router'
 import { bindHttpRouter } from './services/http/apiClient'
@@ -22,6 +23,7 @@ import { applyPreferredLocaleFromAuthSession, i18n, initI18n } from './i18n'
 async function start() {
   startLogSyncScheduler()
   registerDefaultBusyIndicators()
+  await bootstrapExtensibility(pinia)
   bootstrap()
   hydrateAuthSessionProfile()
   if (hasPersistedAuthSessionProfile()) {
@@ -41,8 +43,8 @@ async function start() {
   await initFirebaseAnalytics(router).catch(async (err) => {
     await logClient('WARN', 'Firebase Analytics init skipped', { reason: String(err) })
   })
-  await hydrateUiMetadataFromServer().catch(() => {})
   await initI18n()
+  await hydrateUiMetadataFromServer(pinia).catch(() => {})
   await applyPreferredLocaleFromAuthSession()
   await logClient('INFO', 'FlexShell UI startup complete')
   const app = createApp(App).use(pinia).use(router).use(i18n)

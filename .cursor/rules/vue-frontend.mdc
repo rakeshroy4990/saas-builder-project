@@ -14,4 +14,6 @@ alwaysApply: false
 
 **Popups:** Use `GlobalPopup` + declarative `*-popup` page configs (`usePopupStore` / `open-*` services). Never build success/confirm overlays inside primitives. See `frontend-popups.mdc`.
 
+**Component ids:** Every `id` in page/config TS must be **unique within the file** (required for UI metadata merge). See `ui-component-ids.mdc`; run `npm run check:ui-ids`.
+
 **Agora:** Tokens only from backend; channel = appointment UUID (not raw user IDs); handle token refresh mid-call; degrade to audio when network poor; on `onUnmounted`, close tracks and `client.leave()`.

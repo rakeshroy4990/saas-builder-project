@@ -112,6 +112,17 @@ public class PostgresChatPersistence implements ChatPersistence {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<ChatMessageEntity> findMessageByRoomAndId(String roomId, String messageId) {
+        String rid = normalize(roomId);
+        String mid = normalize(messageId);
+        if (rid.isEmpty() || mid.isEmpty()) return Optional.empty();
+        return messageRepository.findById(mid)
+                .filter(row -> !row.isDeleted() && rid.equals(normalize(row.getRoomId())))
+                .map(this::messageFromRow);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ChatMessageEntity> findRecentMessages(String roomId, int limit) {
         int capped = Math.max(1, Math.min(limit, 100));
         return messageRepository.findTop50ByRoomIdAndDeletedFalseOrderBySequenceNumberDesc(normalize(roomId))

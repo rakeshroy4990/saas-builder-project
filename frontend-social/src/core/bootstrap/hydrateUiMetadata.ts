@@ -1,15 +1,16 @@
+import { applyServerExtensibilityOverrides } from '@saas-builder/extensibility-vue';
 import {
   applyServerUiMetadataPackages,
   type UiMetadataResponse
 } from './mergeServerUiMetadata';
 import { URLRegistry } from '../../services/http/URLRegistry';
 import { logClient } from '../../services/logging/clientLogger';
+import type { Pinia } from 'pinia';
 
 /**
- * Fetches optional UI overrides from the backend. 204 / empty packages / network errors are ignored
- * so bundled page configs continue to work unchanged.
+ * Loads page patches plus L1/L2 extensibility from {@code GET /api/uiMetdata}.
  */
-export async function hydrateUiMetadataFromServer(): Promise<void> {
+export async function hydrateUiMetadataFromServer(pinia: Pinia): Promise<void> {
   try {
     await logClient('INFO', 'Fetching UI metadata from server');
     const res = await URLRegistry.request('uiMetadata', {
@@ -24,13 +25,15 @@ export async function hydrateUiMetadataFromServer(): Promise<void> {
     if (!text?.trim()) return;
 
     const body = JSON.parse(text) as UiMetadataResponse;
-    const packages = body.packages;
-    if (!Array.isArray(packages) || packages.length === 0) return;
 
-    applyServerUiMetadataPackages(packages);
-    await logClient('INFO', 'Applied UI metadata package overrides', { packages: packages.length });
+    const packages = body.packages;
+    if (Array.isArray(packages) && packages.length > 0) {
+      applyServerUiMetadataPackages(packages);
+      await logClient('INFO', 'Applied UI metadata package overrides', { packages: packages.length });
+    }
+
+    applyServerExtensibilityOverrides(pinia, body);
   } catch {
     await logClient('WARN', 'Unable to fetch UI metadata; using local defaults');
-    /* offline or invalid JSON — keep local UI */
   }
 }

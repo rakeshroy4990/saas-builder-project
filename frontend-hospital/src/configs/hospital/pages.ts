@@ -466,7 +466,7 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
-                id: 'hospital-home-contact-phone',
+                id: 'hospital-home-contact-whatsapp',
                 type: 'text',
                 config: {
                   mapping: { packageName: 'hospital', key: 'HomeContent', path: 'contact', property: 'whatsapp' },
@@ -474,7 +474,7 @@ export const hospitalPages: PageConfig[] = [
                 }
               },
               {
-                id: 'hospital-home-contact-phone',
+                id: 'hospital-home-contact-email',
                 type: 'text',
                 config: {
                   mapping: { packageName: 'hospital', key: 'HomeContent', path: 'contact', property: 'email' },

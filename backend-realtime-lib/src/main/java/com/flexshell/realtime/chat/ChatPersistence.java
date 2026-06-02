@@ -20,6 +20,8 @@ public interface ChatPersistence {
 
     Optional<ChatMessageEntity> findMessageByRoomAndClientMessageId(String roomId, String clientMessageId);
 
+    Optional<ChatMessageEntity> findMessageByRoomAndId(String roomId, String messageId);
+
     List<ChatMessageEntity> findRecentMessages(String roomId, int limit);
 
     ChatAckEntity saveAck(ChatAckEntity ack);

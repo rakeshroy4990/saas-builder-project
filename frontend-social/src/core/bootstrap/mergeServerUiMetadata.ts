@@ -11,11 +11,8 @@ export interface UiMetadataPackage {
 export interface UiMetadataResponse {
   version?: string;
   packages?: UiMetadataPackage[];
-}
-
-export interface UiMetadataResponse {
-  version?: string;
-  packages?: UiMetadataPackage[];
+  staticConfig?: Record<string, unknown>;
+  dynamicConfig?: Record<string, unknown>;
 }
 
 function mergeChildrenById(

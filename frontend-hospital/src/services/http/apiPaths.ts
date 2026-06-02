@@ -28,8 +28,8 @@ export function resolveSpringApiUrl(path: string): string {
 
 export const SERVER_PATHS = {
   products: '/api/products',
-  /** Persist / load UI metadata from server overrides. */
-  uiMetadata: '/api/uiMetadata',
+  /** Persist / load UI metadata, L1 static, and L2 dynamic (single document). */
+  uiMetadata: '/api/uiMetdata',
   logsBatch: '/api/logs/batch',
   logsLevel: '/api/logs/level',
   login: '/api/auth/login',
