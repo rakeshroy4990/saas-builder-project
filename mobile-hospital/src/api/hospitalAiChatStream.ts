@@ -1,10 +1,12 @@
 import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
 
 import { getOrCreateTraceId } from '@/analytics/sessionTelemetry';
-import { clearSecureAuth } from '@/auth/secureTokens';
-import { isAccessTokenExpired, useSessionStore } from '@/auth/sessionStore';
+import { useSessionStore } from '@/auth/sessionStore';
 import { getMobileApiBaseUrl } from '@/api/config';
-import { refreshAccessToken } from '@/api/client';
+import { fetchWithAuthRetry } from '@/api/client';
+import { fetchWithTimeout } from '@/api/fetchWithTimeout';
+import { UPLOAD_API_TIMEOUT_MS } from '@/api/timeouts';
+import { toUserFacingApiError } from '@/api/apiErrors';
 
 export type HospitalAiChatStreamHandlers = {
   onReady?: () => void;
@@ -97,10 +99,6 @@ export async function postHospitalAiChatNdjson(
   const url = `${getMobileApiBaseUrl()}${SERVER_PATHS.hospitalAiChat}`;
   let accumulated = '';
 
-  if (isAccessTokenExpired()) {
-    await refreshAccessToken();
-  }
-
   const runFetch = async (): Promise<Response> => {
     const token = useSessionStore.getState().accessToken;
     const headers: Record<string, string> = {
@@ -110,27 +108,22 @@ export async function postHospitalAiChatNdjson(
     };
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    return fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-      signal
-    });
+    return fetchWithTimeout(
+      url,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal
+      },
+      UPLOAD_API_TIMEOUT_MS
+    );
   };
 
-  let res = await runFetch();
-  if (res.status === 401) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      res = await runFetch();
-    } else {
-      useSessionStore.getState().clearSession();
-      await clearSecureAuth();
-    }
-  }
+  const res = await fetchWithAuthRetry(runFetch);
   if (!res.ok) {
     const detail = await readHttpErrorDetail(res);
-    throw new Error(detail || `HTTP ${res.status}`);
+    throw new Error(toUserFacingApiError(new Error(detail || `HTTP ${res.status}`), 'AI chat is unavailable right now.'));
   }
 
   const wrappedHandlers: HospitalAiChatStreamHandlers = {

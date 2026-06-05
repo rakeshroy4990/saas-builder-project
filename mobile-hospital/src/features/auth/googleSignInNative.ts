@@ -1,4 +1,4 @@
-import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
+import { GoogleSignin, isSuccessResponse, type SignInSilentlyResponse } from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -41,6 +41,39 @@ export function ensureGoogleSignInConfigured(): void {
   }
 }
 
+/** Pre-warm Play Services (Android) while the login screen is visible. */
+export async function warmGoogleSignInNative(): Promise<void> {
+  if (!isNativeGoogleSignInAvailable() || isExpoGoClient()) return;
+  try {
+    ensureGoogleSignInConfigured();
+    if (Platform.OS === 'android') {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: false });
+    }
+  } catch {
+    // Non-fatal; interactive sign-in may still work
+  }
+}
+
+async function readAccessTokenAfterSignIn(): Promise<string> {
+  const tokens = await GoogleSignin.getTokens();
+  const accessToken = tokens.accessToken?.trim();
+  if (!accessToken) {
+    throw new Error('Google sign-in did not return an access token');
+  }
+  return accessToken;
+}
+
+async function trySilentGoogleAccessToken(): Promise<string | null> {
+  if (!GoogleSignin.hasPreviousSignIn()) return null;
+  try {
+    const silent: SignInSilentlyResponse = await GoogleSignin.signInSilently();
+    if (!isSuccessResponse(silent)) return null;
+    return await readAccessTokenAfterSignIn();
+  } catch {
+    return null;
+  }
+}
+
 export async function signInWithGoogleNative(): Promise<string> {
   if (isExpoGoClient()) {
     throw new Error(
@@ -50,15 +83,13 @@ export async function signInWithGoogleNative(): Promise<string> {
 
   ensureGoogleSignInConfigured();
 
+  const silentToken = await trySilentGoogleAccessToken();
+  if (silentToken) return silentToken;
+
   const response = await GoogleSignin.signIn();
   if (!isSuccessResponse(response)) {
     throw new Error('Google sign-in was cancelled');
   }
 
-  const tokens = await GoogleSignin.getTokens();
-  const accessToken = tokens.accessToken?.trim();
-  if (!accessToken) {
-    throw new Error('Google sign-in did not return an access token');
-  }
-  return accessToken;
+  return readAccessTokenAfterSignIn();
 }

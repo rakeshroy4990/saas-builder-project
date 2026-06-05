@@ -6,18 +6,21 @@ import {
   unwrapEnvelope
 } from '@saas-builder/hospital-api-client';
 
+import { authLoginTelemetryFromResponse, AUTH_TELEMETRY_PATHS } from '@/analytics/authTelemetry';
 import {
   clearLoginSessionId,
   readLoginSessionId,
   recordLogoutTelemetry,
   recordSuccessfulLoginTelemetry
 } from '@/analytics/sessionTelemetry';
+import { toUserFacingApiError } from '@/api/apiErrors';
 import { apiClient } from '@/api/client';
 import { clearSecureAuth, persistSessionSecrets } from '@/auth/secureTokens';
 import { useSessionStore, type SessionUser } from '@/auth/sessionStore';
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
 
 export async function loginWithPassword(identity: string, password: string): Promise<void> {
+  const startedAtMs = Date.now();
   const response = await apiClient.post(SERVER_PATHS.login, {
     EmailId: identity.trim(),
     Password: password
@@ -42,7 +45,10 @@ export async function loginWithPassword(identity: string, password: string): Pro
   });
 
   persistSessionSecrets(parsed.refreshToken, user);
-  recordSuccessfulLoginTelemetry('password');
+  recordSuccessfulLoginTelemetry(
+    'password',
+    authLoginTelemetryFromResponse(AUTH_TELEMETRY_PATHS.login, startedAtMs, response.status)
+  );
   const { connectRealtimeAfterAuth } = await import('@/features/video/connectOnAuth');
   void connectRealtimeAfterAuth();
 }
@@ -69,13 +75,8 @@ export function getLoginErrorMessage(error: unknown): string {
     if (error.response?.status === 401 || error.response?.status === 403) {
       return message || 'Invalid email or password';
     }
-    if (!error.response) {
-      return 'Unable to reach the server. Check your connection and API URL.';
-    }
-    return message || 'Unable to sign in right now.';
   }
-  if (error instanceof Error && error.message) return error.message;
-  return 'Unable to sign in right now.';
+  return toUserFacingApiError(error, 'Unable to sign in right now.');
 }
 
 /** Fast local read — does not call the network. */

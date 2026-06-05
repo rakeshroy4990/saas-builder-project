@@ -1,7 +1,9 @@
 import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
 import axios from 'axios';
 
+import { ensureFreshAccessToken, refreshAccessToken } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api/config';
+import { DEFAULT_API_TIMEOUT_MS, TELEMETRY_BATCH_TIMEOUT_MS } from '@/api/timeouts';
 import { getClientContext } from '@/analytics/clientContext';
 import { useSessionStore } from '@/auth/sessionStore';
 
@@ -103,30 +105,44 @@ export async function ingestSessionTelemetry(payload: SessionTelemetryPayload): 
   }
 }
 
-async function postBodies(bodies: string[]): Promise<void> {
-  if (bodies.length === 0) return;
+async function postBodiesOnce(bodies: string[]): Promise<void> {
   const base = getMobileApiBaseUrl();
-  const headers = {
+  const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
     'X-Trace-Id': getOrCreateTraceId()
   };
   const token = useSessionStore.getState().accessToken;
   if (token) {
-    (headers as Record<string, string>).Authorization = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
   if (bodies.length === 1) {
     await axios.post(`${base}${SERVER_PATHS.telemetrySessionEvent}`, JSON.parse(bodies[0]), {
       headers,
-      timeout: 30_000
+      timeout: DEFAULT_API_TIMEOUT_MS
     });
     return;
   }
   await axios.post(
     `${base}${SERVER_PATHS.telemetrySessionEvents}`,
     { events: bodies.map((b) => JSON.parse(b)) },
-    { headers, timeout: 60_000 }
+    { headers, timeout: TELEMETRY_BATCH_TIMEOUT_MS }
   );
+}
+
+async function postBodies(bodies: string[]): Promise<void> {
+  if (bodies.length === 0) return;
+  await ensureFreshAccessToken();
+  try {
+    await postBodiesOnce(bodies);
+  } catch (error) {
+    if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+      throw error;
+    }
+    const refreshed = await refreshAccessToken();
+    if (!refreshed) throw error;
+    await postBodiesOnce(bodies);
+  }
 }
 
 export function flushSessionTelemetryQueue(): Promise<void> {
@@ -170,11 +186,32 @@ export async function emitLoggedInSessionSummary(
   });
 }
 
-export async function emitSessionSummaryAuthLogin(authMethod: 'password' | 'google'): Promise<void> {
-  await emitLoggedInSessionSummary({
+export type AuthLoginTelemetryMeta = {
+  duration_ms?: number;
+  http_status?: number;
+  api_path?: string;
+  http_method?: string;
+};
+
+type AuthMethod = 'password' | 'google' | 'token_refresh';
+
+function emitAuthLoginSummary(authMethod: AuthMethod, meta?: AuthLoginTelemetryMeta): Promise<void> {
+  return emitLoggedInSessionSummary({
     kind: 'auth_login',
+    http_method: meta?.http_method,
+    http_status: meta?.http_status,
+    duration_ms: meta?.duration_ms,
+    api_path: meta?.api_path,
     attributes: { auth_method: authMethod }
   });
+}
+
+/** @deprecated Use {@link recordSuccessfulLoginTelemetry} with meta from the auth HTTP call. */
+export async function emitSessionSummaryAuthLogin(
+  authMethod: 'password' | 'google',
+  meta?: AuthLoginTelemetryMeta
+): Promise<void> {
+  await emitAuthLoginSummary(authMethod, meta);
 }
 
 export function startSessionTelemetrySyncScheduler(): void {
@@ -206,10 +243,11 @@ async function runPeriodicSessionTelemetrySync(): Promise<void> {
   }
 }
 
-type AuthMethod = 'password' | 'google' | 'token_refresh';
-
 /** Queue login/session rows and POST to session_telemetry without blocking UI. */
-export function recordSuccessfulLoginTelemetry(authMethod: AuthMethod): void {
+export function recordSuccessfulLoginTelemetry(
+  authMethod: AuthMethod,
+  meta?: AuthLoginTelemetryMeta
+): void {
   if (authMethod !== 'token_refresh') {
     mintLoginSessionId();
   } else if (!readLoginSessionId()) {
@@ -217,14 +255,7 @@ export function recordSuccessfulLoginTelemetry(authMethod: AuthMethod): void {
   }
   void (async () => {
     try {
-      if (authMethod === 'token_refresh') {
-        await emitLoggedInSessionSummary({
-          kind: 'auth_login',
-          attributes: { auth_method: 'token_refresh' }
-        });
-      } else {
-        await emitSessionSummaryAuthLogin(authMethod);
-      }
+      await emitAuthLoginSummary(authMethod, meta);
       await ingestSessionTelemetry({
         event_name: 'login_success',
         flow: 'auth',

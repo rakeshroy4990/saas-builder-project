@@ -1,10 +1,12 @@
 import { useNavigation } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
   Keyboard,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +28,10 @@ import {
   type EducationChatTurn,
   type PrescriptionSimilarityHit
 } from '@/features/education/api';
+import {
+  assistantDisplayBody,
+  assistantDisplayFollowUps
+} from '@/features/education/educationAssistantPayload';
 import { loadEducationBooksCached, peekCachedEducationBooks } from '@/features/education/booksCache';
 import { EducationBookPicker } from '@/features/education/EducationBookPicker';
 import { EducationAttachmentSequenceModal } from '@/features/education/EducationAttachmentSequenceModal';
@@ -58,6 +64,7 @@ type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  followUpQuestions?: string[];
   retrievalQuestion?: string;
   submittedQuestion?: string;
   autoAttachmentPrompt?: boolean;
@@ -109,12 +116,14 @@ function AttachMenuButton({
   disabled,
   onDocument,
   onGallery,
-  onCamera
+  onCamera,
+  compact
 }: {
   disabled: boolean;
   onDocument: () => void;
   onGallery: () => void;
   onCamera: () => void;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -158,7 +167,12 @@ function AttachMenuButton({
         </View>
       ) : null}
       <Pressable
-        style={[styles.plusBtn, open && styles.plusBtnActive, disabled && styles.plusBtnDisabled]}
+        style={[
+          styles.plusBtn,
+          compact && styles.plusBtnCompact,
+          open && styles.plusBtnActive,
+          disabled && styles.plusBtnDisabled
+        ]}
         onPress={() => setOpen((prev) => !prev)}
         disabled={disabled}
         accessibilityRole="button"
@@ -166,10 +180,87 @@ function AttachMenuButton({
       >
         <Ionicons
           name={open ? 'close' : 'add'}
-          size={26}
+          size={compact ? 22 : 26}
           color={disabled ? colors.textMuted : open ? colors.text : colors.primary}
         />
       </Pressable>
+    </View>
+  );
+}
+
+function EducationComposerRow({
+  inputRef,
+  value,
+  onChangeText,
+  placeholder,
+  onFocus,
+  attachDisabled,
+  onDocument,
+  onGallery,
+  onCamera,
+  onSend,
+  sendDisabled,
+  sending,
+  sendAccessibilityLabel
+}: {
+  inputRef?: RefObject<TextInput | null>;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  onFocus: () => void;
+  attachDisabled: boolean;
+  onDocument: () => void;
+  onGallery: () => void;
+  onCamera: () => void;
+  onSend: () => void;
+  sendDisabled: boolean;
+  sending: boolean;
+  sendAccessibilityLabel: string;
+}) {
+  const keyboardVisible = useKeyboardVisible();
+  const showSendIcon = value.trim().length > 0;
+
+  return (
+    <View style={styles.composerRow}>
+      <AttachMenuButton
+        compact
+        disabled={attachDisabled}
+        onDocument={onDocument}
+        onGallery={onGallery}
+        onCamera={onCamera}
+      />
+      <View style={styles.composerInputShell}>
+        <TextInput
+          ref={inputRef}
+          style={[
+            styles.composerInputInline,
+            showSendIcon && styles.composerInputInlineWithSend,
+            keyboardVisible && styles.composerInputInlineKeyboard
+          ]}
+          multiline
+          scrollEnabled
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textMuted}
+          onFocus={onFocus}
+        />
+        {showSendIcon ? (
+          <Pressable
+            style={[styles.composerSendIcon, sendDisabled && styles.composerSendIconDisabled]}
+            onPress={onSend}
+            disabled={sendDisabled}
+            accessibilityRole="button"
+            accessibilityLabel={sendAccessibilityLabel}
+          >
+            {sending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="arrow-up" size={20} color="#fff" />
+            )}
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -180,7 +271,8 @@ function CollapsiblePanelHeader({
   expanded,
   onToggle,
   expandLabel,
-  collapseLabel
+  collapseLabel,
+  action
 }: {
   title: string;
   subtitle?: string;
@@ -188,21 +280,25 @@ function CollapsiblePanelHeader({
   onToggle: () => void;
   expandLabel: string;
   collapseLabel: string;
+  action?: ReactNode;
 }) {
   return (
-    <Pressable
-      onPress={onToggle}
-      style={styles.panelHeader}
-      accessibilityRole="button"
-      accessibilityLabel={expanded ? collapseLabel : expandLabel}
-      accessibilityState={{ expanded }}
-    >
-      <View style={styles.panelHeaderText}>
-        <Text style={styles.panelHeaderTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.panelHeaderSubtitle} numberOfLines={1}>{subtitle}</Text> : null}
-      </View>
-      <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
-    </Pressable>
+    <View style={styles.panelHeader}>
+      <Pressable
+        onPress={onToggle}
+        style={styles.panelHeaderMain}
+        accessibilityRole="button"
+        accessibilityLabel={expanded ? collapseLabel : expandLabel}
+        accessibilityState={{ expanded }}
+      >
+        <View style={styles.panelHeaderText}>
+          <Text style={styles.panelHeaderTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.panelHeaderSubtitle} numberOfLines={1}>{subtitle}</Text> : null}
+        </View>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+      </Pressable>
+      {action}
+    </View>
   );
 }
 
@@ -217,6 +313,7 @@ export function DoctorEducationScreen() {
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const prescriptionScrollRef = useRef<ScrollView>(null);
   const questionInputRef = useRef<TextInput>(null);
+  const prescriptionInputRef = useRef<TextInput>(null);
 
   const [tab, setTab] = useState<QueryTab>('books');
   const [books, setBooks] = useState<string[]>(() => peekCachedEducationBooks() ?? []);
@@ -234,8 +331,7 @@ export function DoctorEducationScreen() {
   const [prescriptionLoading, setPrescriptionLoading] = useState(false);
   const [prescriptionError, setPrescriptionError] = useState('');
   const [educationExpanded, setEducationExpanded] = useState(false);
-  const [composerExpanded, setComposerExpanded] = useState(false);
-  const [prescriptionComposerExpanded, setPrescriptionComposerExpanded] = useState(false);
+  const [chatFullScreen, setChatFullScreen] = useState(false);
   const [clinicalAttachments, setClinicalAttachments] = useState<EducationClinicalAttachment[]>([]);
   const [sequenceModalVisible, setSequenceModalVisible] = useState(false);
   const [sequencePending, setSequencePending] = useState<EducationClinicalAttachment[]>([]);
@@ -323,16 +419,32 @@ export function DoctorEducationScreen() {
   }, [sending]);
 
   useEffect(() => {
-    if (!composerExpanded) return;
-    const timer = setTimeout(() => questionInputRef.current?.focus(), 60);
+    if (tab !== 'books') setChatFullScreen(false);
+  }, [tab]);
+
+  useEffect(() => {
+    if (!chatFullScreen) return;
+    setEducationExpanded(true);
+    scrollChatToEnd();
+    const timer = setTimeout(scrollChatToEnd, 150);
     return () => clearTimeout(timer);
-  }, [composerExpanded]);
+  }, [chatFullScreen]);
 
   useEffect(() => {
     return () => {
       if (autoSentNoticeTimer.current) clearTimeout(autoSentNoticeTimer.current);
     };
   }, []);
+
+  function openChatFullScreen() {
+    setEducationExpanded(true);
+    setChatFullScreen(true);
+  }
+
+  function closeChatFullScreen() {
+    setChatFullScreen(false);
+    Keyboard.dismiss();
+  }
 
   function autoQuestionFromAttachments(): string {
     return t('education.autoQuestionFromAttachments');
@@ -464,25 +576,37 @@ export function DoctorEducationScreen() {
     setMessages([...priorMessages, userMessage, { id: assistantId, role: 'assistant', content: '' }]);
 
     try {
-      const reply = await askEducationQuestionStreaming(
+      const result = await askEducationQuestionStreaming(
         submittedQuestion,
         selectedBooks,
         priorHistory,
         conversationId,
         {
           onDelta: (textSoFar) => {
+            const display = assistantDisplayBody(textSoFar) || textSoFar;
             setMessages((prev) =>
-              prev.map((m) => (m.id === assistantId ? { ...m, content: textSoFar } : m))
+              prev.map((m) => (m.id === assistantId ? { ...m, content: display } : m))
             );
           }
         },
         retrievalQuestion
       );
-      const finalText = reply.trim() || t('education.emptyAnswer');
+      const rawAnswer = result.answer.trim() || t('education.emptyAnswer');
+      const displayBody = assistantDisplayBody(rawAnswer).trim() || t('education.emptyAnswer');
+      const followUps =
+        result.followUpQuestions.length > 0
+          ? result.followUpQuestions
+          : assistantDisplayFollowUps(rawAnswer, undefined);
       setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, content: finalText } : m))
+        prev.map((m) =>
+          m.id === assistantId ? { ...m, content: displayBody, followUpQuestions: followUps } : m
+        )
       );
-      setHistory([...priorHistory, { role: 'user', content: submittedQuestion }, { role: 'assistant', content: finalText }]);
+      setHistory([
+        ...priorHistory,
+        { role: 'user', content: submittedQuestion },
+        { role: 'assistant', content: displayBody }
+      ]);
     } catch (err) {
       setMessages((prev) =>
         prev
@@ -533,13 +657,14 @@ export function DoctorEducationScreen() {
       if (tab === 'prescription') {
         const query = buildSimilarityQueryFromTranscribe(extracted);
         setPrescriptionQuery(query || buildPrescriptionQuestionDraft(extracted));
+        focusPrescriptionInput();
         return;
       }
       const draft = buildPrescriptionQuestionDraft(extracted).trim();
       if (!draft) return;
       if (isPrescriptionFullyNotStated(extracted)) {
         setQuestion(buildPrescriptionQuestionDraft(extracted));
-        setComposerExpanded(true);
+        focusQuestionInput();
         return;
       }
       const remainingSlots = MAX_CONVERSATION_ATTACHMENTS - clinicalAttachments.length;
@@ -554,7 +679,7 @@ export function DoctorEducationScreen() {
       };
       const merged = [...clinicalAttachments, added].slice(0, MAX_CONVERSATION_ATTACHMENTS);
       setClinicalAttachments(merged);
-      setComposerExpanded(true);
+      focusQuestionInput();
       if (merged.length > 1) {
         openSequenceModal(merged);
       } else {
@@ -589,9 +714,20 @@ export function DoctorEducationScreen() {
     }
   }
 
+  function educationMessageFollowUps(message: ChatMessage): string[] {
+    if (message.role !== 'assistant') return [];
+    const last = messages[messages.length - 1];
+    if (sending && last?.id === message.id && last.role === 'assistant') {
+      return [];
+    }
+    return assistantDisplayFollowUps(message.content ?? '', message.followUpQuestions);
+  }
+
   function renderMessage({ item }: { item: ChatMessage }) {
     const isUser = item.role === 'user';
-    const display = isUser ? doctorBubbleDisplayContent(item) : item.content;
+    const display = isUser ? doctorBubbleDisplayContent(item) : assistantDisplayBody(item.content ?? '');
+    const followUps = educationMessageFollowUps(item);
+    const showFollowUps = !isUser && followUps.length > 0 && display.trim().length > 0;
     return (
       <View style={[styles.messageRow, isUser ? styles.messageRowUser : styles.messageRowAssistant]}>
         <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
@@ -599,6 +735,25 @@ export function DoctorEducationScreen() {
             {isUser ? t('education.userLabel') : t('education.assistantLabel')}
           </Text>
           <Text style={isUser ? styles.messageBodyUser : styles.messageBodyAssistant}>{display}</Text>
+          {showFollowUps ? (
+            <View style={styles.followUpBlock}>
+              <Text style={styles.followUpTitle}>{t('education.followUpTitle')}</Text>
+              <View style={styles.followUpChipRow}>
+                {followUps.map((followUp) => (
+                  <Pressable
+                    key={followUp}
+                    style={[styles.followUpChip, sending && styles.followUpChipDisabled]}
+                    onPress={() => void onSendQuestion(followUp)}
+                    disabled={sending || readingFile}
+                    accessibilityRole="button"
+                    accessibilityLabel={followUp}
+                  >
+                    <Text style={styles.followUpChipText}>{followUp}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
         </View>
         {isUser && display ? (
           <Pressable
@@ -626,6 +781,39 @@ export function DoctorEducationScreen() {
     </View>
   ) : null;
 
+  const chatFullScreenAction = (
+    <Pressable
+      style={styles.panelHeaderAction}
+      onPress={openChatFullScreen}
+      accessibilityRole="button"
+      accessibilityLabel={t('education.expandChat')}
+    >
+      <Ionicons name="expand-outline" size={20} color={colors.primary} />
+    </Pressable>
+  );
+
+  function renderBooksMessageList() {
+    return (
+      <FlatList
+        ref={listRef}
+        data={messages}
+        keyExtractor={(item) => item.id}
+        style={styles.messageList}
+        contentContainerStyle={[
+          styles.messageListContent,
+          messages.length === 0 && styles.messageListContentEmpty
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        onContentSizeChange={scrollChatToEnd}
+        renderItem={renderMessage}
+        ListFooterComponent={typingFooter}
+        ListEmptyComponent={<Text style={styles.emptyChatHint}>{t('education.booksEmptyHint')}</Text>}
+      />
+    );
+  }
+
   function scrollChatToEnd() {
     requestAnimationFrame(() => {
       listRef.current?.scrollToEnd({ animated: true });
@@ -644,116 +832,151 @@ export function DoctorEducationScreen() {
     setTimeout(scrollChatToEnd, 320);
   }
 
-  function collapseComposer() {
-    setComposerExpanded(false);
-    Keyboard.dismiss();
+  function focusQuestionInput() {
+    setTimeout(() => questionInputRef.current?.focus(), 60);
   }
 
-  function collapsePrescriptionComposer() {
-    setPrescriptionComposerExpanded(false);
-    Keyboard.dismiss();
+  function focusPrescriptionInput() {
+    setTimeout(() => prescriptionInputRef.current?.focus(), 60);
   }
 
-  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === 'assistant' && m.content.trim());
+  function onPrescriptionQueryFocus() {
+    scrollPrescriptionToInput();
+    setTimeout(scrollPrescriptionToInput, 120);
+    setTimeout(scrollPrescriptionToInput, 320);
+  }
+
+  const lastAssistantMessage = [...messages]
+    .reverse()
+    .find((m) => m.role === 'assistant' && assistantDisplayBody(m.content ?? '').trim());
 
   function renderBooksComposer() {
     return (
       <View style={styles.composer}>
-        {chatError && !composerExpanded ? (
-          <Text style={[sharedStyles.errorText, styles.composerError]}>{chatError}</Text>
+        {chatError ? <Text style={[sharedStyles.errorText, styles.composerError]}>{chatError}</Text> : null}
+        {readingFile ? (
+          <View style={[styles.readingRow, styles.composerMetaRow]}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.typingText}>{t('education.readingPrescription')}</Text>
+          </View>
         ) : null}
-        <CollapsiblePanelHeader
-          title={t('education.sendQuestion')}
-          subtitle={composerExpanded ? undefined : question.trim() || t('education.questionPlaceholder')}
-          expanded={composerExpanded}
-          onToggle={() => {
-            if (composerExpanded) collapseComposer();
-            else setComposerExpanded(true);
-          }}
-          expandLabel={t('education.expandComposer')}
-          collapseLabel={t('education.collapseComposer')}
+        <EducationComposerRow
+          inputRef={questionInputRef}
+          value={question}
+          onChangeText={setQuestion}
+          placeholder={t('education.questionPlaceholder')}
+          onFocus={onQuestionFocus}
+          attachDisabled={
+            sending || readingFile || clinicalAttachments.length >= MAX_CONVERSATION_ATTACHMENTS
+          }
+          onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
+          onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
+          onCamera={() => void ingestPrescriptionFile(pickPrescriptionFromCamera)}
+          onSend={() => void submitConversation()}
+          sendDisabled={sending || readingFile || !canSendComposer()}
+          sending={sending}
+          sendAccessibilityLabel={t('education.sendQuestion')}
         />
-        {composerExpanded ? (
-          <>
-            {chatError ? <Text style={[sharedStyles.errorText, styles.composerError]}>{chatError}</Text> : null}
-            {readingFile ? (
-              <View style={styles.readingRow}>
-                <ActivityIndicator color={colors.primary} />
-                <Text style={styles.typingText}>{t('education.readingPrescription')}</Text>
-              </View>
-            ) : null}
-            <TextInput
-              ref={questionInputRef}
-              style={[styles.composerInput, keyboardVisible && styles.composerInputWithKeyboard]}
-              multiline
-              value={question}
-              onChangeText={setQuestion}
-              placeholder={t('education.questionPlaceholder')}
-              placeholderTextColor={colors.textMuted}
-              onFocus={onQuestionFocus}
-            />
-            {clinicalAttachments.length > 0 ? (
-              <View style={styles.attachmentChipRow}>
-                {clinicalAttachments.map((file, fileIndex) => (
-                  <View key={file.id} style={styles.attachmentChip}>
-                    <View style={styles.attachmentOrderBadge}>
-                      <Text style={styles.attachmentOrderText}>{fileIndex + 1}</Text>
-                    </View>
-                    <Text style={styles.attachmentName} numberOfLines={1}>
-                      {t('education.attachedFile', { name: file.name })}
-                    </Text>
-                    {clinicalAttachments.length === 1 ? (
-                      <Pressable onPress={() => removeClinicalAttachment(file.id)}>
-                        <Text style={styles.attachmentRemove}>{t('education.removeFile')}</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                ))}
-                {clinicalAttachments.length > 1 ? (
-                  <Pressable style={styles.reviewSequenceBtn} onPress={() => openSequenceModal(clinicalAttachments)}>
-                    <Text style={styles.reviewSequenceText}>{t('education.reviewSequence')}</Text>
+        {clinicalAttachments.length > 0 ? (
+          <View style={styles.attachmentChipRow}>
+            {clinicalAttachments.map((file, fileIndex) => (
+              <View key={file.id} style={styles.attachmentChip}>
+                <View style={styles.attachmentOrderBadge}>
+                  <Text style={styles.attachmentOrderText}>{fileIndex + 1}</Text>
+                </View>
+                <Text style={styles.attachmentName} numberOfLines={1}>
+                  {t('education.attachedFile', { name: file.name })}
+                </Text>
+                {clinicalAttachments.length === 1 ? (
+                  <Pressable onPress={() => removeClinicalAttachment(file.id)}>
+                    <Text style={styles.attachmentRemove}>{t('education.removeFile')}</Text>
                   </Pressable>
                 ) : null}
               </View>
-            ) : null}
-            <Text style={styles.composerHint}>
-              {readingFile ? (
-                t('education.readingPrescription')
-              ) : clinicalAttachments.length > 1 ? (
-                t('education.attachmentsConfirmSequenceHint', { count: clinicalAttachments.length })
-              ) : clinicalAttachments.length === 1 ? (
-                t('education.attachmentsReadyHint', { count: 1 })
-              ) : (
-                t('education.composerHint')
-              )}
-              {showAutoSentNotice ? (
-                <Text style={styles.autoSentNotice}> {t('education.autoSentNotice')}</Text>
-              ) : null}
-            </Text>
-            <View style={styles.sendRow}>
-              <AttachMenuButton
-                disabled={sending || readingFile || clinicalAttachments.length >= MAX_CONVERSATION_ATTACHMENTS}
-                onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
-                onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
-                onCamera={() => void ingestPrescriptionFile(pickPrescriptionFromCamera)}
-              />
-              <Pressable
-                style={[
-                  sharedStyles.button,
-                  styles.sendBtn,
-                  { opacity: sending || readingFile || !canSendComposer() ? 0.7 : 1 }
-                ]}
-                onPress={() => void submitConversation()}
-                disabled={sending || readingFile || !canSendComposer()}
-              >
-                <Text style={sharedStyles.buttonText}>
-                  {sending ? t('education.sending') : t('education.sendQuestion')}
-                </Text>
+            ))}
+            {clinicalAttachments.length > 1 ? (
+              <Pressable style={styles.reviewSequenceBtn} onPress={() => openSequenceModal(clinicalAttachments)}>
+                <Text style={styles.reviewSequenceText}>{t('education.reviewSequence')}</Text>
               </Pressable>
-            </View>
-          </>
+            ) : null}
+          </View>
+        ) : null}
+        {(clinicalAttachments.length > 0 || showAutoSentNotice) && !readingFile ? (
+          <Text style={styles.composerHint}>
+            {clinicalAttachments.length > 1
+              ? t('education.attachmentsConfirmSequenceHint', { count: clinicalAttachments.length })
+              : clinicalAttachments.length === 1
+                ? t('education.attachmentsReadyHint', { count: 1 })
+                : null}
+            {showAutoSentNotice ? (
+              <Text style={styles.autoSentNotice}> {t('education.autoSentNotice')}</Text>
+            ) : null}
+          </Text>
         ) : null}
       </View>
+    );
+  }
+
+  function renderPrescriptionComposer() {
+    const canSearch = Boolean(prescriptionQuery.trim());
+    return (
+      <View style={styles.composer}>
+        {prescriptionError ? (
+          <Text style={[sharedStyles.errorText, styles.composerError]}>{prescriptionError}</Text>
+        ) : null}
+        {readingFile ? (
+          <View style={[styles.readingRow, styles.composerMetaRow]}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.typingText}>{t('education.readingPrescription')}</Text>
+          </View>
+        ) : null}
+        <EducationComposerRow
+          inputRef={prescriptionInputRef}
+          value={prescriptionQuery}
+          onChangeText={setPrescriptionQuery}
+          placeholder={t('education.prescriptionPlaceholder')}
+          onFocus={onPrescriptionQueryFocus}
+          attachDisabled={prescriptionLoading || readingFile}
+          onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
+          onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
+          onCamera={() => void ingestPrescriptionFile(pickPrescriptionFromCamera)}
+          onSend={() => void onSearchPrescriptions()}
+          sendDisabled={prescriptionLoading || readingFile || !canSearch}
+          sending={prescriptionLoading}
+          sendAccessibilityLabel={t('education.prescriptionSearch')}
+        />
+      </View>
+    );
+  }
+
+  function renderBooksFullScreenModal() {
+    return (
+      <Modal
+        visible={chatFullScreen}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={closeChatFullScreen}
+      >
+        <View style={[styles.fullScreenRoot, { backgroundColor: colors.background }]}>
+          <KeyboardSafeView style={styles.flex}>
+            <View style={[styles.fullScreenBody, { paddingTop: insets.top }]}>
+              <View style={styles.fullScreenHeader}>
+                <Pressable
+                  style={styles.fullScreenExitBtn}
+                  onPress={closeChatFullScreen}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('education.exitFullScreen')}
+                >
+                  <Ionicons name="chevron-down" size={22} color={colors.text} />
+                  <Text style={styles.fullScreenExitText}>{t('education.exitFullScreen')}</Text>
+                </Pressable>
+              </View>
+              {renderBooksMessageList()}
+              {renderBooksComposer()}
+            </View>
+          </KeyboardSafeView>
+        </View>
+      </Modal>
     );
   }
 
@@ -764,6 +987,7 @@ export function DoctorEducationScreen() {
   return (
     <View style={sharedStyles.screen}>
       <KeyboardSafeView style={styles.flex}>
+      {!chatFullScreen ? (
       <View style={[styles.header, tab === 'books' && { paddingTop: insets.top + 6 }]}>
         {tab === 'prescription' ? (
           <Text style={sharedStyles.subtitle}>{t('education.subtitle')}</Text>
@@ -781,8 +1005,9 @@ export function DoctorEducationScreen() {
           />
         </View>
       </View>
+      ) : null}
 
-      {tab === 'books' ? (
+      {tab === 'books' && !chatFullScreen ? (
         <View style={styles.booksPane}>
           <View style={styles.booksMeta}>
             <EducationBookPicker
@@ -800,7 +1025,7 @@ export function DoctorEducationScreen() {
                       key={topic}
                       onPress={() => {
                         setQuestion(topic);
-                        setComposerExpanded(true);
+                        focusQuestionInput();
                       }}
                       style={styles.topicChip}
                     >
@@ -826,27 +1051,10 @@ export function DoctorEducationScreen() {
               onToggle={() => setEducationExpanded((prev) => !prev)}
               expandLabel={t('education.expandEducationAi')}
               collapseLabel={t('education.collapseEducationAi')}
+              action={chatFullScreenAction}
             />
             {educationExpanded ? (
-              <FlatList
-                ref={listRef}
-                data={messages}
-                keyExtractor={(item) => item.id}
-                style={styles.messageList}
-                contentContainerStyle={[
-                  styles.messageListContent,
-                  messages.length === 0 && styles.messageListContentEmpty
-                ]}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-                automaticallyAdjustKeyboardInsets
-                onContentSizeChange={scrollChatToEnd}
-                renderItem={renderMessage}
-                ListFooterComponent={typingFooter}
-                ListEmptyComponent={
-                  <Text style={styles.emptyChatHint}>{t('education.booksEmptyHint')}</Text>
-                }
-              />
+              renderBooksMessageList()
             ) : lastAssistantMessage ? (
               <Pressable
                 style={styles.collapsedPreview}
@@ -855,7 +1063,7 @@ export function DoctorEducationScreen() {
                 accessibilityLabel={t('education.expandEducationAi')}
               >
                 <Text style={styles.collapsedPreviewText} numberOfLines={3}>
-                  {lastAssistantMessage.content}
+                  {assistantDisplayBody(lastAssistantMessage.content ?? '')}
                 </Text>
               </Pressable>
             ) : null}
@@ -863,7 +1071,7 @@ export function DoctorEducationScreen() {
 
           {renderBooksComposer()}
         </View>
-      ) : (
+      ) : tab === 'prescription' ? (
         <ScrollView
           ref={prescriptionScrollRef}
           style={sharedStyles.screenPadded}
@@ -874,69 +1082,7 @@ export function DoctorEducationScreen() {
           automaticallyAdjustKeyboardInsets
         >
           <Text style={sharedStyles.subtitle}>{t('education.prescriptionBanner')}</Text>
-          {readingFile ? (
-            <View style={styles.readingRow}>
-              <ActivityIndicator color={colors.primary} />
-              <Text style={styles.typingText}>{t('education.readingPrescription')}</Text>
-            </View>
-          ) : null}
-          <View style={styles.composer}>
-            <CollapsiblePanelHeader
-              title={t('education.prescriptionSearch')}
-              subtitle={
-                prescriptionComposerExpanded
-                  ? undefined
-                  : prescriptionQuery.trim() || t('education.prescriptionPlaceholder')
-              }
-              expanded={prescriptionComposerExpanded}
-              onToggle={() => {
-                if (prescriptionComposerExpanded) collapsePrescriptionComposer();
-                else setPrescriptionComposerExpanded(true);
-              }}
-              expandLabel={t('education.expandComposer')}
-              collapseLabel={t('education.collapseComposer')}
-            />
-            {prescriptionComposerExpanded ? (
-              <>
-                <TextInput
-                  style={[
-                    sharedStyles.input,
-                    { minHeight: keyboardVisible ? 80 : 120, textAlignVertical: 'top', marginTop: 4 }
-                  ]}
-                  multiline
-                  value={prescriptionQuery}
-                  onChangeText={setPrescriptionQuery}
-                  placeholder={t('education.prescriptionPlaceholder')}
-                  placeholderTextColor={colors.textMuted}
-                  onFocus={() => {
-                    scrollPrescriptionToInput();
-                    setTimeout(scrollPrescriptionToInput, 120);
-                    setTimeout(scrollPrescriptionToInput, 320);
-                  }}
-                />
-                <View style={[styles.sendRow, { marginTop: 8 }]}>
-                  <AttachMenuButton
-                    disabled={prescriptionLoading || readingFile}
-                    onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
-                    onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
-                    onCamera={() => void ingestPrescriptionFile(pickPrescriptionFromCamera)}
-                  />
-                  <Pressable
-                    style={[sharedStyles.button, styles.sendBtn, { opacity: prescriptionLoading ? 0.7 : 1 }]}
-                    onPress={() => void onSearchPrescriptions()}
-                    disabled={prescriptionLoading || readingFile || !prescriptionQuery.trim()}
-                  >
-                    {prescriptionLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={sharedStyles.buttonText}>{t('education.prescriptionSearch')}</Text>
-                    )}
-                  </Pressable>
-                </View>
-              </>
-            ) : null}
-          </View>
-          {prescriptionError ? <Text style={sharedStyles.errorText}>{prescriptionError}</Text> : null}
+          {renderPrescriptionComposer()}
           {prescriptionResults.map((hit) => (
             <View key={hit.externalId || hit.searchText} style={sharedStyles.card}>
               <Text style={sharedStyles.cardTitle}>
@@ -947,7 +1093,8 @@ export function DoctorEducationScreen() {
             </View>
           ))}
         </ScrollView>
-      )}
+      ) : null}
+      {tab === 'books' ? renderBooksFullScreenModal() : null}
       <EducationAttachmentSequenceModal
         visible={sequenceModalVisible}
         files={sequencePending}
@@ -963,6 +1110,9 @@ export function DoctorEducationScreen() {
   );
 }
 
+const COMPOSER_INPUT_MIN_HEIGHT = 40;
+const COMPOSER_INPUT_MAX_HEIGHT = 120;
+
 const styles = StyleSheet.create({
   flex: {
     flex: 1
@@ -973,6 +1123,32 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border
+  },
+  fullScreenRoot: {
+    flex: 1
+  },
+  fullScreenBody: {
+    flex: 1
+  },
+  fullScreenHeader: {
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface
+  },
+  fullScreenExitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    alignSelf: 'flex-start'
+  },
+  fullScreenExitText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text
   },
   booksPane: {
     flex: 1
@@ -1030,13 +1206,28 @@ const styles = StyleSheet.create({
   panelHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    paddingHorizontal: 16,
+    gap: 4,
+    paddingRight: 8,
     paddingVertical: 10,
+    paddingLeft: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border
+  },
+  panelHeaderMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    minWidth: 0
+  },
+  panelHeaderAction: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   panelHeaderText: {
     flex: 1,
@@ -1122,6 +1313,40 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: colors.text
   },
+  followUpBlock: {
+    marginTop: 12,
+    gap: 8
+  },
+  followUpTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: colors.textMuted
+  },
+  followUpChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  followUpChip: {
+    maxWidth: '100%',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    backgroundColor: colors.surface
+  },
+  followUpChipDisabled: {
+    opacity: 0.6
+  },
+  followUpChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#075985',
+    lineHeight: 16
+  },
   typingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1146,6 +1371,59 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 0
+  },
+  composerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8
+  },
+  composerMetaRow: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 0
+  },
+  composerInputShell: {
+    flex: 1,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    minHeight: COMPOSER_INPUT_MIN_HEIGHT,
+    justifyContent: 'center'
+  },
+  composerInputInline: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.text,
+    paddingHorizontal: 12,
+    paddingTop: Platform.OS === 'ios' ? 9 : 8,
+    paddingBottom: Platform.OS === 'ios' ? 9 : 8,
+    minHeight: COMPOSER_INPUT_MIN_HEIGHT,
+    maxHeight: COMPOSER_INPUT_MAX_HEIGHT,
+    textAlignVertical: 'top'
+  },
+  composerInputInlineWithSend: {
+    paddingRight: 44
+  },
+  composerInputInlineKeyboard: {
+    maxHeight: 96
+  },
+  composerSendIcon: {
+    position: 'absolute',
+    right: 6,
+    bottom: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  composerSendIconDisabled: {
+    opacity: 0.7
   },
   composerInput: {
     ...sharedStyles.input,
@@ -1216,6 +1494,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background
+  },
+  plusBtnCompact: {
+    width: 40,
+    height: 40,
+    borderRadius: 12
   },
   plusBtnActive: {
     borderColor: colors.primary,

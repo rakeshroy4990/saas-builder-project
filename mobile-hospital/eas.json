@@ -11,6 +11,7 @@
         "simulator": true
       },
       "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend-hospital-yspwmymsgq-el.a.run.app",
         "EXPO_PUBLIC_API_BASE_URL": "https://backend-hospital-yspwmymsgq-el.a.run.app",
         "EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID": "148957600999-k1e8jsn96vg893pifqchvqf241eot688.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "148957600999-61r14rmr6ncldnnnep4aek6u7froej39.apps.googleusercontent.com"
@@ -19,6 +20,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend-hospital-yspwmymsgq-el.a.run.app",
         "EXPO_PUBLIC_API_BASE_URL": "https://backend-hospital-yspwmymsgq-el.a.run.app",
         "EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID": "148957600999-k1e8jsn96vg893pifqchvqf241eot688.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "148957600999-61r14rmr6ncldnnnep4aek6u7froej39.apps.googleusercontent.com"
@@ -30,6 +32,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend-hospital-yspwmymsgq-el.a.run.app",
         "EXPO_PUBLIC_API_BASE_URL": "https://backend-hospital-yspwmymsgq-el.a.run.app",
         "EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID": "148957600999-k1e8jsn96vg893pifqchvqf241eot688.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "148957600999-61r14rmr6ncldnnnep4aek6u7froej39.apps.googleusercontent.com"

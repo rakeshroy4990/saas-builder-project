@@ -51,6 +51,12 @@
           "photosPermission": "Allow Agastya Healthcare to access photos for prescription upload.",
           "cameraPermission": "Allow Agastya Healthcare to use the camera for prescription photos."
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Agastya Healthcare to use Face ID to unlock the app when you return."
+        }
       ]
     ],
     "experiments": {

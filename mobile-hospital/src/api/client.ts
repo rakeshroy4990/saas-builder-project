@@ -22,16 +22,35 @@ import {
 import { shouldSkipTelemetrySessionSummaryForUrl } from '@/analytics/telemetryUrlSkip';
 import { isAccessTokenExpired, useSessionStore } from '@/auth/sessionStore';
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
+import { toUserFacingApiError } from '@/api/apiErrors';
+import { DEFAULT_API_TIMEOUT_MS } from '@/api/timeouts';
+
 import { applyMultipartHeaders } from './multipart';
 import { getMobileApiBaseUrl } from './config';
+
+function rejectWithFriendlyMessage(error: AxiosError): Promise<never> {
+  const friendly = toUserFacingApiError(error, error.message);
+  if (friendly !== error.message) {
+    error.message = friendly;
+  }
+  return Promise.reject(error);
+}
 
 type TelemetryAxiosConfig = InternalAxiosRequestConfig & { __telemetryT0?: number };
 
 let refreshInFlight: Promise<boolean> | null = null;
+let refreshAbortController: AbortController | null = null;
+
+/** Stops a slow startup refresh so explicit login is not queued behind it. */
+export function cancelPendingTokenRefresh(): void {
+  refreshAbortController?.abort();
+  refreshAbortController = null;
+  refreshInFlight = null;
+}
 
 export const apiClient = axios.create({
   baseURL: getMobileApiBaseUrl(),
-  timeout: 30_000,
+  timeout: DEFAULT_API_TIMEOUT_MS,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json'
@@ -58,12 +77,24 @@ function resolveApiPath(config: InternalAxiosRequestConfig): string {
   return `${base}${url.startsWith('/') ? url : `/${url}`}`;
 }
 
-const DEFAULT_REFRESH_TIMEOUT_MS = 30_000;
+const DEFAULT_REFRESH_TIMEOUT_MS = DEFAULT_API_TIMEOUT_MS;
 
-export async function refreshAccessToken(options?: { timeoutMs?: number }): Promise<boolean> {
-  if (refreshInFlight) return refreshInFlight;
+export async function refreshAccessToken(options?: {
+  timeoutMs?: number;
+  /** When true, aborts any in-flight refresh and starts a new one. */
+  force?: boolean;
+}): Promise<boolean> {
+  if (refreshInFlight) {
+    if (options?.force) {
+      cancelPendingTokenRefresh();
+    } else {
+      return refreshInFlight;
+    }
+  }
 
   const timeoutMs = options?.timeoutMs ?? DEFAULT_REFRESH_TIMEOUT_MS;
+  const controller = new AbortController();
+  refreshAbortController = controller;
 
   refreshInFlight = (async () => {
     try {
@@ -75,7 +106,8 @@ export async function refreshAccessToken(options?: { timeoutMs?: number }): Prom
         { DeviceId: 'mobile', RefreshToken: refreshToken },
         {
           headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-          timeout: timeoutMs
+          timeout: timeoutMs,
+          signal: controller.signal
         }
       );
 
@@ -101,9 +133,18 @@ export async function refreshAccessToken(options?: { timeoutMs?: number }): Prom
         await setStoredRefreshToken(parsed.refreshToken);
       }
       return true;
-    } catch {
+    } catch (error) {
+      if (axios.isCancel(error)) return false;
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      if (status === 401 || status === 403) {
+        useSessionStore.getState().clearSession();
+        await clearSecureAuth();
+      }
       return false;
     } finally {
+      if (refreshAbortController === controller) {
+        refreshAbortController = null;
+      }
       refreshInFlight = null;
     }
   })();
@@ -111,12 +152,50 @@ export async function refreshAccessToken(options?: { timeoutMs?: number }): Prom
   return refreshInFlight;
 }
 
+/** Refreshes the access JWT when expired or close to expiry (fetch, STOMP, proactive keeper). */
+export async function ensureFreshAccessToken(): Promise<boolean> {
+  const hasAccess = Boolean(useSessionStore.getState().accessToken);
+  if (!hasAccess) {
+    const refresh = await getStoredRefreshToken();
+    if (!refresh?.trim()) return false;
+  }
+  if (!isAccessTokenExpired()) {
+    return Boolean(useSessionStore.getState().accessToken);
+  }
+  return refreshAccessToken();
+}
+
+/** Runs `fetch` with Bearer auth; on 401, silently refreshes once and retries. */
+export async function fetchWithAuthRetry(buildRequest: () => Promise<Response>): Promise<Response> {
+  await ensureFreshAccessToken();
+
+  let res = await buildRequest();
+  if (res.status !== 401) {
+    return res;
+  }
+
+  const refreshed = await refreshAccessToken();
+  if (refreshed) {
+    return buildRequest();
+  }
+
+  useSessionStore.getState().clearSession();
+  await clearSecureAuth();
+  return res;
+}
+
 apiClient.interceptors.request.use(async (config) => {
   applyMultipartHeaders(config);
   const url = String(config.url ?? '');
   const isRefresh = url.includes(SERVER_PATHS.refresh);
-  if (!isRefresh && isAccessTokenExpired()) {
-    await refreshAccessToken();
+  const isExplicitLogin = url.includes(SERVER_PATHS.login) || url.includes(SERVER_PATHS.googleLogin);
+  if (isExplicitLogin) {
+    cancelPendingTokenRefresh();
+    useSessionStore.getState().setSessionRestoreInFlight(false);
+    return attachBearer(config);
+  }
+  if (!isRefresh) {
+    await ensureFreshAccessToken();
   }
   const resolved = resolveApiPath(config);
   if (!shouldSkipTelemetrySessionSummaryForUrl(resolved)) {
@@ -147,7 +226,7 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const original = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
     if (!original || original._retry) {
-      return Promise.reject(error);
+      return rejectWithFriendlyMessage(error);
     }
     const status = error.response?.status;
     const url = String(original.url ?? '');
@@ -189,7 +268,7 @@ apiClient.interceptors.response.use(
       useSessionStore.getState().clearSession();
       await clearSecureAuth();
     }
-    return Promise.reject(error);
+    return rejectWithFriendlyMessage(error);
   }
 );
 

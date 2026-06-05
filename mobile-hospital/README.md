@@ -17,7 +17,7 @@ See **[docs/TESTING.md](docs/TESTING.md)** for where to run the app, Play Store 
 ```bash
 cd mobile-hospital
 cp .env.example .env
-# Edit EXPO_PUBLIC_API_BASE_URL — use your LAN IP for physical devices
+# Edit EXPO_PUBLIC_API_URL — use your LAN IP for physical devices (see .env.example)
 npm install
 ```
 
@@ -42,7 +42,9 @@ npm test               # Jest unit tests
 - Login: `POST /api/auth/login` with `{ EmailId, Password }`
 - Responses include `accessToken` and `refreshToken` in JSON
 - Access token: **memory only** (Zustand)
-- Refresh token + profile: **expo-secure-store**
+- Refresh token + profile: **expo-secure-store** (never AsyncStorage; access JWT in memory only)
+- Silent refresh on 401 + proactive refresh during active sessions (video-safe)
+- Optional biometric app lock (Profile) and optional TLS pinning via `EXPO_PUBLIC_SSL_PIN_JSON` (EAS builds)
 - API calls: `Authorization: Bearer <accessToken>`
 - Refresh: `POST /api/auth/refresh` with `{ DeviceId: 'mobile', RefreshToken }`
 

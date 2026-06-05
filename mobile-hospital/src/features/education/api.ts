@@ -6,7 +6,14 @@ import {
 
 import { postHospitalAiChatNdjson } from '@/api/hospitalAiChatStream';
 import { apiClient } from '@/api/client';
+import { UPLOAD_API_TIMEOUT_MS } from '@/api/timeouts';
 import { buildEducationChatPayload } from '@/features/education/educationChatPayload';
+import {
+  parseEducationChatComplete,
+  type EducationChatResult
+} from '@/features/education/parseEducationChatComplete';
+
+export type { EducationChatResult } from '@/features/education/parseEducationChatComplete';
 
 export { buildEducationChatPayload } from '@/features/education/educationChatPayload';
 
@@ -58,7 +65,7 @@ export async function askEducationQuestionStreaming(
   conversationId: string,
   handlers: EducationStreamHandlers = {},
   retrievalQuestion?: string
-): Promise<string> {
+): Promise<EducationChatResult> {
   const payload = buildEducationChatPayload(
     question,
     bookNames,
@@ -68,13 +75,18 @@ export async function askEducationQuestionStreaming(
   );
 
   let textSoFar = '';
-  return postHospitalAiChatNdjson(payload, {
+  let completePayload: Record<string, unknown> | null = null;
+  const streamed = await postHospitalAiChatNdjson(payload, {
     onStatus: handlers.onStatus,
     onDelta: (chunk) => {
       textSoFar += chunk;
       handlers.onDelta?.(textSoFar);
+    },
+    onComplete: (data) => {
+      completePayload = data;
     }
   });
+  return parseEducationChatComplete(completePayload, streamed || textSoFar);
 }
 
 /** @deprecated Use {@link askEducationQuestionStreaming} for progressive UI. */
@@ -83,7 +95,7 @@ export async function askEducationQuestion(
   bookNames: string[],
   history: EducationChatTurn[],
   conversationId: string
-): Promise<string> {
+): Promise<EducationChatResult> {
   return askEducationQuestionStreaming(question, bookNames, history, conversationId);
 }
 
@@ -114,7 +126,7 @@ export async function searchSimilarPrescriptions(query: string, limit = 10): Pro
   formData.append('limit', String(limit));
 
   const response = await apiClient.post(SERVER_PATHS.patientPrescriptionsSimilaritySearch, formData, {
-    timeout: 180_000,
+    timeout: UPLOAD_API_TIMEOUT_MS,
     headers: { Accept: 'application/json' }
   });
   const data = unwrapEnvelope<unknown>(response.data);

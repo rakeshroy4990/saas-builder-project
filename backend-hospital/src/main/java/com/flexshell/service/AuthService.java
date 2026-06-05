@@ -16,8 +16,6 @@ import com.flexshell.auth.api.RefreshTokenRequest;
 import com.flexshell.auth.api.RefreshTokenResponse;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.email.AppEmailProperties;
 import com.flexshell.security.PasswordPolicy;
 import com.flexshell.observability.ObservabilityLogger;
@@ -271,100 +269,15 @@ public class AuthService implements AuthFacade {
                 givenName = parts[0].trim();
                 familyName = parts.length > 1 ? parts[1].trim() : "";
             }
-            Map<String, Object> merged = new HashMap<>(body);
-            mergeOpenIdUserInfo(googleAccessToken, merged);
-            mergePeopleMeIfNeeded(googleAccessToken, merged);
-            String gender = sanitizeGoogleGender(mapStringField(merged, "gender"));
-            String mobileNumber = extractGooglePhone(merged);
+            // Sign-in hot path: userinfo v3 only (skip OpenID + People API — saves 1–2 round trips).
+            // Optional gender/phone enrichment for new accounts happens in enrichUserFromGoogleProfileIfMissing
+            // when those fields are already on the user record or left blank.
+            String gender = sanitizeGoogleGender(mapStringField(body, "gender"));
+            String mobileNumber = extractGooglePhone(body);
             return Optional.of(new GoogleVerifiedProfile(email, givenName, familyName, gender, mobileNumber));
         } catch (RestClientException ex) {
             log.warn("Google userinfo request failed: {}", ex.toString());
             return Optional.empty();
-        }
-    }
-
-    /**
-     * Merges optional claims from the OIDC userinfo endpoint when they are absent on the v3 payload
-     * (e.g. {@code phone_number} when the token includes the right scopes).
-     */
-    private void mergeOpenIdUserInfo(String accessToken, Map<String, Object> merged) {
-        try {
-            Map<String, Object> v1 = RestClient.create()
-                    .get()
-                    .uri("https://openidconnect.googleapis.com/v1/userinfo")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                    .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
-            if (v1 == null) {
-                return;
-            }
-            for (String key : List.of("gender", "phone_number", "phoneNumber", "formatted_phone_number")) {
-                if (!v1.containsKey(key)) {
-                    continue;
-                }
-                Object val = v1.get(key);
-                if (val == null) {
-                    continue;
-                }
-                if (!merged.containsKey(key) || mapStringField(merged, key).isEmpty()) {
-                    merged.put(key, val);
-                }
-            }
-        } catch (RestClientException ex) {
-            log.debug("Optional OpenID userinfo merge skipped: {}", ex.toString());
-        }
-    }
-
-    /**
-     * When granted {@code user.phonenumbers.read} / {@code user.gender.read}, People API can supply
-     * phone and gender not present on standard userinfo.
-     */
-    private void mergePeopleMeIfNeeded(String accessToken, Map<String, Object> merged) {
-        boolean needPhone = extractGooglePhone(merged).isEmpty();
-        boolean needGender = mapStringField(merged, "gender").isBlank();
-        if (!needPhone && !needGender) {
-            return;
-        }
-        try {
-            String json = RestClient.create()
-                    .get()
-                    .uri(
-                            "https://people.googleapis.com/v1/people/me"
-                                    + "?personFields=phoneNumbers,genders&sources=READ_SOURCE_TYPE_ACCOUNT")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                    .retrieve()
-                    .body(String.class);
-            if (json == null || json.isBlank()) {
-                return;
-            }
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(json);
-            if (needGender) {
-                JsonNode genders = root.path("genders");
-                if (genders.isArray() && !genders.isEmpty()) {
-                    JsonNode first = genders.get(0);
-                    String fv = first.path("formattedValue").asText("");
-                    if (fv.isBlank()) {
-                        fv = first.path("value").asText("");
-                    }
-                    if (!fv.isBlank()) {
-                        merged.put("gender", fv.trim());
-                    }
-                }
-            }
-            if (needPhone) {
-                JsonNode phones = root.path("phoneNumbers");
-                if (phones.isArray() && !phones.isEmpty()) {
-                    String val = phones.get(0).path("value").asText("");
-                    if (!val.isBlank()) {
-                        merged.put("phone_number", val.trim());
-                    }
-                }
-            }
-        } catch (RestClientException ex) {
-            log.debug("People API merge skipped: {}", ex.toString());
-        } catch (Exception ex) {
-            log.debug("People API response parse skipped: {}", ex.toString());
         }
     }
 

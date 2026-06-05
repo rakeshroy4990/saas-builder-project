@@ -2,9 +2,11 @@ import { resolveSpringApiUrl } from '@saas-builder/hospital-api-client';
 import { File, UploadType, type UploadResult } from 'expo-file-system';
 
 import { getOrCreateTraceId } from '@/analytics/sessionTelemetry';
-import { isAccessTokenExpired, useSessionStore } from '@/auth/sessionStore';
-import { refreshAccessToken } from '@/api/client';
+import { useSessionStore } from '@/auth/sessionStore';
+import { fetchWithTimeout } from '@/api/fetchWithTimeout';
+import { ensureFreshAccessToken, refreshAccessToken } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api/config';
+import { UPLOAD_API_TIMEOUT_MS } from '@/api/timeouts';
 import { ensureUploadableFileUri } from '@/api/ensureUploadableUri';
 import { normalizeUploadMimeType } from '@/api/multipart';
 import { mapMultipartFetchError } from '@/api/multipartErrors';
@@ -84,9 +86,7 @@ export async function postMultipartLocalFile(
   };
 
   try {
-    if (isAccessTokenExpired()) {
-      await refreshAccessToken();
-    }
+    await ensureFreshAccessToken();
 
     let result = await runUpload();
     if (result.status === 401) {
@@ -114,7 +114,7 @@ export async function postMultipart(
   formData: FormData,
   options?: MultipartFetchOptions
 ): Promise<unknown> {
-  const timeoutMs = options?.timeoutMs ?? 180_000;
+  const timeoutMs = options?.timeoutMs ?? UPLOAD_API_TIMEOUT_MS;
   const url = resolveSpringApiUrl(getMobileApiBaseUrl(), path);
 
   const runFetch = async (): Promise<Response> => {
@@ -127,24 +127,19 @@ export async function postMultipart(
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      return await fetch(url, {
+    return fetchWithTimeout(
+      url,
+      {
         method: 'POST',
         headers,
-        body: formData,
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timer);
-    }
+        body: formData
+      },
+      timeoutMs
+    );
   };
 
   try {
-    if (isAccessTokenExpired()) {
-      await refreshAccessToken();
-    }
+    await ensureFreshAccessToken();
 
     let res = await runFetch();
     if (res.status === 401) {

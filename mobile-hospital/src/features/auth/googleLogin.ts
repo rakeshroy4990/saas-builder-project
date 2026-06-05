@@ -1,6 +1,7 @@
 import { parseAuthLoginPayload, SERVER_PATHS } from '@saas-builder/hospital-api-client';
 import { Platform } from 'react-native';
 
+import { authLoginTelemetryFromResponse, AUTH_TELEMETRY_PATHS } from '@/analytics/authTelemetry';
 import { recordSuccessfulLoginTelemetry } from '@/analytics/sessionTelemetry';
 import { apiClient } from '@/api/client';
 import { persistSessionSecrets } from '@/auth/secureTokens';
@@ -9,12 +10,23 @@ import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
 import { getGoogleOAuthClientIds, isGoogleOAuthConfigured } from '@/config/env';
 
 import { mapNativeGoogleSignInError } from './googleSignInErrors';
-import { isExpoGoClient, isNativeGoogleSignInAvailable, signInWithGoogleNative } from './googleSignInNative';
+import {
+  isExpoGoClient,
+  isNativeGoogleSignInAvailable,
+  signInWithGoogleNative,
+  warmGoogleSignInNative
+} from './googleSignInNative';
 
-export { ensureGoogleSignInConfigured, isExpoGoClient, isNativeGoogleSignInAvailable } from './googleSignInNative';
+export {
+  ensureGoogleSignInConfigured,
+  isExpoGoClient,
+  isNativeGoogleSignInAvailable,
+  warmGoogleSignInNative
+} from './googleSignInNative';
 export { isGoogleWebAuthAvailable, useGoogleWebAuthRequest } from './googleSignInWeb';
 
 export async function completeGoogleSignIn(googleAccessToken: string, identityFallback: string): Promise<void> {
+  const startedAtMs = Date.now();
   const response = await apiClient.post(SERVER_PATHS.googleLogin, {
     AccessToken: googleAccessToken
   });
@@ -34,7 +46,10 @@ export async function completeGoogleSignIn(googleAccessToken: string, identityFa
     expiresInSeconds: parsed.expiresInSeconds ?? DEFAULT_ACCESS_TOKEN_TTL_SECONDS
   });
   persistSessionSecrets(parsed.refreshToken, user);
-  recordSuccessfulLoginTelemetry('google');
+  recordSuccessfulLoginTelemetry(
+    'google',
+    authLoginTelemetryFromResponse(AUTH_TELEMETRY_PATHS.googleLogin, startedAtMs, response.status)
+  );
   const { connectRealtimeAfterAuth } = await import('@/features/video/connectOnAuth');
   void connectRealtimeAfterAuth();
 }

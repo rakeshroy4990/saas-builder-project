@@ -38,7 +38,7 @@ export default function HomeTab() {
       return;
     }
     if (isLoggedIn) {
-      openMainTab('appointments');
+      router.push('/(app)/appointments/book' as never);
       return;
     }
     router.push('/(auth)/login');

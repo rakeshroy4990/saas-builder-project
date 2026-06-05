@@ -1,5 +1,6 @@
 import { Client, type IFrame, type IMessage, type StompSubscription } from '@stomp/stompjs';
 
+import { ensureFreshAccessToken } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api/config';
 import { useSessionStore } from '@/auth/sessionStore';
 
@@ -44,6 +45,7 @@ export async function stompConnect(): Promise<void> {
       heartbeatOutgoing: 20000,
       debug: () => {},
       beforeConnect: async () => {
+        await ensureFreshAccessToken();
         for (const key of Object.keys(connectHeaders)) {
           delete connectHeaders[key];
         }

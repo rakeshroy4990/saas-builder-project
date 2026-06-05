@@ -134,6 +134,39 @@ After a failed sign-in, the login screen shows:
 
 ## Security
 
-- Do not store access tokens in AsyncStorage or SecureStore
+### JWT storage (never AsyncStorage)
+
+| Token | Storage |
+|-------|---------|
+| Access JWT | **Memory only** (Zustand `sessionStore`) |
+| Refresh JWT | **`expo-secure-store`** (`src/auth/secureTokens.ts`), `WHEN_UNLOCKED_THIS_DEVICE_ONLY` |
+| Profile snapshot | Same Secure Store (non-secret display fields) |
+
+**Do not** use `@react-native-async-storage/async-storage` for tokens — it is unencrypted on Android.
+
+### Silent refresh (401 + proactive)
+
+- **Axios** (`src/api/client.ts`): refreshes before expiry on each request; on **401**, calls `POST /api/auth/refresh` once and retries.
+- **Fetch** (AI chat NDJSON, multipart): `fetchWithAuthRetry` / `ensureFreshAccessToken`.
+- **STOMP** (video signaling): `beforeConnect` refreshes the JWT so reconnects during calls stay authorized.
+- **Foreground keeper** (`SessionTokenKeeper`): while the app is active, refreshes when the access token is within 5 minutes of expiry (reduces mid–video-call logouts).
+
+### Certificate pinning (optional, production)
+
+For Cloud Run / custom API hosts, set SPKI hashes at **build time** (requires EAS native build, not Expo Go):
+
+```bash
+# Example — replace hashes after extracting from your API host (see react-native-ssl-public-key-pinning docs)
+EXPO_PUBLIC_SSL_PIN_JSON={"backend-hospital-yspwmymsgq-el.a.run.app":["<primary-spki-sha256>","<backup-spki-sha256>"]}
+```
+
+Initialization: `src/api/certificatePinning.ts` (no-op when env unset or in Expo Go).
+
+### Biometric app lock (optional)
+
+Profile → **App lock** uses `expo-local-authentication` when the app returns from background. Preference is stored in Secure Store. Does not replace device PIN; adds re-entry protection for signed-in sessions.
+
+### General
+
 - Do not log tokens or patient identifiers
 - Use `EXPO_PUBLIC_API_BASE_URL` with HTTPS in production

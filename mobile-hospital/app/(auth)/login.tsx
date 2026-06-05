@@ -15,9 +15,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/components/BrandHeader';
 import { AuthBusyOverlay } from '@/components/AuthBusyOverlay';
+import { cancelPendingTokenRefresh } from '@/api/client';
 import { getLoginErrorMessage, loginWithPassword } from '@/features/auth/api';
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton';
-import { ensureGoogleSignInConfigured, isGoogleSignInConfigured } from '@/features/auth/googleLogin';
+import {
+  ensureGoogleSignInConfigured,
+  isGoogleSignInConfigured,
+  warmGoogleSignInNative
+} from '@/features/auth/googleLogin';
 import { useSessionStore } from '@/auth/sessionStore';
 import { colors } from '@/theme/colors';
 import { sharedStyles } from '@/theme/styles';
@@ -28,7 +33,6 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const enterGuestMode = useSessionStore((s) => s.enterGuestMode);
   const accessToken = useSessionStore((s) => s.accessToken);
-  const sessionRestoreInFlight = useSessionStore((s) => s.sessionRestoreInFlight);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -38,12 +42,13 @@ export default function LoginScreen() {
   const authBusy = loading || googleLoading;
 
   useEffect(() => {
-    if (googleConfigured && Platform.OS !== 'web') {
-      ensureGoogleSignInConfigured();
-    }
+    if (!googleConfigured || Platform.OS === 'web') return;
+    ensureGoogleSignInConfigured();
+    void warmGoogleSignInNative();
   }, [googleConfigured]);
 
   const onGoogleSuccess = useCallback(() => {
+    setGoogleLoading(false);
     router.replace('/(app)/(tabs)/home' as never);
   }, [router]);
 
@@ -53,6 +58,8 @@ export default function LoginScreen() {
 
   async function onSubmit() {
     setError('');
+    cancelPendingTokenRefresh();
+    useSessionStore.getState().setSessionRestoreInFlight(false);
     setLoading(true);
     try {
       await loginWithPassword(email, password);
@@ -82,13 +89,6 @@ export default function LoginScreen() {
         scrollEnabled={!authBusy}
       >
         <BrandHeader subtitle={t('auth.loginTitle')} />
-
-        {sessionRestoreInFlight ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <ActivityIndicator color={colors.primary} />
-            <Text style={{ color: colors.textMuted, fontSize: 15 }}>{t('auth.restoringSession')}</Text>
-          </View>
-        ) : null}
 
         <Text style={sharedStyles.label}>{t('auth.email')}</Text>
         <TextInput

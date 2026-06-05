@@ -81,10 +81,18 @@ module.exports = ({ config }) => {
   // entry bundled into the APK often causes DEVELOPER_ERROR even with Console OAuth clients.
   const { googleServicesFile: _ignored, ...androidBase } = config.android ?? {};
 
+  const apiBaseUrl = String(
+    process.env.EXPO_PUBLIC_API_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL ?? extra.apiBaseUrl ?? ''
+  ).trim();
+
   /** @type {import('@expo/config').ExpoConfig} */
   return {
     ...config,
     scheme,
+    extra: {
+      ...extra,
+      ...(apiBaseUrl ? { apiBaseUrl } : {})
+    },
     android: {
       ...androidBase,
       ...(useFirebaseGooglePlugin ? { googleServicesFile } : {})

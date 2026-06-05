@@ -21,7 +21,8 @@
     "gateMessage": "Please sign in to use this section of the app.",
     "invalidCredentials": "Invalid email or password",
     "networkError": "Unable to reach the server. Check your connection and API URL.",
-    "restoringSession": "Restoring your session…"
+    "restoringSession": "Restoring your session…",
+    "brandIntro": "Loading Agastya Healthcare"
   },
   "nav": {
     "home": "Home",
@@ -115,7 +116,49 @@
     "date": "Date",
     "time": "Time",
     "status": "Status",
-    "department": "Department"
+    "department": "Department",
+    "book": {
+      "cta": "Book an appointment",
+      "title": "Book an appointment",
+      "subtitle": "Choose a department, doctor, and time slot. Fields match the hospital web booking form.",
+      "patientName": "Patient name *",
+      "patientNamePlaceholder": "Your name",
+      "email": "Email *",
+      "emailPlaceholder": "you@example.com",
+      "phone": "Phone number *",
+      "phonePlaceholder": "Phone number",
+      "age": "Patient age (years) *",
+      "agePlaceholder": "Max 20",
+      "department": "Department *",
+      "selectDepartment": "Select department",
+      "doctor": "Doctor *",
+      "doctorNeedsDepartment": "Doctor (select department first) *",
+      "selectDoctor": "Select doctor",
+      "preferredDate": "Preferred date *",
+      "selectDate": "Select date",
+      "preferredTime": "Preferred time slot *",
+      "selectTime": "Select time slot",
+      "notes": "Additional notes",
+      "notesPlaceholder": "Symptoms or concerns…",
+      "priorDocs": "Prior documents / scans (optional, up to 2 images)",
+      "attachImages": "Add images",
+      "removeFile": "Remove",
+      "submit": "Book appointment",
+      "submitting": "Booking…",
+      "successTitle": "Appointment booked",
+      "successMessage": "Your appointment request was submitted successfully.",
+      "viewAppointments": "View appointments",
+      "missingFields": "Missing required fields: {{fields}}",
+      "departmentsLoadFailed": "Could not load departments.",
+      "doctorLoadFailed": "Unable to load doctors. Please try again.",
+      "noDoctors": "No doctors found for this department.",
+      "slotNoneForDate": "No time slots are available for this doctor on the selected date.",
+      "slotNoneFutureToday": "No future time slots are available today. Choose a later date.",
+      "slotsForbiddenDoctor": "You cannot load slots for this doctor.",
+      "slotsLoadFailed": "Could not load available time slots. Try again.",
+      "prescriptionLimit": "You can attach up to 2 images.",
+      "attachFailed": "Could not attach images."
+    }
   },
   "video": {
     "startCall": "Video call",
@@ -144,6 +187,16 @@
     "role": "Role",
     "userId": "User ID",
     "loading": "Loading profile…"
+  },
+  "network": {
+    "offlineBanner": "You are offline. Some features will not work until your connection returns."
+  },
+  "security": {
+    "biometricLockTitle": "Unlock the app",
+    "biometricLockMessage": "Use Face ID or fingerprint to continue.",
+    "biometricUnlock": "Unlock",
+    "biometricLockSetting": "App lock",
+    "biometricLockSettingHint": "Require biometrics when returning to the app after it was in the background."
   },
   "prescriptions": {
     "title": "Prescriptions",
@@ -191,6 +244,7 @@
     "sending": "Sending…",
     "userLabel": "Doctor",
     "assistantLabel": "Education AI",
+    "followUpTitle": "Follow-up questions",
     "emptyAnswer": "No grounded answer was returned.",
     "chatFailed": "Could not reach the education assistant. Try again.",
     "prescriptionBanner": "Search uploaded prescriptions by clinical text. Results are ranked by vector similarity.",

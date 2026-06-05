@@ -2,6 +2,7 @@ import { pickString, SERVER_PATHS, unwrapEnvelope } from '@saas-builder/hospital
 
 import { apiClient } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api/config';
+import { DEFAULT_API_TIMEOUT_MS } from '@/api/timeouts';
 import axios from 'axios';
 
 export interface BlogPreview {
@@ -24,7 +25,7 @@ export async function fetchBlogPreviews(limit = 8): Promise<BlogPreview[]> {
   try {
     const client = apiClient.defaults.headers.Authorization ? apiClient : axios.create({
       baseURL: getMobileApiBaseUrl(),
-      timeout: 30_000,
+      timeout: DEFAULT_API_TIMEOUT_MS,
       headers: { Accept: 'application/json' }
     });
     const response = await client.get(SERVER_PATHS.hospitalBlogPreviews, { params: { limit } });

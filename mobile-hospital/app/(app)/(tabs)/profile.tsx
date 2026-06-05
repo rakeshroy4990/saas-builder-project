@@ -1,9 +1,15 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { pickString } from '@saas-builder/hospital-api-client';
 
+import {
+  authenticateForAppUnlock,
+  isBiometricHardwareAvailable,
+  setBiometricLockEnabled
+} from '@/auth/biometricPreferences';
+import { useBiometricLockStore } from '@/auth/biometricLockStore';
 import { AuthGate } from '@/components/AuthGate';
 import { useSessionStore } from '@/auth/sessionStore';
 import { LoadingView } from '@/components/LoadingView';
@@ -17,6 +23,18 @@ export default function ProfileTab() {
   const user = useSessionStore((s) => s.user);
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const biometricEnabled = useBiometricLockStore((s) => s.enabled);
+  const syncBiometric = useBiometricLockStore((s) => s.syncFromStorage);
+  const setBiometricEnabled = useBiometricLockStore((s) => s.setEnabled);
+
+  useEffect(() => {
+    void (async () => {
+      const hardware = await isBiometricHardwareAvailable();
+      setBiometricAvailable(hardware);
+      await syncBiometric();
+    })();
+  }, [syncBiometric]);
 
   useEffect(() => {
     if (!user?.userId) {
@@ -32,6 +50,15 @@ export default function ProfileTab() {
       }
     })();
   }, [user?.userId]);
+
+  async function onBiometricToggle(next: boolean) {
+    if (next) {
+      if (!(await isBiometricHardwareAvailable())) return;
+      if (!(await authenticateForAppUnlock())) return;
+    }
+    await setBiometricLockEnabled(next);
+    setBiometricEnabled(next);
+  }
 
   async function onSignOut() {
     await logout();
@@ -58,6 +85,24 @@ export default function ProfileTab() {
             <Text style={[sharedStyles.label, { marginTop: 12 }]}>{t('profile.userId')}</Text>
             <Text style={{ fontSize: 14, color: colors.textMuted }}>{user?.userId}</Text>
           </View>
+
+          {biometricAvailable ? (
+            <View style={[sharedStyles.card, { marginTop: 16, flexDirection: 'row', alignItems: 'center' }]}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text }}>
+                  {t('security.biometricLockSetting')}
+                </Text>
+                <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 4 }}>
+                  {t('security.biometricLockSettingHint')}
+                </Text>
+              </View>
+              <Switch
+                value={biometricEnabled}
+                onValueChange={(value) => void onBiometricToggle(value)}
+                accessibilityLabel={t('security.biometricLockSetting')}
+              />
+            </View>
+          ) : null}
 
           <Pressable style={[sharedStyles.buttonSecondary, { marginTop: 24 }]} onPress={() => void onSignOut()}>
             <Text style={sharedStyles.buttonSecondaryText}>{t('nav.signOut')}</Text>

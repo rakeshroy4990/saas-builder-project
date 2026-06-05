@@ -41,6 +41,12 @@ export default function AppointmentsTab() {
         <LoadingView />
       ) : (
         <View style={sharedStyles.screenPadded}>
+          <Pressable
+            style={[sharedStyles.button, { marginBottom: 16 }]}
+            onPress={() => router.push('/(app)/appointments/book' as never)}
+          >
+            <Text style={sharedStyles.buttonText}>{t('appointment.book.cta')}</Text>
+          </Pressable>
           {error ? <Text style={sharedStyles.errorText}>{error}</Text> : null}
           <FlatList
             data={items}

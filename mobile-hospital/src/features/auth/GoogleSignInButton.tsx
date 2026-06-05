@@ -6,6 +6,8 @@ import { sharedStyles } from '@/theme/styles';
 
 import { isGoogleOAuthConfigured } from '@/config/env';
 
+import { cancelPendingTokenRefresh } from '@/api/client';
+import { useSessionStore } from '@/auth/sessionStore';
 import { getOrCreateTraceId, ingestSessionTelemetry } from '@/analytics/sessionTelemetry';
 
 import {
@@ -78,6 +80,7 @@ function GoogleSignInButtonWeb({
       setError('');
       try {
         await completeGoogleSignIn(token, email.trim() || 'google-user');
+        setGoogleLoading(false);
         onSuccess();
       } catch (err) {
         setGoogleLoading(false);
@@ -88,11 +91,14 @@ function GoogleSignInButtonWeb({
 
   async function onGoogle() {
     setError('');
+    cancelPendingTokenRefresh();
+    useSessionStore.getState().setSessionRestoreInFlight(false);
     setGoogleLoading(true);
     try {
       const result = await promptGoogle();
       if (result?.type === 'success' && result.authentication?.accessToken) {
         await completeGoogleSignIn(result.authentication.accessToken, email.trim() || 'google-user');
+        setGoogleLoading(false);
         onSuccess();
         return;
       }
@@ -128,10 +134,13 @@ function GoogleSignInButtonNative(props: GoogleSignInButtonProps) {
 
   async function onGoogle() {
     setError('');
+    cancelPendingTokenRefresh();
+    useSessionStore.getState().setSessionRestoreInFlight(false);
     setGoogleLoading(true);
     try {
       const token = await signInWithGoogle();
       await completeGoogleSignIn(token, email.trim() || 'google-user');
+      setGoogleLoading(false);
       onSuccess();
     } catch (err) {
       setGoogleLoading(false);
