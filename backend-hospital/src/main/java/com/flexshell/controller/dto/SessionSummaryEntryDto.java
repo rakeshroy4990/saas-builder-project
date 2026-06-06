@@ -12,61 +12,61 @@ import java.util.Map;
  * use {@link #attributes}.
  */
 public class SessionSummaryEntryDto {
-    @JsonProperty("entry_id")
+    @JsonProperty("EntryId")
     private String entryId;
 
-    @JsonProperty("occurred_at")
+    @JsonProperty("OccurredAt")
     private String occurredAt;
 
-    @JsonProperty("kind")
+    @JsonProperty("Kind")
     private String kind;
 
-    @JsonProperty("page_id")
+    @JsonProperty("PageId")
     private String pageId;
 
-    @JsonProperty("package_name")
+    @JsonProperty("PackageName")
     private String packageName;
 
-    @JsonProperty("component_id")
+    @JsonProperty("ComponentId")
     private String componentId;
 
-    @JsonProperty("popup_page_id")
+    @JsonProperty("PopupPageId")
     private String popupPageId;
 
-    @JsonProperty("route_path")
+    @JsonProperty("RoutePath")
     private String routePath;
 
-    @JsonProperty("api_path")
+    @JsonProperty("ApiPath")
     private String apiPath;
 
-    @JsonProperty("http_method")
+    @JsonProperty("HttpMethod")
     private String httpMethod;
 
-    @JsonProperty("http_status")
+    @JsonProperty("HttpStatus")
     private Integer httpStatus;
 
-    @JsonProperty("duration_ms")
+    @JsonProperty("DurationMs")
     private Integer durationMs;
 
-    @JsonProperty("error_message")
+    @JsonProperty("ErrorMessage")
     private String errorMessage;
 
-    @JsonProperty("reason_code")
+    @JsonProperty("ReasonCode")
     private String reasonCode;
 
-    @JsonProperty("action_alias")
+    @JsonProperty("ActionAlias")
     private String actionAlias;
 
-    @JsonProperty("action_id")
+    @JsonProperty("ActionId")
     private String actionId;
 
-    @JsonProperty("user_email")
+    @JsonProperty("UserEmail")
     private String userEmail;
 
     /**
      * Open-ended key/value payload for new event types without changing the DTO contract.
      */
-    @JsonProperty("attributes")
+    @JsonProperty("Attributes")
     private Map<String, Object> attributes;
 
     public String getEntryId() {

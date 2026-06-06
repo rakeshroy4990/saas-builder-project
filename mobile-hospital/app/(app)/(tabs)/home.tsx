@@ -1,25 +1,35 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, Text } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { HomeDoctorsCarousel } from '@/components/home/HomeDoctorsCarousel';
+import { HomeHeroBanner } from '@/components/home/HomeHeroBanner';
+import { HomeQuickActions, type HomeQuickAction } from '@/components/home/HomeQuickActions';
+import { HomeVideoChips } from '@/components/home/HomeVideoChips';
 import { useSessionStore } from '@/auth/sessionStore';
-import { HomeContentSections } from '@/components/home/HomeContentSections';
-import { YouTubeEmbed } from '@/components/YouTubeEmbed';
-import { buildHomeContent } from '@/features/home/homeContent';
+import { buildHomeContent, withHeroVideoChip } from '@/features/home/homeContent';
+import { openYoutubeVideo } from '@/features/home/openYoutubeVideo';
 import { fetchPublicHeroVideoId } from '@/features/home/youtubeHero';
 import { openMainTab } from '@/navigation/openTab';
-import { sharedStyles } from '@/theme/styles';
+import { colors } from '@/theme/colors';
 
 export default function HomeTab() {
   const { t } = useTranslation();
   const router = useRouter();
-  const user = useSessionStore((s) => s.user);
   const accessToken = useSessionStore((s) => s.accessToken);
+  const role = String(useSessionStore((s) => s.user?.role ?? '')).toUpperCase();
   const isLoggedIn = Boolean(accessToken);
-  const isDoctor = String(user?.role ?? '').toUpperCase() === 'DOCTOR' || String(user?.role ?? '').toUpperCase() === 'ADMIN';
+  const isDoctor = role === 'DOCTOR' || role === 'ADMIN';
   const [videoId, setVideoId] = useState<string | null>(null);
-  const content = useMemo(() => buildHomeContent(t, isDoctor), [t, isDoctor]);
+
+  const content = useMemo(() => {
+    const base = buildHomeContent(t, isDoctor);
+    return {
+      ...base,
+      videoChips: withHeroVideoChip(base.videoChips, videoId)
+    };
+  }, [t, isDoctor, videoId]);
 
   useEffect(() => {
     (async () => {
@@ -32,48 +42,107 @@ export default function HomeTab() {
     })();
   }, []);
 
+  function requireAuth(onAuthed: () => void) {
+    if (!isLoggedIn) {
+      router.push('/(auth)/login');
+      return;
+    }
+    onAuthed();
+  }
+
   function onHeroCta() {
     if (isDoctor) {
       openMainTab('ai-diagnosis');
       return;
     }
-    if (isLoggedIn) {
-      router.push('/(app)/appointments/book' as never);
-      return;
-    }
-    router.push('/(auth)/login');
+    requireAuth(() => router.push('/(app)/appointments/book' as never));
   }
 
+  function onBookDoctor() {
+    requireAuth(() => router.push('/(app)/appointments/book' as never));
+  }
+
+  const quickActions: HomeQuickAction[] = [
+    {
+      id: 'schedule',
+      label: t('home.launcher.quickActions.schedule'),
+      icon: 'calendar-outline',
+      tint: colors.primaryDark,
+      background: '#ecfdf5',
+      onPress: () => {
+        if (isDoctor) {
+          openMainTab('ai-diagnosis');
+          return;
+        }
+        requireAuth(() => router.push('/(app)/appointments/book' as never));
+      }
+    },
+    {
+      id: 'video',
+      label: t('home.launcher.quickActions.videoCall'),
+      icon: 'videocam-outline',
+      tint: '#1d4ed8',
+      background: '#eff6ff',
+      onPress: () => requireAuth(() => openMainTab('appointments'))
+    },
+    {
+      id: 'rx',
+      label: t('home.launcher.quickActions.prescriptions'),
+      icon: 'document-text-outline',
+      tint: '#b45309',
+      background: '#fff7ed',
+      onPress: () => requireAuth(() => openMainTab('prescriptions'))
+    },
+    {
+      id: 'ai',
+      label: t('home.launcher.quickActions.aiChat'),
+      icon: 'chatbubbles-outline',
+      tint: '#6d28d9',
+      background: '#f5f3ff',
+      onPress: () => requireAuth(() => router.push('/(app)/ai-chat' as never))
+    }
+  ];
+
   return (
-    <ScrollView style={sharedStyles.screenPadded} contentContainerStyle={{ paddingBottom: 88 }}>
-      <Text style={sharedStyles.title}>{content.hero.title}</Text>
-      {isLoggedIn ? (
-        <Text style={[sharedStyles.subtitle, { marginBottom: 12 }]}>
-          {t('dashboard.welcome', { name: user?.displayName ?? '' })}
-        </Text>
-      ) : null}
-      <Text style={sharedStyles.subtitle}>{content.hero.subtitle}</Text>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <HomeHeroBanner onCta={onHeroCta} ctaLabel={content.heroCta} />
 
-      <YouTubeEmbed videoId={videoId} title={t('home.hero.featuredVideoTitle')} />
+      <View style={styles.body}>
+        <HomeQuickActions actions={quickActions} />
 
-      <Pressable style={[sharedStyles.button, { marginTop: 20 }]} onPress={onHeroCta}>
-        <Text style={sharedStyles.buttonText}>{content.hero.ctaPrimary}</Text>
-      </Pressable>
+        <HomeDoctorsCarousel
+          title={t('home.launcher.doctorsTitle')}
+          seeAllLabel={t('home.launcher.doctorsSeeAll')}
+          bookLabel={t('home.launcher.bookDoctor')}
+          doctors={content.doctors}
+          onSeeAll={onBookDoctor}
+          onBook={() => onBookDoctor()}
+        />
 
-      <HomeContentSections content={content} />
-
-      {!isLoggedIn ? (
-        <Pressable style={[sharedStyles.buttonSecondary, { marginTop: 8 }]} onPress={() => router.push('/(auth)/login')}>
-          <Text style={sharedStyles.buttonSecondaryText}>{t('auth.signIn')}</Text>
-        </Pressable>
-      ) : (
-        <Text style={[sharedStyles.subtitle, { marginTop: 20, textAlign: 'center' }]}>
-          {t('home.useBottomNav')}
-        </Text>
-      )}
-      {!isLoggedIn ? (
-        <Text style={[sharedStyles.subtitle, { marginTop: 8, textAlign: 'center' }]}>{t('home.publicWelcome')}</Text>
-      ) : null}
+        <HomeVideoChips
+          title={t('home.launcher.videosTitle')}
+          youtubeLabel={t('home.launcher.videosYoutube')}
+          videos={content.videoChips}
+          onOpenYoutube={() => void openYoutubeVideo(videoId)}
+        />
+      </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.background
+  },
+  content: {
+    paddingBottom: 108
+  },
+  body: {
+    paddingHorizontal: 16
+  }
+});

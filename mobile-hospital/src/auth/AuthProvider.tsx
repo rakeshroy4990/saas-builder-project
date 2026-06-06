@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { BrandIntroSplash, BRAND_INTRO_DURATION_MS } from '@/components/BrandIntroSplash';
@@ -61,5 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return <BrandIntroSplash />;
   }
 
-  return <>{children}</>;
+  return <View style={styles.ready}>{children}</View>;
 }
+
+const styles = StyleSheet.create({
+  ready: {
+    flex: 1
+  }
+});

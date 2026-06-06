@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.UUID;
 
 public record PatientPrescriptionGroupLinkRequest(
-        @JsonProperty("prescriptionExternalId") UUID prescriptionExternalId,
-        @JsonProperty("pageNumber") Integer pageNumber
+        @JsonProperty("PrescriptionExternalId") UUID prescriptionExternalId,
+        @JsonProperty("PageNumber") Integer pageNumber
 ) {
 }

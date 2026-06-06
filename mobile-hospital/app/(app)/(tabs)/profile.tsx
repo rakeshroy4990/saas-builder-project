@@ -27,6 +27,7 @@ export default function ProfileTab() {
   const biometricEnabled = useBiometricLockStore((s) => s.enabled);
   const syncBiometric = useBiometricLockStore((s) => s.syncFromStorage);
   const setBiometricEnabled = useBiometricLockStore((s) => s.setEnabled);
+  const grantUnlockGrace = useBiometricLockStore((s) => s.grantUnlockGrace);
 
   useEffect(() => {
     void (async () => {
@@ -55,6 +56,7 @@ export default function ProfileTab() {
     if (next) {
       if (!(await isBiometricHardwareAvailable())) return;
       if (!(await authenticateForAppUnlock())) return;
+      grantUnlockGrace();
     }
     await setBiometricLockEnabled(next);
     setBiometricEnabled(next);

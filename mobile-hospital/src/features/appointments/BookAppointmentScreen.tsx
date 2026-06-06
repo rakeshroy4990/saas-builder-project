@@ -265,11 +265,16 @@ export function BookAppointmentScreen() {
         keyboardVerticalOffset={insets.top + 48}
       >
         <ScrollView
-          contentContainerStyle={[
-            sharedStyles.screenPadded,
-            { paddingBottom: insets.bottom + 24, paddingTop: 8 }
-          ]}
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: insets.bottom + 24
+          }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
         >
           <Text style={sharedStyles.title}>{t('appointment.book.title')}</Text>
           <Text style={[sharedStyles.subtitle, { marginBottom: 16 }]}>{t('appointment.book.subtitle')}</Text>

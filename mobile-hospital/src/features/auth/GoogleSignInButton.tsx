@@ -10,18 +10,14 @@ import { cancelPendingTokenRefresh } from '@/api/client';
 import { useSessionStore } from '@/auth/sessionStore';
 import { getOrCreateTraceId, ingestSessionTelemetry } from '@/analytics/sessionTelemetry';
 
+import { formatBackendAuthFailure, formatGoogleSdkFailure } from './authLoginErrors';
+import { isGoogleNativeSdkError } from './googleSignInErrors';
 import {
   completeGoogleSignIn,
   isGoogleWebAuthAvailable,
   signInWithGoogle,
   useGoogleWebAuthRequest
 } from './googleLogin';
-import { getGoogleSignInSetupLines } from './googleSetupHint';
-
-function formatGoogleError(base: string): string {
-  const headline = base.trim() || 'Google sign-in failed';
-  return `${headline}\n\n${getGoogleSignInSetupLines(headline).join('\n')}`;
-}
 
 type GoogleSignInButtonProps = {
   email: string;
@@ -62,7 +58,7 @@ function GoogleSignInButtonWeb({
       setGoogleLoading(false);
       recordGoogleFailure();
       const detail = String(response.error?.message ?? response.params?.error_description ?? '').trim();
-      setError(formatGoogleError(detail || t('auth.googleFailed')));
+      setError(formatGoogleSdkFailure(new Error(detail || t('auth.googleFailed')), t('auth.googleFailed')));
       return;
     }
     if (response.type === 'dismiss' || response.type === 'cancel') {
@@ -84,7 +80,7 @@ function GoogleSignInButtonWeb({
         onSuccess();
       } catch (err) {
         setGoogleLoading(false);
-        setError(getLoginErrorMessage(err));
+        setError(formatBackendAuthFailure(err, getLoginErrorMessage(err)));
       }
     })();
   }, [response, email, onSuccess, setError, setGoogleLoading, getLoginErrorMessage, t]);
@@ -106,12 +102,17 @@ function GoogleSignInButtonWeb({
       if (result?.type === 'error') {
         recordGoogleFailure();
         const detail = String(result.error?.message ?? result.params?.error_description ?? '').trim();
-        setError(formatGoogleError(detail || t('auth.googleFailed')));
+        setError(formatGoogleSdkFailure(new Error(detail || t('auth.googleFailed')), t('auth.googleFailed')));
       }
     } catch (err) {
       setGoogleLoading(false);
       recordGoogleFailure();
-      setError(formatGoogleError(err instanceof Error ? err.message : t('auth.googleFailed')));
+      setError(
+        formatGoogleSdkFailure(
+          err instanceof Error ? err : new Error(t('auth.googleFailed')),
+          t('auth.googleFailed')
+        )
+      );
     }
   }
 
@@ -139,16 +140,26 @@ function GoogleSignInButtonNative(props: GoogleSignInButtonProps) {
     setGoogleLoading(true);
     try {
       const token = await signInWithGoogle();
-      await completeGoogleSignIn(token, email.trim() || 'google-user');
-      setGoogleLoading(false);
-      onSuccess();
+      try {
+        await completeGoogleSignIn(token, email.trim() || 'google-user');
+        setGoogleLoading(false);
+        onSuccess();
+      } catch (backendErr) {
+        setGoogleLoading(false);
+        recordGoogleFailure();
+        setError(formatBackendAuthFailure(backendErr, getLoginErrorMessage(backendErr)));
+      }
     } catch (err) {
       setGoogleLoading(false);
       const msg = err instanceof Error ? err.message.trim() : '';
       if (msg && !/cancel/i.test(msg)) {
         recordGoogleFailure();
       }
-      setError(formatGoogleError(msg || getLoginErrorMessage(err)));
+      if (isGoogleNativeSdkError(err)) {
+        setError(formatGoogleSdkFailure(err, t('auth.googleFailed')));
+        return;
+      }
+      setError(formatBackendAuthFailure(err, getLoginErrorMessage(err)));
     }
   }
 

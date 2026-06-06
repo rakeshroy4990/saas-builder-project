@@ -1,0 +1,143 @@
+package com.flexshell.domainevent;
+
+import com.flexshell.controller.dto.CreateDomainActionEventRequest;
+import com.flexshell.controller.dto.DomainActionEventResponse;
+import com.flexshell.controller.dto.UpdateDomainActionEventRequest;
+import com.flexshell.persistence.postgres.model.DomainActionEventJpaEntity;
+import com.flexshell.persistence.postgres.repository.DomainActionEventJpaRepository;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+
+@Service
+@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
+public class DomainActionEventAdminService {
+
+    private static final Set<String> ALLOWED_PROFILES = Set.of("APPOINTMENT", "USER", "GENERIC");
+
+    private final DomainActionEventJpaRepository repository;
+
+    public DomainActionEventAdminService(DomainActionEventJpaRepository repository) {
+        this.repository = repository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DomainActionEventResponse> listBindings() {
+        return repository.findByDeletedFalseOrderByHttpMethodAscEndpointPatternAsc().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public DomainActionEventResponse createBinding(CreateDomainActionEventRequest request) {
+        String httpMethod = requireText(request.getHttpMethod(), "httpMethod").toUpperCase(Locale.ROOT);
+        String endpointPattern = normalizeEndpointPattern(requireText(request.getEndpointPattern(), "endpointPattern"));
+        String eventType = requireText(request.getEventType(), "eventType").toUpperCase(Locale.ROOT);
+        String contextProfile = normalizeProfile(request.getContextProfile());
+
+        repository.findByHttpMethodIgnoreCaseAndEndpointPatternIgnoreCaseAndDeletedFalse(httpMethod, endpointPattern)
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException("Domain action binding already exists for " + httpMethod + " " + endpointPattern);
+                });
+
+        DomainActionEventJpaEntity row = new DomainActionEventJpaEntity();
+        row.setHttpMethod(httpMethod);
+        row.setEndpointPattern(endpointPattern);
+        row.setEventType(eventType);
+        row.setContextProfile(contextProfile);
+        row.setActorRoleFilter(blankToNull(request.getActorRoleFilter()));
+        row.setResponseRoleField(blankToNull(request.getResponseRoleField()));
+        row.setResponseRoleValue(blankToNull(request.getResponseRoleValue()));
+        row.setEnabled(request.getEnabled() == null || request.getEnabled());
+        row.setDeleted(false);
+        return toResponse(repository.save(row));
+    }
+
+    @Transactional
+    public DomainActionEventResponse updateBinding(UUID externalId, UpdateDomainActionEventRequest request) {
+        DomainActionEventJpaEntity row = findBinding(externalId);
+        if (request.getEventType() != null) {
+            row.setEventType(requireText(request.getEventType(), "eventType").toUpperCase(Locale.ROOT));
+        }
+        if (request.getContextProfile() != null) {
+            row.setContextProfile(normalizeProfile(request.getContextProfile()));
+        }
+        if (request.getActorRoleFilter() != null) {
+            row.setActorRoleFilter(blankToNull(request.getActorRoleFilter()));
+        }
+        if (request.getResponseRoleField() != null) {
+            row.setResponseRoleField(blankToNull(request.getResponseRoleField()));
+        }
+        if (request.getResponseRoleValue() != null) {
+            row.setResponseRoleValue(blankToNull(request.getResponseRoleValue()));
+        }
+        if (request.getEnabled() != null) {
+            row.setEnabled(request.getEnabled());
+        }
+        return toResponse(repository.save(row));
+    }
+
+    @Transactional
+    public void deleteBinding(UUID externalId) {
+        DomainActionEventJpaEntity row = findBinding(externalId);
+        row.setDeleted(true);
+        repository.save(row);
+    }
+
+    private DomainActionEventJpaEntity findBinding(UUID externalId) {
+        if (externalId == null) {
+            throw new IllegalArgumentException("Binding external id is required");
+        }
+        return repository.findByExternalIdAndDeletedFalse(externalId)
+                .orElseThrow(() -> new IllegalArgumentException("Domain action binding not found"));
+    }
+
+    private DomainActionEventResponse toResponse(DomainActionEventJpaEntity row) {
+        return new DomainActionEventResponse(
+                row.getExternalId(),
+                row.getHttpMethod(),
+                row.getEndpointPattern(),
+                row.getEventType(),
+                row.getContextProfile(),
+                row.getActorRoleFilter(),
+                row.getResponseRoleField(),
+                row.getResponseRoleValue(),
+                row.isEnabled()
+        );
+    }
+
+    private static String normalizeProfile(String profile) {
+        String normalized = requireText(profile, "contextProfile").toUpperCase(Locale.ROOT);
+        if (!ALLOWED_PROFILES.contains(normalized)) {
+            throw new IllegalArgumentException("contextProfile must be one of: APPOINTMENT, USER, GENERIC");
+        }
+        return normalized;
+    }
+
+    private static String normalizeEndpointPattern(String endpointPattern) {
+        String pattern = endpointPattern.trim();
+        if (!pattern.startsWith("/")) {
+            pattern = "/" + pattern;
+        }
+        return pattern;
+    }
+
+    private static String requireText(String value, String fieldName) {
+        String trimmed = Objects.toString(value, "").trim();
+        if (trimmed.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " is required");
+        }
+        return trimmed;
+    }
+
+    private static String blankToNull(String value) {
+        String trimmed = Objects.toString(value, "").trim();
+        return trimmed.isBlank() ? null : trimmed;
+    }
+}

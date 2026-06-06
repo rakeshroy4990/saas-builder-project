@@ -6,10 +6,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record PatientPrescriptionDiagnosisGroupSummaryResponse(
-        @JsonProperty("groupExternalId") UUID groupExternalId,
-        @JsonProperty("sharedDiagnosis") String sharedDiagnosis,
-        @JsonProperty("label") String label,
-        @JsonProperty("prescriptionCount") int prescriptionCount,
-        @JsonProperty("createdAt") Instant createdAt
+        @JsonProperty("GroupExternalId") UUID groupExternalId,
+        @JsonProperty("SharedDiagnosis") String sharedDiagnosis,
+        @JsonProperty("Label") String label,
+        @JsonProperty("PrescriptionCount") int prescriptionCount,
+        @JsonProperty("CreatedAt") Instant createdAt
 ) {
 }

@@ -3,6 +3,7 @@ import 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionNavigationTelemetry } from '@/analytics/navigationTelemetry';
@@ -10,7 +11,7 @@ import { SessionTelemetrySync } from '@/analytics/SessionTelemetrySync';
 import { initCertificatePinningIfConfigured } from '@/api/certificatePinning';
 import { SessionTokenKeeper } from '@/api/sessionTokenKeeper';
 import { AuthProvider } from '@/auth/AuthProvider';
-import { BiometricAppLock } from '@/auth/BiometricAppLock';
+import { BiometricAppLockOverlay } from '@/auth/BiometricAppLock';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { useNetworkSync } from '@/network/useNetworkSync';
@@ -27,11 +28,11 @@ export default function RootLayout() {
 
   return (
     <AppErrorBoundary>
-      <SafeAreaProvider>
-        <OfflineBanner />
-        <AuthProvider>
-          <SessionTokenKeeper />
-          <BiometricAppLock>
+      <SafeAreaProvider style={styles.safeArea}>
+        <View style={styles.appRoot}>
+          <OfflineBanner />
+          <AuthProvider>
+            <SessionTokenKeeper />
             <SessionNavigationTelemetry />
             <SessionTelemetrySync />
             <Stack screenOptions={{ headerShown: false }}>
@@ -39,9 +40,19 @@ export default function RootLayout() {
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(app)" />
             </Stack>
-          </BiometricAppLock>
-        </AuthProvider>
+          </AuthProvider>
+          <BiometricAppLockOverlay />
+        </View>
       </SafeAreaProvider>
     </AppErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1
+  },
+  appRoot: {
+    flex: 1
+  }
+});

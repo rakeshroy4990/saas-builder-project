@@ -5,15 +5,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class PagedAppointmentListDto {
-    @JsonProperty("content")
+    @JsonProperty("Content")
     private List<AppointmentResponse> content;
-    @JsonProperty("totalElements")
+    @JsonProperty("TotalElements")
     private long totalElements;
-    @JsonProperty("totalPages")
+    @JsonProperty("TotalPages")
     private int totalPages;
-    @JsonProperty("number")
+    @JsonProperty("Number")
     private int number;
-    @JsonProperty("size")
+    @JsonProperty("Size")
     private int size;
 
     public PagedAppointmentListDto() {

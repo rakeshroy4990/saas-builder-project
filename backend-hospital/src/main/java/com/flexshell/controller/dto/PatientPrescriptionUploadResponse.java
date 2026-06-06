@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.UUID;
 
 public record PatientPrescriptionUploadResponse(
-        @JsonProperty("externalId") UUID externalId,
-        @JsonProperty("isDuplicate") boolean isDuplicate,
-        @JsonProperty("status") String status
+        @JsonProperty("ExternalId") UUID externalId,
+        @JsonProperty("IsDuplicate") boolean isDuplicate,
+        @JsonProperty("Status") String status
 ) {
 }

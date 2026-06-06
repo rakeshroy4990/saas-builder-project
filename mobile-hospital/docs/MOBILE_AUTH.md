@@ -164,7 +164,7 @@ Initialization: `src/api/certificatePinning.ts` (no-op when env unset or in Expo
 
 ### Biometric app lock (optional)
 
-Profile → **App lock** uses `expo-local-authentication` when the app returns from background. Preference is stored in Secure Store. Does not replace device PIN; adds re-entry protection for signed-in sessions.
+Profile → **App lock** uses `expo-local-authentication` when the app opens with a restored session (silent refresh) or returns from background. Preference is stored in Secure Store. Does not replace Google sign-in; adds biometric protection for already signed-in sessions.
 
 ### General
 

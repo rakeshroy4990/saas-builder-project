@@ -15,6 +15,7 @@ import { clearLoginSessionId } from '../../../logging/loginSessionContext';
 import { ok } from '../shared/response';
 import { stompClient } from '../../../realtime/stompClient';
 import { clearCallHeartbeatTimer, clearWebrtcSubscription } from '../shared/callState';
+import { teardownHospitalNotifications } from '../notifications/notificationServices';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { flushSessionTelemetryQueue } from '../../../analytics/sessionTelemetry';
 import {
@@ -57,6 +58,7 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       stompClient.disconnect();
       clearWebrtcSubscription();
       clearCallHeartbeatTimer();
+      teardownHospitalNotifications();
       clearAuthToken();
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'userId', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'userDisplayName', '');

@@ -7,12 +7,12 @@ import java.util.Map;
 import java.util.UUID;
 
 public record PatientDeviceReadingResponse(
-        @JsonProperty("externalId") UUID externalId,
-        @JsonProperty("deviceKey") String deviceKey,
-        @JsonProperty("deviceName") String deviceName,
-        @JsonProperty("deviceType") String deviceType,
-        @JsonProperty("measurements") Map<String, Object> measurements,
-        @JsonProperty("recordedAt") Instant recordedAt,
-        @JsonProperty("createdAt") Instant createdAt
+        @JsonProperty("ExternalId") UUID externalId,
+        @JsonProperty("DeviceKey") String deviceKey,
+        @JsonProperty("DeviceName") String deviceName,
+        @JsonProperty("DeviceType") String deviceType,
+        @JsonProperty("Measurements") Map<String, Object> measurements,
+        @JsonProperty("RecordedAt") Instant recordedAt,
+        @JsonProperty("CreatedAt") Instant createdAt
 ) {
 }

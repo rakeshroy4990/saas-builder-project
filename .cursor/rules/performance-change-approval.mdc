@@ -1,0 +1,40 @@
+---
+description: Ask before performance-impacting changes; present all options first
+alwaysApply: true
+---
+
+# Performance-sensitive changes — ask first
+
+Before implementing any change that could **materially affect performance**, **stop and ask the user for approval**. Do not silently apply the change.
+
+## What counts as performance-impacting
+
+- Database: new indexes, query shape changes, N+1 fixes, pagination changes, caching layers, connection pool tuning, batch vs single-row access
+- API/runtime: new filters/interceptors/aspects on hot paths, synchronous work moved onto request threads, extra serialization/deserialization, blocking I/O in controllers
+- Frontend/mobile: render loops, large list virtualization, bundle size, polling intervals, STOMP/WebSocket traffic, memoization refactors that change update frequency
+- Infrastructure: Redis/CDN/caching, thread pool sizes, async vs sync boundaries, background job frequency
+- Observability overhead: high-volume logging, tracing, or telemetry on every request
+
+## Required workflow
+
+1. **Identify** whether the requested (or proposed) work touches performance-sensitive areas.
+2. **Recommend all reasonable options** — not just one. For each option include:
+   - What changes
+   - Expected performance trade-off (latency, throughput, memory, CPU, network, DB load)
+   - Complexity / risk
+   - When to prefer it
+3. **Ask explicitly** which option to implement (or whether to proceed at all) before writing code.
+4. **Proceed without asking** only when the change is clearly neutral or strictly local (rename, comment, typo, docs-only) with no runtime effect.
+
+## Example prompt to user
+
+> This adds a servlet filter on every mutating HTTP request, which adds JSON parsing on the response path. Options:
+> A) Keep filter (simplest; ~small overhead per request)
+> B) Emit events only from a curated endpoint catalog (less overhead; more config)
+> C) Async event publish after response (lower user-facing latency; more moving parts)
+>
+> Which approach should I implement?
+
+## When already approved
+
+If the user explicitly chose an option in the same thread (e.g. "go with B"), implement that option without re-asking unless a new performance trade-off appears.

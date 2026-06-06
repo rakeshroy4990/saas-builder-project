@@ -3,8 +3,8 @@ package com.flexshell.controller.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record PatientPrescriptionGroupCreateRequest(
-        @JsonProperty("label") String label,
-        @JsonProperty("groupType") String groupType,
-        @JsonProperty("sharedDiagnosis") String sharedDiagnosis
+        @JsonProperty("Label") String label,
+        @JsonProperty("GroupType") String groupType,
+        @JsonProperty("SharedDiagnosis") String sharedDiagnosis
 ) {
 }

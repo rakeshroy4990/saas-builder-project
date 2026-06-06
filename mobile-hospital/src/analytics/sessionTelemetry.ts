@@ -1,4 +1,4 @@
-import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
+import { SERVER_PATHS, toTelemetryWire } from '@saas-builder/hospital-api-client';
 import axios from 'axios';
 
 import { ensureFreshAccessToken, refreshAccessToken } from '@/api/client';
@@ -89,12 +89,12 @@ async function buildBody(payload: SessionTelemetryPayload): Promise<string> {
   const ls = (rest.login_session_id ?? readLoginSessionId()).trim();
   const { login_session_id: _ls, ...restWithoutLs } = rest;
   const ctx = await getClientContext();
-  return JSON.stringify({
+  return JSON.stringify(toTelemetryWire({
     ...ctx,
     ...restWithoutLs,
     ...(userId ? { user_id: userId } : {}),
     ...(ls ? { login_session_id: ls } : {})
-  });
+  }));
 }
 
 export async function ingestSessionTelemetry(payload: SessionTelemetryPayload): Promise<void> {
@@ -125,7 +125,7 @@ async function postBodiesOnce(bodies: string[]): Promise<void> {
   }
   await axios.post(
     `${base}${SERVER_PATHS.telemetrySessionEvents}`,
-    { events: bodies.map((b) => JSON.parse(b)) },
+    toTelemetryWire({ events: bodies.map((b) => JSON.parse(b)) }),
     { headers, timeout: TELEMETRY_BATCH_TIMEOUT_MS }
   );
 }

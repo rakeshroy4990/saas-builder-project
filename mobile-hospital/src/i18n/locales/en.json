@@ -29,11 +29,26 @@
     "dashboard": "Dashboard",
     "appointments": "Appointments",
     "prescriptions": "Prescriptions",
+    "prescriptionsShort": "Rx",
     "blog": "Blog",
     "aiDiagnosis": "AI Diagnosis",
     "chat": "Chat AI",
     "profile": "Profile",
     "signOut": "Sign out"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "loading": "Loading…",
+    "markAllRead": "Mark all as read",
+    "bellAria": "Open notifications",
+    "bellAriaWithCount": "Open notifications, {{count}} unread",
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}} hr ago",
+      "daysAgo": "{{count}} d ago"
+    }
   },
   "welcome": {
     "tagline": "Compassionate care for your family — sign in to continue.",
@@ -41,6 +56,24 @@
     "skip": "Skip to sign in"
   },
   "home": {
+    "launcher": {
+      "heroBadge": "Pediatric care",
+      "heroTitle": "Your child's health, our priority",
+      "heroSubtitle": "Expert doctors, anytime, anywhere",
+      "heroCta": "Book a consultation",
+      "quickActions": {
+        "schedule": "Schedule",
+        "videoCall": "Video call",
+        "prescriptions": "Prescriptions",
+        "aiChat": "AI chat"
+      },
+      "doctorsTitle": "Our doctors",
+      "doctorsSeeAll": "See all",
+      "bookDoctor": "Book",
+      "videosTitle": "Health videos",
+      "videosYoutube": "YouTube",
+      "videoChipTitle": "Baby drooling — what's normal?"
+    },
     "hero": {
       "title": "Your Health, Our Priority",
       "subtitle": "Experience compassionate care with state-of-the-art medical facilities. Our team of expert physicians is dedicated to your wellbeing.",
@@ -80,6 +113,7 @@
         "name": "Dr. Swati Pandey",
         "speciality": "Pediatrics Specialist",
         "degree": "MBBS, DNB Pediatrics, DCH (CMC Ludhiana)",
+        "cardLine": "Pediatrician · MBBS DCH DNB",
         "experience": "5+ years experience"
       }
     },
@@ -102,12 +136,32 @@
       "email": "Email: pedsforpeople@gmail.com"
     }
   },
+  "common": {
+    "selectPlaceholder": "Select…"
+  },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
     "role": "Role: {{role}}",
     "emptyAppointments": "No appointments found.",
+    "emptyFilteredAppointments": "No appointments found for the selected filters.",
     "loading": "Loading appointments…",
-    "loadError": "Could not load appointments."
+    "loadError": "Could not load appointments.",
+    "filters": {
+      "heading": "Filters",
+      "toggleTitle": "Toggle filters",
+      "clearTitle": "Clear filters",
+      "clearDate": "Clear",
+      "status": "Status",
+      "date": "Date",
+      "datePlaceholder": "YYYY-MM-DD",
+      "doctor": "Doctor",
+      "department": "Department",
+      "doctorOptionAll": "All Doctors",
+      "statusOptionAll": "All Appointments",
+      "statusOptionCompleted": "Completed",
+      "statusOptionCancelled": "Cancelled",
+      "statusOptionRemovedAdmin": "Removed (admin)"
+    }
   },
   "appointment": {
     "detailTitle": "Appointment",
@@ -196,13 +250,46 @@
     "biometricLockMessage": "Use Face ID or fingerprint to continue.",
     "biometricUnlock": "Unlock",
     "biometricLockSetting": "App lock",
-    "biometricLockSettingHint": "Require biometrics when returning to the app after it was in the background."
+    "biometricLockSettingHint": "Require Face ID or fingerprint when opening the app with a saved session or returning from background."
   },
   "prescriptions": {
     "title": "Prescriptions",
     "comingSoon": "More prescription actions will be available soon.",
     "empty": "No prescriptions uploaded yet.",
-    "loadError": "Could not load prescriptions."
+    "loadError": "Could not load prescriptions.",
+    "notAvailable": "—",
+    "nav": {
+      "view": "View Prescription",
+      "upload": "Upload Prescription"
+    },
+    "fields": {
+      "doctor": "Doctor",
+      "patient": "Patient",
+      "date": "Date",
+      "medicines": "Medicines"
+    },
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "verified": "Verified",
+      "rejected": "Rejected"
+    },
+    "upload": {
+      "title": "Upload prescription",
+      "hint": "Add photos of your prescriptions (JPEG or PNG). You can upload up to 5 files per batch.",
+      "chooseFiles": "Choose from gallery",
+      "camera": "Take photo",
+      "submit": "Upload files",
+      "uploading": "Uploading…",
+      "success": "Uploaded successfully",
+      "duplicate": "Already on file",
+      "failed": "Upload failed",
+      "queueEmpty": "No files selected yet.",
+      "remove": "Remove",
+      "limitReached": "You can add up to {count} files per batch.",
+      "successTitle": "Prescription",
+      "successMessage": "Prescription uploaded successfully"
+    }
   },
   "blog": {
     "comingSoon": "Blog articles will be available in a future update.",

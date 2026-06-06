@@ -31,6 +31,7 @@ import {
   normalizedAiReply,
   requiresEscalation
 } from './aiSafety';
+import { processChatGuidedFlow } from './chatGuidedFlow';
 import { i18n } from '../../../../i18n';
 import type { Composer } from 'vue-i18n';
 import { isSupportedLocale, type LocaleCode } from '@saas-builder/i18n-contract';
@@ -774,10 +775,47 @@ export const chatHospitalServices: ServiceDefinition[] = [
         ...baseForSend,
         { roomId, senderId: 'me', body, clientMessageId, createdTimestamp: now, status: 'sent' }
       ];
-      const historyBuildSource = { ...messagesByRoomId, [roomId]: withUserMessage };
-      const history = buildAiHistory(historyBuildSource, roomId);
       const aiClientMessageId = crypto.randomUUID();
       const aiNow = new Date().toISOString();
+
+      const guidedFlowResult = await processChatGuidedFlow(appStore, body);
+      if (guidedFlowResult.handled) {
+        const guidedReply = String(guidedFlowResult.reply ?? '').trim();
+        const withGuidedReply = [
+          ...clearSmartAiSendTimeoutFlags(withUserMessage),
+          ...(guidedReply
+            ? [
+                {
+                  roomId,
+                  senderId: 'ai',
+                  body: guidedReply,
+                  clientMessageId: aiClientMessageId,
+                  createdTimestamp: aiNow,
+                  status: 'sent'
+                }
+              ]
+            : [])
+        ];
+        appStore.setData('hospital', 'Chat', {
+          ...chat,
+          mode: 'smart_ai',
+          status: 'connected',
+          activeRoomId: roomId,
+          aiProcessing: false,
+          messagesByRoomId: { ...messagesByRoomId, [roomId]: withGuidedReply }
+        });
+        void logClient('INFO', 'smart ai guided flow handled message', { replyLength: guidedReply.length });
+        trackEvent('chat_ai_reply_received', {
+          domain: 'chat',
+          status: 'success',
+          reason_code: telemetryReasonCodes.chat.replyReceived,
+          trace_id: getOrCreateTraceId()
+        });
+        return ok({ guidedFlow: true });
+      }
+
+      const historyBuildSource = { ...messagesByRoomId, [roomId]: withUserMessage };
+      const history = buildAiHistory(historyBuildSource, roomId);
       const withStreamingDraft = [
         ...clearSmartAiSendTimeoutFlags(withUserMessage),
         {

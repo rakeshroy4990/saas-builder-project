@@ -7,8 +7,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSessionStore } from '@/auth/sessionStore';
 import { colors } from '@/theme/colors';
 
-const FAB_SIZE = 56;
-const TAB_BAR_CLEARANCE = 64;
+const FAB_SIZE = 48;
+const TAB_BAR_CLEARANCE = 56;
 
 type ChatFabProps = {
   /** Extra bottom offset when tab bar is visible (default: above tab bar). */
@@ -50,7 +50,7 @@ export function ChatFab({ bottomOffset }: ChatFabProps) {
       <View style={styles.badge}>
         <Text style={styles.badgeText}>AI</Text>
       </View>
-      <Ionicons name="chatbubbles" size={28} color="#fff" />
+      <Ionicons name="chatbubbles" size={24} color="#fff" />
     </Pressable>
   );
 }
@@ -58,7 +58,7 @@ export function ChatFab({ bottomOffset }: ChatFabProps) {
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    right: 20,
+    right: 16,
     width: FAB_SIZE,
     height: FAB_SIZE,
     borderRadius: FAB_SIZE / 2,

@@ -10,7 +10,7 @@ alwaysApply: false
 
 **Composition API:** `<script setup>` only; typed `defineProps`; composables `src/composables/use{Name}.ts`; no raw Axios in components — composables / Pinia actions only.
 
-**Layout:** Components `src/components/{domain}/{Name}.vue`; pages `src/pages/{patient|doctor|admin}/{Name}.vue`; stores `src/stores/{name}.store.ts`; API `src/services/{name}.service.ts`. Tailwind only (no inline styles). Validate forms client-side; user-facing errors sanitized (no raw API errors).
+**Layout:** Components `src/components/{domain}/{Name}.vue`; pages `src/pages/{patient|doctor|admin}/{Name}.vue`; stores `src/stores/{name}.store.ts`; API `src/services/{name}.service.ts`. Parse API JSON with PascalCase wire keys; map to camelCase in services only (`api-json-pascal-case.mdc`). Tailwind only (no inline styles). Validate forms client-side; user-facing errors sanitized (no raw API errors).
 
 **Popups:** Use `GlobalPopup` + declarative `*-popup` page configs (`usePopupStore` / `open-*` services). Never build success/confirm overlays inside primitives. See `frontend-popups.mdc`.
 

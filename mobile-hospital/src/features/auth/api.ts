@@ -15,16 +15,18 @@ import {
 } from '@/analytics/sessionTelemetry';
 import { toUserFacingApiError } from '@/api/apiErrors';
 import { apiClient } from '@/api/client';
+import { AUTH_API_TIMEOUT_MS } from '@/api/timeouts';
 import { clearSecureAuth, persistSessionSecrets } from '@/auth/secureTokens';
 import { useSessionStore, type SessionUser } from '@/auth/sessionStore';
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
 
 export async function loginWithPassword(identity: string, password: string): Promise<void> {
   const startedAtMs = Date.now();
-  const response = await apiClient.post(SERVER_PATHS.login, {
-    EmailId: identity.trim(),
-    Password: password
-  });
+  const response = await apiClient.post(
+    SERVER_PATHS.login,
+    { EmailId: identity.trim(), Password: password },
+    { timeout: AUTH_API_TIMEOUT_MS }
+  );
 
   const parsed = parseAuthLoginPayload(response.data, identity.trim());
   if (!parsed.accessToken) {

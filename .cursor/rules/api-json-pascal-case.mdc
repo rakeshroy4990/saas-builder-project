@@ -1,0 +1,81 @@
+---
+description: API JSON wire keys — PascalCase (first letter of every word capital) across all stacks
+alwaysApply: true
+---
+
+# API JSON — PascalCase wire keys
+
+All **HTTP request and response JSON property names** use **PascalCase**: the first character of every word is capital (`PatientName`, `ErrorCode`, `PreferredDate`).
+
+This applies to every repo: `backend*`, `frontend*`, `mobile-*`, `packages/*`, `ai-service`, `pdf-rag-pipeline`.
+
+## Standard envelope
+
+```json
+{
+  "Success": true,
+  "Message": "…",
+  "Data": { "PatientName": "…" },
+  "ErrorCode": "APPOINTMENT_NOT_FOUND",
+  "Timestamp": "2026-06-06T12:00:00Z"
+}
+```
+
+## Rules
+
+- **Wire JSON keys:** PascalCase only. Never `patientName`, `error_code`, or `snake_case` on the wire.
+- **Code identifiers:** Keep normal language conventions (Java/TS `camelCase`, Python `snake_case`). Map to PascalCase at the boundary.
+- **Nested objects & arrays:** Every nested key is PascalCase (`Data.Items[].DoctorName`).
+- **New DTOs/schemas:** Add explicit serialization aliases; do not rely on default camelCase serialization.
+- **Clients:** Parse PascalCase from the server; map to internal camelCase in one place (service/parser layer), not scattered in components.
+
+## By stack
+
+| Stack | How |
+|-------|-----|
+| **Spring Boot** | `@JsonProperty("PatientName")` on every request/response DTO field (including records). Match `StandardApiResponse` / `RegisterResponse` style. |
+| **Vue / TS / mobile** | API types and parsers use PascalCase keys for wire data; `pickString(row, ['PatientName'])` or typed interfaces with PascalCase. |
+| **FastAPI / Pydantic** | `Field(alias="PatientName")` or `model_config = ConfigDict(populate_by_name=True)` + PascalCase aliases on response models. |
+| **Shared packages** | `hospital-api-client` envelope helpers accept PascalCase first; avoid introducing new camelCase wire keys. |
+
+## Examples
+
+```java
+// ✅ Spring record
+public record CreateAppointmentRequest(
+    @JsonProperty("PatientName") String patientName,
+    @JsonProperty("DoctorId") String doctorId
+) {}
+```
+
+```typescript
+// ✅ Client parser
+const name = pickString(row, ['PatientName']);
+```
+
+```python
+# ✅ FastAPI schema
+class PrescriptionSummary(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    appointment_id: str = Field(alias="AppointmentId")
+```
+
+```json
+// ✅ Admin domain-action binding
+{
+  "HttpMethod": "POST",
+  "EndpointPattern": "/api/lab-results/{id}/publish",
+  "EventType": "LAB_RESULT_READY",
+  "ContextProfile": "APPOINTMENT",
+  "Enabled": true
+}
+```
+
+```json
+// ❌ Wrong wire keys
+{ "patientName": "Ada", "httpMethod": "POST", "error_code": "X" }
+```
+
+## Out of scope
+
+URL paths, query params, headers, DB column names, STOMP/event internal payloads unless exposed as public REST JSON.

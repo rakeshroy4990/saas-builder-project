@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   FlatList,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -219,6 +220,13 @@ function EducationComposerRow({
 }) {
   const keyboardVisible = useKeyboardVisible();
   const showSendIcon = value.trim().length > 0;
+  const [inputHeight, setInputHeight] = useState(COMPOSER_INPUT_SINGLE_HEIGHT);
+
+  useEffect(() => {
+    if (!value.trim()) {
+      setInputHeight(COMPOSER_INPUT_SINGLE_HEIGHT);
+    }
+  }, [value]);
 
   return (
     <View style={styles.composerRow}>
@@ -229,21 +237,30 @@ function EducationComposerRow({
         onGallery={onGallery}
         onCamera={onCamera}
       />
-      <View style={styles.composerInputShell}>
+      <View style={[styles.composerInputShell, { height: inputHeight }]}>
         <TextInput
           ref={inputRef}
           style={[
             styles.composerInputInline,
+            { height: inputHeight },
             showSendIcon && styles.composerInputInlineWithSend,
             keyboardVisible && styles.composerInputInlineKeyboard
           ]}
           multiline
+          numberOfLines={1}
           scrollEnabled
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={colors.textMuted}
           onFocus={onFocus}
+          onContentSizeChange={(event) => {
+            const next = Math.min(
+              COMPOSER_INPUT_MAX_HEIGHT,
+              Math.max(COMPOSER_INPUT_SINGLE_HEIGHT, Math.ceil(event.nativeEvent.contentSize.height))
+            );
+            setInputHeight(next);
+          }}
         />
         {showSendIcon ? (
           <Pressable
@@ -311,7 +328,6 @@ export function DoctorEducationScreen() {
   const role = String(useSessionStore((s) => s.user?.role ?? '')).toUpperCase();
   const isDoctor = role === 'DOCTOR' || role === 'ADMIN';
   const listRef = useRef<FlatList<ChatMessage>>(null);
-  const prescriptionScrollRef = useRef<ScrollView>(null);
   const questionInputRef = useRef<TextInput>(null);
   const prescriptionInputRef = useRef<TextInput>(null);
 
@@ -792,7 +808,8 @@ export function DoctorEducationScreen() {
     </Pressable>
   );
 
-  function renderBooksMessageList() {
+  function renderBooksMessageList(options?: { adjustKeyboardInsets?: boolean }) {
+    const adjustKeyboardInsets = options?.adjustKeyboardInsets ?? true;
     return (
       <FlatList
         ref={listRef}
@@ -805,7 +822,7 @@ export function DoctorEducationScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets
+        automaticallyAdjustKeyboardInsets={adjustKeyboardInsets}
         onContentSizeChange={scrollChatToEnd}
         renderItem={renderMessage}
         ListFooterComponent={typingFooter}
@@ -817,12 +834,6 @@ export function DoctorEducationScreen() {
   function scrollChatToEnd() {
     requestAnimationFrame(() => {
       listRef.current?.scrollToEnd({ animated: true });
-    });
-  }
-
-  function scrollPrescriptionToInput() {
-    requestAnimationFrame(() => {
-      prescriptionScrollRef.current?.scrollTo({ y: 140, animated: true });
     });
   }
 
@@ -840,19 +851,13 @@ export function DoctorEducationScreen() {
     setTimeout(() => prescriptionInputRef.current?.focus(), 60);
   }
 
-  function onPrescriptionQueryFocus() {
-    scrollPrescriptionToInput();
-    setTimeout(scrollPrescriptionToInput, 120);
-    setTimeout(scrollPrescriptionToInput, 320);
-  }
-
   const lastAssistantMessage = [...messages]
     .reverse()
     .find((m) => m.role === 'assistant' && assistantDisplayBody(m.content ?? '').trim());
 
-  function renderBooksComposer() {
+  function renderBooksComposer(bottomInset = 0) {
     return (
-      <View style={styles.composer}>
+      <View style={[styles.composer, bottomInset > 0 ? { paddingBottom: bottomInset } : null]}>
         {chatError ? <Text style={[sharedStyles.errorText, styles.composerError]}>{chatError}</Text> : null}
         {readingFile ? (
           <View style={[styles.readingRow, styles.composerMetaRow]}>
@@ -917,10 +922,10 @@ export function DoctorEducationScreen() {
     );
   }
 
-  function renderPrescriptionComposer() {
+  function renderPrescriptionComposer(bottomInset = 0) {
     const canSearch = Boolean(prescriptionQuery.trim());
     return (
-      <View style={styles.composer}>
+      <View style={[styles.composer, bottomInset > 0 ? { paddingBottom: bottomInset } : null]}>
         {prescriptionError ? (
           <Text style={[sharedStyles.errorText, styles.composerError]}>{prescriptionError}</Text>
         ) : null}
@@ -935,7 +940,7 @@ export function DoctorEducationScreen() {
           value={prescriptionQuery}
           onChangeText={setPrescriptionQuery}
           placeholder={t('education.prescriptionPlaceholder')}
-          onFocus={onPrescriptionQueryFocus}
+          onFocus={() => {}}
           attachDisabled={prescriptionLoading || readingFile}
           onDocument={() => void ingestPrescriptionFile(pickPrescriptionFromDocuments)}
           onGallery={() => void ingestPrescriptionFile(pickPrescriptionFromGallery)}
@@ -957,24 +962,35 @@ export function DoctorEducationScreen() {
         presentationStyle="fullScreen"
         onRequestClose={closeChatFullScreen}
       >
-        <View style={[styles.fullScreenRoot, { backgroundColor: colors.background }]}>
-          <KeyboardSafeView style={styles.flex}>
-            <View style={[styles.fullScreenBody, { paddingTop: insets.top }]}>
-              <View style={styles.fullScreenHeader}>
-                <Pressable
-                  style={styles.fullScreenExitBtn}
-                  onPress={closeChatFullScreen}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('education.exitFullScreen')}
-                >
-                  <Ionicons name="chevron-down" size={22} color={colors.text} />
-                  <Text style={styles.fullScreenExitText}>{t('education.exitFullScreen')}</Text>
-                </Pressable>
-              </View>
-              {renderBooksMessageList()}
-              {renderBooksComposer()}
+        <View
+          style={[
+            styles.fullScreenRoot,
+            {
+              backgroundColor: colors.background,
+              paddingTop: insets.top,
+              paddingBottom: insets.bottom
+            }
+          ]}
+        >
+          <KeyboardAvoidingView
+            style={styles.flex}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
+          >
+            <View style={styles.fullScreenHeader}>
+              <Pressable
+                style={styles.fullScreenExitBtn}
+                onPress={closeChatFullScreen}
+                accessibilityRole="button"
+                accessibilityLabel={t('education.exitFullScreen')}
+              >
+                <Ionicons name="chevron-down" size={22} color={colors.text} />
+                <Text style={styles.fullScreenExitText}>{t('education.exitFullScreen')}</Text>
+              </Pressable>
             </View>
-          </KeyboardSafeView>
+            {renderBooksMessageList({ adjustKeyboardInsets: false })}
+            {renderBooksComposer(4)}
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     );
@@ -1069,30 +1085,29 @@ export function DoctorEducationScreen() {
             ) : null}
           </View>
 
-          {renderBooksComposer()}
+          {renderBooksComposer(insets.bottom)}
         </View>
       ) : tab === 'prescription' ? (
-        <ScrollView
-          ref={prescriptionScrollRef}
-          style={sharedStyles.screenPadded}
-          contentContainerStyle={{
-            paddingBottom: 8 + keyboardInset
-          }}
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
-        >
-          <Text style={sharedStyles.subtitle}>{t('education.prescriptionBanner')}</Text>
-          {renderPrescriptionComposer()}
-          {prescriptionResults.map((hit) => (
-            <View key={hit.externalId || hit.searchText} style={sharedStyles.card}>
-              <Text style={sharedStyles.cardTitle}>
-                {hit.patientName || t('education.unknownPatient')} · {hit.matchPercent.toFixed(1)}%
-              </Text>
-              {hit.diagnosis ? <Text style={sharedStyles.cardMeta}>{hit.diagnosis}</Text> : null}
-              {hit.searchText ? <Text style={sharedStyles.cardBody}>{hit.searchText}</Text> : null}
-            </View>
-          ))}
-        </ScrollView>
+        <View style={styles.prescriptionPane}>
+          <ScrollView
+            style={styles.prescriptionScroll}
+            contentContainerStyle={styles.prescriptionScrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+            <Text style={sharedStyles.subtitle}>{t('education.prescriptionBanner')}</Text>
+            {prescriptionResults.map((hit) => (
+              <View key={hit.externalId || hit.searchText} style={sharedStyles.card}>
+                <Text style={sharedStyles.cardTitle}>
+                  {hit.patientName || t('education.unknownPatient')} · {hit.matchPercent.toFixed(1)}%
+                </Text>
+                {hit.diagnosis ? <Text style={sharedStyles.cardMeta}>{hit.diagnosis}</Text> : null}
+                {hit.searchText ? <Text style={sharedStyles.cardBody}>{hit.searchText}</Text> : null}
+              </View>
+            ))}
+          </ScrollView>
+          {renderPrescriptionComposer(insets.bottom)}
+        </View>
       ) : null}
       {tab === 'books' ? renderBooksFullScreenModal() : null}
       <EducationAttachmentSequenceModal
@@ -1110,8 +1125,9 @@ export function DoctorEducationScreen() {
   );
 }
 
-const COMPOSER_INPUT_MIN_HEIGHT = 40;
-const COMPOSER_INPUT_MAX_HEIGHT = 120;
+/** Single-line composer height (Android multiline defaults to ~3 lines without this). */
+const COMPOSER_INPUT_SINGLE_HEIGHT = 40;
+const COMPOSER_INPUT_MAX_HEIGHT = 96;
 
 const styles = StyleSheet.create({
   flex: {
@@ -1125,9 +1141,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border
   },
   fullScreenRoot: {
-    flex: 1
-  },
-  fullScreenBody: {
     flex: 1
   },
   fullScreenHeader: {
@@ -1152,6 +1165,18 @@ const styles = StyleSheet.create({
   },
   booksPane: {
     flex: 1
+  },
+  prescriptionPane: {
+    flex: 1
+  },
+  prescriptionScroll: {
+    flex: 1
+  },
+  prescriptionScrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    flexGrow: 1
   },
   booksMeta: {
     paddingHorizontal: 16,
@@ -1374,10 +1399,10 @@ const styles = StyleSheet.create({
   },
   composerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 8
+    paddingVertical: 6
   },
   composerMetaRow: {
     marginHorizontal: 16,
@@ -1389,32 +1414,31 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: 20,
     backgroundColor: colors.background,
-    minHeight: COMPOSER_INPUT_MIN_HEIGHT,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    overflow: 'hidden'
   },
   composerInputInline: {
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 20,
     color: colors.text,
     paddingHorizontal: 12,
-    paddingTop: Platform.OS === 'ios' ? 9 : 8,
-    paddingBottom: Platform.OS === 'ios' ? 9 : 8,
-    minHeight: COMPOSER_INPUT_MIN_HEIGHT,
+    paddingTop: Platform.OS === 'ios' ? 10 : 8,
+    paddingBottom: Platform.OS === 'ios' ? 10 : 8,
     maxHeight: COMPOSER_INPUT_MAX_HEIGHT,
-    textAlignVertical: 'top'
+    textAlignVertical: 'center'
   },
   composerInputInlineWithSend: {
     paddingRight: 44
   },
   composerInputInlineKeyboard: {
-    maxHeight: 96
+    maxHeight: COMPOSER_INPUT_MAX_HEIGHT
   },
   composerSendIcon: {
     position: 'absolute',
     right: 6,
-    bottom: 6,
+    bottom: 4,
     width: 32,
     height: 32,
     borderRadius: 16,

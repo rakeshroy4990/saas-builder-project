@@ -3,19 +3,19 @@ package com.flexshell.controller.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class YoutubeQueryCacheEntryDto {
-    @JsonProperty("logged_in_user_id")
+    @JsonProperty("LoggedInUserId")
     private String loggedInUserId;
 
-    @JsonProperty("query")
+    @JsonProperty("Query")
     private String query;
 
-    @JsonProperty("video_id")
+    @JsonProperty("VideoId")
     private String videoId;
 
-    @JsonProperty("video_title")
+    @JsonProperty("VideoTitle")
     private String videoTitle;
 
-    @JsonProperty("updated_at")
+    @JsonProperty("UpdatedAt")
     private String updatedAt;
 
     public YoutubeQueryCacheEntryDto() {

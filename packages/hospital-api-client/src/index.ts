@@ -40,6 +40,9 @@ export const SERVER_PATHS = {
   hospitalVideoSession: '/api/hospital/video/session',
   chatRooms: '/api/chat/rooms',
   patientDeviceReadings: '/api/v1/patient-device-readings',
+  notifications: '/api/v1/notifications',
+  notificationsUnreadCount: '/api/v1/notifications/unread-count',
+  notificationsReadAll: '/api/v1/notifications/read-all',
   telemetrySessionEvent: '/api/telemetry/session-event',
   telemetrySessionEvents: '/api/telemetry/session-events',
   telemetrySessionSnapshot: '/api/telemetry/session-snapshot'
@@ -55,6 +58,77 @@ export function appointmentRenewTokenPath(appointmentId: string): string {
 
 export function appointmentEndCallPath(appointmentId: string): string {
   return `/api/appointment/${encodeURIComponent(appointmentId)}/end-call`;
+}
+
+export function notificationReadPath(externalId: string): string {
+  return `/api/v1/notifications/${encodeURIComponent(externalId)}/read`;
+}
+
+export interface NotificationItem {
+  externalId: string;
+  eventType: string;
+  title: string;
+  message: string;
+  entityType?: string | null;
+  entityExternalId?: string | null;
+  entityRefId?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface SpringPage<T> {
+  content?: T[];
+  Content?: T[];
+  totalElements?: number;
+  TotalElements?: number;
+}
+
+export function parseNotificationItem(raw: unknown): NotificationItem | null {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const externalId = pickString(row, ['ExternalId', 'externalId']);
+  const eventType = pickString(row, ['EventType', 'eventType']);
+  const title = pickString(row, ['Title', 'title']);
+  const message = pickString(row, ['Message', 'message']);
+  if (!externalId || !eventType) return null;
+  const entityType = pickString(row, ['EntityType', 'entityType']) || null;
+  const entityExternalId = pickString(row, ['EntityExternalId', 'entityExternalId']) || null;
+  const entityRefId = pickString(row, ['EntityRefId', 'entityRefId']) || null;
+  const isRead = row.IsRead === true || row.isRead === true;
+  const createdAt = pickString(row, ['CreatedAt', 'createdAt']);
+  return {
+    externalId,
+    eventType,
+    title,
+    message: message || title,
+    entityType,
+    entityExternalId,
+    entityRefId,
+    isRead,
+    createdAt
+  };
+}
+
+export function parseNotificationPage(raw: unknown): NotificationItem[] {
+  const page = unwrapEnvelope<SpringPage<unknown>>(raw);
+  const content = Array.isArray(page?.content)
+    ? page.content
+    : Array.isArray(page?.Content)
+      ? page.Content
+      : [];
+  return content
+    .map((entry) => parseNotificationItem(entry))
+    .filter((entry): entry is NotificationItem => entry !== null);
+}
+
+export function parseUnreadNotificationCount(raw: unknown): number {
+  const data = unwrapEnvelope<Record<string, unknown>>(raw);
+  const row = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  return pickNumber(row, ['Count', 'count']) ?? 0;
+}
+
+export function parseNotificationWsEvent(raw: unknown): NotificationItem | null {
+  return parseNotificationItem(raw);
 }
 
 export interface VideoSessionPayload {
@@ -182,3 +256,5 @@ export function parseAuthLoginPayload(raw: unknown, identityFallback: string): A
   ]);
   return { accessToken, refreshToken, userId, email, role, displayName, expiresInSeconds };
 }
+
+export { toTelemetryWire } from './telemetryWire';

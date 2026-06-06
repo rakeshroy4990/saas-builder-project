@@ -94,7 +94,10 @@ export const SERVER_PATHS = {
   adminRoleRequests: '/api/admin/role-requests',
   adminDoctors: '/api/admin/doctors',
   adminAppointments: '/api/admin/appointments',
-  patientDeviceReadings: '/api/v1/patient-device-readings'
+  patientDeviceReadings: '/api/v1/patient-device-readings',
+  notifications: '/api/v1/notifications',
+  notificationsUnreadCount: '/api/v1/notifications/unread-count',
+  notificationsReadAll: '/api/v1/notifications/read-all'
 } as const;
 
 export type ServerPathKey = keyof typeof SERVER_PATHS;

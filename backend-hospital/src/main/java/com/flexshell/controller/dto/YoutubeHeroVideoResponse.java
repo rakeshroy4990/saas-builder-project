@@ -7,15 +7,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Optional {@code viewCount} / {@code likeCount} when statistics were loaded (empty-query hero ranking).
  */
 public class YoutubeHeroVideoResponse {
-    @JsonProperty("videoId")
+    @JsonProperty("VideoId")
     private String videoId;
-    @JsonProperty("videoTitle")
+    @JsonProperty("VideoTitle")
     private String videoTitle;
-    @JsonProperty("videoDescription")
+    @JsonProperty("VideoDescription")
     private String videoDescription;
-    @JsonProperty("viewCount")
+    @JsonProperty("ViewCount")
     private long viewCount;
-    @JsonProperty("likeCount")
+    @JsonProperty("LikeCount")
     private long likeCount;
 
     public YoutubeHeroVideoResponse() {

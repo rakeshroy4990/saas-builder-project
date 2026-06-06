@@ -297,6 +297,21 @@ const hospitalPublicHeader: ComponentDefinition = {
                     config: {}
                   },
                   {
+                    id: 'hospital-public-header-notifications',
+                    type: 'notification-bell',
+                    condition: {
+                      expression: "userId && String(userId).trim().length > 0",
+                      mappings: {
+                        userId: {
+                          packageName: 'hospital',
+                          key: 'AuthSession',
+                          property: 'userId'
+                        }
+                      }
+                    },
+                    config: {}
+                  },
+                  {
                     id: 'hospital-public-header-login',
                     type: 'button',
                     condition: {

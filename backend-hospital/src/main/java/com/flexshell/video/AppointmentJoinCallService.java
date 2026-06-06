@@ -9,7 +9,10 @@ import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.AppointmentJoinCallResponse;
 import com.flexshell.controller.dto.AppointmentRenewTokenResponse;
 import com.flexshell.controller.dto.HospitalVideoSessionResponse;
+import com.flexshell.domainevent.DomainEventPublisher;
+import com.flexshell.notification.NotificationTriggerSupport;
 import com.flexshell.observability.ObservabilityLogger;
+import com.flexshell.persistence.postgres.repository.AppointmentJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -22,6 +25,7 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -45,6 +49,8 @@ public class AppointmentJoinCallService {
     private final int graceMinutes;
     private final Set<String> allowedStatusesLower;
     private final int maxCallDurationHours;
+    private final ObjectProvider<DomainEventPublisher> domainEventPublisherProvider;
+    private final ObjectProvider<AppointmentJpaRepository> appointmentJpaRepositoryProvider;
 
     public AppointmentJoinCallService(
             ObjectProvider<AppointmentAccess> appointmentAccessProvider,
@@ -53,7 +59,9 @@ public class AppointmentJoinCallService {
             @Qualifier("hospitalZoneId") java.time.ZoneId hospitalZoneId,
             @Value("${app.video.join-call-grace-minutes:10}") int graceMinutes,
             @Value("${app.video.join-call-allowed-statuses:CONFIRMED,Open}") String allowedStatusesCsv,
-            @Value("${app.video.call-max-duration-hours:4}") int maxCallDurationHours
+            @Value("${app.video.call-max-duration-hours:4}") int maxCallDurationHours,
+            ObjectProvider<DomainEventPublisher> domainEventPublisherProvider,
+            ObjectProvider<AppointmentJpaRepository> appointmentJpaRepositoryProvider
     ) {
         this.appointmentAccessProvider = appointmentAccessProvider;
         this.userAccessProvider = userAccessProvider;
@@ -62,6 +70,8 @@ public class AppointmentJoinCallService {
         this.graceMinutes = Math.max(0, graceMinutes);
         this.allowedStatusesLower = parseAllowedStatuses(allowedStatusesCsv);
         this.maxCallDurationHours = Math.max(1, maxCallDurationHours);
+        this.domainEventPublisherProvider = domainEventPublisherProvider;
+        this.appointmentJpaRepositoryProvider = appointmentJpaRepositoryProvider;
     }
 
     private AppointmentAccess requireAppointmentAccess() {
@@ -109,7 +119,9 @@ public class AppointmentJoinCallService {
         HospitalVideoSessionResponse session = videoSessionPort.createSession(me, peer, apId);
         String channel = session.roomId() != null ? session.roomId() : apId;
 
+        String previousCallStatus = normalize(ap.getCallStatus());
         applyJoinCallTransition(appointmentRepository, ap, me);
+        fireVideoCallStartedNotification(ap, me, previousCallStatus);
 
         ObservabilityLogger.info(log, "appointment_join_call", java.util.Map.of(
                 "domain", "appointment",
@@ -306,5 +318,36 @@ public class AppointmentJoinCallService {
 
     private static String normalize(String v) {
         return Objects.toString(v, "").trim();
+    }
+
+    private void fireVideoCallStartedNotification(
+            AppointmentEntity ap,
+            String actorUserId,
+            String previousCallStatus
+    ) {
+        if (!previousCallStatus.isEmpty()) {
+            return;
+        }
+        UserAccess users = userAccessProvider.getIfAvailable();
+        if (users == null) {
+            return;
+        }
+        UserEntity actor = users.findById(actorUserId).orElse(null);
+        if (actor == null || actor.getRole() != UserRole.DOCTOR) {
+            return;
+        }
+        if (!normalize(ap.getDoctorId()).equalsIgnoreCase(actorUserId)) {
+            return;
+        }
+        DomainEventPublisher domainEventPublisher = domainEventPublisherProvider.getIfAvailable();
+        if (domainEventPublisher == null) {
+            return;
+        }
+        var postgresRow = NotificationTriggerSupport.findPostgresAppointment(
+                appointmentJpaRepositoryProvider.getIfAvailable(),
+                ap.getId()
+        );
+        Map<String, Object> context = NotificationTriggerSupport.appointmentContext(ap, postgresRow);
+        domainEventPublisher.publish("VIDEO_CALL_STARTED", actorUserId, context);
     }
 }

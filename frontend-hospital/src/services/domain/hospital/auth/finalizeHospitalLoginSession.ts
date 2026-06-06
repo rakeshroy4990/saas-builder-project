@@ -11,6 +11,7 @@ import { pickString } from '../shared/strings';
 import { buildFriendlyDisplayName } from '../shared/displayName';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
 import { ensureHospitalAdminSupportInboxReady } from '../chat/chatServices';
+import { ensureHospitalNotificationsReady } from '../notifications/notificationServices';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { emitSessionSummaryAuthLogin } from '../../../analytics/sessionSummary';
 import { clearTelemetryOutbox } from '../../../analytics/sessionTelemetryQueue';
@@ -147,6 +148,11 @@ export async function finalizeHospitalLoginSession(
     } catch {
       // Non-fatal: badge/chat still work after opening the chat popup.
     }
+  }
+  try {
+    await ensureHospitalNotificationsReady();
+  } catch {
+    // Non-fatal: bell badge still works after manual refresh.
   }
   trackEvent(
     'login_success',

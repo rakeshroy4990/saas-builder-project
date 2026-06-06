@@ -32,3 +32,26 @@ export function mapNativeGoogleSignInError(err: unknown): Error {
 
   return err instanceof Error ? err : new Error('Google sign-in failed');
 }
+
+/** True when the native Google SDK failed before we called the backend. */
+export function isGoogleNativeSdkError(error: unknown): boolean {
+  if (isErrorWithCode(error)) {
+    const code = String(error.code ?? '');
+    if (code === '10' || isGoogleDeveloperConfigError(String(error.message ?? ''))) {
+      return true;
+    }
+    return (
+      error.code === statusCodes.SIGN_IN_CANCELLED ||
+      error.code === statusCodes.IN_PROGRESS ||
+      error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE
+    );
+  }
+  if (error instanceof Error) {
+    const msg = error.message;
+    if (isGoogleDeveloperConfigError(msg)) return true;
+    if (/google sign-in was cancelled/i.test(msg)) return true;
+    if (/play services/i.test(msg)) return true;
+    if (/google sign-in is only supported/i.test(msg)) return true;
+  }
+  return false;
+}

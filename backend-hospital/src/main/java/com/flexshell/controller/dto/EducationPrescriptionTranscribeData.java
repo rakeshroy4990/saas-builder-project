@@ -13,29 +13,29 @@ import java.util.Objects;
  * Structured prescription / OPD card extract from vision/LLM (education UI + patient upload storage).
  */
 public record EducationPrescriptionTranscribeData(
-        @JsonProperty("hospital_name") String hospitalName,
-        @JsonProperty("document_type") String documentType,
-        @JsonProperty("registration_number") String registrationNumber,
-        @JsonProperty("receipt_number") String receiptNumber,
-        @JsonProperty("appointment_date") String appointmentDate,
-        @JsonProperty("patient_name") String patientName,
-        @JsonProperty("patient_age") String patientAge,
-        @JsonProperty("patient_gender") String patientGender,
-        @JsonProperty("age_gender") String ageGender,
-        @JsonProperty("department") String department,
-        @JsonProperty("consultant") String consultant,
-        @JsonProperty("address") String address,
-        @JsonProperty("mobile_number") String mobileNumber,
-        @JsonProperty("referred_by") String referredBy,
-        @JsonProperty("diagnosis") String diagnosis,
+        @JsonProperty("HospitalName") String hospitalName,
+        @JsonProperty("DocumentType") String documentType,
+        @JsonProperty("RegistrationNumber") String registrationNumber,
+        @JsonProperty("ReceiptNumber") String receiptNumber,
+        @JsonProperty("AppointmentDate") String appointmentDate,
+        @JsonProperty("PatientName") String patientName,
+        @JsonProperty("PatientAge") String patientAge,
+        @JsonProperty("PatientGender") String patientGender,
+        @JsonProperty("AgeGender") String ageGender,
+        @JsonProperty("Department") String department,
+        @JsonProperty("Consultant") String consultant,
+        @JsonProperty("Address") String address,
+        @JsonProperty("MobileNumber") String mobileNumber,
+        @JsonProperty("ReferredBy") String referredBy,
+        @JsonProperty("Diagnosis") String diagnosis,
         /** Newline-separated medications (education chat). */
-        @JsonProperty("medications") String medications,
-        @JsonProperty("medicines") List<String> medicines,
-        @JsonProperty("dosage") List<String> dosage,
-        @JsonProperty("advice") List<String> advice,
-        @JsonProperty("doctor_name") String doctorName,
-        @JsonProperty("prescription_date") String prescriptionDate,
-        @JsonProperty("notes") String notes
+        @JsonProperty("Medications") String medications,
+        @JsonProperty("Medicines") List<String> medicines,
+        @JsonProperty("Dosage") List<String> dosage,
+        @JsonProperty("Advice") List<String> advice,
+        @JsonProperty("DoctorName") String doctorName,
+        @JsonProperty("PrescriptionDate") String prescriptionDate,
+        @JsonProperty("Notes") String notes
 ) {
     public EducationPrescriptionTranscribeData {
         hospitalName = trim(hospitalName);

@@ -10,4 +10,4 @@ alwaysApply: false
 
 **Clinical assistant prompts:** Include non-diagnosis, no drug/dose prescribing, defer to treating clinician, closing line to consult a doctor; never ship raw PHI to the model (summarize/redact); sub-threshold confidence → safe escalation; rate limits (~20 req/user/hr); structured audit logs with user/session/time (DPDP).
 
-**Code:** Pydantic v2 schemas; `async def` for I/O routes; `structlog` (no `print()`).
+**Code:** Pydantic v2 schemas; HTTP JSON response/request field aliases PascalCase (`Field(alias="PatientName")` — see `api-json-pascal-case.mdc`); `async def` for I/O routes; `structlog` (no `print()`).

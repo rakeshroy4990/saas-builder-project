@@ -8,7 +8,7 @@ alwaysApply: false
 
 **Build gate:** After any Java change in `backend-hospital` (or libs it uses), run `cd backend-hospital && gradle compileJava` and fix all errors before marking the task done. Lambdas passed to helpers (e.g. timing wrappers) cannot throw checked exceptions — catch `IOException` inside the lambda or use an outer try/catch.
 
-**Layers:** Controller → Service → Repository; no business logic in controllers. DTOs under `dto/request|response`; don’t return JPA entities from controllers. Audit sensitive actions (prescriptions, appointments, roles) via `audit/` / AOP.
+**Layers:** Controller → Service → Repository; no business logic in controllers. DTOs under `dto/request|response`; don’t return JPA entities from controllers. All request/response JSON wire keys PascalCase (`@JsonProperty("PatientName")` — see `api-json-pascal-case.mdc`). Audit sensitive actions (prescriptions, appointments, roles) via `audit/` / AOP.
 
 **Security:** `@PreAuthorize` on endpoints; JWT validates signature, expiry, token kind; refresh rotation invalidates prior token; resolve roles from DB, not claims; rate limits (examples): login 5/min/IP, refresh 10/min/user, reset-password 3/hr/email; CORS explicit allowlist (no `*` prod); HTTPS-only prod.
 

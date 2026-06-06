@@ -141,7 +141,8 @@ public class StructuredPrescriptionService {
         e.setStatus(StructuredPrescriptionEntity.STATUS_SIGNED);
         e.setUpdatedAt(Instant.now());
         appendAudit(e, actorUserId, AUDIT_FINALIZE, "finalized vendor=" + sig.vendor() + " attestation=" + sig.attestationId());
-        return toResponse(savePrescription(e), null);
+        StructuredPrescriptionResponse response = toResponse(savePrescription(e), null);
+        return response;
     }
 
     public StructuredPrescriptionResponse get(String appointmentId, String actorUserId) {

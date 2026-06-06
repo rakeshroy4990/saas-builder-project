@@ -17,6 +17,25 @@
     "languageHint": "Select interface language",
     "account": "Account"
   },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "loading": "Loading…",
+    "markAllRead": "Mark all as read",
+    "bellAria": "Open notifications",
+    "bellAriaWithCount": "Open notifications, {count} unread",
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{count} min ago",
+      "hoursAgo": "{count} hr ago",
+      "daysAgo": "{count} d ago"
+    }
+  },
   "hospital": {
     "brandTitle": "Agastya Healthcare",
     "logoAlt": "Agastya Healthcare logo"
@@ -529,6 +548,45 @@
   },
   "chat": {
     "title": "Health Assistant",
+    "intent": {
+      "slotsLabel": "slots",
+      "loginRequired": "Please sign in first to book appointments or check doctor availability. Use Login from the menu, then try again.",
+      "cancelled": "Okay, I've cancelled that request. How else can I help?",
+      "departmentsUnavailable": "I couldn't load departments right now. Please try again in a moment or use Book Now from the menu.",
+      "doctorsUnavailable": "No doctors are listed for {department} right now. Please pick another department or try again later.",
+      "missingDepartment": "Please tell me which department you need first.",
+      "missingDoctor": "Please tell me which doctor you want to check.",
+      "askDepartment": "Which department do you need?\n\n{options}\n\nReply with the number or department name.",
+      "invalidDepartment": "I didn't recognize that department. Please reply with a number or name from this list:\n\n{options}",
+      "askDoctor": "Which doctor in {department}?\n\n{options}\n\nReply with the number or doctor name.",
+      "invalidDoctor": "I didn't recognize that doctor. Please reply with a number or name from this list:\n\n{options}",
+      "askAge": "What is the patient's age in years? (Maximum 20 for online booking.)",
+      "invalidAge": "Please enter a valid age between 1 and 20 (digits only).",
+      "askDate": "Which date works for {doctor}?\n\n{options}\n\nReply with the number, YYYY-MM-DD, or say today/tomorrow.",
+      "invalidDate": "I didn't recognize that date. Please pick from:\n\n{options}",
+      "noDates": "Sorry, {doctor} has no open slots in the next few days. Try another doctor or check back later.",
+      "askTimeSlot": "Which time slot would you like?\n\n{options}\n\nReply with the number or slot time.",
+      "invalidTimeSlot": "I didn't recognize that time slot. Please pick from:\n\n{options}",
+      "noTimeSlots": "No time slots are open on {date}. Please start again and choose another date.",
+      "availability": {
+        "none": "{doctor} has no open slots in the next few days.",
+        "summary": "Here is availability for {doctor}:\n\n{lines}"
+      },
+      "booking": {
+        "success": "Your appointment request has been submitted. Check your dashboard for appointment details and status.",
+        "failed": "I couldn't book the appointment right now. Please try again or use Book Now from the menu."
+      },
+      "videoCall": {
+        "incomplete": "I need a department and doctor before opening video consultation booking.",
+        "step2": "I've opened the appointment form (step 2) with your doctor pre-selected. Pick a date and time slot to finish booking your video consultation."
+      },
+      "flowComplete": "That request is complete. What else can I help with?",
+      "start": {
+        "bookAppointment": "I can help you book an appointment. I'll ask only the essentials.",
+        "checkAvailability": "I can check doctor availability for you.",
+        "videoCall": "I can help you book a video consultation. First I'll check doctor availability, then open appointment booking."
+      }
+    },
     "quick": {
       "setAppointment": "Set An Appointment",
       "userProfile": "User Profile"
@@ -574,7 +632,7 @@
       "send": "Send",
       "resend": "Resend after timeout",
       "resendAria": "Resend this message after a timeout",
-      "welcomeMessage": "Hi 👋 I'm here to help.\n\nTell me your symptoms and I'll guide you with what to do next.\n\nYou can say things like:\n• \"I have fever for 2 days\"\n• \"My child has cough\"\n• \"Stomach pain after eating\"",
+      "welcomeMessage": "Hi 👋 I'm here to help.\n\nTell me your symptoms and I'll guide you with what to do next.\n\nYou can also say:\n• \"I want to set an appointment\"\n• \"Check availability of a doctor\"\n• \"I want to video call a doctor\"\n\nOr describe symptoms like:\n• \"I have fever for 2 days\"\n• \"My child has cough\"",
       "quickPrompts": {
         "fever": "I have fever for 2 days",
         "coldCough": "I have cold and cough",

@@ -23,7 +23,7 @@ import { shouldSkipTelemetrySessionSummaryForUrl } from '@/analytics/telemetryUr
 import { isAccessTokenExpired, useSessionStore } from '@/auth/sessionStore';
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
 import { toUserFacingApiError } from '@/api/apiErrors';
-import { DEFAULT_API_TIMEOUT_MS } from '@/api/timeouts';
+import { AUTH_API_TIMEOUT_MS, DEFAULT_API_TIMEOUT_MS } from '@/api/timeouts';
 
 import { applyMultipartHeaders } from './multipart';
 import { getMobileApiBaseUrl } from './config';
@@ -77,7 +77,7 @@ function resolveApiPath(config: InternalAxiosRequestConfig): string {
   return `${base}${url.startsWith('/') ? url : `/${url}`}`;
 }
 
-const DEFAULT_REFRESH_TIMEOUT_MS = DEFAULT_API_TIMEOUT_MS;
+const DEFAULT_REFRESH_TIMEOUT_MS = AUTH_API_TIMEOUT_MS;
 
 export async function refreshAccessToken(options?: {
   timeoutMs?: number;

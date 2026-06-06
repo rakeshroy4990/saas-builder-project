@@ -1,4 +1,5 @@
 import { getApiBaseUrl, SERVER_PATHS } from '../http/apiPaths';
+import { toTelemetryWire } from '@saas-builder/hospital-api-client';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { readLoginSessionId } from '../logging/loginSessionContext';
 import { getClientContext } from './clientContext';
@@ -67,7 +68,7 @@ function postSessionEventBody(body: string): Promise<Response> {
   let wireBody = body;
   try {
     const parsed = JSON.parse(body) as Record<string, unknown>;
-    wireBody = JSON.stringify({ ...getClientContext(), ...parsed });
+    wireBody = JSON.stringify(toTelemetryWire({ ...getClientContext(), ...parsed }));
   } catch {
     // keep raw body
   }
@@ -90,11 +91,11 @@ export async function ingestSessionTelemetry(payload: SessionTelemetryPayload): 
     const userId = (explicitUserId ?? readPersistedUserId()).trim() || undefined;
     const loginSessionId = (rest.login_session_id ?? readLoginSessionId()).trim();
     const { login_session_id: _ls, ...restWithoutLs } = rest;
-    const body = JSON.stringify({
+    const body = JSON.stringify(toTelemetryWire({
       ...restWithoutLs,
       ...(userId ? { user_id: userId } : {}),
       ...(loginSessionId ? { login_session_id: loginSessionId } : {})
-    });
+    }));
     await enqueueTelemetryBody(body);
   } catch {
     // Keep analytics non-blocking; failures here must never affect UX flows.

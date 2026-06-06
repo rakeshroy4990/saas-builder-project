@@ -17,6 +17,7 @@ import { BrandHeader } from '@/components/BrandHeader';
 import { AuthBusyOverlay } from '@/components/AuthBusyOverlay';
 import { cancelPendingTokenRefresh } from '@/api/client';
 import { getLoginErrorMessage, loginWithPassword } from '@/features/auth/api';
+import { formatBackendAuthFailure } from '@/features/auth/authLoginErrors';
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton';
 import {
   ensureGoogleSignInConfigured,
@@ -66,7 +67,7 @@ export default function LoginScreen() {
       router.replace('/(app)/(tabs)/home' as never);
     } catch (err) {
       setLoading(false);
-      setError(getLoginErrorMessage(err));
+      setError(formatBackendAuthFailure(err, getLoginErrorMessage(err)));
     }
   }
 

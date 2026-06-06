@@ -4,47 +4,47 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 
 public class SessionTelemetryEventRequest {
-    @JsonProperty("event_name")
+    @JsonProperty("EventName")
     @NotBlank
     private String eventName;
 
-    @JsonProperty("flow")
+    @JsonProperty("Flow")
     @NotBlank
     private String flow;
 
-    @JsonProperty("status")
+    @JsonProperty("Status")
     private String status;
 
-    @JsonProperty("reason_code")
+    @JsonProperty("ReasonCode")
     private String reasonCode;
 
-    @JsonProperty("http_status")
+    @JsonProperty("HttpStatus")
     private Integer httpStatus;
 
-    @JsonProperty("trace_id")
+    @JsonProperty("TraceId")
     @NotBlank
     private String traceId;
 
-    @JsonProperty("user_id")
+    @JsonProperty("UserId")
     private String userId;
 
     /**
      * Client-minted UUID per successful login; when set, groups {@code session_summary} rows into a
      * dedicated {@code session_telemetry} document independent of {@link #traceId} reuse in the tab.
      */
-    @JsonProperty("login_session_id")
+    @JsonProperty("LoginSessionId")
     private String loginSessionId;
 
-    @JsonProperty("session_summary_entry")
+    @JsonProperty("SessionSummaryEntry")
     private SessionSummaryEntryDto sessionSummaryEntry;
 
-    @JsonProperty("os")
+    @JsonProperty("Os")
     private String os;
 
-    @JsonProperty("device_id")
+    @JsonProperty("DeviceId")
     private String deviceId;
 
-    @JsonProperty("browser_or_app")
+    @JsonProperty("BrowserOrApp")
     private String browserOrApp;
 
     public String getEventName() {

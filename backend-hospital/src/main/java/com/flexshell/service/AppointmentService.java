@@ -166,7 +166,8 @@ public class AppointmentService {
         entity.setDoctorName(resolveDoctorName(entity.getDoctorId()));
         entity.setUpdatedTimestamp(Instant.now());
         entity.setUpdatedBy(actorUserId);
-        return toResponse(repository.save(entity));
+        AppointmentEntity saved = repository.save(entity);
+        return toResponse(saved);
     }
 
     public boolean delete(String id, String actorUserId) {
@@ -190,7 +191,8 @@ public class AppointmentService {
         entity.setStatus(STATUS_CANCELLED);
         entity.setUpdatedTimestamp(Instant.now());
         entity.setUpdatedBy(actorUserId);
-        return toResponse(repository.save(entity));
+        AppointmentEntity saved = repository.save(entity);
+        return toResponse(saved);
     }
 
     /**
@@ -703,4 +705,5 @@ public class AppointmentService {
         }
         return users;
     }
+
 }

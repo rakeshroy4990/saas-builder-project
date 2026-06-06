@@ -1,7 +1,9 @@
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { View } from 'react-native';
 
 import { AppHeaderBrand } from '@/components/AppHeaderBrand';
+import { NotificationHeaderButton } from '@/components/NotificationHeaderButton';
 import { UserHeaderButton } from '@/components/UserHeaderButton';
 import { useSessionStore } from '@/auth/sessionStore';
 import { tabIcon } from '@/navigation/tabIcons';
@@ -23,7 +25,13 @@ export default function TabsLayout() {
         headerTintColor: colors.text,
         headerTitle: () => <AppHeaderBrand />,
         headerTitleAlign: 'left',
-        headerRight: () => (isLoggedIn ? <UserHeaderButton /> : null),
+        headerRight: () =>
+          isLoggedIn ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <NotificationHeaderButton />
+              <UserHeaderButton />
+            </View>
+          ) : null,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
         tabBarLabelStyle: { fontSize: 11 }
       }}
@@ -45,7 +53,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="prescriptions"
         options={{
-          title: t('nav.prescriptions'),
+          title: t('nav.prescriptionsShort'),
           tabBarIcon: ({ focused }) => tabIcon(focused ? 'document-text' : 'document-text-outline', focused)
         }}
       />

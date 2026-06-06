@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { authLoginTelemetryFromResponse, AUTH_TELEMETRY_PATHS } from '@/analytics/authTelemetry';
 import { recordSuccessfulLoginTelemetry } from '@/analytics/sessionTelemetry';
 import { apiClient } from '@/api/client';
+import { AUTH_API_TIMEOUT_MS } from '@/api/timeouts';
 import { persistSessionSecrets } from '@/auth/secureTokens';
 import { useSessionStore, type SessionUser } from '@/auth/sessionStore';
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
@@ -27,9 +28,11 @@ export { isGoogleWebAuthAvailable, useGoogleWebAuthRequest } from './googleSignI
 
 export async function completeGoogleSignIn(googleAccessToken: string, identityFallback: string): Promise<void> {
   const startedAtMs = Date.now();
-  const response = await apiClient.post(SERVER_PATHS.googleLogin, {
-    AccessToken: googleAccessToken
-  });
+  const response = await apiClient.post(
+    SERVER_PATHS.googleLogin,
+    { AccessToken: googleAccessToken },
+    { timeout: AUTH_API_TIMEOUT_MS }
+  );
   const parsed = parseAuthLoginPayload(response.data, identityFallback);
   if (!parsed.accessToken) {
     throw new Error('Google sign-in did not return an access token');

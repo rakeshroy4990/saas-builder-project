@@ -10,10 +10,10 @@ public class MedicineSearchResultDto {
     private String name;
     private String composition;
     private String manufacturer;
-    @JsonProperty("pack_size")
+    @JsonProperty("PackSize")
     private String packSize;
     private Object price;
-    @JsonProperty("is_discontinued")
+    @JsonProperty("IsDiscontinued")
     private Boolean isDiscontinued;
 
     public MedicineSearchResultDto() {

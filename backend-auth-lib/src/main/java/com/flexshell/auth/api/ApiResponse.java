@@ -1,12 +1,19 @@
 package com.flexshell.auth.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.Instant;
 
 public class ApiResponse<T> {
+    @JsonProperty("Success")
     private boolean success;
+    @JsonProperty("Message")
     private String message;
+    @JsonProperty("ErrorCode")
     private String errorCode;
+    @JsonProperty("Data")
     private T data;
+    @JsonProperty("Timestamp")
     private String timestamp = Instant.now().toString();
 
     public ApiResponse() {

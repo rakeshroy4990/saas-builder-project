@@ -6,11 +6,11 @@ import java.time.Instant;
 import java.util.Map;
 
 public record PatientDeviceReadingCreateRequest(
-        @JsonProperty("deviceKey") String deviceKey,
-        @JsonProperty("deviceName") String deviceName,
-        @JsonProperty("deviceType") String deviceType,
-        @JsonProperty("measurements") Map<String, Object> measurements,
-        @JsonProperty("recordedAt") Instant recordedAt,
-        @JsonProperty("rawBytesBase64") String rawBytesBase64
+        @JsonProperty("DeviceKey") String deviceKey,
+        @JsonProperty("DeviceName") String deviceName,
+        @JsonProperty("DeviceType") String deviceType,
+        @JsonProperty("Measurements") Map<String, Object> measurements,
+        @JsonProperty("RecordedAt") Instant recordedAt,
+        @JsonProperty("RawBytesBase64") String rawBytesBase64
 ) {
 }

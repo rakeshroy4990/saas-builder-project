@@ -20,6 +20,7 @@ import DynEducationAttachmentSequence from '../../components/primitives/DynEduca
 import DynPrescriptionUpload from '../../components/primitives/DynPrescriptionUpload.vue';
 import DynPrescriptionList from '../../components/primitives/DynPrescriptionList.vue';
 import DynLanguageSwitcher from '../../components/primitives/DynLanguageSwitcher.vue';
+import DynNotificationBell from '../../components/primitives/DynNotificationBell.vue';
 
 /** STOMP + chat UI — not needed for first paint. */
 const DynChat = defineAsyncComponent(() => import('@realtime/components/DynChat.vue'));
@@ -35,6 +36,7 @@ export function bootstrap(): void {
   ComponentRegistry.register('button', DynButton);
   ComponentRegistry.register('text', DynText);
   ComponentRegistry.register('language-switcher', DynLanguageSwitcher);
+  ComponentRegistry.register('notification-bell', DynNotificationBell);
   ComponentRegistry.register('input', DynInput);
   ComponentRegistry.register('date-picker', DynDatePicker);
   ComponentRegistry.register('dropdown', DynDropdown);

@@ -74,4 +74,12 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, String> 
             @Param("role") String role,
             @Param("roleStatus") String roleStatus,
             Pageable pageable);
+
+    @Query("""
+            SELECT u.id FROM UserJpaEntity u
+            WHERE u.deleted = false
+              AND u.role = :role
+              AND (u.active = true OR u.active IS NULL)
+            """)
+    List<String> findActiveUserIdsByRole(@Param("role") UserRole role);
 }
