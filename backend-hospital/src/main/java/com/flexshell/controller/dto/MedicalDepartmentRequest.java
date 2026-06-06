@@ -2,7 +2,10 @@ package com.flexshell.controller.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 
-public class MedicalDepartmentRequest {
+import java.util.ArrayList;
+import java.util.List;
+
+public class MedicalDepartmentRequest implements com.flexshell.medicaldepartment.MedicalDepartmentLocaleCatalog.MedicalDepartmentRequestLike {
     @JsonAlias({"Id"})
     private String id;
     @JsonAlias({"Name"})
@@ -13,6 +16,8 @@ public class MedicalDepartmentRequest {
     private String description;
     @JsonAlias({"Active"})
     private Boolean active;
+    @JsonAlias({"Messages"})
+    private List<MedicalDepartmentMessageRequest> messages = new ArrayList<>();
 
     public String getId() {
         return id;
@@ -22,6 +27,7 @@ public class MedicalDepartmentRequest {
         this.id = id;
     }
 
+    @Override
     public String getName() {
         return name;
     }
@@ -38,6 +44,7 @@ public class MedicalDepartmentRequest {
         this.code = code;
     }
 
+    @Override
     public String getDescription() {
         return description;
     }
@@ -52,5 +59,14 @@ public class MedicalDepartmentRequest {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    @Override
+    public List<MedicalDepartmentMessageRequest> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<MedicalDepartmentMessageRequest> messages) {
+        this.messages = messages == null ? new ArrayList<>() : messages;
     }
 }

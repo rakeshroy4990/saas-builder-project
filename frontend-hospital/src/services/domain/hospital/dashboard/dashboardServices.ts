@@ -11,7 +11,7 @@ import { isAuthTokenExpired } from '../../../auth/authToken';
 import { setDeferredPostLoginAction } from '../auth/postLoginAction';
 import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
-import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
+import { ensureMedicalDepartmentOptionsLoaded, syncAppointmentDepartmentsFromMedicalStore } from '../shared/medicalDepartments';
 import { loadDashboardAppointmentsPage } from '../shared/dashboardAppointments';
 import { receiptObjectUrls, clearReceiptObjectUrls } from '../shared/receiptObjectUrls';
 import { ensureHospitalWebRtcInboundConnected } from '../shared/hospitalWebRtcInbound';
@@ -768,9 +768,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const appStore = useAppStore(pinia);
       try {
         await ensureMedicalDepartmentOptionsLoaded();
-        const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
-        const departmentList = Array.isArray(departmentsNode.list) ? (departmentsNode.list as unknown[]) : [];
-        appStore.setData('hospital', 'AppointmentDepartments', { list: departmentList });
+        syncAppointmentDepartmentsFromMedicalStore();
 
         const response = await apiClient.get(`${URLRegistry.paths.appointmentGet}/${encodeURIComponent(appointmentId)}`);
         const dataNode = (response.data?.Data ?? response.data?.data ?? response.data ?? {}) as Record<string, unknown>;

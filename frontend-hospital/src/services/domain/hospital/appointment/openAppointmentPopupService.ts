@@ -4,7 +4,7 @@ import { usePopupStore } from '../../../../store/usePopupStore';
 import { pinia } from '../../../../store/pinia';
 import { ok } from '../shared/response';
 import { clearAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
-import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
+import { ensureMedicalDepartmentOptionsLoaded, syncAppointmentDepartmentsFromMedicalStore } from '../shared/medicalDepartments';
 import { setDeferredPostLoginAction } from '../auth/postLoginAction';
 export const openAppointmentPopupHospitalServices: ServiceDefinition[] = [
   {
@@ -30,12 +30,7 @@ export const openAppointmentPopupHospitalServices: ServiceDefinition[] = [
         return ok();
       }
       await ensureMedicalDepartmentOptionsLoaded();
-      const departments = (useAppStore(pinia).getData('hospital', 'MedicalDepartments') ?? {}) as Record<
-        string,
-        unknown
-      >;
-      const departmentList = Array.isArray(departments.list) ? departments.list : [];
-      useAppStore(pinia).setData('hospital', 'AppointmentDepartments', { list: departmentList });
+      syncAppointmentDepartmentsFromMedicalStore();
       useAppStore(pinia).setProperty('hospital', 'AppointmentForm', 'editingAppointmentId', '');
       useAppStore(pinia).setProperty(
         'hospital',

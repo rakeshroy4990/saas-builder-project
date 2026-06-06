@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/telemetry/**").permitAll()
                         .requestMatchers("/api/uiMetdata/**", "/api/uiMetdata").permitAll()
                         .requestMatchers("/api/medical-department/get", "/api/medical-department/get/**").permitAll()
+                        .requestMatchers("/api/Em/get", "/api/Em/get/**").permitAll()
                         .requestMatchers("/api/youtube/hero-video").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/hospital/blog", "/api/hospital/blog/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
@@ -56,6 +57,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/medical-department/createOrUpdate").authenticated()
                         .requestMatchers("/api/medical-department/update/**").authenticated()
                         .requestMatchers("/api/medical-department/delete/**").hasRole("ADMIN")
+                        .requestMatchers("/api/Em/create").authenticated()
+                        .requestMatchers("/api/Em/createOrUpdate").authenticated()
+                        .requestMatchers("/api/Em/update/**").authenticated()
+                        .requestMatchers("/api/Em/delete/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
@@ -103,6 +108,7 @@ public class SecurityConfig {
                             "/api/telemetry",
                             "/api/uiMetdata",
                             "/api/medical-department/get",
+                            "/api/Em/get",
                             "/api/youtube/hero-video",
                             "/api/hospital/blog",
                             "/error",

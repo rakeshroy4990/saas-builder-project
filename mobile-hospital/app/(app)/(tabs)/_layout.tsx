@@ -57,14 +57,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => tabIcon(focused ? 'document-text' : 'document-text-outline', focused)
         }}
       />
-      <Tabs.Screen
-        name="blog"
-        options={{
-          title: t('nav.blog'),
-          href: isDoctor ? null : undefined,
-          tabBarIcon: ({ focused }) => tabIcon(focused ? 'newspaper' : 'newspaper-outline', focused)
-        }}
-      />
+      <Tabs.Screen name="blog" options={{ href: null }} />
       <Tabs.Screen
         name="ai-diagnosis"
         options={{

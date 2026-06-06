@@ -7,7 +7,7 @@ import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { i18n } from '../../../../i18n';
 import { pickString } from '../shared/strings';
-import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
+import { ensureMedicalDepartmentOptionsLoaded, syncAppointmentDepartmentsFromMedicalStore } from '../shared/medicalDepartments';
 import { ensureDoctorOptionsLoadedByDepartment } from '../shared/doctorCatalog';
 import { refreshAppointmentDateAvailabilityFromForm } from '../shared/refreshAppointmentDateAvailability';
 import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppointmentTimeSlots';
@@ -230,9 +230,7 @@ async function submitAppointmentFromFlow(flow: GuidedFlowState): Promise<{ ok: b
 async function openAppointmentPopupStep2(flow: GuidedFlowState): Promise<void> {
   const appStore = useAppStore(pinia);
   await ensureMedicalDepartmentOptionsLoaded();
-  const departments = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
-  const departmentList = Array.isArray(departments.list) ? departments.list : [];
-  appStore.setData('hospital', 'AppointmentDepartments', { list: departmentList });
+  syncAppointmentDepartmentsFromMedicalStore();
 
   syncAppointmentFormFromFlow(flow);
   appStore.setProperty('hospital', 'AppointmentForm', 'preferredDate', '');

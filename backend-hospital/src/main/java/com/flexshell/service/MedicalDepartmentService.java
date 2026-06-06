@@ -1,8 +1,10 @@
 package com.flexshell.service;
 
+import com.flexshell.controller.dto.MedicalDepartmentMessageRequest;
 import com.flexshell.controller.dto.MedicalDepartmentRequest;
 import com.flexshell.controller.dto.MedicalDepartmentResponse;
 import com.flexshell.medicaldepartment.MedicalDepartmentEntity;
+import com.flexshell.medicaldepartment.MedicalDepartmentLocaleCatalog;
 import com.flexshell.persistence.api.MedicalDepartmentAccess;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.PageRequest;
@@ -14,12 +16,17 @@ import java.util.List;
 @Service
 public class MedicalDepartmentService {
     private final ObjectProvider<MedicalDepartmentAccess> departmentAccessProvider;
+    private final ObjectProvider<MedicalDepartmentLocaleCatalog> localeCatalogProvider;
 
-    public MedicalDepartmentService(ObjectProvider<MedicalDepartmentAccess> departmentAccessProvider) {
+    public MedicalDepartmentService(
+            ObjectProvider<MedicalDepartmentAccess> departmentAccessProvider,
+            ObjectProvider<MedicalDepartmentLocaleCatalog> localeCatalogProvider
+    ) {
         this.departmentAccessProvider = departmentAccessProvider;
+        this.localeCatalogProvider = localeCatalogProvider;
     }
 
-    public MedicalDepartmentResponse create(MedicalDepartmentRequest request) {
+    public MedicalDepartmentResponse create(MedicalDepartmentRequest request, String locale) {
         MedicalDepartmentAccess repository = requireDepartmentAccess();
         String code = normalizeCode(request.getCode());
         if (code.isBlank()) {
@@ -33,10 +40,14 @@ public class MedicalDepartmentService {
         Instant now = Instant.now();
         entity.setCreatedTimestamp(now);
         entity.setUpdatedTimestamp(now);
-        return toResponse(repository.save(entity));
+        MedicalDepartmentEntity saved = repository.save(entity);
+        persistLocaleMessages(saved.getId(), request);
+        syncEnglishColumns(saved, request);
+        saved = repository.save(saved);
+        return toResponse(saved, locale);
     }
 
-    public MedicalDepartmentResponse update(String id, MedicalDepartmentRequest request) {
+    public MedicalDepartmentResponse update(String id, MedicalDepartmentRequest request, String locale) {
         MedicalDepartmentAccess repository = requireDepartmentAccess();
         MedicalDepartmentEntity entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
@@ -50,25 +61,29 @@ public class MedicalDepartmentService {
         }
         apply(entity, request);
         entity.setUpdatedTimestamp(Instant.now());
-        return toResponse(repository.save(entity));
+        MedicalDepartmentEntity saved = repository.save(entity);
+        persistLocaleMessages(saved.getId(), request);
+        syncEnglishColumns(saved, request);
+        saved = repository.save(saved);
+        return toResponse(saved, locale);
     }
 
-    public MedicalDepartmentResponse createOrUpdate(MedicalDepartmentRequest request) {
+    public MedicalDepartmentResponse createOrUpdate(MedicalDepartmentRequest request, String locale) {
         MedicalDepartmentAccess repository = requireDepartmentAccess();
         String id = request.getId() == null ? "" : request.getId().trim();
         if (!id.isBlank()) {
-            return update(id, request);
+            return update(id, request, locale);
         }
         String code = normalizeCode(request.getCode());
         if (!code.isBlank()) {
             return repository.findByCodeIgnoreCase(code)
                     .map(existing -> {
                         request.setId(existing.getId());
-                        return update(existing.getId(), request);
+                        return update(existing.getId(), request, locale);
                     })
-                    .orElseGet(() -> create(request));
+                    .orElseGet(() -> create(request, locale));
         }
-        return create(request);
+        return create(request, locale);
     }
 
     public boolean delete(String id) {
@@ -80,25 +95,44 @@ public class MedicalDepartmentService {
         return true;
     }
 
-    public MedicalDepartmentResponse getById(String id) {
+    public MedicalDepartmentResponse getById(String id, String locale) {
         MedicalDepartmentAccess repository = requireDepartmentAccess();
         return repository.findById(id)
-                .map(this::toResponse)
+                .map(entity -> toResponse(entity, locale))
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
     }
 
-    public List<MedicalDepartmentResponse> getAll(int page, int size) {
+    public List<MedicalDepartmentResponse> getAll(int page, int size, String locale) {
         MedicalDepartmentAccess repository = requireDepartmentAccess();
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, size);
         return repository.findAll(PageRequest.of(safePage, safeSize))
                 .stream()
-                .map(this::toResponse)
+                .map(entity -> toResponse(entity, locale))
                 .toList();
     }
 
+    private void persistLocaleMessages(String departmentId, MedicalDepartmentRequest request) {
+        MedicalDepartmentLocaleCatalog catalog = localeCatalogProvider.getIfAvailable();
+        if (catalog == null) {
+            return;
+        }
+        List<MedicalDepartmentMessageRequest> messages = MedicalDepartmentLocaleCatalog.effectiveMessages(request);
+        catalog.upsertMessages(departmentId, messages);
+    }
+
+    private void syncEnglishColumns(MedicalDepartmentEntity entity, MedicalDepartmentRequest request) {
+        List<MedicalDepartmentMessageRequest> messages = MedicalDepartmentLocaleCatalog.effectiveMessages(request);
+        entity.setName(MedicalDepartmentLocaleCatalog.primaryNameFromMessages(messages, entity.getName()));
+        entity.setDescription(MedicalDepartmentLocaleCatalog.primaryDescriptionFromMessages(
+                messages,
+                entity.getDescription()
+        ));
+    }
+
     private void apply(MedicalDepartmentEntity entity, MedicalDepartmentRequest request) {
-        String name = normalize(request.getName());
+        List<MedicalDepartmentMessageRequest> messages = MedicalDepartmentLocaleCatalog.effectiveMessages(request);
+        String name = MedicalDepartmentLocaleCatalog.primaryNameFromMessages(messages, normalize(request.getName()));
         String code = normalizeCode(request.getCode());
         if (name.isBlank()) {
             throw new IllegalArgumentException("Name is required");
@@ -108,7 +142,10 @@ public class MedicalDepartmentService {
         }
         entity.setName(name);
         entity.setCode(code);
-        entity.setDescription(normalize(request.getDescription()));
+        entity.setDescription(MedicalDepartmentLocaleCatalog.primaryDescriptionFromMessages(
+                messages,
+                normalize(request.getDescription())
+        ));
         entity.setActive(request.getActive() == null || request.getActive());
     }
 
@@ -121,12 +158,25 @@ public class MedicalDepartmentService {
         return normalized.toUpperCase();
     }
 
-    private MedicalDepartmentResponse toResponse(MedicalDepartmentEntity entity) {
+    private MedicalDepartmentResponse toResponse(MedicalDepartmentEntity entity, String locale) {
+        String name = entity.getName();
+        String description = entity.getDescription();
+        MedicalDepartmentLocaleCatalog catalog = localeCatalogProvider.getIfAvailable();
+        if (catalog != null) {
+            MedicalDepartmentLocaleCatalog.ResolvedCopy resolved = catalog.resolve(
+                    entity.getId(),
+                    locale,
+                    entity.getName(),
+                    entity.getDescription()
+            );
+            name = resolved.name();
+            description = resolved.description();
+        }
         return new MedicalDepartmentResponse(
                 entity.getId(),
-                entity.getName(),
+                name,
                 entity.getCode(),
-                entity.getDescription(),
+                description,
                 entity.isActive(),
                 entity.getCreatedTimestamp() == null ? null : entity.getCreatedTimestamp().toString(),
                 entity.getUpdatedTimestamp() == null ? null : entity.getUpdatedTimestamp().toString());

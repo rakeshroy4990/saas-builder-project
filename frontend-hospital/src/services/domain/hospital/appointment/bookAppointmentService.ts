@@ -10,7 +10,7 @@ import { router } from '../../../../router';
 import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
 import { clearAppointmentPrescriptionFiles, getAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
-import { ensureMedicalDepartmentOptionsLoaded } from '../shared/medicalDepartments';
+import { ensureMedicalDepartmentOptionsLoaded, syncAppointmentDepartmentsFromMedicalStore } from '../shared/medicalDepartments';
 import { refreshAppointmentDateAvailabilityFromForm } from '../shared/refreshAppointmentDateAvailability';
 import { loadDashboardAppointmentsPage } from '../shared/dashboardAppointments';
 import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppointmentTimeSlots';
@@ -46,10 +46,7 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
     serviceId: 'init-book-appointment-popup',
     execute: async () => {
       await ensureMedicalDepartmentOptionsLoaded();
-      const appStore = useAppStore(pinia);
-      const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
-      const departmentList = Array.isArray(departmentsNode.list) ? (departmentsNode.list as unknown[]) : [];
-      appStore.setData('hospital', 'AppointmentDepartments', { list: departmentList });
+      syncAppointmentDepartmentsFromMedicalStore();
       await refreshAppointmentDateAvailabilityFromForm();
       await refreshAppointmentTimeSlotOptionsFromForm();
       return ok();
@@ -67,10 +64,7 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
         return ok();
       }
       await ensureMedicalDepartmentOptionsLoaded();
-      const appStore = useAppStore(pinia);
-      const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
-      const departmentList = Array.isArray(departmentsNode.list) ? (departmentsNode.list as unknown[]) : [];
-      appStore.setData('hospital', 'AppointmentDepartments', { list: departmentList });
+      syncAppointmentDepartmentsFromMedicalStore();
       await refreshAppointmentDateAvailabilityFromForm();
       await refreshAppointmentTimeSlotOptionsFromForm();
       return ok();
