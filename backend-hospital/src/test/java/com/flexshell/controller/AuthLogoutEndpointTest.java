@@ -45,7 +45,7 @@ class AuthLogoutEndpointTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"DeviceId\":\"browser\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.Success").value(true))
                 .andExpect(header().exists("Set-Cookie"));
 
         verify(authFacade).logout(argThat(req -> req == null || req.getRefreshToken() == null || req.getRefreshToken().isBlank()));
@@ -60,7 +60,7 @@ class AuthLogoutEndpointTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"DeviceId\":\"browser\",\"RefreshToken\":\"rt-body\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.Success").value(true));
     }
 
     @Test
@@ -85,6 +85,6 @@ class AuthLogoutEndpointTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"DeviceId\":\"browser\",\"RefreshToken\":\"stale\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.Success").value(true));
     }
 }

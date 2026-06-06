@@ -30,6 +30,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             ObjectProvider<BearerTokenAuthenticator> bearerTokenAuthenticatorProvider,
+            ObjectProvider<RequestLocaleFilter> requestLocaleFilterProvider,
             CorsConfigurationSource corsConfigurationSource)
             throws Exception {
         http
@@ -84,6 +85,7 @@ public class SecurityConfig {
                         }));
 
         BearerTokenAuthenticator bearerTokenAuthenticator = bearerTokenAuthenticatorProvider.getIfAvailable();
+        RequestLocaleFilter requestLocaleFilter = requestLocaleFilterProvider.getIfAvailable();
         if (bearerTokenAuthenticator == null) {
             LOG.error(
                     "BearerTokenAuthenticator bean is missing; JWT filter will not be registered. "
@@ -107,6 +109,11 @@ public class SecurityConfig {
                             "/actuator"),
                     accessTokenCookieName);
             http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            if (requestLocaleFilter != null) {
+                http.addFilterAfter(requestLocaleFilter, JwtAuthenticationFilter.class);
+            }
+        } else if (requestLocaleFilter != null) {
+            http.addFilterBefore(requestLocaleFilter, UsernamePasswordAuthenticationFilter.class);
         }
         return http.build();
     }

@@ -51,8 +51,8 @@ class AuthRefreshEndpointTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"DeviceId\":\"browser\"}"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.errorCode").value("AUTH_REFRESH_INVALID"));
+                .andExpect(jsonPath("$.Success").value(false))
+                .andExpect(jsonPath("$.ErrorCode").value("AUTH_REFRESH_INVALID"));
     }
 
     @Test
@@ -64,8 +64,8 @@ class AuthRefreshEndpointTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"DeviceId\":\"browser\",\"RefreshToken\":\"rt-body\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.accessToken").value("at"));
+                .andExpect(jsonPath("$.Success").value(true))
+                .andExpect(jsonPath("$.Data.AccessToken").value("at"));
     }
 
     @Test

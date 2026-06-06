@@ -1,5 +1,6 @@
 package com.flexshell.notification;
 
+import com.flexshell.auth.i18n.SupportedLocale;
 import com.flexshell.persistence.postgres.model.NotificationEventRuleJpaEntity;
 import com.flexshell.persistence.postgres.model.NotificationEventRuleMessageJpaEntity;
 import com.flexshell.persistence.postgres.repository.NotificationEventRuleJpaRepository;
@@ -9,17 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 @Service
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class NotificationRuleCatalog {
 
-    private static final String DEFAULT_LOCALE = "en";
-    private static final Set<String> SUPPORTED_LOCALES = Set.of("en", "hi");
+    private static final String DEFAULT_LOCALE = SupportedLocale.DEFAULT;
 
     private final NotificationEventRuleJpaRepository ruleRepository;
     private final NotificationEventRuleMessageJpaRepository messageRepository;
@@ -71,14 +67,7 @@ public class NotificationRuleCatalog {
     }
 
     public static String normalizeLocale(String preferredLocale) {
-        String locale = Objects.toString(preferredLocale, "").trim().toLowerCase(Locale.ROOT);
-        if (locale.contains("-")) {
-            locale = locale.substring(0, locale.indexOf('-'));
-        }
-        if (SUPPORTED_LOCALES.contains(locale)) {
-            return locale;
-        }
-        return DEFAULT_LOCALE;
+        return SupportedLocale.normalize(preferredLocale);
     }
 
     public record ResolvedRuleMessage(String locale, String titleTemplate, String messageTemplate) {

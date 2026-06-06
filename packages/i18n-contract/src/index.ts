@@ -52,3 +52,8 @@ export function normalizeLocaleTag(tag: string | undefined | null): LocaleCode {
   if (primary === 'hi') return 'hi';
   return 'en';
 }
+
+/** Value for the {@code Accept-Language} HTTP header from the active app locale. */
+export function acceptLanguageHeaderValue(locale: string | undefined | null): LocaleCode {
+  return normalizeLocaleTag(locale);
+}

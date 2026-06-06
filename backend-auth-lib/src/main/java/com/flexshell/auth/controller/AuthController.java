@@ -14,6 +14,8 @@ import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
 import com.flexshell.auth.cookie.AuthResponseCookies;
 import com.flexshell.auth.cookie.AuthResponseCookies.EffectiveCookiePolicy;
+import com.flexshell.auth.i18n.ApiMessageResolver;
+import com.flexshell.auth.i18n.RequestLocaleAttributes;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,6 +38,7 @@ public class AuthController {
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
     private final AuthFacade authFacade;
+    private final ApiMessageResolver messages;
     private final boolean cookieSecure;
     private final String cookieSameSite;
     private final String cookieDomain;
@@ -45,6 +48,7 @@ public class AuthController {
 
     public AuthController(
             AuthFacade authFacade,
+            ApiMessageResolver messages,
             @Value("${app.auth.cookie.secure:false}") boolean cookieSecure,
             @Value("${app.auth.cookie.same-site:Lax}") String cookieSameSite,
             @Value("${app.auth.cookie.domain:}") String cookieDomain,
@@ -53,6 +57,7 @@ public class AuthController {
             @Value("${app.auth.cookie.access-max-age-seconds:43200}") long accessCookieMaxAgeSeconds
     ) {
         this.authFacade = authFacade;
+        this.messages = messages;
         this.cookieSecure = cookieSecure;
         this.cookieSameSite = cookieSameSite;
         this.cookieDomain = cookieDomain;
@@ -64,74 +69,90 @@ public class AuthController {
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
+            HttpServletRequest servletRequest,
             HttpServletResponse servletResponse
     ) {
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
             Optional<LoginResponse> response = authFacade.login(request.getEmailId(), request.getPassword());
             return response
                     .map(login -> {
                         setAuthCookies(servletResponse, login.getAccessToken(), login.getRefreshToken());
-                        return ResponseEntity.ok(ApiResponse.success("Login successful", login));
+                        return ResponseEntity.ok(ApiResponse.success(messages.get("success.auth.login", locale), login));
                     })
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .body(ApiResponse.error("Invalid email or password", "AUTH_INVALID_CREDENTIALS")));
+                            .body(ApiResponse.error(
+                                    messages.forErrorCode("AUTH_INVALID_CREDENTIALS", locale),
+                                    "AUTH_INVALID_CREDENTIALS")));
         } catch (AuthApiException e) {
             return ResponseEntity.status(httpStatusForAuthApiException(e))
-                    .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
+                    .body(ApiResponse.error(messages.forErrorCode(e.getErrorCode(), locale), e.getErrorCode()));
         }
     }
 
     @PostMapping(value = "/google-login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<LoginResponse>> googleLogin(
             @Valid @RequestBody GoogleLoginRequest request,
+            HttpServletRequest servletRequest,
             HttpServletResponse servletResponse
     ) {
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
             Optional<LoginResponse> response = authFacade.loginWithGoogleAccessToken(request.getAccessToken());
             return response
                     .map(login -> {
                         setAuthCookies(servletResponse, login.getAccessToken(), login.getRefreshToken());
-                        return ResponseEntity.ok(ApiResponse.success("Login successful", login));
+                        return ResponseEntity.ok(ApiResponse.success(messages.get("success.auth.login", locale), login));
                     })
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .body(ApiResponse.error("Google sign-in failed.", "AUTH_GOOGLE_FAILED")));
+                            .body(ApiResponse.error(
+                                    messages.forErrorCode("AUTH_GOOGLE_FAILED", locale),
+                                    "AUTH_GOOGLE_FAILED")));
         } catch (AuthApiException e) {
             return ResponseEntity.status(httpStatusForAuthApiException(e))
-                    .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
+                    .body(ApiResponse.error(messages.forErrorCode(e.getErrorCode(), locale), e.getErrorCode()));
         }
     }
 
     @PostMapping(value = "/register", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<ApiResponse<RegisterResponse>> register(
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
             Optional<RegisterResponse> response = authFacade.register(request);
             return response
                     .map(register -> {
-                        String message = "User registered successfully";
+                        String message = messages.get("success.auth.register", locale);
                         if ("PENDING_APPROVAL".equalsIgnoreCase(register.getRoleStatus())) {
-                            message = "Role request submitted for approval";
+                            message = messages.get("success.auth.role_pending", locale);
                         }
                         return ResponseEntity.status(HttpStatus.CREATED)
                                 .body(ApiResponse.success(message, register));
                     })
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                            .body(ApiResponse.error("Registration could not be completed.", "AUTH_REGISTRATION_FAILED")));
+                            .body(ApiResponse.error(
+                                    messages.forErrorCode("AUTH_REGISTRATION_FAILED", locale),
+                                    "AUTH_REGISTRATION_FAILED")));
         } catch (AuthApiException e) {
             return ResponseEntity.status(httpStatusForAuthApiException(e))
-                    .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
+                    .body(ApiResponse.error(messages.forErrorCode(e.getErrorCode(), locale), e.getErrorCode()));
         }
     }
 
     @PostMapping(value = "/change-password", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
             authFacade.changePassword(request);
-            return ResponseEntity.ok(ApiResponse.success(
-                    "Your password has been updated successfully. Please log in with your new password.",
-                    null));
+            return ResponseEntity.ok(ApiResponse.success(messages.get("success.auth.password_changed", locale), null));
         } catch (AuthApiException e) {
             return ResponseEntity.status(httpStatusForAuthApiException(e))
-                    .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
+                    .body(ApiResponse.error(messages.forErrorCode(e.getErrorCode(), locale), e.getErrorCode()));
         }
     }
 
@@ -154,6 +175,7 @@ public class AuthController {
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse
     ) {
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         RefreshTokenRequest effectiveRequest = request == null ? new RefreshTokenRequest() : request;
         if (effectiveRequest.getRefreshToken() == null || effectiveRequest.getRefreshToken().isBlank()) {
             effectiveRequest.setRefreshToken(readCookieValue(servletRequest, REFRESH_TOKEN_COOKIE));
@@ -162,10 +184,12 @@ public class AuthController {
         return response
                 .map(refresh -> {
                     setAuthCookies(servletResponse, refresh.getAccessToken(), refresh.getRefreshToken());
-                    return ResponseEntity.ok(ApiResponse.success("Token refreshed", refresh));
+                    return ResponseEntity.ok(ApiResponse.success(messages.get("success.auth.token_refreshed", locale), refresh));
                 })
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(ApiResponse.error("Invalid refresh token", "AUTH_REFRESH_INVALID")));
+                        .body(ApiResponse.error(
+                                messages.forErrorCode("AUTH_REFRESH_INVALID", locale),
+                                "AUTH_REFRESH_INVALID")));
     }
 
     @PostMapping(value = "/logout", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -174,13 +198,14 @@ public class AuthController {
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse
     ) {
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         LogoutRequest effectiveRequest = request == null ? new LogoutRequest() : request;
         if (effectiveRequest.getRefreshToken() == null || effectiveRequest.getRefreshToken().isBlank()) {
             effectiveRequest.setRefreshToken(readCookieValue(servletRequest, REFRESH_TOKEN_COOKIE));
         }
         authFacade.logout(effectiveRequest);
         clearAuthCookies(servletResponse);
-        return ResponseEntity.ok(ApiResponse.success("Logged out successfully", null));
+        return ResponseEntity.ok(ApiResponse.success(messages.get("success.auth.logout", locale), null));
     }
 
     private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
@@ -244,4 +269,3 @@ public class AuthController {
         return null;
     }
 }
-

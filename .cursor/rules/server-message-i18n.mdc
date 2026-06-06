@@ -1,0 +1,78 @@
+---
+description: Server-side i18n for message-bearing entities; UI displays locale-resolved API copy
+alwaysApply: true
+---
+
+# Server message i18n
+
+**Strategy:** Server resolves locale at request time; API returns **one localized string** per user-facing field. UI displays it **as-is** — do not run server `Message`/`Title` through `t()`.
+
+**Locales:** `en`, `hi` — align with `@saas-builder/i18n-contract` (`SUPPORTED_LOCALES`). Normalize BCP-47 to primary subtag (`en-IN` → `en`).
+
+## Locale resolution (server)
+
+Precedence: authenticated **`PreferredLocale`** (JWT/profile) → **`Accept-Language`** header → **`en`**.
+
+Reference: `NotificationRuleCatalog.normalizeLocale` in `backend-hospital`.
+
+## Message-bearing fields
+
+Localize any field intended for end-user display:
+
+- Envelope: `Message` in `StandardApiResponse` / `ApiResponse`
+- Domain: `Title`, `Message`, `Description`, `Body`, email/SMS/push templates
+- Validation summaries in envelope `Message`
+- FastAPI response `Message` fields in `ai-service`
+
+**Never localize:** `ErrorCode`, enum/status codes, log strings, internal exception class names.
+
+## Storage patterns
+
+| Pattern | When | How |
+|---------|------|-----|
+| **Static bundles** | Fixed operational copy (errors, validation, success toasts) | Spring `messages_en.properties` / `messages_hi.properties`; resolve in shared `MessageResolver` or `@RestControllerAdvice`. FastAPI: equivalent locale bundles. |
+| **DB per-locale rows** | Admin-editable or templated domain copy | One row per supported locale; fallback to `en`. Reference: `notification_event_rule_messages`. |
+
+Pick one pattern per entity. **Never** hardcode English in controllers/services for user-facing text.
+
+## Wire format
+
+- One resolved string per field (not a `{ en, hi }` map on the wire)
+- PascalCase wire keys (`api-json-pascal-case.mdc`)
+- Errors: always include stable `ErrorCode` + localized `Message`
+
+```json
+{ "Success": false, "Message": "अमान्य ईमेल या पासवर्ड", "ErrorCode": "AUTH_INVALID_CREDENTIALS" }
+```
+
+## Client contract
+
+- Set **`Accept-Language`** on every API request to the active app locale (`apiClient.ts`, mobile `client.ts`)
+- Display envelope `Message` and domain `Title`/`Message` **as returned** — server owns the text
+- Do **not** build `ErrorCode → i18n` registries for standard API errors
+- Exception: transport/technical codes (timeouts, stream internals) may map to client keys in `httpUserFacingErrors.ts`
+- UI metadata `i18nBundles` is **client chrome copy only** — not API errors (`extensibility.mdc`)
+
+## Forbidden
+
+```java
+// ❌ Hardcoded English in controller
+StandardApiResponse.error("Invalid email or password", "AUTH_INVALID_CREDENTIALS");
+
+// ✅ Resolve via message bundle
+StandardApiResponse.error(messages.get("error.auth.invalid_credentials", locale), "AUTH_INVALID_CREDENTIALS");
+```
+
+```typescript
+// ❌ Re-translate server Message
+toastStore.show(t(`errors.${errorCode}`), 'error');
+
+// ✅ Show server-localized Message
+toastStore.show(pickString(payload, ['Message']), 'error');
+```
+
+- Throwing `IllegalArgumentException("English text")` that leaks via `ex.getMessage()` to clients
+- Localizing `ErrorCode` values
+- Mixing `i18nBundles` with API error bundles
+
+**Legacy:** Existing English-only endpoints should be migrated when touched. Reference impl: `NotificationRuleCatalog` + `NotificationService`.

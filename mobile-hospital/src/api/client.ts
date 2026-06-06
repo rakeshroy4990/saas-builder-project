@@ -6,6 +6,7 @@ import {
   SERVER_PATHS,
   unwrapEnvelope
 } from '@saas-builder/hospital-api-client';
+import { acceptLanguageHeaderValue } from '@saas-builder/i18n-contract';
 
 import {
   clearSecureAuth,
@@ -67,6 +68,9 @@ function attachBearer(config: InternalAxiosRequestConfig): InternalAxiosRequestC
   if (!config.headers['X-Trace-Id']) {
     config.headers['X-Trace-Id'] = trace;
   }
+  if (!config.headers['Accept-Language']) {
+    config.headers['Accept-Language'] = acceptLanguageHeaderValue('en');
+  }
   return config;
 }
 
@@ -105,7 +109,11 @@ export async function refreshAccessToken(options?: {
         `${getMobileApiBaseUrl()}${SERVER_PATHS.refresh}`,
         { DeviceId: 'mobile', RefreshToken: refreshToken },
         {
-          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'Accept-Language': acceptLanguageHeaderValue('en')
+          },
           timeout: timeoutMs,
           signal: controller.signal
         }

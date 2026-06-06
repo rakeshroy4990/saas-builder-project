@@ -25,6 +25,8 @@ import { emitLoggedInSessionSummary, SessionSummaryKind } from '../analytics/ses
 import { stashPendingHttpReplay } from '../domain/hospital/auth/postLoginHttpReplay';
 import { localizeTimeoutErrorMessageIfNeeded } from './httpUserFacingErrors';
 import { recordPerf } from '@/composables/usePerf';
+import { i18n } from '../../i18n';
+import { acceptLanguageHeaderValue } from '@saas-builder/i18n-contract';
 
 const VITE_PERF_ENABLED = import.meta.env.VITE_PERF_ENABLED === 'true';
 
@@ -245,6 +247,15 @@ subscribeAuthToken(({ expiresAtMs }) => {
   }, delayMs);
 });
 
+function resolveAcceptLanguageHeader(): string {
+  const globalLocale = i18n.global.locale as unknown;
+  const code =
+    typeof globalLocale === 'string'
+      ? globalLocale
+      : (globalLocale as { value?: string })?.value ?? 'en';
+  return acceptLanguageHeaderValue(code);
+}
+
 function setHeader(headers: unknown, key: string, value: string): void {
   if (headers && typeof headers === 'object' && 'set' in headers && typeof (headers as { set: unknown }).set === 'function') {
     (headers as { set: (k: string, v: string) => void }).set(key, value);
@@ -267,6 +278,7 @@ function deleteHeader(headers: unknown, key: string): void {
 apiClient.interceptors.request.use(async (config) => {
   config.headers = config.headers ?? {};
   setHeader(config.headers, 'X-Trace-Id', getOrCreateTraceId());
+  setHeader(config.headers, 'Accept-Language', resolveAcceptLanguageHeader());
   const requestUrl = String(config.url ?? '');
   const isRefresh = isRefreshRequestUrl(requestUrl);
   if (isRefresh) {

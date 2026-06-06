@@ -5,6 +5,8 @@ import { useToastStore } from '../../store/useToastStore';
 import { getApiBaseUrl } from './URLRegistry';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { logClient } from '../logging/clientLogger';
+import { i18n } from '../../i18n';
+import { acceptLanguageHeaderValue } from '@saas-builder/i18n-contract';
 
 let appRouter: Router | null = null;
 
@@ -21,6 +23,12 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   config.headers = config.headers ?? {};
   config.headers['X-Trace-Id'] = getOrCreateTraceId();
+  const globalLocale = i18n.global.locale as unknown;
+  const code =
+    typeof globalLocale === 'string'
+      ? globalLocale
+      : (globalLocale as { value?: string })?.value ?? 'en';
+  config.headers['Accept-Language'] = acceptLanguageHeaderValue(code);
   return config;
 });
 
