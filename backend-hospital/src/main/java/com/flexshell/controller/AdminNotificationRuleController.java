@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.CreateNotificationRuleRequest;
 import com.flexshell.controller.dto.NotificationEventRuleResponse;
 import com.flexshell.controller.dto.NotificationRuleSaveRequest;
@@ -26,17 +27,22 @@ import java.util.UUID;
 @RequestMapping("/api/v1/admin/notification-rules")
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class AdminNotificationRuleController {
+    private final LocalizedApiMessages messages;
+
 
     private final NotificationRuleAdminService notificationRuleAdminService;
 
-    public AdminNotificationRuleController(NotificationRuleAdminService notificationRuleAdminService) {
+    public AdminNotificationRuleController(NotificationRuleAdminService notificationRuleAdminService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.notificationRuleAdminService = notificationRuleAdminService;
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<List<NotificationEventRuleResponse>>> listRules() {
         List<NotificationEventRuleResponse> data = notificationRuleAdminService.listRules();
-        return ResponseEntity.ok(StandardApiResponse.success("Notification rules loaded", data));
+        return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.notification.rules.loaded"), data));
     }
 
     @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -45,10 +51,10 @@ public class AdminNotificationRuleController {
     ) {
         try {
             NotificationEventRuleResponse data = notificationRuleAdminService.saveRule(request);
-            return ResponseEntity.ok(StandardApiResponse.success("Notification rule saved", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.notification.rule.saved"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "NOTIFICATION_RULE_SAVE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "NOTIFICATION_RULE_SAVE_INVALID"), "NOTIFICATION_RULE_SAVE_INVALID"));
         }
     }
 
@@ -59,10 +65,10 @@ public class AdminNotificationRuleController {
         try {
             NotificationEventRuleResponse data = notificationRuleAdminService.createRule(request);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(StandardApiResponse.success("Notification rule created", data));
+                    .body(StandardApiResponse.success(messages.success("success.notification.rule.created"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "NOTIFICATION_RULE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "NOTIFICATION_RULE_INVALID"), "NOTIFICATION_RULE_INVALID"));
         }
     }
 
@@ -73,10 +79,10 @@ public class AdminNotificationRuleController {
     ) {
         try {
             NotificationEventRuleResponse data = notificationRuleAdminService.updateRule(externalId, request);
-            return ResponseEntity.ok(StandardApiResponse.success("Notification rule updated", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.notification.rule.updated"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "NOTIFICATION_RULE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "NOTIFICATION_RULE_INVALID"), "NOTIFICATION_RULE_INVALID"));
         }
     }
 
@@ -84,10 +90,10 @@ public class AdminNotificationRuleController {
     public ResponseEntity<StandardApiResponse<Void>> deleteRule(@PathVariable UUID externalId) {
         try {
             notificationRuleAdminService.deleteRule(externalId);
-            return ResponseEntity.ok(StandardApiResponse.success("Notification rule deleted", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.notification.rule.deleted"), null));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "NOTIFICATION_RULE_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "NOTIFICATION_RULE_NOT_FOUND"), "NOTIFICATION_RULE_NOT_FOUND"));
         }
     }
 }

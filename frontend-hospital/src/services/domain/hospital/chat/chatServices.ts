@@ -424,7 +424,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
           appStore.setData('hospital', 'Chat', { ...(appStore.getData('hospital', 'Chat') as object), status: 'connected' });
           return ok({ degraded: true });
         }
-        toastStore.show('Unable to connect to chat right now.', 'error');
+        toastStore.show(String(chatTr()('toast.chatConnectFailed')), 'error');
         appStore.setData('hospital', 'Chat', { ...(appStore.getData('hospital', 'Chat') as object), status: 'error' });
         return { responseCode: 'CHAT_CONNECT_FAILED', message: 'Unable to connect to chat right now.' };
       }
@@ -620,7 +620,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
           return { responseCode: 'CHAT_START_FAILED', message: serverMessage };
         }
 
-        toastStore.show('Unable to start chat right now.', 'error');
+        toastStore.show(String(chatTr()('toast.chatStartFailed')), 'error');
         return { responseCode: 'CHAT_START_FAILED', message: 'Unable to start chat right now.' };
       }
     }
@@ -1014,7 +1014,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
         const roomNode = (response.data?.Data ?? response.data?.data ?? response.data ?? {}) as Record<string, unknown>;
         const roomId = String(roomNode.id ?? roomNode.Id ?? roomNode._id ?? '').trim();
         if (!roomId) {
-          toastStore.show('Unable to accept chat right now.', 'error');
+          toastStore.show(String(chatTr()('toast.chatAcceptFailed')), 'error');
           return { responseCode: 'CHAT_SUPPORT_ACCEPT_FAILED', message: 'Unable to accept chat right now.' };
         }
 

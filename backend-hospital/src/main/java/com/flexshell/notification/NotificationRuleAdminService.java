@@ -69,7 +69,7 @@ public class NotificationRuleAdminService {
     @Transactional
     public NotificationEventRuleResponse saveRule(NotificationRuleSaveRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Request body is required");
+            throw new IllegalArgumentException("NOTIFICATION_RULE_REQUEST_REQUIRED");
         }
         if (request.getExternalId() != null) {
             UpdateNotificationRuleRequest update = new UpdateNotificationRuleRequest();
@@ -160,7 +160,7 @@ public class NotificationRuleAdminService {
     ) {
         if (messages == null || messages.isEmpty()) {
             if (required) {
-                throw new IllegalArgumentException("At least one message template is required");
+                throw new IllegalArgumentException("NOTIFICATION_RULE_MESSAGE_REQUIRED");
             }
             return;
         }
@@ -169,7 +169,7 @@ public class NotificationRuleAdminService {
         for (NotificationEventRuleMessageRequest message : messages) {
             String locale = NotificationRuleCatalog.normalizeLocale(message.getLocale());
             if (byLocale.containsKey(locale)) {
-                throw new IllegalArgumentException("Duplicate locale in messages: " + locale);
+                throw new IllegalArgumentException("NOTIFICATION_RULE_DUPLICATE_LOCALE");
             }
             byLocale.put(locale, message);
         }
@@ -196,7 +196,7 @@ public class NotificationRuleAdminService {
 
     private NotificationEventRuleJpaEntity findRule(UUID externalId) {
         if (externalId == null) {
-            throw new IllegalArgumentException("Rule external id is required");
+            throw new IllegalArgumentException("NOTIFICATION_RULE_ID_REQUIRED");
         }
         return ruleRepository.findByExternalIdAndDeletedFalse(externalId)
                 .orElseThrow(() -> new IllegalArgumentException("Notification rule not found"));
@@ -240,7 +240,7 @@ public class NotificationRuleAdminService {
     private static String requireText(String value, String fieldName) {
         String trimmed = Objects.toString(value, "").trim();
         if (trimmed.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " is required");
+            throw new IllegalArgumentException("NOTIFICATION_RULE_FIELD_REQUIRED");
         }
         return trimmed;
     }

@@ -27,6 +27,8 @@ import { recordPerf } from '@/composables/usePerf';
 import { i18n } from '../../i18n';
 import { acceptLanguageHeaderValue } from '@saas-builder/i18n-contract';
 
+const tr = (key: string): string => String((i18n.global as { t: (k: string) => string }).t(key));
+
 const VITE_PERF_ENABLED = import.meta.env.VITE_PERF_ENABLED === 'true';
 
 let appRouter: Router | null = null;
@@ -477,7 +479,7 @@ apiClient.interceptors.response.use(
         isHospitalEducationCatalogRequest
       ) {
         if (isSmartAiRequest) {
-          toastStore.show('Health Assistant is temporarily unavailable. Please try again shortly.', 'error');
+          toastStore.show(tr('toast.healthAssistantUnavailable'), 'error');
         }
         return Promise.reject(error);
       }
@@ -503,7 +505,7 @@ apiClient.interceptors.response.use(
       }
     } else if (error.response?.status >= 500) {
       if (isSmartAiRequest) {
-        toastStore.show('Health Assistant is temporarily unavailable. Please try again shortly.', 'error');
+        toastStore.show(tr('toast.healthAssistantUnavailable'), 'error');
         return Promise.reject(error);
       }
       if (isHospitalEducationCatalogRequest) {

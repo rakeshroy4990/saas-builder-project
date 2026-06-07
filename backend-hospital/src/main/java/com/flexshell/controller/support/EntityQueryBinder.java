@@ -43,11 +43,11 @@ public final class EntityQueryBinder {
                 }
                 field.set(target, coerce(field.getType(), rawValue));
             } catch (IllegalAccessException ex) {
-                throw new IllegalArgumentException("Unable to bind query field: " + wireName);
+                throw new IllegalArgumentException("QUERY_BIND_FAILED");
             }
             return;
         }
-        throw new IllegalArgumentException("Unknown query field: " + wireName);
+        throw new IllegalArgumentException("QUERY_UNKNOWN_FIELD");
     }
 
     private static boolean isBlank(Object value) {

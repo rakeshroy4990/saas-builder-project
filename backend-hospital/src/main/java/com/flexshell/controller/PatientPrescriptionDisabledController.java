@@ -1,6 +1,7 @@
 package com.flexshell.controller;
 
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.i18n.LocalizedApiMessages;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,12 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "mongo", matchIfMissing = true)
 public class PatientPrescriptionDisabledController {
 
+    private final LocalizedApiMessages messages;
+
+    public PatientPrescriptionDisabledController(LocalizedApiMessages messages) {
+        this.messages = messages;
+    }
+
     @RequestMapping(value = "/**", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<Void>> unavailable() {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
                 .body(StandardApiResponse.error(
-                        "Patient prescriptions require PostgreSQL. Set APP_PERSISTENCE_PROVIDER=postgres, "
-                                + "configure SPRING_DATASOURCE_URL, and run Flyway migrations.",
+                        messages.forErrorCode("PATIENT_PRESCRIPTIONS_POSTGRES_REQUIRED"),
                         "PATIENT_PRESCRIPTIONS_POSTGRES_REQUIRED"
                 ));
     }

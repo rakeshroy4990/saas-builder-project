@@ -19,7 +19,7 @@ final class PrescriptionExtractionJsonParser {
 
     static EducationPrescriptionTranscribeData fromJson(JsonNode root) {
         if (root == null || !root.isObject()) {
-            throw new IllegalArgumentException("Prescription model output was not valid JSON.");
+            throw new IllegalArgumentException("PRESCRIPTION_MODEL_JSON_INVALID");
         }
 
         String hospitalName = pickStringField(root, "hospital_name", "hospitalName");

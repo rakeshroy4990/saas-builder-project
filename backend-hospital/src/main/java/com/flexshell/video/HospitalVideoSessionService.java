@@ -43,13 +43,11 @@ public class HospitalVideoSessionService {
         }
         String apId = normalize(request.appointmentId());
         if ("agora".equalsIgnoreCase(videoProvider) && apId.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Agora RTC requires an appointment-bound channel. Use POST /api/appointment/{id}/join-call "
-                            + "or pass appointmentId when creating a session.");
+            throw new IllegalArgumentException("HOSPITAL_VIDEO_SESSION_INVALID");
         }
         String peer = resolvePeerUserId(me, request);
         if (peer.isEmpty()) {
-            throw new IllegalArgumentException("Could not resolve call peer");
+            throw new IllegalArgumentException("HOSPITAL_VIDEO_SESSION_NO_PEER");
         }
         if (!permissionEvaluator.canInitiate(me, peer)) {
             throw new SecurityException("Video session not permitted for this peer");

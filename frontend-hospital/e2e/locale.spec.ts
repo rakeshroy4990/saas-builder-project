@@ -17,4 +17,10 @@ test.describe('locale', () => {
     await page.waitForURL('**/home');
     await expect(page.getByTestId('app-language-select')).toHaveValue('hi');
   });
+
+  test('/locale/kn shortcut applies Kannada', async ({ page }) => {
+    await page.goto('/locale/kn');
+    await page.waitForURL('**/home');
+    await expect(page.getByTestId('app-language-select')).toHaveValue('kn');
+  });
 });

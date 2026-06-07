@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.dto.StructuredPrescriptionResponse;
 import com.flexshell.prescription.StructuredPrescriptionService;
@@ -22,10 +23,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/prescription")
 public class StructuredPrescriptionController {
+    private final LocalizedApiMessages messages;
+
 
     private final StructuredPrescriptionService structuredPrescriptionService;
 
-    public StructuredPrescriptionController(StructuredPrescriptionService structuredPrescriptionService) {
+    public StructuredPrescriptionController(StructuredPrescriptionService structuredPrescriptionService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.structuredPrescriptionService = structuredPrescriptionService;
     }
 
@@ -38,13 +44,13 @@ public class StructuredPrescriptionController {
             StructuredPrescriptionResponse data = structuredPrescriptionService.getOrCreateDraft(
                     appointmentId,
                     authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Prescription draft ready", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.prescription.draft.ready"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_FORBIDDEN"), "PRESCRIPTION_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_INVALID"), "PRESCRIPTION_INVALID"));
         }
     }
 
@@ -59,13 +65,13 @@ public class StructuredPrescriptionController {
                     appointmentId,
                     body,
                     authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Draft saved", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.prescription.draft.saved"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_FORBIDDEN"), "PRESCRIPTION_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_INVALID"), "PRESCRIPTION_INVALID"));
         }
     }
 
@@ -78,13 +84,13 @@ public class StructuredPrescriptionController {
             StructuredPrescriptionResponse data = structuredPrescriptionService.validate(
                     appointmentId,
                     authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Validation run", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.prescription.validation.run"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_FORBIDDEN"), "PRESCRIPTION_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_INVALID"), "PRESCRIPTION_INVALID"));
         }
     }
 
@@ -99,16 +105,16 @@ public class StructuredPrescriptionController {
                     appointmentId,
                     authentication.getName(),
                     request.getRemoteAddr());
-            return ResponseEntity.ok(StandardApiResponse.success("Prescription signed and locked", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.prescription.signed"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_FORBIDDEN"), "PRESCRIPTION_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_INVALID"), "PRESCRIPTION_INVALID"));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_FINALIZE_FAILED"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_FINALIZE_FAILED"), "PRESCRIPTION_FINALIZE_FAILED"));
         }
     }
 
@@ -121,13 +127,13 @@ public class StructuredPrescriptionController {
             StructuredPrescriptionResponse data = structuredPrescriptionService.get(
                     appointmentId,
                     authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Prescription fetched", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.prescription.fetched"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_FORBIDDEN"), "PRESCRIPTION_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PRESCRIPTION_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PRESCRIPTION_NOT_FOUND"), "PRESCRIPTION_NOT_FOUND"));
         }
     }
 

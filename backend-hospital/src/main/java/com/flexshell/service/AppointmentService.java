@@ -221,7 +221,7 @@ public class AppointmentService {
             throw new SecurityException("Only the assigned doctor can mark this visit complete");
         }
         if (STATUS_CANCELLED.equalsIgnoreCase(normalize(entity.getStatus()))) {
-            throw new IllegalArgumentException("Cancelled appointments cannot be completed");
+            throw new IllegalArgumentException("APPOINTMENT_CANCELLED_CANNOT_COMPLETE");
         }
         if (STATUS_COMPLETED.equalsIgnoreCase(normalize(entity.getStatus()))) {
             return toResponse(entity);
@@ -282,7 +282,7 @@ public class AppointmentService {
 
     public AppointmentResponse saveOrUpdate(AppointmentSaveRequest request, String actorUserId) {
         if (request == null) {
-            throw new IllegalArgumentException("Request body is required");
+            throw new IllegalArgumentException("APPOINTMENT_REQUEST_REQUIRED");
         }
         String id = request.getId() == null ? "" : request.getId().trim();
         if (id.isBlank()) {
@@ -610,7 +610,7 @@ public class AppointmentService {
         }
         LocalDate d = parseIsoLocalDate(preferredDate);
         if (d == null) {
-            throw new IllegalArgumentException("PreferredDate is invalid");
+            throw new IllegalArgumentException("APPOINTMENT_PREFERRED_DATE_INVALID");
         }
         List<String> allowed;
         boolean usesSchedule = false;
@@ -627,9 +627,7 @@ public class AppointmentService {
             allowed = LegacySlotCatalog.slotValues();
         }
         if (!allowed.contains(preferredTimeSlot)) {
-            throw new IllegalArgumentException(usesSchedule
-                    ? "Selected time slot is not offered for this doctor on this date."
-                    : "Selected time slot is not valid.");
+            throw new IllegalArgumentException("APPOINTMENT_SLOT_NOT_IN_SCHEDULE");
         }
     }
 
@@ -640,7 +638,7 @@ public class AppointmentService {
         ensureCanAccessAppointment(entity, actorUserId);
         List<AppointmentEntity.AppointmentFile> files = entity.getPrescriptionFiles();
         if (files == null || files.isEmpty()) {
-            throw new IllegalArgumentException("File not found");
+            throw new IllegalArgumentException("APPOINTMENT_FILE_NOT_FOUND");
         }
         return files.stream()
                 .filter(file -> fileId.equals(file.getFileId()))
@@ -650,7 +648,7 @@ public class AppointmentService {
 
     private void applyRequest(AppointmentEntity entity, AppointmentRequest request, List<MultipartFile> prescriptionFiles) {
         if (request == null) {
-            throw new IllegalArgumentException("Appointment request is required");
+            throw new IllegalArgumentException("APPOINTMENT_REQUEST_REQUIRED");
         }
         String patientName = normalize(request.getPatientName());
         String email = normalize(request.getEmail());
@@ -661,14 +659,14 @@ public class AppointmentService {
         String preferredDate = normalize(request.getPreferredDate());
         String preferredTimeSlot = normalize(request.getPreferredTimeSlot());
 
-        if (patientName.isBlank()) throw new IllegalArgumentException("PatientName is required");
-        if (email.isBlank()) throw new IllegalArgumentException("Email is required");
-        if (phoneNumber.isBlank()) throw new IllegalArgumentException("PhoneNumber is required");
-        if (ageGroup.isBlank()) throw new IllegalArgumentException("AgeGroup is required");
-        if (department.isBlank()) throw new IllegalArgumentException("Department is required");
-        if (doctorId.isBlank()) throw new IllegalArgumentException("DoctorId is required");
-        if (preferredDate.isBlank()) throw new IllegalArgumentException("PreferredDate is required");
-        if (preferredTimeSlot.isBlank()) throw new IllegalArgumentException("PreferredTimeSlot is required");
+        if (patientName.isBlank()) throw new IllegalArgumentException("APPOINTMENT_PATIENT_NAME_REQUIRED");
+        if (email.isBlank()) throw new IllegalArgumentException("APPOINTMENT_EMAIL_REQUIRED");
+        if (phoneNumber.isBlank()) throw new IllegalArgumentException("APPOINTMENT_PHONE_REQUIRED");
+        if (ageGroup.isBlank()) throw new IllegalArgumentException("APPOINTMENT_AGE_GROUP_REQUIRED");
+        if (department.isBlank()) throw new IllegalArgumentException("APPOINTMENT_DEPARTMENT_REQUIRED");
+        if (doctorId.isBlank()) throw new IllegalArgumentException("APPOINTMENT_DOCTOR_ID_REQUIRED");
+        if (preferredDate.isBlank()) throw new IllegalArgumentException("APPOINTMENT_PREFERRED_DATE_REQUIRED");
+        if (preferredTimeSlot.isBlank()) throw new IllegalArgumentException("APPOINTMENT_PREFERRED_TIME_SLOT_REQUIRED");
 
         entity.setPatientName(patientName);
         entity.setEmail(email);
@@ -733,7 +731,7 @@ public class AppointmentService {
             try {
                 appointmentFile.setData(file.getBytes());
             } catch (IOException ex) {
-                throw new IllegalArgumentException("Unable to read uploaded file: " + fileName);
+                throw new IllegalArgumentException("APPOINTMENT_FILE_READ_FAILED");
             }
             mapped.add(appointmentFile);
         }
@@ -755,7 +753,7 @@ public class AppointmentService {
                 continue;
             }
             if (normalize(row.getPreferredTimeSlot()).equals(preferredTimeSlot)) {
-                throw new IllegalArgumentException("This time slot is already booked for the selected doctor and date.");
+                throw new IllegalArgumentException("APPOINTMENT_SLOT_ALREADY_BOOKED");
             }
         }
     }
@@ -868,7 +866,7 @@ public class AppointmentService {
 
     private void ensureCanAccessAppointment(AppointmentEntity entity, String actorUserId) {
         if (entity == null) {
-            throw new IllegalArgumentException("Appointment not found");
+            throw new IllegalArgumentException("APPOINTMENT_NOT_FOUND");
         }
         UserRole actorRole = resolveUserRole(actorUserId);
         if (actorRole == UserRole.ADMIN) {

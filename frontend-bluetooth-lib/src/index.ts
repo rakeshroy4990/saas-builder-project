@@ -3,6 +3,7 @@ export {
   DEVICE_REGISTRY,
   DEVICE_TYPES,
   DEVICE_TYPE_LABELS,
+  DEVICE_TYPE_LABEL_I18N,
   DEVICE_TYPE_ICONS,
   devicesForType,
   type DeviceType,

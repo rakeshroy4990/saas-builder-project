@@ -71,7 +71,7 @@ public class PostgresChatPersistence implements ChatPersistence {
     public long incrementRoomSequence(String roomId) {
         String rid = normalize(roomId);
         if (rid.isEmpty()) {
-            throw new IllegalArgumentException("Missing roomId");
+            throw new IllegalArgumentException("AI_CHAT_ROOM_ID_REQUIRED");
         }
         int updated = roomRepository.incrementNextSequence(rid, Instant.now());
         if (updated != 1) {

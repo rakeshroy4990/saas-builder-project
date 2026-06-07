@@ -184,7 +184,7 @@ public class PatientPrescriptionSimilarityService {
             }
             QueryContext query = resolveQueryContext(actorUserId, file, queryText);
             if (query.embedInput().isBlank()) {
-                throw new IllegalArgumentException("Enter search text or upload a prescription file.");
+                throw new IllegalArgumentException("PATIENT_PRESCRIPTION_SEARCH_INPUT_REQUIRED");
             }
             if (!embeddingAdapter.isConfigured()) {
                 throw new IllegalStateException("OpenAI embedding is not configured.");

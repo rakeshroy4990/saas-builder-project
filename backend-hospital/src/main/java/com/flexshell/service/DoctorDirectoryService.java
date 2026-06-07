@@ -39,7 +39,7 @@ public class DoctorDirectoryService {
         }
         String normalizedDepartment = department == null ? "" : department.trim();
         if (normalizedDepartment.isBlank()) {
-            throw new IllegalArgumentException("Department is required");
+            throw new IllegalArgumentException("DOCTOR_DIRECTORY_DEPARTMENT_REQUIRED");
         }
         int safePage = Math.max(page, 0);
         int safeSize = size <= 0 ? 20 : Math.min(size, 100);
@@ -51,7 +51,7 @@ public class DoctorDirectoryService {
                 .distinct()
                 .toList();
         if (departmentKeysLower.isEmpty()) {
-            throw new IllegalArgumentException("Department is required");
+            throw new IllegalArgumentException("DOCTOR_DIRECTORY_DEPARTMENT_REQUIRED");
         }
         return users.findActiveDoctorsByDepartments(
                         UserRole.DOCTOR,

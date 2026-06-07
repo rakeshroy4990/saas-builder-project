@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.ai.AiProviderException;
 import com.flexshell.ai.SmartAiQuotaExceededException;
 import com.flexshell.auth.security.AuthRequestAttributes;
@@ -39,6 +40,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/hospital/ai")
 public class AiChatController {
+    private final LocalizedApiMessages messages;
+
     private static final Logger LOG = LoggerFactory.getLogger(AiChatController.class);
     private static final MediaType NDJSON = MediaType.parseMediaType("application/x-ndjson");
     private final AiChatService aiChatService;
@@ -46,9 +49,11 @@ public class AiChatController {
 
     public AiChatController(
             AiChatService aiChatService,
+            LocalizedApiMessages messages,
             @Value("${app.auth.cookie.access-token-name:access_token}") String accessTokenCookieName
     ) {
         this.aiChatService = aiChatService;
+        this.messages = messages;
         this.accessTokenCookieName = accessTokenCookieName == null || accessTokenCookieName.isBlank()
                 ? "access_token"
                 : accessTokenCookieName.trim();
@@ -70,7 +75,7 @@ public class AiChatController {
         var successFields = new LinkedHashMap<>(ObservabilityLogger.fields("chat", "success", "reply_received"));
         successFields.put("user_id", ctx.userId());
         ObservabilityLogger.info(LOG, "chat_ai_request", successFields);
-        return ResponseEntity.ok(StandardApiResponse.success("AI response", data));
+        return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.ai.chat.response"), data));
     }
 
     /**
@@ -123,7 +128,7 @@ public class AiChatController {
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(StandardApiResponse.error(msg, "AI_CHAT_INVALID"));
+                .body(StandardApiResponse.error(messages.forErrorCode("AI_CHAT_INVALID"), "AI_CHAT_INVALID"));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -131,14 +136,14 @@ public class AiChatController {
         String msg = ex.getMessage() == null || ex.getMessage().isBlank() ? "Invalid JSON body" : ex.getMessage();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(StandardApiResponse.error(msg, "AI_CHAT_INVALID"));
+                .body(StandardApiResponse.error(messages.forErrorCode("AI_CHAT_INVALID"), "AI_CHAT_INVALID"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<StandardApiResponse<Void>> handleAiChatIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(StandardApiResponse.error(ex.getMessage(), "AI_CHAT_INVALID"));
+                .body(StandardApiResponse.error(messages.resolveException(ex, "AI_CHAT_INVALID"), "AI_CHAT_INVALID"));
     }
 
     @ExceptionHandler(SmartAiQuotaExceededException.class)
@@ -156,7 +161,7 @@ public class AiChatController {
         ObservabilityLogger.warn(LOG, "chat_ai_request", quotaFields);
         return ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(StandardApiResponse.error(ex.getMessage(), code));
+                .body(StandardApiResponse.error(messages.resolveException(ex, code), code));
     }
 
     @ExceptionHandler(SecurityException.class)
@@ -164,7 +169,7 @@ public class AiChatController {
         LOG.warn("hospital_ai_chat_security_error code=AI_CHAT_FORBIDDEN message={}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(StandardApiResponse.error(ex.getMessage(), "AI_CHAT_FORBIDDEN"));
+                .body(StandardApiResponse.error(messages.resolveException(ex, "AI_CHAT_FORBIDDEN"), "AI_CHAT_FORBIDDEN"));
     }
 
     @ExceptionHandler(AiProviderException.class)
@@ -187,14 +192,14 @@ public class AiChatController {
         ObservabilityLogger.warn(LOG, "chat_ai_request", providerFields);
         return ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(StandardApiResponse.error(ex.getMessage(), code));
+                .body(StandardApiResponse.error(messages.resolveException(ex, code), code));
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<StandardApiResponse<Void>> handleAiChatIllegalState(IllegalStateException ex) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(StandardApiResponse.error(ex.getMessage(), "AI_CHAT_UNAVAILABLE"));
+                .body(StandardApiResponse.error(messages.resolveException(ex, "AI_CHAT_UNAVAILABLE"), "AI_CHAT_UNAVAILABLE"));
     }
 
     private ChatContext chatContext(

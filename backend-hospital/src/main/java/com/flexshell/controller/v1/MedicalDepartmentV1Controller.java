@@ -1,5 +1,6 @@
 package com.flexshell.controller.v1;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.auth.i18n.RequestLocaleAttributes;
 import com.flexshell.controller.dto.MedicalDepartmentQueryDto;
@@ -31,16 +32,19 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/v1/medical-departments")
 public class MedicalDepartmentV1Controller {
+    private final LocalizedApiMessages messages;
+
 
     private static final Set<String> QUERY_KEYS = Set.of("Code", "Name", "Active");
 
     private final ObjectProvider<MedicalDepartmentService> serviceProvider;
     private final ObjectMapper objectMapper;
 
-    public MedicalDepartmentV1Controller(
-            ObjectProvider<MedicalDepartmentService> serviceProvider,
-            ObjectMapper objectMapper
-    ) {
+    public MedicalDepartmentV1Controller(ObjectProvider<MedicalDepartmentService> serviceProvider,
+            ObjectMapper objectMapper,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.serviceProvider = serviceProvider;
         this.objectMapper = objectMapper;
     }
@@ -62,14 +66,14 @@ public class MedicalDepartmentV1Controller {
             EntityQueryBinder.bind(query, queryJson, objectMapper, QUERY_KEYS);
             PagedMedicalDepartmentListDto paged = service.listPaged(page, size, query, locale);
             return EntityListResponseSupport.ok(
-                    "Medical departments loaded",
+                    messages.success("success.medical.department.list"),
                     paged.getContent(),
                     paged.getNumber(),
                     paged.getSize(),
                     paged.getTotalElements());
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "MEDICAL_DEPARTMENT_LIST_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "MEDICAL_DEPARTMENT_LIST_INVALID"), "MEDICAL_DEPARTMENT_LIST_INVALID"));
         }
     }
 
@@ -85,10 +89,10 @@ public class MedicalDepartmentV1Controller {
         String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
             MedicalDepartmentResponse data = service.createOrUpdate(request, locale);
-            return ResponseEntity.ok(StandardApiResponse.success("Medical department saved", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.medical.department.saved"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "MEDICAL_DEPARTMENT_SAVE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "MEDICAL_DEPARTMENT_SAVE_INVALID"), "MEDICAL_DEPARTMENT_SAVE_INVALID"));
         }
     }
 
@@ -101,17 +105,17 @@ public class MedicalDepartmentV1Controller {
         try {
             if (!service.deleteByBusinessKey(businessKey)) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(StandardApiResponse.error("Medical department not found", "MEDICAL_DEPARTMENT_NOT_FOUND"));
+                        .body(StandardApiResponse.error(messages.forErrorCode("MEDICAL_DEPARTMENT_NOT_FOUND"), "MEDICAL_DEPARTMENT_NOT_FOUND"));
             }
-            return ResponseEntity.ok(StandardApiResponse.success("Medical department deleted", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.medical.department.deleted"), null));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "MEDICAL_DEPARTMENT_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "MEDICAL_DEPARTMENT_NOT_FOUND"), "MEDICAL_DEPARTMENT_NOT_FOUND"));
         }
     }
 
-    private static <T> ResponseEntity<StandardApiResponse<T>> unavailable() {
+    private <T> ResponseEntity<StandardApiResponse<T>> unavailable() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(StandardApiResponse.error("Medical department service is unavailable", "MEDICAL_DEPARTMENT_SERVICE_UNAVAILABLE"));
+                .body(StandardApiResponse.error(messages.forErrorCode("MEDICAL_DEPARTMENT_SERVICE_UNAVAILABLE"), "MEDICAL_DEPARTMENT_SERVICE_UNAVAILABLE"));
     }
 }

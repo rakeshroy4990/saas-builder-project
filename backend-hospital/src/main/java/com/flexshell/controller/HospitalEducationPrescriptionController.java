@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.ai.AiProviderException;
 import com.flexshell.ai.SmartAiQuotaExceededException;
 import com.flexshell.controller.dto.EducationPrescriptionTranscribeData;
@@ -24,10 +25,15 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/api/hospital/education")
 public class HospitalEducationPrescriptionController {
+    private final LocalizedApiMessages messages;
+
     private static final Logger LOG = LoggerFactory.getLogger(HospitalEducationPrescriptionController.class);
     private final EducationPrescriptionTranscriptionService transcriptionService;
 
-    public HospitalEducationPrescriptionController(EducationPrescriptionTranscriptionService transcriptionService) {
+    public HospitalEducationPrescriptionController(EducationPrescriptionTranscriptionService transcriptionService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.transcriptionService = transcriptionService;
     }
 
@@ -41,12 +47,12 @@ public class HospitalEducationPrescriptionController {
     ) {
         if (!isDoctorEducationTranscriptionUser(authentication)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error("Prescription transcription is restricted to doctors.", "EDUCATION_PRESCRIPTION_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("EDUCATION_PRESCRIPTION_FORBIDDEN"), "EDUCATION_PRESCRIPTION_FORBIDDEN"));
         }
         String userId = authentication == null ? "" : Objects.toString(authentication.getName(), "").trim();
         if (userId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(StandardApiResponse.error("Authentication required.", "AUTH_REQUIRED"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("AUTH_REQUIRED"), "AUTH_REQUIRED"));
         }
         long httpStartNanos = System.nanoTime();
         LOG.info(
@@ -59,7 +65,7 @@ public class HospitalEducationPrescriptionController {
             EducationPrescriptionTranscribeData data = transcriptionService.transcribe(userId, file);
             if (data == null) {
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                        .body(StandardApiResponse.error("Transcription returned empty data.", "EDUCATION_PRESCRIPTION_EMPTY"));
+                        .body(StandardApiResponse.error(messages.forErrorCode("EDUCATION_PRESCRIPTION_EMPTY"), "EDUCATION_PRESCRIPTION_EMPTY"));
             }
             long httpTotalMs = Math.max(0L, (System.nanoTime() - httpStartNanos) / 1_000_000L);
             PrescriptionTranscribeTiming timing = PrescriptionTranscribeTiming.currentOrNull();
@@ -79,12 +85,11 @@ public class HospitalEducationPrescriptionController {
                     builder.header("Server-Timing", serverTiming);
                 }
             }
-            return builder.body(StandardApiResponse.success("Transcription ready", data));
+            return builder.body(StandardApiResponse.success(messages.success("success.education.prescription.transcription"), data));
         } catch (IllegalArgumentException ex) {
             logTranscribeHttpOutcome(httpStartNanos, "bad_request");
-            String msg = Objects.toString(ex.getMessage(), "Invalid request").trim();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(msg.isBlank() ? "Invalid request" : msg, "EDUCATION_PRESCRIPTION_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "EDUCATION_PRESCRIPTION_INVALID"), "EDUCATION_PRESCRIPTION_INVALID"));
         } catch (SmartAiQuotaExceededException ex) {
             HttpStatus status = ex.kind() == SmartAiQuotaExceededException.Kind.DAILY
                     ? HttpStatus.TOO_MANY_REQUESTS
@@ -95,7 +100,7 @@ public class HospitalEducationPrescriptionController {
             LOG.warn("education_prescription_transcribe quota kind={}", ex.kind());
             logTranscribeHttpOutcome(httpStartNanos, "quota");
             return ResponseEntity.status(status)
-                    .body(StandardApiResponse.error(ex.getMessage(), code));
+                    .body(StandardApiResponse.error(messages.forErrorCode(code), code));
         } catch (AiProviderException ex) {
             String code = ex.kind() == AiProviderException.Kind.CONFIG_MISSING
                     ? "AI_CONFIG_MISSING"
@@ -103,7 +108,7 @@ public class HospitalEducationPrescriptionController {
             LOG.warn("education_prescription_transcribe provider_fail kind={}", ex.kind());
             logTranscribeHttpOutcome(httpStartNanos, "provider_failed");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), code));
+                    .body(StandardApiResponse.error(messages.forErrorCode(code), code));
         } finally {
             PrescriptionTranscribeTiming timing = PrescriptionTranscribeTiming.currentOrNull();
             if (timing != null) {

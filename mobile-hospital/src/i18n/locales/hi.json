@@ -1,0 +1,407 @@
+{
+  "app": {
+    "name": "अगस्त्य हेल्थकेयर"
+  },
+  "hospital": {
+    "brandTitle": "अगस्त्य हेल्थकेयर",
+    "logoAlt": "अगस्त्य हेल्थकेयर लोगो"
+  },
+  "validation": {
+    "checkFields": "कृपया आवश्यक फ़ील्ड जांचें और पुनः प्रयास करें।"
+  },
+  "auth": {
+    "loginTitle": "साइन इन",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "signIn": "साइन इन",
+    "signingIn": "साइन इन हो रहा है…",
+    "skipForNow": "अभी छोड़ें",
+    "googleSignIn": "Google से साइन इन करें",
+    "googleSigningIn": "Google से साइन इन हो रहा है…",
+    "googleNotConfigured": "इस बिल्ड के लिए Google साइन-इन कॉन्फ़िगर नहीं है।",
+    "googleFailed": "Google साइन-इन विफल। कृपया फिर से कोशिश करें।",
+    "gateTitle": "साइन इन आवश्यक",
+    "gateMessage": "ऐप का यह भाग उपयोग करने के लिए कृपया साइन इन करें।",
+    "emailRequired": "कृपया अपना ईमेल दर्ज करें।",
+    "passwordRequired": "कृपया अपना पासवर्ड दर्ज करें।",
+    "emailAndPasswordRequired": "कृपया अपना ईमेल और पासवर्ड दर्ज करें।",
+    "invalidCredentials": "अमान्य ईमेल या पासवर्ड",
+    "networkError": "सर्वर तक पहुँच नहीं हो सकी। अपना कनेक्शन और API URL जांचें।",
+    "restoringSession": "आपका सत्र पुनर्स्थापित हो रहा है…",
+    "brandIntro": "अगस्त्य हेल्थकेयर लोड हो रहा है"
+  },
+  "nav": {
+    "home": "होम",
+    "dashboard": "डैशबोर्ड",
+    "appointments": "अपॉइंटमेंट",
+    "prescriptions": "प्रिस्क्रिप्शन",
+    "prescriptionsShort": "Rx",
+    "blog": "ब्लॉग",
+    "aiDiagnosis": "AI निदान",
+    "chat": "चैट AI",
+    "profile": "प्रोफ़ाइल",
+    "signOut": "साइन आउट"
+  },
+  "notifications": {
+    "title": "सूचनाएँ",
+    "empty": "अभी कोई सूचना नहीं",
+    "loading": "लोड हो रहा है…",
+    "markAllRead": "सभी को पढ़ा हुआ चिह्नित करें",
+    "close": "सूचनाएँ बंद करें",
+    "bellAria": "सूचनाएँ खोलें",
+    "bellAriaWithCount": "सूचनाएँ खोलें, {{count}} अपठित",
+    "time": {
+      "justNow": "अभी",
+      "minutesAgo": "{{count}} मिनट पहले",
+      "hoursAgo": "{{count}} घंटे पहले",
+      "daysAgo": "{{count}} दिन पहले"
+    }
+  },
+  "welcome": {
+    "tagline": "आपके परिवार के लिए सहानुभूतिपूर्ण देखभाल — जारी रखने के लिए साइन इन करें।",
+    "tapToContinue": "जारी रखने के लिए कहीं भी टैप करें",
+    "skip": "साइन इन पर जाएँ"
+  },
+  "home": {
+    "launcher": {
+      "heroBadge": "बाल रोग देखभाल",
+      "heroTitle": "आपके बच्चे का स्वास्थ्य, हमारी प्राथमिकता",
+      "heroSubtitle": "विशेषज्ञ डॉक्टर, कभी भी, कहीं भी",
+      "heroCta": "परामर्श बुक करें",
+      "quickActions": {
+        "schedule": "शेड्यूल",
+        "videoCall": "वीडियो कॉल",
+        "prescriptions": "प्रिस्क्रिप्शन",
+        "aiChat": "AI चैट"
+      },
+      "doctorsTitle": "हमारे डॉक्टर",
+      "doctorsSeeAll": "सभी देखें",
+      "bookDoctor": "बुक करें",
+      "videosTitle": "स्वास्थ्य वीडियो",
+      "videosYoutube": "YouTube",
+      "videoChipTitle": "शिशु का लार टपकना — क्या सामान्य है?"
+    },
+    "hero": {
+      "title": "आपका स्वास्थ्य, हमारी प्राथमिकता",
+      "subtitle": "अत्याधुनिक चिकित्सा सुविधाओं के साथ सहानुभूतिपूर्ण देखभाल का अनुभव करें। हमारी विशेषज्ञ चिकित्सकों की टीम आपकी सेहत के लिए समर्पित है।",
+      "ctaPrimary": "विज़िट शेड्यूल करें",
+      "ctaDoctor": "AI निदान",
+      "featuredVideoTitle": "अगस्त्य हेल्थकेयर से विशेष वीडियो",
+      "videoTitle": "अगस्त्य हेल्थकेयर से विशेष वीडियो",
+      "videoUnavailable": "यह वीडियो ऐप के अंदर नहीं चल सकता।",
+      "watchOnYoutube": "YouTube पर देखें"
+    },
+    "publicWelcome": "अगस्त्य हेल्थकेयर में आपका स्वागत है",
+    "useBottomNav": "डैशबोर्ड और प्रिस्क्रिप्शन के लिए नीचे मेनू का उपयोग करें। AI सहायता के लिए चैट बटन टैप करें।",
+    "section": {
+      "doctors": {
+        "heading": "हमारे विशेषज्ञ डॉक्टरों से मिलें",
+        "subheading": "उच्च योग्य और अनुभवी चिकित्सा पेशेवरों की हमारी टीम"
+      },
+      "services": {
+        "heading": "हमारी चिकित्सा सेवाएँ",
+        "subheading": "उत्कृष्टता और सहानुभूति के साथ व्यापक स्वास्थ्य सेवाएँ"
+      },
+      "highlights": {
+        "heading": "अगस्त्य हेल्थकेयर क्यों चुनें?"
+      },
+      "contact": {
+        "heading": "संपर्क करें"
+      }
+    },
+    "services": {
+      "pediatrics": {
+        "name": "बाल रोग",
+        "description": "सभी उम्र के बच्चों के लिए कोमल और व्यापक देखभाल"
+      }
+    },
+    "doctors": {
+      "swati": {
+        "name": "डॉ. स्वाति पांडे",
+        "speciality": "बाल रोग विशेषज्ञ",
+        "degree": "MBBS, DNB Pediatrics, DCH (CMC Ludhiana)",
+        "cardLine": "बाल रोग विशेषज्ञ · MBBS DCH DNB",
+        "experience": "5+ वर्षों का अनुभव"
+      }
+    },
+    "highlights": {
+      "tech": {
+        "title": "उन्नत तकनीक",
+        "detail": "नवीनतम चिकित्सा उपकरण और नैदानिक उपकरण"
+      },
+      "team": {
+        "title": "विशेषज्ञ चिकित्सा टीम",
+        "detail": "बोर्ड-प्रमाणित चिकित्सक और विशेषज्ञ"
+      },
+      "care": {
+        "title": "रोगी-केंद्रित देखभाल",
+        "detail": "हर रोगी के लिए व्यक्तिगत उपचार योजनाएँ"
+      }
+    },
+    "contact": {
+      "whatsapp": "WhatsApp Only: 6360895190",
+      "email": "Email: pedsforpeople@gmail.com"
+    }
+  },
+  "common": {
+    "selectPlaceholder": "चुनें…"
+  },
+  "doctors": {
+    "list": {
+      "title": "हमारे डॉक्टर",
+      "subtitle": "विभाग के अनुसार विशेषज्ञ देखें और परामर्श बुक करें।",
+      "empty": "अभी कोई डॉक्टर उपलब्ध नहीं है। कृपया बाद में फिर कोशिश करें।",
+      "loadError": "डॉक्टर लोड नहीं हो सके। अपना कनेक्शन जांचें और फिर कोशिश करें।",
+      "doctorCount": "{{count}} डॉक्टर",
+      "doctorCount_other": "{{count}} डॉक्टर",
+      "book": "बुक करें",
+      "bookDoctor": "{{name}} के साथ अपॉइंटमेंट बुक करें"
+    }
+  },
+  "dashboard": {
+    "welcome": "स्वागत है, {{name}}",
+    "role": "भूमिका: {{role}}",
+    "emptyAppointments": "कोई अपॉइंटमेंट नहीं मिला।",
+    "emptyFilteredAppointments": "चयनित फ़िल्टर के लिए कोई अपॉइंटमेंट नहीं मिला।",
+    "loading": "अपॉइंटमेंट लोड हो रहे हैं…",
+    "loadError": "अपॉइंटमेंट लोड नहीं हो सके।",
+    "filters": {
+      "heading": "फ़िल्टर",
+      "toggleTitle": "फ़िल्टर टॉगल करें",
+      "clearTitle": "फ़िल्टर साफ़ करें",
+      "clearDate": "साफ़ करें",
+      "status": "स्थिति",
+      "date": "तारीख",
+      "datePlaceholder": "YYYY-MM-DD",
+      "doctor": "डॉक्टर",
+      "department": "विभाग",
+      "doctorOptionAll": "सभी डॉक्टर",
+      "statusOptionAll": "सभी अपॉइंटमेंट",
+      "statusOptionCompleted": "पूर्ण",
+      "statusOptionCancelled": "रद्द",
+      "statusOptionRemovedAdmin": "हटाया गया (प्रशासक)"
+    }
+  },
+  "appointment": {
+    "detailTitle": "अपॉइंटमेंट",
+    "patient": "मरीज़",
+    "doctor": "डॉक्टर",
+    "date": "तारीख",
+    "time": "समय",
+    "status": "स्थिति",
+    "department": "विभाग",
+    "book": {
+      "cta": "अपॉइंटमेंट बुक करें",
+      "title": "अपॉइंटमेंट बुक करें",
+      "subtitle": "विभाग, डॉक्टर और समय स्लॉट चुनें। फ़ील्ड अस्पताल वेब बुकिंग फ़ॉर्म से मेल खाते हैं।",
+      "patientName": "मरीज़ का नाम *",
+      "patientNamePlaceholder": "आपका नाम",
+      "email": "ईमेल *",
+      "emailPlaceholder": "you@example.com",
+      "phone": "फ़ोन नंबर *",
+      "phonePlaceholder": "फ़ोन नंबर",
+      "age": "मरीज़ की उम्र (वर्ष) *",
+      "agePlaceholder": "अधिकतम 20",
+      "department": "विभाग *",
+      "selectDepartment": "विभाग चुनें",
+      "doctor": "डॉक्टर *",
+      "doctorNeedsDepartment": "डॉक्टर (पहले विभाग चुनें) *",
+      "selectDoctor": "डॉक्टर चुनें",
+      "preferredDate": "पसंदीदा तारीख *",
+      "selectDate": "तारीख चुनें",
+      "preferredTime": "पसंदीदा समय स्लॉट *",
+      "selectTime": "समय स्लॉट चुनें",
+      "notes": "अतिरिक्त नोट",
+      "notesPlaceholder": "लक्षण या चिंताएँ…",
+      "priorDocs": "पिछले दस्तावेज़ / स्कैन (वैकल्पिक, अधिकतम 2 छवियाँ)",
+      "attachImages": "छवियाँ जोड़ें",
+      "removeFile": "हटाएँ",
+      "submit": "अपॉइंटमेंट बुक करें",
+      "submitting": "बुक हो रहा है…",
+      "successTitle": "अपॉइंटमेंट बुक हो गया",
+      "successMessage": "आपका अपॉइंटमेंट अनुरोध सफलतापूर्वक जमा हो गया।",
+      "viewAppointments": "अपॉइंटमेंट देखें",
+      "missingFields": "आवश्यक फ़ील्ड अनुपस्थित: {{fields}}",
+      "departmentsLoadFailed": "विभाग लोड नहीं हो सके।",
+      "doctorLoadFailed": "डॉक्टर लोड नहीं हो सके। कृपया फिर से कोशिश करें।",
+      "noDoctors": "इस विभाग के लिए कोई डॉक्टर नहीं मिला।",
+      "slotNoneForDate": "चयनित तारीख पर इस डॉक्टर के लिए कोई समय स्लॉट उपलब्ध नहीं है।",
+      "slotNoneFutureToday": "आज कोई भविष्य का समय स्लॉट उपलब्ध नहीं है। बाद की तारीख चुनें।",
+      "slotsForbiddenDoctor": "आप इस डॉक्टर के स्लॉट लोड नहीं कर सकते।",
+      "slotsLoadFailed": "उपलब्ध समय स्लॉट लोड नहीं हो सके। फिर कोशिश करें।",
+      "prescriptionLimit": "आप अधिकतम 2 छवियाँ संलग्न कर सकते हैं।",
+      "attachFailed": "छवियाँ संलग्न नहीं हो सकीं।"
+    }
+  },
+  "video": {
+    "startCall": "वीडियो कॉल",
+    "notAvailable": "वीडियो कॉल Open या Confirmed अपॉइंटमेंट के लिए निर्धारित स्लॉट (±10 मिनट, अस्पताल समय) के दौरान उपलब्ध है।",
+    "incoming": "आने वाली वीडियो कॉल",
+    "accept": "स्वीकार करें",
+    "reject": "अस्वीकार करें",
+    "connecting": "कनेक्ट हो रहा है…",
+    "waitingRemote": "दूसरे पक्ष की प्रतीक्षा…",
+    "remoteParty": "कॉल",
+    "muteMic": "म्यूट",
+    "unmuteMic": "अनम्यूट",
+    "camOff": "कैमरा बंद",
+    "camOn": "कैमरा चालू",
+    "flip": "फ़्लिप",
+    "end": "कॉल समाप्त करें",
+    "close": "बंद करें",
+    "errorJoin": "वीडियो शुरू नहीं हो सका। अपना कनेक्शन जांचें और फिर कोशिश करें।",
+    "errorSession": "वीडियो सत्र तैयार नहीं हो सका।",
+    "errorPermissions": "वीडियो कॉल के लिए कैमरा और माइक्रोफ़ोन की अनुमति आवश्यक है।"
+  },
+  "profile": {
+    "title": "प्रोफ़ाइल",
+    "name": "नाम",
+    "email": "ईमेल",
+    "role": "भूमिका",
+    "userId": "User ID",
+    "loading": "प्रोफ़ाइल लोड हो रही है…"
+  },
+  "language": {
+    "title": "भाषा",
+    "hint": "इंटरफ़ेस भाषा चुनें"
+  },
+  "network": {
+    "offlineBanner": "आप ऑफ़लाइन हैं। कनेक्शन वापस आने तक कुछ सुविधाएँ काम नहीं करेंगी।"
+  },
+  "security": {
+    "biometricLockTitle": "ऐप अनलॉक करें",
+    "biometricLockMessage": "जारी रखने के लिए Face ID या फ़िंगरप्रिंट का उपयोग करें।",
+    "biometricUnlock": "अनलॉक",
+    "biometricLockSetting": "ऐप लॉक",
+    "biometricLockSettingHint": "सहेजे गए सत्र के साथ ऐप खोलते समय या बैकग्राउंड से वापस आने पर Face ID या फ़िंगरप्रिंट आवश्यक करें।"
+  },
+  "prescriptions": {
+    "title": "प्रिस्क्रिप्शन",
+    "comingSoon": "जल्द ही और प्रिस्क्रिप्शन क्रियाएँ उपलब्ध होंगी।",
+    "empty": "अभी कोई प्रिस्क्रिप्शन अपलोड नहीं है।",
+    "loadError": "प्रिस्क्रिप्शन लोड नहीं हो सके।",
+    "notAvailable": "—",
+    "nav": {
+      "view": "प्रिस्क्रिप्शन देखें",
+      "upload": "प्रिस्क्रिप्शन अपलोड करें"
+    },
+    "fields": {
+      "doctor": "डॉक्टर",
+      "patient": "मरीज़",
+      "date": "तारीख",
+      "medicines": "दवाएँ"
+    },
+    "status": {
+      "pending": "लंबित",
+      "processing": "प्रोसेस हो रहा है",
+      "verified": "सत्यापित",
+      "rejected": "अस्वीकृत"
+    },
+    "upload": {
+      "title": "प्रिस्क्रिप्शन अपलोड करें",
+      "hint": "अपनी प्रिस्क्रिप्शन की तस्वीरें जोड़ें (JPEG या PNG)। प्रति बैच अधिकतम 5 फ़ाइलें अपलोड कर सकते हैं।",
+      "chooseFiles": "गैलरी से चुनें",
+      "camera": "फ़ोटो लें",
+      "submit": "फ़ाइलें अपलोड करें",
+      "uploading": "अपलोड हो रहा है…",
+      "success": "सफलतापूर्वक अपलोड हो गया",
+      "duplicate": "पहले से फ़ाइल में है",
+      "failed": "अपलोड विफल",
+      "queueEmpty": "अभी कोई फ़ाइल चयनित नहीं है।",
+      "remove": "हटाएँ",
+      "limitReached": "प्रति बैच अधिकतम {count} फ़ाइलें जोड़ सकते हैं।",
+      "successTitle": "प्रिस्क्रिप्शन",
+      "successMessage": "प्रिस्क्रिप्शन सफलतापूर्वक अपलोड हो गई"
+    }
+  },
+  "blog": {
+    "comingSoon": "ब्लॉग लेख भविष्य के अपडेट में उपलब्ध होंगे।",
+    "empty": "अभी कोई लेख उपलब्ध नहीं है।",
+    "readMore": "पूरा लेख पढ़ने के लिए वेब पर खोलें।"
+  },
+  "aiDiagnosis": {
+    "comingSoon": "पूर्ण डॉक्टर शिक्षा वर्कस्पेस जल्द मोबाइल पर आ रहा है।",
+    "hint": "इंगेस्ट की गई पुस्तकें और समान प्रिस्क्रिप्शन खोजें।",
+    "openChat": "शिक्षा वर्कस्पेस खोलें"
+  },
+  "education": {
+    "title": "डॉक्टर शिक्षा",
+    "subtitle": "इंगेस्ट की गई पुस्तकों और प्रिस्क्रिप्शन समानता खोज से आधारित उत्तर।",
+    "doctorsOnlyTitle": "केवल डॉक्टर पहुँच",
+    "doctorsOnlyMessage": "AI निदान डॉक्टर खातों के लिए उपलब्ध है। जारी रखने के लिए डॉक्टर प्रोफ़ाइल से साइन इन करें।",
+    "tabs": {
+      "books": "पुस्तकें",
+      "prescription": "प्रिस्क्रिप्शन"
+    },
+    "filterBook": "पुस्तक से फ़िल्टर करें",
+    "allBooks": "सभी इंगेस्ट की गई पुस्तकें",
+    "bookFilterSelectedCount": "{{count}} चयनित",
+    "bookFilterReset": "रीसेट",
+    "bookFilterSearchPlaceholder": "पुस्तकें खोजें…",
+    "bookFilterNoResults": "आपकी खोज से कोई पुस्तक मेल नहीं खाती।",
+    "expandChat": "चैट पूर्ण स्क्रीन खोलें",
+    "exitFullScreen": "पूर्ण स्क्रीन बंद करें",
+    "expandEducationAi": "Education AI विस्तार करें",
+    "collapseEducationAi": "Education AI संक्षिप्त करें",
+    "expandComposer": "प्रश्न इनपुट विस्तार करें",
+    "collapseComposer": "प्रश्न इनपुट छोटा करें",
+    "noMessagesYet": "अभी कोई संदेश नहीं",
+    "messageCount": "{{count}} संदेश",
+    "quickStarts": "त्वरित शुरुआत",
+    "booksEmptyHint": "एक पुस्तक चुनें और इंगेस्ट किए गए कोर्पस पर आधारित क्लिनिकल प्रश्न पूछें।",
+    "questionPlaceholder": "उदाहरण: बाल नेफ्रोटिक सिंड्रोम के प्रथम-स्तरीय प्रबंधन की व्याख्या करें।",
+    "sendQuestion": "प्रश्न भेजें",
+    "sending": "भेजा जा रहा है…",
+    "streamLoadingAnswer": "आधारित उत्तर तैयार हो रहा है…",
+    "streamSearchingSources": "चयनित पाठ्यपुस्तक खोजी जा रही है…",
+    "streamGeneratingAnswer": "आपका उत्तर लिखा जा रहा है…",
+    "userLabel": "डॉक्टर",
+    "assistantLabel": "Education AI",
+    "followUpTitle": "अनुवर्ती प्रश्न",
+    "emptyAnswer": "कोई आधारित उत्तर नहीं मिला।",
+    "chatFailed": "शिक्षा असिस्टेंट तक पहुँच नहीं हो सकी। फिर कोशिश करें।",
+    "prescriptionBanner": "क्लिनिकल टेक्स्ट से अपलोड की गई प्रिस्क्रिप्शन खोजें। परिणाम वेक्टर समानता से क्रमबद्ध हैं।",
+    "prescriptionPlaceholder": "उदाहरण: diabetes metformin — या प्रिस्क्रिप्शन टेक्स्ट पेस्ट करें।",
+    "prescriptionSearch": "समान प्रिस्क्रिप्शन खोजें",
+    "prescriptionNoResults": "कोई मेल खाती प्रिस्क्रिप्शन नहीं मिली।",
+    "prescriptionSearchFailed": "प्रिस्क्रिप्शन खोज नहीं हो सकी। फिर कोशिश करें।",
+    "unknownPatient": "अज्ञात मरीज़",
+    "loadingBooks": "पुस्तकें लोड हो रही हैं…",
+    "noBooks": "कोई पुस्तक उपलब्ध नहीं",
+    "closePicker": "हो गया",
+    "attachFile": "प्रिस्क्रिप्शन फ़ाइल संलग्न करें",
+    "attachGallery": "गैलरी से फ़ोटो चुनें",
+    "attachCamera": "प्रिस्क्रिप्शन की फ़ोटो लें",
+    "openAttachMenu": "प्रिस्क्रिप्शन संलग्नक जोड़ें",
+    "closeAttachMenu": "संलग्नक विकल्प बंद करें",
+    "readingPrescription": "प्रिस्क्रिप्शन पढ़ी जा रही है…",
+    "prescriptionReadFailed": "प्रिस्क्रिप्शन फ़ाइल पढ़ी नहीं जा सकी। स्पष्ट फ़ोटो आज़माएँ।",
+    "attachedFile": "संलग्न: {{name}}",
+    "attachmentOrderLabel": "क्रम {{order}}",
+    "removeFile": "हटाएँ",
+    "moveFileEarlier": "पहले ले जाएँ",
+    "moveFileLater": "बाद में ले जाएँ",
+    "filesAttached": "क्लिनिकल संदर्भ के लिए {{count}} फ़ाइल(ें) संलग्न।",
+    "attachmentLimitReached": "अधिकतम {{count}} फ़ाइलें संलग्न कर सकते हैं।",
+    "attachmentsReadyHint": "{{count}} संलग्न फ़ाइल(ें) आपके प्रश्न के साथ पुनर्प्राप्ति के लिए मिलाई जाएँगी।",
+    "attachmentsConfirmSequenceHint": "{{count}} फ़ाइलें संलग्न — असिस्टेंट को भेजने से पहले क्रम की पुष्टि करें।",
+    "reviewSequence": "क्रम समीक्षा करें और भेजें",
+    "sequenceModalTitle": "फ़ाइल क्रम की पुष्टि",
+    "sequenceModalHint": "तीरों से तय करें कौन-सी फ़ाइल पहले आए। OK टैप करने पर फ़ाइलें इसी क्रम में असिस्टेंट को भेजी जाएँगी।",
+    "sequenceModalConfirm": "OK — इस क्रम में भेजें",
+    "sequenceModalCancel": "रद्द करें",
+    "sequenceModalEmpty": "क्रम की पुष्टि के लिए कम से कम दो फ़ाइलें जोड़ें।",
+    "autoSentNotice": "असिस्टेंट को स्वतः भेजा गया",
+    "autoQuestionFromAttachments": "कृपया संलग्न क्लिनिकल फ़ाइलों का क्रम में विश्लेषण करें और निदान, अंतर और प्रबंधन प्रदान करें।",
+    "prescriptionDraftOnly": "निदान और दवाएँ निकाली नहीं जा सकीं। टेक्स्ट आपके प्रश्न फ़ील्ड में है — आवश्यक हो तो संपादित करें, फिर भेजें।",
+    "composerHint": "भेजने के लिए प्रश्न टाइप करें। संयुक्त पुनर्प्राप्ति के लिए अधिकतम 3 क्लिनिकल फ़ाइलें संलग्न करें।",
+    "resendTitle": "यह प्रश्न फिर भेजें",
+    "resendAria": "यह प्रश्न फिर भेजें"
+  },
+  "chat": {
+    "welcome": "नमस्ते — अपने लक्षण बताएँ और मैं आगे क्या करें, इसकी मार्गदर्शन करूँगा।",
+    "placeholder": "अपना संदेश टाइप करें…",
+    "send": "भेजें",
+    "sendError": "आपका संदेश नहीं भेजा जा सका। कृपया फिर से कोशिश करें।"
+  }
+}

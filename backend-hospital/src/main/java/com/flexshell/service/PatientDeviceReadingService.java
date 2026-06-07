@@ -49,11 +49,11 @@ public class PatientDeviceReadingService {
         String deviceKey = Objects.toString(request.deviceKey(), "").trim();
         String deviceType = Objects.toString(request.deviceType(), "").trim();
         if (deviceKey.isBlank() || deviceType.isBlank()) {
-            throw new IllegalArgumentException("deviceKey and deviceType are required.");
+            throw new IllegalArgumentException("PATIENT_DEVICE_READING_DEVICE_REQUIRED");
         }
         Map<String, Object> measurements = request.measurements();
         if (measurements == null || measurements.isEmpty()) {
-            throw new IllegalArgumentException("measurements are required.");
+            throw new IllegalArgumentException("PATIENT_DEVICE_READING_MEASUREMENTS_REQUIRED");
         }
 
         PatientDeviceReadingJpaEntity row = new PatientDeviceReadingJpaEntity();
@@ -78,7 +78,7 @@ public class PatientDeviceReadingService {
     @Transactional
     public PatientDeviceReadingResponse save(String actorUserId, PatientDeviceReadingSaveRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Request body is required");
+            throw new IllegalArgumentException("PATIENT_DEVICE_READING_REQUEST_REQUIRED");
         }
         if (request.getExternalId() != null) {
             return update(actorUserId, request);
@@ -93,10 +93,10 @@ public class PatientDeviceReadingService {
             throw new SecurityException("Only patients can delete their device readings.");
         }
         if (externalId == null) {
-            throw new IllegalArgumentException("ExternalId is required");
+            throw new IllegalArgumentException("PATIENT_DEVICE_READING_EXTERNAL_ID_REQUIRED");
         }
         PatientDeviceReadingJpaEntity row = readingRepository.findByExternalIdAndDeletedFalse(externalId)
-                .orElseThrow(() -> new IllegalArgumentException("Device reading not found"));
+                .orElseThrow(() -> new IllegalArgumentException("PATIENT_DEVICE_READING_NOT_FOUND"));
         if (!actorUserId.equals(row.getPatientUserId())) {
             throw new SecurityException("Forbidden");
         }
@@ -112,7 +112,7 @@ public class PatientDeviceReadingService {
         }
         UUID externalId = request.getExternalId();
         PatientDeviceReadingJpaEntity row = readingRepository.findByExternalIdAndDeletedFalse(externalId)
-                .orElseThrow(() -> new IllegalArgumentException("Device reading not found"));
+                .orElseThrow(() -> new IllegalArgumentException("PATIENT_DEVICE_READING_NOT_FOUND"));
         if (!actorUserId.equals(row.getPatientUserId())) {
             throw new SecurityException("Forbidden");
         }
@@ -168,7 +168,7 @@ public class PatientDeviceReadingService {
         try {
             return Base64.getDecoder().decode(encoded);
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("rawBytesBase64 is not valid Base64.");
+            throw new IllegalArgumentException("PATIENT_DEVICE_READING_INVALID_BASE64");
         }
     }
 

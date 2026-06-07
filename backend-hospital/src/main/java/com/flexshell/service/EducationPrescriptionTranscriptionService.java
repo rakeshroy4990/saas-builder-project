@@ -129,20 +129,20 @@ public class EducationPrescriptionTranscriptionService {
             PrescriptionTranscribeTiming timing
     ) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("A non-empty file is required.");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_FILE_REQUIRED");
         }
         if (file.getSize() > MAX_BYTES) {
-            throw new IllegalArgumentException("File is too large (max 12 MB).");
+            throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_FILE_TOO_LARGE");
         }
         byte[] bytes = timing.record("read_upload_bytes", () -> {
             try {
                 return file.getBytes();
             } catch (IOException ex) {
-                throw new IllegalArgumentException("Could not read uploaded file.");
+                throw new IllegalArgumentException("PATIENT_PRESCRIPTION_FILE_READ_FAILED");
             }
         });
         if (bytes.length == 0) {
-            throw new IllegalArgumentException("A non-empty file is required.");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_FILE_REQUIRED");
         }
         String sniffed = timing.record("sniff_mime", () -> sniffMime(bytes));
         String declared = Objects.toString(file.getContentType(), "").trim().toLowerCase(Locale.ROOT);
@@ -153,7 +153,7 @@ public class EducationPrescriptionTranscriptionService {
         } else if (effectiveMime.startsWith("image/")) {
             validateRasterMime(effectiveMime);
         } else {
-            throw new IllegalArgumentException("Unsupported file type. Use PDF, JPEG, PNG, or WebP.");
+            throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_UNSUPPORTED_FILE_TYPE");
         }
 
         if (consumeQuotaForEducationPrescriptionTranscribe) {
@@ -184,7 +184,7 @@ public class EducationPrescriptionTranscriptionService {
                 || mime.contains("heif")) {
             return;
         }
-        throw new IllegalArgumentException("Unsupported image type. Use JPEG, PNG, WebP, or GIF.");
+        throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_UNSUPPORTED_IMAGE_TYPE");
     }
 
     private EducationPrescriptionTranscribeData transcribePdf(byte[] pdfBytes, PrescriptionTranscribeTiming timing) {
@@ -192,7 +192,7 @@ public class EducationPrescriptionTranscriptionService {
             try (PDDocument doc = Loader.loadPDF(pdfBytes)) {
                 int pages = doc.getNumberOfPages();
                 if (pages <= 0) {
-                    throw new IllegalArgumentException("PDF has no pages.");
+                    throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_PDF_EMPTY");
                 }
                 PDFTextStripper stripper = new PDFTextStripper();
                 stripper.setStartPage(1);
@@ -201,7 +201,7 @@ public class EducationPrescriptionTranscriptionService {
                     try {
                         return Objects.toString(stripper.getText(doc), "").trim();
                     } catch (IOException ex) {
-                        throw new IllegalArgumentException("Could not read PDF.");
+                        throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_PDF_READ_FAILED");
                     }
                 });
                 if (extracted.length() >= MIN_PDF_TEXT_CHARS) {
@@ -223,7 +223,7 @@ public class EducationPrescriptionTranscriptionService {
                         BufferedImage scaled = constrainMaxEdge(rendered, maxImageEdgePx);
                         return toJpegBytes(scaled, 0.88f);
                     } catch (IOException ex) {
-                        throw new IllegalArgumentException("Could not process PDF image.");
+                        throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_PDF_IMAGE_FAILED");
                     }
                 });
                 LOG.info(
@@ -238,7 +238,7 @@ public class EducationPrescriptionTranscriptionService {
                         () -> finishTranscribe(OpdPrintedFieldExtractor.enrich(vision, extracted), timing)
                 );
             } catch (IOException ex) {
-                throw new IllegalArgumentException("Could not read PDF.");
+                throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_PDF_READ_FAILED");
             }
         });
     }
@@ -257,7 +257,7 @@ public class EducationPrescriptionTranscriptionService {
                 }
             });
             if (probe == null) {
-                throw new IllegalArgumentException("Could not decode image.");
+                throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_IMAGE_DECODE_FAILED");
             }
             byte[] jpegBytes = timing.record("image_preprocess_jpeg", () -> {
                 BufferedImage rgb = toRgb(probe);
@@ -265,7 +265,7 @@ public class EducationPrescriptionTranscriptionService {
                 try {
                     return toJpegBytes(scaled, 0.88f);
                 } catch (IOException ex) {
-                    throw new IllegalArgumentException("Could not process image.");
+                    throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_IMAGE_PROCESS_FAILED");
                 }
             });
             LOG.info(
@@ -337,7 +337,7 @@ public class EducationPrescriptionTranscriptionService {
         String trimmed = Objects.toString(rawModelOutput, "").trim();
         if (trimmed.isBlank()) {
             LOG.warn("education_prescription_parse_failed reason=empty_model_output");
-            throw new IllegalArgumentException("Could not parse prescription model output.");
+            throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_MODEL_PARSE_FAILED");
         }
         String cleaned = stripJsonFences(trimmed);
         try {
@@ -355,7 +355,7 @@ public class EducationPrescriptionTranscriptionService {
                     "education_prescription_parse_failed reason=json len={} ex={}",
                     cleaned.length(),
                     ex.getClass().getSimpleName());
-            throw new IllegalArgumentException("Could not parse prescription model output.");
+            throw new IllegalArgumentException("EDUCATION_PRESCRIPTION_MODEL_PARSE_FAILED");
         }
     }
 

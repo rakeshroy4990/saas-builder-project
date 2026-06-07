@@ -8,7 +8,7 @@
 
 export const FLEXSHELL_LOCALE_STORAGE_KEY = 'flexshell.locale.v1';
 
-export const SUPPORTED_LOCALES = ['en', 'hi'] as const;
+export const SUPPORTED_LOCALES = ['en', 'hi', 'kn'] as const;
 
 export type LocaleCode = (typeof SUPPORTED_LOCALES)[number];
 
@@ -37,11 +37,19 @@ export const LOCALE_CONFIG: Record<LocaleCode, LocaleConfig> = {
     englishLabel: 'Hindi',
     dir: 'ltr',
     flag: 'HI'
+  },
+  kn: {
+    code: 'kn',
+    label: 'ಕನ್ನಡ',
+    englishLabel: 'Kannada',
+    dir: 'ltr',
+    flag: 'KN'
   }
 };
 
 export function isSupportedLocale(value: string | undefined | null): value is LocaleCode {
-  return value === 'en' || value === 'hi';
+  if (!value) return false;
+  return (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
 
 export function normalizeLocaleTag(tag: string | undefined | null): LocaleCode {
@@ -49,7 +57,7 @@ export function normalizeLocaleTag(tag: string | undefined | null): LocaleCode {
     .trim()
     .split(/[-_]/)[0]
     ?.toLowerCase();
-  if (primary === 'hi') return 'hi';
+  if (primary && isSupportedLocale(primary)) return primary;
   return 'en';
 }
 

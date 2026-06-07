@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
 import com.flexshell.controller.dto.PagedUserListDto;
@@ -28,10 +29,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
+    private final LocalizedApiMessages messages;
+
     private final UserService userService;
     private final YoutubeQueryCacheService youtubeQueryCacheService;
 
-    public UserController(UserService userService, YoutubeQueryCacheService youtubeQueryCacheService) {
+    public UserController(UserService userService, YoutubeQueryCacheService youtubeQueryCacheService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.userService = userService;
         this.youtubeQueryCacheService = youtubeQueryCacheService;
     }
@@ -48,19 +54,19 @@ public class UserController {
         if (userId != null && !userId.isBlank()) {
             if (!isSelf(authentication, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(StandardApiResponse.error("Forbidden", "USER_FORBIDDEN"));
+                        .body(StandardApiResponse.error(messages.forErrorCode("USER_FORBIDDEN"), "USER_FORBIDDEN"));
             }
             return userService
                     .getByUserId(trim(userId))
-                    .<ResponseEntity<StandardApiResponse<?>>>map(body -> ResponseEntity.ok(StandardApiResponse.success("OK", body)))
+                    .<ResponseEntity<StandardApiResponse<?>>>map(body -> ResponseEntity.ok(StandardApiResponse.success(messages.success("success.user.ok"), body)))
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body(StandardApiResponse.error("User not found", "USER_NOT_FOUND")));
+                            .body(StandardApiResponse.error(messages.forErrorCode("USER_NOT_FOUND"), "USER_NOT_FOUND")));
         }
         try {
             PagedUserListDto paged = userService.listUsers(authentication.getName(), page, size, query, role);
             @SuppressWarnings("unchecked")
             ResponseEntity<StandardApiResponse<?>> listResponse = (ResponseEntity) EntityListResponseSupport.ok(
-                    "Users loaded",
+                    messages.success("success.user.list"),
                     paged.getContent(),
                     paged.getNumber(),
                     paged.getSize(),
@@ -68,10 +74,10 @@ public class UserController {
             return listResponse;
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_LIST_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_LIST_FORBIDDEN"), "USER_LIST_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_LIST_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_LIST_INVALID"), "USER_LIST_INVALID"));
         }
     }
 
@@ -82,13 +88,13 @@ public class UserController {
     ) {
         try {
             RegisterResponse data = userService.saveUser(authentication.getName(), request);
-            return ResponseEntity.ok(StandardApiResponse.success("User saved", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.user.saved"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_SAVE_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_SAVE_FORBIDDEN"), "USER_SAVE_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_SAVE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_SAVE_INVALID"), "USER_SAVE_INVALID"));
         }
     }
 
@@ -99,13 +105,13 @@ public class UserController {
     ) {
         try {
             userService.deleteByBusinessKey(businessKey, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("User deactivated", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.user.deactivated"), null));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_DELETE_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_DELETE_FORBIDDEN"), "USER_DELETE_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_DELETE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_DELETE_INVALID"), "USER_DELETE_INVALID"));
         }
     }
 
@@ -122,15 +128,15 @@ public class UserController {
         if (id.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(StandardApiResponse.error(
-                            "userId is required or you must be authenticated",
+                            messages.forErrorCode("USER_PROFILE_INVALID"),
                             "USER_QUERY_INVALID"));
         }
         if (!isSelf(authentication, id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error("Forbidden", "USER_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("USER_FORBIDDEN"), "USER_FORBIDDEN"));
         }
         List<YoutubeQueryCacheEntryDto> rows = youtubeQueryCacheService.listRecentForUser(id, limit);
-        return ResponseEntity.ok(StandardApiResponse.success("OK", rows));
+        return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.user.ok"), rows));
     }
 
     @PutMapping(value = "/profile", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -142,11 +148,11 @@ public class UserController {
         String id = resolveActorUserId(userId, authentication);
         if (id.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error("userId is required or you must be authenticated", "USER_PROFILE_INVALID"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("USER_PROFILE_INVALID"), "USER_PROFILE_INVALID"));
         }
         if (!isSelf(authentication, id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error("Forbidden", "USER_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("USER_FORBIDDEN"), "USER_FORBIDDEN"));
         }
         return tryUpdateProfile(id, body);
     }
@@ -160,7 +166,7 @@ public class UserController {
     ) {
         if (!isSelf(authentication, userId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error("Forbidden", "USER_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("USER_FORBIDDEN"), "USER_FORBIDDEN"));
         }
         String id = trim(userId);
         if (inactive) {
@@ -168,12 +174,12 @@ public class UserController {
                 userService.deactivateAccount(id);
                 return userService
                         .getByUserId(id)
-                        .map(data -> ResponseEntity.ok(StandardApiResponse.success("Account deactivated", data)))
+                        .map(data -> ResponseEntity.ok(StandardApiResponse.success(messages.success("success.user.account.deactivated"), data)))
                         .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .body(StandardApiResponse.error("User not found", "USER_NOT_FOUND")));
+                                .body(StandardApiResponse.error(messages.forErrorCode("USER_NOT_FOUND"), "USER_NOT_FOUND")));
             } catch (IllegalArgumentException ex) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(StandardApiResponse.error(ex.getMessage(), "USER_DEACTIVATE_FAILED"));
+                        .body(StandardApiResponse.error(messages.resolveException(ex, "USER_DEACTIVATE_FAILED"), "USER_DEACTIVATE_FAILED"));
             }
         }
         return tryUpdateProfile(id, body);
@@ -182,14 +188,14 @@ public class UserController {
     private ResponseEntity<StandardApiResponse<RegisterResponse>> tryUpdateProfile(String id, RegisterRequest body) {
         if (body == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error("Request body is required", "USER_PROFILE_INVALID"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("USER_PROFILE_INVALID"), "USER_PROFILE_INVALID"));
         }
         try {
             RegisterResponse data = userService.updateProfile(id, body);
-            return ResponseEntity.ok(StandardApiResponse.success("Profile updated", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.user.profile.updated"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_PROFILE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_PROFILE_INVALID"), "USER_PROFILE_INVALID"));
         }
     }
 

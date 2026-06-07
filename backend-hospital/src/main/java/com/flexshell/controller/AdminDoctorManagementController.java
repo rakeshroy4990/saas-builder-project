@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
 import com.flexshell.controller.dto.DoctorAdminRow;
@@ -23,13 +24,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/doctors")
 public class AdminDoctorManagementController {
+    private final LocalizedApiMessages messages;
+
     private final AdminDoctorManagementService adminDoctorManagementService;
     private final UserService userService;
 
-    public AdminDoctorManagementController(
-            AdminDoctorManagementService adminDoctorManagementService,
-            UserService userService
-    ) {
+    public AdminDoctorManagementController(AdminDoctorManagementService adminDoctorManagementService,
+            UserService userService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.adminDoctorManagementService = adminDoctorManagementService;
         this.userService = userService;
     }
@@ -42,10 +46,10 @@ public class AdminDoctorManagementController {
     ) {
         try {
             List<DoctorAdminRow> data = adminDoctorManagementService.listDoctors(authentication.getName(), page, size);
-            return ResponseEntity.ok(StandardApiResponse.success("Doctors loaded", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.admin.doctors.loaded"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ADMIN_DOCTOR_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ADMIN_DOCTOR_FORBIDDEN"), "ADMIN_DOCTOR_FORBIDDEN"));
         }
     }
 
@@ -56,13 +60,13 @@ public class AdminDoctorManagementController {
     ) {
         try {
             RegisterResponse data = adminDoctorManagementService.registerDoctor(request, authentication.getName());
-            return ResponseEntity.status(HttpStatus.CREATED).body(StandardApiResponse.success("Doctor registered", data));
+            return ResponseEntity.status(HttpStatus.CREATED).body(StandardApiResponse.success(messages.success("success.admin.doctor.registered"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ADMIN_DOCTOR_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ADMIN_DOCTOR_FORBIDDEN"), "ADMIN_DOCTOR_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ADMIN_DOCTOR_REGISTER_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ADMIN_DOCTOR_REGISTER_INVALID"), "ADMIN_DOCTOR_REGISTER_INVALID"));
         }
     }
 
@@ -73,13 +77,13 @@ public class AdminDoctorManagementController {
     ) {
         try {
             userService.deactivateUserAsAdmin(userId, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Doctor deactivated", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.admin.doctor.deactivated"), null));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ADMIN_DOCTOR_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ADMIN_DOCTOR_FORBIDDEN"), "ADMIN_DOCTOR_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ADMIN_DOCTOR_DEACTIVATE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ADMIN_DOCTOR_DEACTIVATE_INVALID"), "ADMIN_DOCTOR_DEACTIVATE_INVALID"));
         }
     }
 }

@@ -34,10 +34,10 @@ public class MedicalDepartmentService {
         MedicalDepartmentAccess repository = requireDepartmentAccess();
         String code = normalizeCode(request.getCode());
         if (code.isBlank()) {
-            throw new IllegalArgumentException("Code is required");
+            throw new IllegalArgumentException("MEDICAL_DEPARTMENT_CODE_REQUIRED");
         }
         if (repository.findByCodeIgnoreCase(code).isPresent()) {
-            throw new IllegalArgumentException("Department code already exists");
+            throw new IllegalArgumentException("MEDICAL_DEPARTMENT_CODE_EXISTS");
         }
         MedicalDepartmentEntity entity = new MedicalDepartmentEntity();
         apply(entity, request);
@@ -59,7 +59,7 @@ public class MedicalDepartmentService {
         if (!code.isBlank() && !code.equalsIgnoreCase(entity.getCode())) {
             repository.findByCodeIgnoreCase(code).ifPresent(existing -> {
                 if (!existing.getId().equals(entity.getId())) {
-                    throw new IllegalArgumentException("Department code already exists");
+                    throw new IllegalArgumentException("MEDICAL_DEPARTMENT_CODE_EXISTS");
                 }
             });
         }
@@ -139,7 +139,7 @@ public class MedicalDepartmentService {
     private String resolveBusinessKey(String businessKey) {
         String key = businessKey == null ? "" : businessKey.trim();
         if (key.isBlank()) {
-            throw new IllegalArgumentException("Business key is required");
+            throw new IllegalArgumentException("MEDICAL_DEPARTMENT_BUSINESS_KEY_REQUIRED");
         }
         MedicalDepartmentAccess repository = requireDepartmentAccess();
         if (repository.existsById(key)) {
@@ -195,10 +195,10 @@ public class MedicalDepartmentService {
         String name = MedicalDepartmentLocaleCatalog.primaryNameFromMessages(messages, normalize(request.getName()));
         String code = normalizeCode(request.getCode());
         if (name.isBlank()) {
-            throw new IllegalArgumentException("Name is required");
+            throw new IllegalArgumentException("MEDICAL_DEPARTMENT_NAME_REQUIRED");
         }
         if (code.isBlank()) {
-            throw new IllegalArgumentException("Code is required");
+            throw new IllegalArgumentException("MEDICAL_DEPARTMENT_CODE_REQUIRED");
         }
         entity.setName(name);
         entity.setCode(code);

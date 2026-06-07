@@ -1,5 +1,6 @@
 package com.flexshell.controller.v1;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.controller.dto.AppointmentQueryDto;
 import com.flexshell.controller.dto.AppointmentResponse;
@@ -29,6 +30,8 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/v1/appointments")
 public class AppointmentV1Controller {
+    private final LocalizedApiMessages messages;
+
 
     private static final Set<String> QUERY_KEYS = Set.of(
             "DoctorId", "Status", "PreferredDate", "PatientName", "Department", "UpcomingOnly"
@@ -37,7 +40,10 @@ public class AppointmentV1Controller {
     private final AppointmentService appointmentService;
     private final ObjectMapper objectMapper;
 
-    public AppointmentV1Controller(AppointmentService appointmentService, ObjectMapper objectMapper) {
+    public AppointmentV1Controller(AppointmentService appointmentService, ObjectMapper objectMapper,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.appointmentService = appointmentService;
         this.objectMapper = objectMapper;
     }
@@ -54,17 +60,17 @@ public class AppointmentV1Controller {
             EntityQueryBinder.bind(query, queryJson, objectMapper, QUERY_KEYS);
             PagedAppointmentListDto paged = appointmentService.listPaged(authentication.getName(), page, size, query);
             return EntityListResponseSupport.ok(
-                    "Appointments loaded",
+                    messages.success("success.appointment.list"),
                     paged.getContent(),
                     paged.getNumber(),
                     paged.getSize(),
                     paged.getTotalElements());
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_LIST_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_LIST_INVALID"), "APPOINTMENT_LIST_INVALID"));
         }
     }
 
@@ -78,13 +84,13 @@ public class AppointmentV1Controller {
             HttpStatus status = request.getId() == null || request.getId().isBlank()
                     ? HttpStatus.CREATED
                     : HttpStatus.OK;
-            return ResponseEntity.status(status).body(StandardApiResponse.success("Appointment saved", data));
+            return ResponseEntity.status(status).body(StandardApiResponse.success(messages.success("success.appointment.saved"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_SAVE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_SAVE_INVALID"), "APPOINTMENT_SAVE_INVALID"));
         }
     }
 
@@ -95,13 +101,13 @@ public class AppointmentV1Controller {
     ) {
         try {
             appointmentService.delete(businessKey, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Appointment deleted", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.deleted"), null));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_NOT_FOUND"), "APPOINTMENT_NOT_FOUND"));
         }
     }
 }

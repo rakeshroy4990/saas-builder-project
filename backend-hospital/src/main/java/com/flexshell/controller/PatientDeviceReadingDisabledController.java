@@ -1,6 +1,7 @@
 package com.flexshell.controller;
 
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.i18n.LocalizedApiMessages;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -13,11 +14,17 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "mongo", matchIfMissing = true)
 public class PatientDeviceReadingDisabledController {
 
+    private final LocalizedApiMessages messages;
+
+    public PatientDeviceReadingDisabledController(LocalizedApiMessages messages) {
+        this.messages = messages;
+    }
+
     @RequestMapping(value = "/**", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<Void>> unavailable() {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
                 .body(StandardApiResponse.error(
-                        "Patient device readings require PostgreSQL. Set APP_PERSISTENCE_PROVIDER=postgres.",
+                        messages.forErrorCode("PATIENT_DEVICE_READINGS_POSTGRES_REQUIRED"),
                         "PATIENT_DEVICE_READINGS_POSTGRES_REQUIRED"
                 ));
     }

@@ -47,7 +47,7 @@ public class DoctorScheduleService {
     public Optional<DoctorScheduleResponse> getSchedule(String doctorId, String actorUserId) {
         String docId = normalize(doctorId);
         if (docId.isBlank()) {
-            throw new IllegalArgumentException("DoctorId is required");
+            throw new IllegalArgumentException("DOCTOR_SCHEDULE_DOCTOR_ID_REQUIRED");
         }
         ensureCanReadSchedule(actorUserId, docId);
         return requireScheduleAccess().findByDoctorId(docId).map(this::toResponse);
@@ -74,16 +74,16 @@ public class DoctorScheduleService {
 
     public DoctorScheduleResponse upsert(DoctorScheduleUpsertRequest request, String actorUserId) {
         if (request == null) {
-            throw new IllegalArgumentException("Request body is required");
+            throw new IllegalArgumentException("DOCTOR_SCHEDULE_REQUEST_REQUIRED");
         }
         String doctorId = normalize(request.getDoctorId());
         if (doctorId.isBlank()) {
-            throw new IllegalArgumentException("DoctorId is required");
+            throw new IllegalArgumentException("DOCTOR_SCHEDULE_DOCTOR_ID_REQUIRED");
         }
         ensureCanWriteSchedule(actorUserId, doctorId);
         Map<String, DoctorScheduleDayDto> weeklyDto = request.getWeekly();
         if (weeklyDto == null || weeklyDto.isEmpty()) {
-            throw new IllegalArgumentException("Weekly schedule is required");
+            throw new IllegalArgumentException("DOCTOR_SCHEDULE_WEEKLY_REQUIRED");
         }
         validateWeekly(weeklyDto);
         DoctorScheduleAccess doctorScheduleAccess = requireScheduleAccess();
@@ -130,7 +130,7 @@ public class DoctorScheduleService {
     public boolean deleteByBusinessKey(String doctorId, String actorUserId) {
         String docId = normalize(doctorId);
         if (docId.isBlank()) {
-            throw new IllegalArgumentException("DoctorId is required");
+            throw new IllegalArgumentException("DOCTOR_SCHEDULE_DOCTOR_ID_REQUIRED");
         }
         ensureCanWriteSchedule(actorUserId, docId);
         return requireScheduleAccess().deleteByDoctorId(docId);
@@ -154,7 +154,7 @@ public class DoctorScheduleService {
     private void validateWeekly(Map<String, DoctorScheduleDayDto> weekly) {
         for (String key : weekly.keySet()) {
             if (!DAY_KEYS.contains(key)) {
-                throw new IllegalArgumentException("Invalid day key: " + key + ". Use MON..SUN.");
+                throw new IllegalArgumentException("DOCTOR_SCHEDULE_INVALID_DAY_KEY");
             }
         }
         boolean anyWorking = false;
@@ -164,11 +164,11 @@ public class DoctorScheduleService {
                 continue;
             }
             if (day.getSlotMinutes() != 15 && day.getSlotMinutes() != 30) {
-                throw new IllegalArgumentException(dayKey + ": SlotMinutes must be 15 or 30");
+                throw new IllegalArgumentException("DOCTOR_SCHEDULE_INVALID_SLOT_MINUTES");
             }
             List<DoctorScheduleWindowDto> windows = day.getWindows();
             if (windows == null || windows.isEmpty()) {
-                throw new IllegalArgumentException(dayKey + ": enabled days require at least one time window");
+                throw new IllegalArgumentException("DOCTOR_SCHEDULE_WINDOW_REQUIRED");
             }
             List<DoctorScheduleWindowDto> sorted = new ArrayList<>(windows);
             sorted.sort(Comparator.comparing(w -> parseTimeStart(w.getStart())));
@@ -177,17 +177,17 @@ public class DoctorScheduleService {
                 LocalTime s = parseTimeStrict(w.getStart(), dayKey + " start");
                 LocalTime e = parseTimeStrict(w.getEnd(), dayKey + " end");
                 if (!s.isBefore(e)) {
-                    throw new IllegalArgumentException(dayKey + ": each window must have start before end");
+                    throw new IllegalArgumentException("DOCTOR_SCHEDULE_WINDOW_ORDER_INVALID");
                 }
                 if (prevEnd != null && s.isBefore(prevEnd)) {
-                    throw new IllegalArgumentException(dayKey + ": time windows must not overlap");
+                    throw new IllegalArgumentException("DOCTOR_SCHEDULE_WINDOWS_OVERLAP");
                 }
                 prevEnd = e;
             }
             anyWorking = true;
         }
         if (!anyWorking) {
-            throw new IllegalArgumentException("At least one weekday must be enabled with time windows");
+            throw new IllegalArgumentException("DOCTOR_SCHEDULE_NO_ENABLED_DAY");
         }
     }
 
@@ -203,7 +203,7 @@ public class DoctorScheduleService {
         try {
             return LocalTime.parse(normalize(raw));
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Invalid time for " + label + ": " + raw);
+            throw new IllegalArgumentException("DOCTOR_SCHEDULE_INVALID_TIME");
         }
     }
 

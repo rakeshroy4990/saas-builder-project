@@ -6,6 +6,9 @@
     "brandTitle": "Agastya Healthcare",
     "logoAlt": "Agastya Healthcare logo"
   },
+  "validation": {
+    "checkFields": "Please check the required fields and try again."
+  },
   "auth": {
     "loginTitle": "Sign in",
     "email": "Email",
@@ -19,6 +22,9 @@
     "googleFailed": "Google sign-in failed. Please try again.",
     "gateTitle": "Sign in required",
     "gateMessage": "Please sign in to use this section of the app.",
+    "emailRequired": "Please enter your email.",
+    "passwordRequired": "Please enter your password.",
+    "emailAndPasswordRequired": "Please enter your email and password.",
     "invalidCredentials": "Invalid email or password",
     "networkError": "Unable to reach the server. Check your connection and API URL.",
     "restoringSession": "Restoring your session…",
@@ -41,6 +47,7 @@
     "empty": "No notifications yet",
     "loading": "Loading…",
     "markAllRead": "Mark all as read",
+    "close": "Close notifications",
     "bellAria": "Open notifications",
     "bellAriaWithCount": "Open notifications, {{count}} unread",
     "time": {
@@ -253,6 +260,10 @@
     "role": "Role",
     "userId": "User ID",
     "loading": "Loading profile…"
+  },
+  "language": {
+    "title": "Language",
+    "hint": "Select interface language"
   },
   "network": {
     "offlineBanner": "You are offline. Some features will not work until your connection returns."

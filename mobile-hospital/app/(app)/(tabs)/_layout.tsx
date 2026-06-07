@@ -19,6 +19,7 @@ export default function TabsLayout() {
     <Tabs
       initialRouteName="home"
       screenOptions={{
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         headerStyle: { backgroundColor: colors.surface },

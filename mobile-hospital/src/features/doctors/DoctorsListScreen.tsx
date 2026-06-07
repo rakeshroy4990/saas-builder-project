@@ -1,9 +1,10 @@
 import { useRouter, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useSessionStore } from '@/auth/sessionStore';
+import { DoctorAvatar } from '@/components/DoctorAvatar';
 import { LoadingView } from '@/components/LoadingView';
 import { colors } from '@/theme/colors';
 import { sharedStyles } from '@/theme/styles';
@@ -90,7 +91,13 @@ export function DoctorsListScreen() {
           {section.doctors.map((doctor) => (
             <View key={doctor.id} style={sharedStyles.card}>
               <View style={styles.cardRow}>
-                <Image source={{ uri: doctor.imageUrl }} style={styles.avatar} accessibilityLabel={doctor.name} />
+                <DoctorAvatar
+                  profilePic={doctor.profilePic}
+                  imageUrl={doctor.imageUrl}
+                  name={doctor.name}
+                  size={56}
+                  borderRadius={12}
+                />
                 <View style={styles.cardBody}>
                   <Text style={sharedStyles.cardTitle}>{doctor.name}</Text>
                   {doctor.speciality ? <Text style={sharedStyles.cardMeta}>{doctor.speciality}</Text> : null}
@@ -148,12 +155,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
     marginBottom: 12
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: colors.background
   },
   cardBody: {
     flex: 1,

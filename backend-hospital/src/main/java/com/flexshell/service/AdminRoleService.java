@@ -44,7 +44,7 @@ public class AdminRoleService {
         UserEntity targetUser = users.findById(targetUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Role request not found"));
         if (targetUser.getRoleStatus() != RoleRequestStatus.PENDING_APPROVAL || targetUser.getRequestedRole() == null) {
-            throw new IllegalArgumentException("Role request is not pending approval");
+            throw new IllegalArgumentException("ROLE_REQUEST_NOT_PENDING");
         }
         targetUser.setRole(targetUser.getRequestedRole());
         targetUser.setRoleStatus(RoleRequestStatus.ACTIVE);
@@ -65,7 +65,7 @@ public class AdminRoleService {
         UserEntity targetUser = users.findById(targetUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Role request not found"));
         if (targetUser.getRoleStatus() != RoleRequestStatus.PENDING_APPROVAL || targetUser.getRequestedRole() == null) {
-            throw new IllegalArgumentException("Role request is not pending approval");
+            throw new IllegalArgumentException("ROLE_REQUEST_NOT_PENDING");
         }
         targetUser.setRole(UserRole.PATIENT);
         targetUser.setRoleStatus(RoleRequestStatus.REJECTED);

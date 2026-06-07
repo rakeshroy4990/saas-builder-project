@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.CreateDomainActionEventRequest;
 import com.flexshell.controller.dto.DomainActionEventResponse;
 import com.flexshell.controller.dto.DomainActionEventSaveRequest;
@@ -26,17 +27,22 @@ import java.util.UUID;
 @RequestMapping("/api/v1/admin/domain-action-events")
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class AdminDomainActionEventController {
+    private final LocalizedApiMessages messages;
+
 
     private final DomainActionEventAdminService domainActionEventAdminService;
 
-    public AdminDomainActionEventController(DomainActionEventAdminService domainActionEventAdminService) {
+    public AdminDomainActionEventController(DomainActionEventAdminService domainActionEventAdminService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.domainActionEventAdminService = domainActionEventAdminService;
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<List<DomainActionEventResponse>>> listBindings() {
         return ResponseEntity.ok(StandardApiResponse.success(
-                "Domain action bindings loaded",
+                messages.success("success.domain.action.bindings.loaded"),
                 domainActionEventAdminService.listBindings()
         ));
     }
@@ -47,10 +53,10 @@ public class AdminDomainActionEventController {
     ) {
         try {
             DomainActionEventResponse data = domainActionEventAdminService.saveBinding(request);
-            return ResponseEntity.ok(StandardApiResponse.success("Domain action binding saved", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.domain.action.binding.saved"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOMAIN_ACTION_EVENT_SAVE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOMAIN_ACTION_EVENT_SAVE_INVALID"), "DOMAIN_ACTION_EVENT_SAVE_INVALID"));
         }
     }
 
@@ -61,10 +67,10 @@ public class AdminDomainActionEventController {
         try {
             DomainActionEventResponse data = domainActionEventAdminService.createBinding(request);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(StandardApiResponse.success("Domain action binding created", data));
+                    .body(StandardApiResponse.success(messages.success("success.domain.action.binding.created"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOMAIN_ACTION_EVENT_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOMAIN_ACTION_EVENT_INVALID"), "DOMAIN_ACTION_EVENT_INVALID"));
         }
     }
 
@@ -75,10 +81,10 @@ public class AdminDomainActionEventController {
     ) {
         try {
             DomainActionEventResponse data = domainActionEventAdminService.updateBinding(externalId, request);
-            return ResponseEntity.ok(StandardApiResponse.success("Domain action binding updated", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.domain.action.binding.updated"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOMAIN_ACTION_EVENT_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOMAIN_ACTION_EVENT_INVALID"), "DOMAIN_ACTION_EVENT_INVALID"));
         }
     }
 
@@ -86,10 +92,10 @@ public class AdminDomainActionEventController {
     public ResponseEntity<StandardApiResponse<Void>> deleteBinding(@PathVariable UUID externalId) {
         try {
             domainActionEventAdminService.deleteBinding(externalId);
-            return ResponseEntity.ok(StandardApiResponse.success("Domain action binding deleted", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.domain.action.binding.deleted"), null));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOMAIN_ACTION_EVENT_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOMAIN_ACTION_EVENT_NOT_FOUND"), "DOMAIN_ACTION_EVENT_NOT_FOUND"));
         }
     }
 }

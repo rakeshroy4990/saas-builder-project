@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.SessionTelemetryBatchRequest;
 import com.flexshell.controller.dto.SessionTelemetryEventRequest;
 import com.flexshell.controller.dto.StandardApiResponse;
@@ -21,9 +22,14 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/telemetry")
 public class SessionTelemetryController {
+    private final LocalizedApiMessages messages;
+
     private final SessionTelemetryService sessionTelemetryService;
 
-    public SessionTelemetryController(SessionTelemetryService sessionTelemetryService) {
+    public SessionTelemetryController(SessionTelemetryService sessionTelemetryService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.sessionTelemetryService = sessionTelemetryService;
     }
 
@@ -35,10 +41,10 @@ public class SessionTelemetryController {
         try {
             String actorUserId = authentication == null ? "" : authentication.getName();
             Map<String, Object> data = sessionTelemetryService.ingestSessionEvent(actorUserId, request);
-            return ResponseEntity.ok(StandardApiResponse.success("Telemetry session updated", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.telemetry.session.updated"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "TELEMETRY_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "TELEMETRY_INVALID"), "TELEMETRY_INVALID"));
         }
     }
 
@@ -50,10 +56,10 @@ public class SessionTelemetryController {
         try {
             String actorUserId = authentication == null ? "" : authentication.getName();
             Map<String, Object> data = sessionTelemetryService.ingestSessionEventBatch(actorUserId, batch.getEvents());
-            return ResponseEntity.ok(StandardApiResponse.success("Telemetry batch applied", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.telemetry.batch.applied"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "TELEMETRY_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "TELEMETRY_INVALID"), "TELEMETRY_INVALID"));
         }
     }
 
@@ -62,6 +68,6 @@ public class SessionTelemetryController {
             @RequestParam("trace_id") String traceId
     ) {
         Map<String, Object> data = sessionTelemetryService.findSnapshotByTraceId(traceId);
-        return ResponseEntity.ok(StandardApiResponse.success("Session snapshot", data));
+        return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.telemetry.session.snapshot"), data));
     }
 }

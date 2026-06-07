@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { UserRole } from '@saas-builder/hospital-api-client';
+import type { LocaleCode } from '@saas-builder/i18n-contract';
 
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from './tokenTtl';
 
@@ -9,6 +10,7 @@ export interface SessionUser {
   email: string;
   displayName: string;
   role: UserRole;
+  preferredLocale?: LocaleCode;
 }
 
 interface SessionState {

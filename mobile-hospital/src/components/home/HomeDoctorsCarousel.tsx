@@ -1,5 +1,6 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { DoctorAvatar } from '@/components/DoctorAvatar';
 import type { DoctorListEntry } from '@/features/doctors/doctorsApi';
 import { colors } from '@/theme/colors';
 
@@ -38,7 +39,13 @@ export function HomeDoctorsCarousel({
       >
         {doctors.map((doctor) => (
           <View key={doctor.id} style={styles.card}>
-            <Image source={{ uri: doctor.imageUrl }} style={styles.avatar} accessibilityLabel={doctor.name} />
+            <DoctorAvatar
+              profilePic={doctor.profilePic}
+              imageUrl={doctor.imageUrl}
+              name={doctor.name}
+              size={72}
+              borderRadius={12}
+            />
             <View style={styles.meta}>
               <Text style={styles.name} numberOfLines={1}>
                 {doctor.name}
@@ -96,12 +103,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 14,
     padding: 12
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
-    backgroundColor: colors.background
   },
   meta: {
     flex: 1,

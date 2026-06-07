@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.ai.AiProviderException;
 import com.flexshell.ai.PdfRagQueryAdapter;
 import com.flexshell.ai.RagEducationCatalogModels.BooksPayload;
@@ -27,15 +28,19 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/api/hospital/education")
 public class HospitalEducationCatalogController {
+    private final LocalizedApiMessages messages;
+
     private static final Logger LOG = LoggerFactory.getLogger(HospitalEducationCatalogController.class);
     private final PdfRagQueryAdapter pdfRagQueryAdapter;
     private final String accessTokenCookieName;
 
     public HospitalEducationCatalogController(
             PdfRagQueryAdapter pdfRagQueryAdapter,
+            LocalizedApiMessages messages,
             @Value("${app.auth.cookie.access-token-name:access_token}") String accessTokenCookieName
     ) {
         this.pdfRagQueryAdapter = pdfRagQueryAdapter;
+        this.messages = messages;
         this.accessTokenCookieName = accessTokenCookieName == null || accessTokenCookieName.isBlank()
                 ? "access_token"
                 : accessTokenCookieName.trim();
@@ -50,20 +55,20 @@ public class HospitalEducationCatalogController {
     ) {
         if (!isClinicalCatalogUser(authentication)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error("Education catalog is restricted to clinical users.", "EDUCATION_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("EDUCATION_FORBIDDEN"), "EDUCATION_FORBIDDEN"));
         }
         try {
             String authForRag = authorizationForRagProxy(authorizationHeader, httpRequest);
             BooksPayload payload = pdfRagQueryAdapter.fetchEducationBooks(authForRag, includeOutdated);
-            return ResponseEntity.ok(StandardApiResponse.success("Education books", payload));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.education.books"), payload));
         } catch (SecurityException ex) {
             LOG.warn("education_books_missing_auth");
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "EDUCATION_AUTH_MISSING"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "EDUCATION_AUTH_MISSING"), "EDUCATION_AUTH_MISSING"));
         } catch (AiProviderException ex) {
             LOG.warn("education_books_provider_failed kind={} msg={}", ex.kind(), ex.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "EDUCATION_CATALOG_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "EDUCATION_CATALOG_UNAVAILABLE"), "EDUCATION_CATALOG_UNAVAILABLE"));
         }
     }
 
@@ -77,20 +82,20 @@ public class HospitalEducationCatalogController {
     ) {
         if (!isClinicalCatalogUser(authentication)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error("Education catalog is restricted to clinical users.", "EDUCATION_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("EDUCATION_FORBIDDEN"), "EDUCATION_FORBIDDEN"));
         }
         try {
             String authForRag = authorizationForRagProxy(authorizationHeader, httpRequest);
             KeyTopicsPayload payload = pdfRagQueryAdapter.fetchEducationKeyTopics(authForRag, bookName, limit);
-            return ResponseEntity.ok(StandardApiResponse.success("Education key topics", payload));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.education.key.topics"), payload));
         } catch (SecurityException ex) {
             LOG.warn("education_key_topics_missing_auth");
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "EDUCATION_AUTH_MISSING"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "EDUCATION_AUTH_MISSING"), "EDUCATION_AUTH_MISSING"));
         } catch (AiProviderException ex) {
             LOG.warn("education_key_topics_provider_failed kind={} msg={}", ex.kind(), ex.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "EDUCATION_CATALOG_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "EDUCATION_CATALOG_UNAVAILABLE"), "EDUCATION_CATALOG_UNAVAILABLE"));
         }
     }
 

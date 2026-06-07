@@ -1,0 +1,1046 @@
+{
+  "nav": {
+    "menu": "ಮೆನು",
+    "home": "ಮುಖಪುಟ",
+    "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "prescription": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು",
+    "aiDiagnosis": "AI ನಿದಾನ",
+    "blog": "ಬ್ಲಾಗ್",
+    "loginRegister": "ಲಾಗಿನ್ / ನೋಂದಣಿ",
+    "bookNow": "ಈಗ ಬುಕ್ ಮಾಡಿ",
+    "profile": "ಪ್ರೊಫೈಲ್",
+    "inactiveAccount": "ನಿಷ್ಕ್ರಿಯ ಖಾತೆ",
+    "signOut": "ಸೈನ್ ಔಟ್",
+    "signingOut": "ಸೈನ್ ಔಟ್ ಆಗುತ್ತಿದೆ…",
+    "accountMenuTitle": "ಖಾತೆ ಮೆನು — ಪ್ರೊಫೈಲ್, ಖಾತೆ ಸ್ಥಿತಿ, ಸೈನ್ ಔಟ್",
+    "language": "ಭಾಷೆ",
+    "languageHint": "ಇಂಟರ್ಫೇಸ್ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "account": "ಖಾತೆ"
+  },
+  "notifications": {
+    "title": "ಅಧಿಸೂಚನೆಗಳು",
+    "empty": "ಇನ್ನೂ ಯಾವುದೇ ಅಧಿಸೂಚನೆಗಳಿಲ್ಲ",
+    "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ…",
+    "markAllRead": "ಎಲ್ಲವನ್ನೂ ಓದಿದೆ ಎಂದು ಗುರುತಿಸಿ",
+    "bellAria": "ಅಧಿಸೂಚನೆಗಳನ್ನು ತೆರೆಯಿರಿ",
+    "bellAriaWithCount": "ಅಧಿಸೂಚನೆಗಳನ್ನು ತೆರೆಯಿರಿ, {count} ಓದದಿರುವುದು",
+    "groups": {
+      "today": "ಇಂದು",
+      "yesterday": "ನಿನ್ನೆ",
+      "earlier": "ಹಿಂದೆ"
+    },
+    "time": {
+      "justNow": "ಈಗ",
+      "minutesAgo": "{count} ನಿಮಿಷ ಹಿಂದೆ",
+      "hoursAgo": "{count} ಗಂಟೆ ಹಿಂದೆ",
+      "daysAgo": "{count} ದಿನ ಹಿಂದೆ"
+    }
+  },
+  "hospital": {
+    "brandTitle": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್",
+    "logoAlt": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ಲೋಗೋ"
+  },
+  "footer": {
+    "terms": "ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು",
+    "privacyIndia": "ಗೌಪ್ಯತೆ ಸೂಚನೆ (ಭಾರತ)",
+    "tagline": {
+      "home": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ಮಕ್ಕಳ ಮತ್ತು ಕುಟುಂಬ ಆರೈಕೆಗೆ ನಂಬಿಕೆ.",
+      "dashboard": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ | ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳನ್ನು ಸಮರ್ಥವಾಗಿ ನಿರ್ವಹಿಸಿ.",
+      "patientDashboard": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ನಿಮ್ಮ ರೋಗಿ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಮತ್ತು ಆರೈಕೆ ಅಪ್‌ಡೇಟ್‌ಗಳು.",
+      "doctorOverview": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ನಮ್ಮ ಆರೈಕೆ ತಂಡ ಮತ್ತು ತಜ್ಞರನ್ನು ಭೇಟಿಯಾಗಿ.",
+      "doctorEducation": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ವೈದ್ಯರಿಗಾಗಿ ಕ್ಲಿನಿಕಲ್ ಕಲಿಕೆ ಕಾರ್ಯವಿಧಾನ.",
+      "prescriptions": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ನಿಮ್ಮ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಅಪ್‌ಲೋಡ್ ಮತ್ತು ನಿರ್ವಹಿಸಿ.",
+      "blog": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ಜಿಜ್ಞಾಸೆಯೊಂದಿಗೆ wellness ಕಥೆಗಳು.",
+      "blogArticle": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ಜಿಜ್ಞಾಸೆಯೊಂದಿಗೆ wellness ಕಥೆಗಳು.",
+      "chat": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ಪ್ರಶ್ನೆಗಳು? ನಮ್ಮ ತಂಡ ಸಹಾಯಕ್ಕೆ ಇಲ್ಲಿದೆ.",
+      "privacy": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ಮಕ್ಕಳ ಮತ್ತು ಕುಟುಂಬ ಆರೈಕೆಗೆ ನಂಬಿಕೆ.",
+      "bookAppointment": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ನಿಮ್ಮ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ವಿವರಗಳನ್ನು ಅಪ್‌ಡೇಟ್ ಮಾಡಿ.",
+      "profile": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ನಿಮ್ಮ ಖಾತೆ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ನಿರ್ವಹಿಸಿ.",
+      "termsPage": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ | ಮಕ್ಕಳ ಮತ್ತು ಕುಟುಂಬ ಆರೈಕೆಗೆ ನಂಬಿಕೆ."
+    }
+  },
+  "popup": {
+    "login": "ಲಾಗಿನ್",
+    "register": "ನೋಂದಣಿ",
+    "bookAppointment": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕ್ ಮಾಡಿ",
+    "articlePreview": "ಲೇಖನ ಪೂರ್ವಾವಲೋಕನ",
+    "registrationSuccess": "ನೋಂದಣಿ ಯಶಸ್ವಿ",
+    "appointmentCreated": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ರಚಿಸಲಾಗಿದೆ",
+    "receipts": "ರಸೀದಿಗಳು",
+    "videoCall": "ವೀಡಿಯೋ ಕಾಲ್",
+    "editAppointment": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಸಂಪಾದಿಸಿ",
+    "eprescription": "ಇ-ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್",
+    "resetPassword": "ಪಾಸ್‌ವರ್ಡ್ ಮರುಹೊಂದಿಸಿ",
+    "chooseLanguage": "ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "chooseLanguageHint": "ಇದು ಆ್ಯಪ್‌ನಲ್ಲಿ ಮೆನುಗಳು ಮತ್ತು ಲೇಬಲ್‌ಗಳನ್ನು ನಿಯಂತ್ರಿಸುತ್ತದೆ. ನಂತರ ಪ್ರೊಫೈಲ್‌ನಿಂದ ಬದಲಾಯಿಸಬಹುದು.",
+    "prescriptionUploaded": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್",
+    "prescriptionUploadedMessage": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಯಶಸ್ವಿಯಾಗಿ ಅಪ್‌ಲೋಡ್ ಆಗಿದೆ",
+    "prescriptionUploadedView": "ನೋಡಿ",
+    "educationAttachmentSequence": {
+      "title": "ಫೈಲ್ ಕ್ರಮವನ್ನು ದೃಢೀಕರಿಸಿ",
+      "hint": "ಯಾವ ಫೈಲ್ ಮೊದಲು ಬರುತ್ತದೆ ಎಂದು ಬಾಣಗಳಿಂದ ಹೊಂದಿಸಿ. OK ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಫೈಲ್‌ಗಳು ಈ ಕ್ರಮದಲ್ಲಿ ಸಹಾಯಕರಿಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.",
+      "confirm": "OK — ಈ ಕ್ರಮದಲ್ಲಿ ಕಳುಹಿಸಿ",
+      "empty": "ಕ್ರಮ ದೃಢೀಕರಿಸಲು ಕನಿಷ್ಠ ಎರಡು ಫೈಲ್‌ಗಳನ್ನು ಸೇರಿಸಿ."
+    },
+    "error": {
+      "title": "ಏನೋ ತಪ್ಪಾಗಿದೆ",
+      "generic": "ನಿಮ್ಮ ವಿನಂತಿಯನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸುವಾಗ ಏನೋ ತಪ್ಪಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "network": "ಈಗ ಸರ್ವರ್‌ಗೆ ಸಂಪರ್ಕಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "requestTimeout": "ವಿನಂತಿ ಪೂರ್ಣಗೊಳ್ಳಲು ಹೆಚ್ಚು ಸಮಯ ತೆಗೆದುಕೊಂಡಿತು. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "sessionExpired": "ನಿಮ್ಮ ಸೆಷನ್ ಅವಧಿ ಮುಗಿದಿರಬಹುದು. ದಯವಿಟ್ಟು ಮತ್ತೆ Login ಮಾಡಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "unavailable": "ಸೇವೆ ತಾತ್ಕಾಲಿಕವಾಗಿ ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "streamInterrupted": "ಪ್ರತಿಕ್ರಿಯೆ ಪೂರ್ಣಗೊಳ್ಳುವ ಮೊದಲು ನಿಂತುಹೋಯಿತು. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "streamNoBody": "ಪೂರ್ಣ ಪ್ರತಿಕ್ರಿಯೆ ಸಿಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "rateLimited": "ಈಗ ಹೆಚ್ಚು ವಿನಂತಿಗಳಿವೆ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಕಾಯಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+    },
+    "loginForm": {
+      "emailLabel": "ಇಮೇಲ್ *",
+      "emailPlaceholder": "youremail{'@'}example.com",
+      "passwordLabel": "ಪಾಸ್‌ವರ್ಡ್ *",
+      "passwordPlaceholder": "ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ",
+      "or": "ಅಥವಾ",
+      "googleSignIn": "Google ನೊಂದಿಗೆ ಸೈನ್ ಇನ್",
+      "resetForgotPassword": "ಮರುಹೊಂದಿಸಿ / ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿದ್ದೀರಾ",
+      "newUserRegister": "ಹೊಸ ಬಳಕೆದಾರ? ನೋಂದಣಿ"
+    }
+  },
+  "register": {
+    "validation": {
+      "missingFields": "ದಯವಿಟ್ಟು ಇವನ್ನು ತುಂಬಿ: {fields}",
+      "separator": ", ",
+      "mustAcceptTerms": "ನೋಂದಣಿಗಾಗಿ ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳನ್ನು ಸ್ವೀಕರಿಸಬೇಕು.",
+      "tryLater": "ಈಗ ನೋಂದಣಿ ಪೂರ್ಣಗೊಳ್ಳಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+    },
+    "fields": {
+      "firstName": "ಮೊದಲ ಹೆಸರು",
+      "lastName": "ಕೊನೆಯ ಹೆಸರು",
+      "emailId": "ಇಮೇಲ್",
+      "password": "ಪಾಸ್‌ವರ್ಡ್",
+      "gender": "ಲಿಂಗ",
+      "mobileNumber": "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ",
+      "qualifications": "ಅರ್ಹತೆಗಳು",
+      "smcName": "ರಾಜ್ಯ ವೈದ್ಯಕೀಯ ಮಂಡಳಿ",
+      "smcRegistrationNumber": "SMC ನೋಂದಣಿ ಸಂಖ್ಯೆ",
+      "address": "ವಿಳಾಸ",
+      "role": "ಭೂಮಿಕೆ",
+      "department": "ವಿಭಾಗ"
+    },
+    "placeholders": {
+      "firstName": "ಮೊದಲ ಹೆಸರು ನಮೂದಿಸಿ",
+      "lastName": "ಕೊನೆಯ ಹೆಸರು ನಮೂದಿಸಿ",
+      "email": "youremail@example.com",
+      "password": "ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ",
+      "address": "ವಿಳಾಸ ನಮೂದಿಸಿ",
+      "mobile": "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ",
+      "qualifications": "ಅರ್ಹತೆಗಳನ್ನು ನಮೂದಿಸಿ",
+      "smcName": "ರಾಜ್ಯ ವೈದ್ಯಕೀಯ ಮಂಡಳಿ ನಮೂದಿಸಿ",
+      "smcRegistrationNumber": "SMC ನೋಂದಣಿ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ"
+    },
+    "terms": {
+      "agreePrefix": "ನಾನು ಓದಿದ್ದೇನೆ ಮತ್ತು ಒಪ್ಪುತ್ತೇನೆ",
+      "termsLink": "ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು",
+      "privacyLink": "ಗೌಪ್ಯತೆ ಸೂಚನೆ (ಭಾರತ)"
+    },
+    "buttons": {
+      "cancel": "ರದ್ದುಮಾಡಿ",
+      "register": "ನೋಂದಣಿ"
+    }
+  },
+  "page": {
+    "home": {
+      "title": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ಆಸ್ಪತ್ರೆ"
+    },
+    "dashboard": {
+      "title": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್"
+    },
+    "prescriptions": {
+      "title": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು"
+    },
+    "terms": {
+      "title": "ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು"
+    },
+    "privacy": {
+      "title": "ಗೌಪ್ಯತೆ ಸೂಚನೆ (ಭಾರತ)"
+    },
+    "blog": {
+      "title": "Wellness ಬ್ಲಾಗ್"
+    },
+    "blogArticle": {
+      "title": "ಲೇಖನ"
+    },
+    "chat": {
+      "title": "ಚಾಟ್"
+    },
+    "profile": {
+      "title": "ಪ್ರೊಫೈಲ್"
+    },
+    "appointment": {
+      "title": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್"
+    },
+    "patientDashboard": {
+      "title": "ರೋಗಿ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+      "introGuidance": "ಮುಂದಿನ ಆರೈಕೆ ಮುಖ್ಯಾಂಶಗಳನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು follow-up ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳನ್ನು ತ್ವರಿತವಾಗಿ schedule ಮಾಡಿ."
+    },
+    "doctorOverview": {
+      "title": "ವೈದ್ಯರ ಅವಲೋಕನ"
+    },
+    "doctorEducation": {
+      "title": "ವೈದ್ಯ ಶಿಕ್ಷಣ",
+      "doctorsOnly": "ಶಿಕ್ಷಣ ವೈದ್ಯ ಬಳಕೆದಾರರಿಗೆ ಮಾತ್ರ ಲಭ್ಯ."
+    }
+  },
+  "profilePage": {
+    "yourDetails": "ನಿಮ್ಮ ವಿವರಗಳು",
+    "inactiveHeading": "ನಿಷ್ಕ್ರಿಯ ಖಾತೆ",
+    "inactiveCopy": "ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿದರೆ ನೀವು ತಕ್ಷಣ ಸೈನ್ ಔಟ್ ಆಗುತ್ತೀರಿ. Admin ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಮರುಸಕ್ರಿಯಗೊಳಿಸುವವರೆಗೆ ನೀವು ಮತ್ತೆ Login ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    "deactivateButton": "ನನ್ನ ಖಾತೆಯನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ",
+    "fields": {
+      "firstName": "ಮೊದಲ ಹೆಸರು *",
+      "lastName": "ಕೊನೆಯ ಹೆಸರು *",
+      "email": "ಇಮೇಲ್ *",
+      "mobileNumber": "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ *",
+      "gender": "ಲಿಂಗ *",
+      "department": "ವಿಭಾಗ",
+      "qualifications": "ಅರ್ಹತೆಗಳು *",
+      "experienceSummary": "ಅನುಭವ (ಮುಖಪುಟದಲ್ಲಿ ತೋರಿಸಲಾಗುತ್ತದೆ)",
+      "profilePic": "ಪ್ರೊಫೈಲ್ ಫೋಟೋ (Cloudinary public ID ಅಥವಾ URL)",
+      "smcName": "ರಾಜ್ಯ ವೈದ್ಯಕೀಯ ಮಂಡಳಿ *",
+      "smcRegistrationNumber": "SMC ನೋಂದಣಿ ಸಂಖ್ಯೆ *",
+      "address": "ವಿಳಾಸ *"
+    }
+  },
+  "errors": {
+    "notFound": "ಪುಟ ಕಂಡುಬಂದಿಲ್ಲ: {package}/{page}",
+    "notFoundTitle": "ಪುಟ ಕಂಡುಬಂದಿಲ್ಲ"
+  },
+  "locale": {
+    "setTitle": "ಭಾಷೆ ಹೊಂದಿಸಲಾಗುತ್ತಿದೆ…"
+  },
+  "common": {
+    "close": "ಮುಚ್ಚಿ",
+    "cancel": "ರದ್ದುಮಾಡಿ",
+    "save": "ಉಳಿಸಿ",
+    "submit": "ಸಲ್ಲಿಸಿ",
+    "selectPlaceholder": "ಆಯ್ಕೆಮಾಡಿ…",
+    "previous": "ಹಿಂದಿನ",
+    "next": "ಮುಂದಿನ",
+    "refresh": "ರಿಫ್ರೆಶ್",
+    "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ…",
+    "menu": "ಮೆನು",
+    "chooseDate": "ದಿನಾಂಕ ಆಯ್ಕೆಮಾಡಿ",
+    "dateFormatYmd": "yyyy-mm-dd",
+    "start": "ಪ್ರಾರಂಭ",
+    "end": "ಅಂತ್ಯ",
+    "remove": "ತೆಗೆದುಹಾಕಿ",
+    "days": {
+      "mon": "ಸೋಮವಾರ",
+      "tue": "ಮಂಗಳವಾರ",
+      "wed": "ಬುಧವಾರ",
+      "thu": "ಗುರುವಾರ",
+      "fri": "ಶುಕ್ರವಾರ",
+      "sat": "ಶನಿವಾರ",
+      "sun": "ಭಾನುವಾರ"
+    }
+  },
+  "home": {
+    "hero": {
+      "title": "ನಿಮ್ಮ ಆರೋಗ್ಯ, ನಮ್ಮ ಆದ್ಯತೆ",
+      "subtitle": "ಅತ್ಯಾಧುನಿಕ ವೈದ್ಯಕೀಯ ಸೌಲಭ್ಯಗಳೊಂದಿಗೆ ಸಹಾನುಭೂತಿಯ ಆರೈಕೆಯ ಅನುಭವ. ನಮ್ಮ ತಜ್ಞ ವೈದ್ಯರ ತಂಡ ನಿಮ್ಮ wellbeing ಗೆ ಬದ್ಧವಾಗಿದೆ.",
+      "ctaPrimary": "ಭೇಟಿ schedule ಮಾಡಿ",
+      "ctaDoctor": "AI ನಿದಾನ",
+      "featuredVideoTitle": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ನಿಂದ featured ವೀಡಿಯೋ"
+    },
+    "section": {
+      "doctors": {
+        "heading": "ನಮ್ಮ ತಜ್ಞ ವೈದ್ಯರನ್ನು ಭೇಟಿಯಾಗಿ",
+        "subheading": "ಹೆಚ್ಚು qualified ಮತ್ತು experienced ವೈದ್ಯಕೀಯ professionals ನ ತಂಡ"
+      },
+      "services": {
+        "heading": "ನಮ್ಮ ವೈದ್ಯಕೀಯ ಸೇವೆಗಳು",
+        "subheading": "ಉತ್ಕೃಷ್ಟತೆ ಮತ್ತು ಸಹಾನುಭೂತಿಯೊಂದಿಗೆ ಸಮಗ್ರ ಆರೋಗ್ಯ ಸೇವೆ"
+      },
+      "highlights": {
+        "heading": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ಏಕೆ?"
+      },
+      "contact": {
+        "heading": "ಸಂಪರ್ಕಿಸಿ"
+      }
+    },
+    "services": {
+      "pediatrics": {
+        "name": "ಮಕ್ಕಳ ವೈದ್ಯ",
+        "description": "ಎಲ್ಲಾ ವಯಸ್ಸಿನ ಮಕ್ಕಳಿಗೆ gentle ಮತ್ತು ಸಮಗ್ರ ಆರೈಕೆ"
+      }
+    },
+    "doctors": {
+      "swati": {
+        "name": "ಡಾ. ಸ್ವಾತಿ ಪಾಂಡೆ",
+        "speciality": "ಮಕ್ಕಳ ವೈದ್ಯ ತಜ್ಞ",
+        "degree": "MBBS, DNB Pediatrics, DCH (CMC Ludhiana)",
+        "experience": "5+ ವರ್ಷಗಳ ಅನುಭವ"
+      }
+    },
+    "highlights": {
+      "tech": {
+        "title": "ಸುಧಾರಿತ ತಂತ್ರಜ್ಞಾನ",
+        "detail": "ಇತ್ತೀಚಿನ ವೈದ್ಯಕೀಯ equipment ಮತ್ತು diagnostic ಸಾಧನಗಳು"
+      },
+      "team": {
+        "title": "ತಜ್ಞ ವೈದ್ಯಕೀಯ ತಂಡ",
+        "detail": "board-certified ವೈದ್ಯರು ಮತ್ತು ತಜ್ಞರು"
+      },
+      "care": {
+        "title": "ರೋಗಿ-ಕೇಂದ್ರಿತ ಆರೈಕೆ",
+        "detail": "ಪ್ರತಿ ರೋಗಿಗೆ ವೈಯಕ್ತಿಕ treatment plan"
+      }
+    },
+    "contact": {
+      "whatsapp": "WhatsApp ಮಾತ್ರ: 6360895190",
+      "email": "EmailId: pedsforpeople{'@'}gmail.com"
+    }
+  },
+  "blog": {
+    "heading": "Wellness ಮತ್ತು ಕುತೂಹಲ",
+    "subheading": "ಉತ್ತಮ ಅಭ್ಯಾಸಗಳು ಮತ್ತು ಸರಿಯಾದ ಪ್ರಶ್ನೆಗಳಿಗಾಗಿ ಚಿಕ್ಕ ಲೇಖನಗಳು — ಇದು ವೈದ್ಯಕೀಯ ಸಲಹೆ ಅಲ್ಲ. ವೈಯಕ್ತಿಕ ನಿರ್ಧಾರಗಳಿಗಾಗಿ ನಿಮ್ಮ clinician ಜೊತೆ ಮಾತನಾಡಿ.",
+    "loading": "ಲೇಖನಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ…",
+    "empty": "ಈಗ ತೋರಿಸಲು ಯಾವುದೇ ಲೇಖನಗಳಿಲ್ಲ.",
+    "card": {
+      "readMoreHint": "ಪೂರ್ಣ ಕಥೆ, ಉದಾಹರಣೆಗಳು ಮತ್ತು practical context ಗಾಗಿ ಲೇಖನ ಪುಟ ತೆರೆಯಿರಿ.",
+      "openArticle": "ಲೇಖನ ಪುಟ ತೆರೆಯಿರಿ"
+    },
+    "article": {
+      "backAll": "← ಎಲ್ಲಾ ಲೇಖನಗಳು",
+      "loading": "ಲೇಖನ ಲೋಡ್ ಆಗುತ್ತಿದೆ…"
+    },
+    "source": {
+      "legacyList": "ಡೇಟಾ ಸರಳ ಪಟ್ಟಿಯಾಗಿ (legacy API) ಬಂದಿದೆ. ಮೂಲ attribution incomplete ಆಗಿರಬಹುದು.",
+      "llm": "Teasers AI model ನಿಂದ. refresh ಮಾಡಿದಾಗ server cache ಮರುಬಳಕೆ ಆಗಬಹುದು.",
+      "staticFallback": "ಕ್ಯೂರೇಟ್ ಮಾಡಿದ ಸ್ಥಿರ teasers.",
+      "staticFallbackVerbose": "Curated static teasers ತೋರಿಸಲಾಗುತ್ತಿದೆ (AI output ಖಾಲಿಯಾಗಿದ್ದಾಗ ಅಥವಾ parse ಆಗದಿದ್ದಾಗ). ಪುಟ ವೇಗವಾಗಿ load ಆಗಲು ಇತ್ತೀಚಿನ server result ಮರುಬಳಕೆ — ಇದು ಸಾಮಾನ್ಯ.",
+      "hospitalApi": "Teasers hospital blog API ನಿಂದ."
+    },
+    "dynamic": {
+      "defaultCategory": "ಆರೋಗ್ಯ",
+      "unableLoadArticles": "ಲೇಖನಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+      "missingArticleAddress": "ಲೇಖನದ ವಿಳಾಸ ಕಾಣೆಯಾಗಿದೆ.",
+      "reference": "ಉಲ್ಲೇಖ",
+      "minRead": "ನಿಮಿಷ ಓದು",
+      "firstQuestion": "“{title}” ಬಗ್ಗೆ ನೀವು ಮೊದಲು ಏನು explore ಮಾಡಲು ಬಯಸುತ್ತೀರಿ?",
+      "followupQuestion": "ಪೂರ್ಣ ಲೇಖನ ಓದಿದ ನಂತರ routine visit ನಲ್ಲಿ ಯಾವ ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಬಹುದು?"
+    }
+  },
+  "toast": {
+    "prescriptionImageLimit": "ಎರಡಕ್ಕಿಂತ ಹೆಚ್ಚು ಚಿತ್ರಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ; ದಯವಿಟ್ಟು ಇತ್ತೀಚಿನ ಎರಡು prescription ಚಿತ್ರಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.",
+    "profileSaved": "ಪ್ರೊಫೈಲ್ ಉಳಿಸಲಾಗಿದೆ.",
+    "languageSaved": "ಭಾಷೆ ಉಳಿಸಲಾಗಿದೆ.",
+    "profileViewLoginRequired": "ಪ್ರೊಫೈಲ್ ನೋಡಲು ದಯವಿಟ್ಟು Login ಮಾಡಿ.",
+    "profileLoadFailed": "ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಆಗಲಿಲ್ಲ.",
+    "profileSaveLoginRequired": "ಪ್ರೊಫೈಲ್ ಉಳಿಸಲು ದಯವಿಟ್ಟು Login ಮಾಡಿ.",
+    "localeLoginRequired": "ಮುಂದುವರಿಯಲು ದಯವಿಟ್ಟು Login ಮಾಡಿ.",
+    "localeUnsupported": "ಈ ಭಾಷೆ ಬೆಂಬಲಿತವಲ್ಲ.",
+    "deactivateLoginRequired": "ದಯವಿಟ್ಟು ಮೊದಲು Login ಮಾಡಿ.",
+    "accountDeactivated": "ನಿಮ್ಮ ಖಾತೆ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ.",
+    "profileSaveFailed": "ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+    "deactivateFailed": "ಖಾತೆಯನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+    "slotsForbiddenDoctor": "ಈ ವೈದ್ಯರ slots ನೀವು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    "slotsLoadFailed": "ಲಭ್ಯ time slots ಲೋಡ್ ಆಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "healthAssistantUnavailable": "Health Assistant ತಾತ್ಕಾಲಿಕವಾಗಿ ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "videoCallDoctorOnly": "ವೀಡಿಯೋ ಕಾಲ್ assigned ವೈದ್ಯರಾಗಿರುವ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳಿಗೆ ಮಾತ್ರ ಲಭ್ಯ.",
+    "videoCallNoPatientAccount": "ಈ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗೆ patient account (CreatedBy) ಲಿಂಕ್ ಆಗಿಲ್ಲ. ಕಾಲ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    "videoCallCannotCallSelf": "ನೀವು ಸ್ವತಃ ಕಾಲ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    "videoCallNoDoctor": "ಈ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗೆ ವೀಡಿಯೋ ಕಾಲ್‌ಗೆ ವೈದ್ಯ ನಿಯೋಜಿಸಲಾಗಿಲ್ಲ.",
+    "videoCallOwnAppointmentsOnly": "ನಿಮ್ಮ ಸ್ವಂತ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳಿಗೆ ಮಾತ್ರ ವೀಡಿಯೋ ಕಾಲ್ ಪ್ರಾರಂಭಿಸಬಹುದು.",
+    "videoCallSignInAsParticipant": "ಈ ಕಾಲ್ ಪ್ರಾರಂಭಿಸಲು assigned ವೈದ್ಯ (ಅಥವಾ ರೋಗಿ) ಆಗಿ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
+    "videoCallTargetUnknown": "ಈ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗೆ ಯಾರಿಗೆ ಕಾಲ್ ಮಾಡಬೇಕೆಂದು ನಿರ್ಧರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+    "chatConnectFailed": "ಈಗ ಚಾಟ್‌ಗೆ ಸಂಪರ್ಕಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ.",
+    "chatStartFailed": "ಈಗ ಚಾಟ್ ಪ್ರಾರಂಭಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ.",
+    "chatAcceptFailed": "ಈಗ ಚಾಟ್ accept ಮಾಡಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ.",
+    "callSessionPrepareFailed": "ವೀಡಿಯೋ session ತಯಾರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. server video configuration ಪರಿಶೀಲಿಸಿ.",
+    "callConnectFailed": "ಈಗ calling ಗೆ ಸಂಪರ್ಕಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ.",
+    "callInviteSendFailed": "invite ಕಳುಹಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಿಮ್ಮ connection ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "callInviteFailed": "call invite ಕಳುಹಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. network ಮತ್ತು login ಪರಿಶೀಲಿಸಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "callAcceptFailed": "ಕಾಲ್ accept ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಿಮ್ಮ connection ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "callRejectFailed": "ಕಾಲ್ reject ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಿಮ್ಮ connection ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "callEndFailed": "ಕಾಲ್ ಮುಗಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಿಮ್ಮ connection ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "callHeartbeatFailed": "call heartbeat ಗೆ ಸಂಪರ್ಕಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ."
+  },
+  "appointment": {
+    "loginRequired": "ಈ ವೈದ್ಯರೊಂದಿಗೆ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕ್ ಮಾಡಲು ಮೊದಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.",
+    "sessionExpired": "ನಿಮ್ಮ session ಅವಧಿ ಮುಗಿದಿದೆ. ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕ್ ಮಾಡಲು ಮತ್ತೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
+    "doctorLoadFailed": "ವೈದ್ಯರ ಪಟ್ಟಿ ಲೋಡ್ ಆಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "slotNoneForDate": "ಆಯ್ಕೆಮಾಡಿದ ದಿನಾಂಕದಲ್ಲಿ ಈ ವೈದ್ಯರಿಗೆ time slots ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಬೇರೆ ವೈದ್ಯ ಅಥವಾ ದಿನಾಂಕ ಆಯ್ಕೆಮಾಡಿ.",
+    "slotNoneFutureToday": "ಇಂದಿಗೆ future time slots ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ನಂತರದ ದಿನಾಂಕ ಆಯ್ಕೆಮಾಡಿ.",
+    "form": {
+      "patientName": "ರೋಗಿಯ ಹೆಸರು *",
+      "patientNamePlaceholder": "ನಿಮ್ಮ ಹೆಸರು",
+      "email": "ಇಮೇಲ್ ವಿಳಾಸ *",
+      "emailPlaceholder": "youremail{'@'}example.com",
+      "phone": "ಫೋನ್ ಸಂಖ್ಯೆ *",
+      "phonePlaceholder": "ಫೋನ್ ಸಂಖ್ಯೆ",
+      "ageYears": "ರೋಗಿಯ ವಯಸ್ಸು (ವರ್ಷಗಳು) *",
+      "agePlaceholder": "ಅಂಕಿಗಳು ಮಾತ್ರ, ಉದಾ. 25 ಅಥವಾ 72",
+      "ageMax20Placeholder": "ಅಂಕಿಗಳಲ್ಲಿ ವಯಸ್ಸು, ಗರಿಷ್ಠ 20",
+      "department": "ವಿಭಾಗ *",
+      "doctorSelectDepartment": "ವೈದ್ಯ (ಮೊದಲು ವಿಭಾಗ ಆಯ್ಕೆಮಾಡಿ) *",
+      "doctor": "ವೈದ್ಯ *",
+      "preferredDate": "ಆದ್ಯತೆಯ ದಿನಾಂಕ *",
+      "preferredTimeSlot": "ಆದ್ಯತೆಯ time slot *",
+      "additionalNotes": "ಹೆಚ್ಚುವರಿ ಟಿಪ್ಪಣಿಗಳು",
+      "notesPlaceholder": "ನಿಮ್ಮ ಲಕ್ಷಣಗಳು ಅಥವಾ concerns ಬರೆಯಿರಿ...",
+      "priorDocs": "ಹಿಂದಿನ documents / scans (optional, ಗರಿಷ್ಠ 2 ಚಿತ್ರಗಳು)",
+      "saveChanges": "ಬದಲಾವಣೆಗಳನ್ನು ಉಳಿಸಿ",
+      "backToDashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಹಿಂತಿರುಗಿ"
+    }
+  },
+  "form": {
+    "gender": {
+      "male": "ಪುರುಷ",
+      "female": "ಮಹಿಳೆ"
+    },
+    "role": {
+      "patient": "ರೋಗಿ",
+      "doctorApproval": "ವೈದ್ಯ (Admin ಅನುಮೋದನೆ ಅಗತ್ಯ)",
+      "adminApproval": "Admin (Admin ಅನುಮೋದನೆ ಅಗತ್ಯ)"
+    }
+  },
+  "prescription": {
+    "form": {
+      "consultationMode": "ಸಲಹೆ ಮೋಡ್ *",
+      "consultationDateTime": "ಸಲಹೆ ದಿನಾಂಕ ಮತ್ತು ಸಮಯ *",
+      "clinicName": "ಕ್ಲಿನಿಕ್ / ಆಸ್ಪತ್ರೆಯ ಹೆಸರು *",
+      "clinicPhone": "ಕ್ಲಿನಿಕ್ ಫೋನ್ *",
+      "clinicAddress": "ಕ್ಲಿನಿಕ್ ವಿಳಾಸ *",
+      "doctorDisplayName": "ವೈದ್ಯರ ಪ್ರದರ್ಶನ ಹೆಸರು *",
+      "qualifications": "ಅರ್ಹತೆಗಳು *",
+      "smcName": "ರಾಜ್ಯ ವೈದ್ಯಕೀಯ ಮಂಡಳಿ *",
+      "smcReg": "SMC ನೋಂದಣಿ ಸಂಖ್ಯೆ *",
+      "patientName": "ರೋಗಿಯ ಹೆಸರು *",
+      "patientAgeOrDob": "ರೋಗಿಯ ವಯಸ್ಸು ಅಥವಾ DOB *",
+      "patientGender": "ರೋಗಿಯ ಲಿಂಗ *",
+      "patientPhone": "ರೋಗಿಯ ಫೋನ್ *",
+      "patientAddress": "ರೋಗಿಯ ವಿಳಾಸ",
+      "medicines": "ಔಷಧಿಗಳು *",
+      "generalAdvice": "ಸಾಮಾನ್ಯ ಸಲಹೆ",
+      "generalAdvicePlaceholder": "ಆಹಾರ, ಜಲೀಯೀಕರಣ, ವಿಶ್ರಾಂತಿ, ಎಚ್ಚರಿಕೆ ಲಕ್ಷಣಗಳು ಮತ್ತು ತುರ್ತು ಆರೈಕೆ ಯಾವಾಗ ಬೇಕು.",
+      "followUpAdvice": "ಫಾಲೋ-ಅಪ್ ಸಲಹೆ",
+      "followUpAdvicePlaceholder": "ಫಾಲೋ-ಅಪ್ ದಿನಾಂಕ/ಸಮಯ, ತನಿಖೆಗಳು ಮತ್ತು ಎಸ್ಕಲೇಶನ್ ಸೂಚನೆಗಳು.",
+      "legalNotice": "ಕಾನೂನು: ಈ ಸಾಧನ counsel-ಅನುಮೋದಿತ ಟೆಲಿಮೆಡಿಸಿನ್, ಶೆಡ್ಯೂಲ್ (H/H1/X), ಅಥವಾ CA/eSign ವರ್ಕ್‌ಫ್ಲೋಗಳನ್ನು ಬದಲಿಸುವುದಿಲ್ಲ. ಪರವಾನಗಿ ಪಡೆದ ASP ಸಂಯೋಜನೆಯಾಗುವವರೆಗೆ ಪ್ರಸ್ತುತ ಸಹಿ non-evidentiary placeholder ಮಾತ್ರ.",
+      "saveDraft": "ಕರಡು ಉಳಿಸಿ",
+      "validate": "ಮಾನ್ಯತೆ ಪರಿಶೀಲಿಸಿ",
+      "finalizePending": "ಅಂತಿಮಗೊಳಿಸಿ (eSign ಬಾಕಿ)"
+    },
+    "options": {
+      "consultation": {
+        "video": "ವೀಡಿಯೋ",
+        "audio": "ಆಡಿಯೋ",
+        "inPerson": "ನೇರ"
+      },
+      "sex": {
+        "male": "ಪುರುಷ",
+        "female": "ಮಹಿಳೆ",
+        "other": "ಇತರೆ"
+      }
+    }
+  },
+  "prescriptions": {
+    "nav": {
+      "upload": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಅಪ್‌ಲೋಡ್",
+      "view": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ನೋಡಿ"
+    },
+    "upload": {
+      "title": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
+      "hint": "ನಿಮ್ಮ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳ ಫೋಟೋಗಳು ಅಥವಾ PDF ಸೇರಿಸಿ. ಒಂದೇ ಬಾರಿಗೆ ಹಲವು ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಬಹುದು.",
+      "modeLabel": "ಈ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಯಾವ ರೀತಿಯ ಸ್ವರೂಪ?",
+      "modeSingle": "ಒಂದು ಫೈಲ್ ಅಥವಾ ಒಂದು ಪುಟ",
+      "modeFrontBack": "ಮುಂಭಾಗ ಮತ್ತು ಹಿಂಭಾಗ (2 ಪುಟಗಳು)",
+      "modeSameDiagnosis": "ಒಂದೇ ರೋಗನಿರ್ಣಯ — ಹಲವು ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು",
+      "sameDiagnosis": {
+        "hint": "ಒಂದು ರೋಗನಿರ್ಣಯ ನಮೂದಿಸಿ, ನಂತರ ಹಲವು ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಫೈಲ್‌ಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ. ಎಲ್ಲಾ ಅದೇ ರೋಗನಿರ್ಣಯಕ್ಕೆ ಲಿಂಕ್ ಆಗುತ್ತವೆ.",
+        "dropHint": "ಈ ರೋಗನಿರ್ಣಯಕ್ಕಾಗಿ ಒಂದು ಅಥವಾ ಹೆಚ್ಚು ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಫೈಲ್‌ಗಳನ್ನು ಸೇರಿಸಿ",
+        "setupTitle": "ಈ ಅಪ್‌ಲೋಡ್‌ನ ರೋಗನಿರ್ಣಯ",
+        "newDiagnosis": "ಹೊಸ ರೋಗನಿರ್ಣಯ",
+        "existingDiagnosis": "ಅಸ್ತಿತ್ವದ ರೋಗನಿರ್ಣಯಕ್ಕೆ ಲಿಂಕ್ ಮಾಡಿ",
+        "diagnosisLabel": "ರೋಗನಿರ್ಣಯ",
+        "diagnosisPlaceholder": "ಉದಾ. ಟೈಪ್ 2 ಮಧುಮೇಹ, ಸಾಮಾನ್ಯ ಜ್ವರ",
+        "diagnosisRequired": "ಅಪ್‌ಲೋಡ್ ಮಾಡುವ ಮೊದಲು ರೋಗನಿರ್ಣಯ ನಮೂದಿಸಿ ಅಥವಾ ಆಯ್ಕೆಮಾಡಿ.",
+        "selectDiagnosis": "ಅಸ್ತಿತ್ವದ ರೋಗನಿರ್ಣಯ",
+        "selectPlaceholder": "ರೋಗನಿರ್ಣಯ ಆಯ್ಕೆಮಾಡಿ…",
+        "prescriptionCount": "{count} ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು",
+        "noExisting": "ಇನ್ನೂ ಉಳಿಸಿದ ರೋಗನಿರ್ಣಯ ಇಲ್ಲ — ಮೇಲೆ ಹೊಸದು ರಚಿಸಿ.",
+        "sessionActive": "ಈ ಸೆಷನ್‌ನ ಅಪ್‌ಲೋಡ್‌ಗಳು ಆಯ್ಕೆಮಾಡಿದ ರೋಗನಿರ್ಣಯಕ್ಕೆ ಲಿಂಕ್ ಆಗುತ್ತವೆ.",
+        "pickExisting": "ಅಸ್ತಿತ್ವದ ರೋಗನಿರ್ಣಯ ಆಯ್ಕೆಮಾಡಿ.",
+        "groupFailed": "ರೋಗನಿರ್ಣಯ ಲಿಂಕ್ ರಚಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ."
+      },
+      "frontBack": {
+        "hint": "ಮೊದಲು ಮುಂಭಾಗದ ಪುಟ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ (ರೋಗಿ ವಿವರ, ವೈದ್ಯ, ದಿನಾಂಕ), ನಂತರ ಹಿಂಭಾಗದ ಪುಟ (ಔಷಧಗಳು ಮತ್ತು ರೋಗನಿರ್ಣಯ). ಎರಡೂ ಒಂದೇ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಆಗಿ ಲಿಂಕ್ ಆಗುತ್ತವೆ.",
+        "dropHint": "ಪ್ರಸ್ತುತ ಪುಟ (ಮುಂಭಾಗ ಅಥವಾ ಹಿಂಭಾಗ) ಒಂದು ಫೈಲ್‌ನಲ್ಲಿ ಸೇರಿಸಿ",
+        "stepFront": "ಹಂತ 1/2 — ಮುಂಭಾಗದ ಪುಟ (ಪೂರ್ಣ ವಿವರ)",
+        "stepBack": "ಹಂತ 2/2 — ಹಿಂಭಾಗದ ಪುಟ (ಔಷಧಗಳು ಮತ್ತು ರೋಗನಿರ್ಣಯ)",
+        "pageFront": "ಮುಂಭಾಗ",
+        "pageBack": "ಹಿಂಭಾಗ",
+        "oneAtATime": "ಮುಂಭಾಗ/ಹಿಂಭಾಗ ಮೋಡ್‌ನಲ್ಲಿ ಒಂದು ಸಮಯದಲ್ಲಿ ಒಂದು ಪುಟ ಸೇರಿಸಿ.",
+        "addBack": "ಮುಂಭಾಗದ ಪುಟ ಅಪ್‌ಲೋಡ್ ಆಗಿದೆ. ಈಗ ಹಿಂಭಾಗದ ಪುಟ ಸೇರಿಸಿ.",
+        "complete": "ಮುಂಭಾಗ ಮತ್ತು ಹಿಂಭಾಗ ಒಂದೇ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಆಗಿ ಲಿಂಕ್ ಆಗಿವೆ.",
+        "groupLabel": "ಮುಂಭಾಗ ಮತ್ತು ಹಿಂಭಾಗ",
+        "groupFailed": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಗುಂಪು ರಚಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ."
+      },
+      "dropHint": "ಫೈಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಎಳೆದು ಬಿಡಿ, ಅಥವಾ ಬ್ರೌಸ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ",
+      "browse": "ಫೈಲ್‌ಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      "camera": "ಫೋಟೋ ತೆಗೆಯಿರಿ",
+      "uploading": "ಅಪ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ…",
+      "processing": "ಸರ್ವರ್‌ನಲ್ಲಿ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲಾಗುತ್ತಿದೆ…",
+      "duplicate": "ಈಗಾಗಲೇ ಫೈಲ್‌ನಲ್ಲಿ ಇದೆ",
+      "success": "ಯಶಸ್ವಿಯಾಗಿ ಅಪ್‌ಲೋಡ್ ಆಗಿದೆ",
+      "successModalTitle": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್",
+      "successModalMessage": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಯಶಸ್ವಿಯಾಗಿ ಅಪ್‌ಲೋಡ್ ಆಗಿದೆ",
+      "successModalView": "ನೋಡಿ",
+      "uploadedExtracting": "ಅಪ್‌ಲೋಡ್ ಆಗಿದೆ — ವಿಶ್ಲೇಷಣೆ ಪ್ರಗತಿಯಲ್ಲಿದೆ",
+      "failed": "ಅಪ್‌ಲೋಡ್ ವಿಫಲ",
+      "invalidType": "JPEG, PNG, ಅಥವಾ PDF ಫೈಲ್‌ಗಳನ್ನು ಮಾತ್ರ ಬಳಸಿ.",
+      "cameraModalTitle": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ Capture ಮಾಡಿ",
+      "cameraModalHint": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಫ್ರೇಮ್‌ನಲ್ಲಿ ಸರಿಯಾಗಿ ಇರಿಸಿ, ನಂತರ Capture ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      "capture": "ಕ್ಯಾಪ್ಚರ್",
+      "queueEmpty": "ಇನ್ನೂ ಯಾವುದೇ ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿಲ್ಲ."
+    },
+    "view": {
+      "title": "ನಿಮ್ಮ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು",
+      "empty": "ಇನ್ನೂ ಯಾವುದೇ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿಲ್ಲ.",
+      "refresh": "ರಿಫ್ರೆಶ್",
+      "download": "ಡೌನ್‌ಲೋಡ್",
+      "status": {
+        "pending": "ಬಾಕಿ",
+        "processing": "ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿದೆ",
+        "verified": "ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
+        "rejected": "ತಿರಸ್ಕರಿಸಲಾಗಿದೆ"
+      },
+      "columns": {
+        "date": "ಅಪ್‌ಲೋಡ್ ದಿನಾಂಕ",
+        "status": "ಸ್ಥಿತಿ",
+        "type": "ಪ್ರಕಾರ",
+        "actions": "ಕ್ರಿಯೆಗಳು"
+      },
+      "extractedSummary": "ಹೊರತೆಗೆದ ಸಾರಾಂಶ",
+      "multiPageBadge": "{count} ಪುಟಗಳು · ಒಂದು ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್",
+      "diagnosisBadge": "{count} ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು · ಒಂದು ರೋಗನಿರ್ಣಯ",
+      "multiPageType": "ಮುಂಭಾಗ + ಹಿಂಭಾಗ",
+      "diagnosisType": "ರೋಗನಿರ್ಣಯದಿಂದ ಲಿಂಕ್ ಮಾಡಲಾಗಿದೆ",
+      "downloadPrescription": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ {n}",
+      "linkToDiagnosis": "ರೋಗನಿರ್ಣಯಕ್ಕೆ ಲಿಂಕ್ ಮಾಡಿ",
+      "linkDiagnosisTitle": "ಈ ಅಪ್‌ಲೋಡ್ ಅನ್ನು ರೋಗನಿರ್ಣಯಕ್ಕೆ ಲಿಂಕ್ ಮಾಡಿ",
+      "linkDiagnosisNew": "ಹೊಸ ರೋಗನಿರ್ಣಯ",
+      "linkDiagnosisExisting": "ಅಸ್ತಿತ್ವದ ರೋಗನಿರ್ಣಯ",
+      "linkDiagnosisPlaceholder": "ರೋಗನಿರ್ಣಯ ಪಠ್ಯ",
+      "linkDiagnosisConfirm": "ಲಿಂಕ್ ಮಾಡಿ",
+      "linkDiagnosisTextRequired": "ರೋಗನಿರ್ಣಯ ನಮೂದಿಸಿ.",
+      "linkDiagnosisPickRequired": "ಅಸ್ತಿತ್ವದ ರೋಗನಿರ್ಣಯ ಆಯ್ಕೆಮಾಡಿ.",
+      "linkDiagnosisSuccess": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ರೋಗನಿರ್ಣಯಕ್ಕೆ ಲಿಂಕ್ ಆಗಿದೆ.",
+      "linkDiagnosisFailed": "ರೋಗನಿರ್ಣಯಕ್ಕೆ ಲಿಂಕ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+      "downloadFront": "ಮುಂಭಾಗದ ಪುಟ",
+      "downloadBack": "ಹಿಂಭಾಗದ ಪುಟ",
+      "linkAsFront": "ಮುಂಭಾಗದ ಪುಟವಾಗಿ ಬಳಸಿ",
+      "linkAsBack": "ಹಿಂಭಾಗದ ಪುಟವಾಗಿ ಲಿಂಕ್ ಮಾಡಿ",
+      "linkPickBack": "ಮುಂಭಾಗದ ಪುಟ ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ. ಮತ್ತೊಂದು ಅಪ್‌ಲೋಡ್ ಆಯ್ಕೆಮಾಡಿ \"ಹಿಂಭಾಗದ ಪುಟವಾಗಿ ಲಿಂಕ್ ಮಾಡಿ\" ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      "linkCancel": "ಲಿಂಕ್ ಮಾಡುವಿಕೆ ರದ್ದು",
+      "linkSuccess": "ಮುಂಭಾಗ ಮತ್ತು ಹಿಂಭಾಗ ಒಂದೇ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಆಗಿ ಲಿಂಕ್ ಆಗಿವೆ.",
+      "linkFailed": "ಎರಡು ಪುಟಗಳನ್ನು ಲಿಂಕ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+      "loadFailed": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು ಲೋಡ್ ಆಗಲಿಲ್ಲ."
+    }
+  },
+  "dashboard": {
+    "nav": {
+      "appointments": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು",
+      "workingSlots": "ಕೆಲಸದ ಸಮಯ ಸ್ಲಾಟ್‌ಗಳನ್ನು ಹೊಂದಿಸಿ",
+      "administration": "ನಿರ್ವಹಣೆ",
+      "devices": "ಸಾಧನಗಳು"
+    },
+    "filters": {
+      "heading": "⚙️ ಫಿಲ್ಟರ್‌ಗಳು",
+      "toggleTitle": "ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಟಾಗಲ್ ಮಾಡಿ",
+      "clearTitle": "ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಅಳಿಸಿ",
+      "status": "ಸ್ಥಿತಿ",
+      "date": "ದಿನಾಂಕ",
+      "doctor": "ವೈದ್ಯ",
+      "department": "ವಿಭಾಗ",
+      "doctorOptionAll": "ಎಲ್ಲಾ ವೈದ್ಯರು",
+      "statusOptionAll": "ಎಲ್ಲಾ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು",
+      "statusOptionCompleted": "ಪೂರ್ಣ",
+      "statusOptionCancelled": "ರದ್ದು",
+      "statusOptionRemovedAdmin": "ತೆಗೆದುಹಾಕಲಾಗಿದೆ (Admin)"
+    },
+    "appointments": {
+      "title": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು",
+      "loading": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ…",
+      "empty": "ಆಯ್ಕೆಮಾಡಿದ ಫಿಲ್ಟರ್‌ಗಳಿಗಾಗಿ ಯಾವುದೇ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ.",
+      "rowLine1": "ರೋಗಿ: {patientName} | ವೈದ್ಯ: {doctorName} | ಸ್ಥಿತಿ: {statusLabel}",
+      "rowLine2": "ದಿನಾಂಕ: {preferredDate} | ಸ್ಲಾಟ್: {preferredTimeSlot} | ವಿಭಾಗ: {department} | ಫೋನ್: {phoneNumber} | ವಯಸ್ಸು: {ageGroup}",
+      "additionalNotes": "ಹೆಚ್ಚುವರಿ ಟಿಪ್ಪಣಿಗಳು: {additionalNotes}",
+      "statusScheduled": "ನಿಗದಿಪಡಿಸಲಾಗಿದೆ",
+      "markVisitComplete": "ಭೇಟಿ ಪೂರ್ಣ ಎಂದು ಗುರುತಿಸಿ",
+      "issueEprescription": "ಸಂರಚಿತ ಇ-ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ನೀಡಿ",
+      "videoCall": "ವೀಡಿಯೋ ಕಾಲ್",
+      "cancelAppointment": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ರದ್ದು"
+    },
+    "workingSlots": {
+      "title": "ಕೆಲಸದ ಸಮಯ ಸ್ಲಾಟ್‌ಗಳನ್ನು ಹೊಂದಿಸಿ",
+      "helper": "ವಾರದ ಸಮಯ ಸರ್ವರ್‌ನಲ್ಲಿ ಕಾನ್ಫಿಗರ್ ಆಗಿರುವ ಆಸ್ಪತ್ರೆಯ ಸಮಯ ವಲಯದ ಪ್ರಕಾರ. ಊಟದ ವಿರಾಮ ( ಅಂತರ) ಗಾಗಿ ಒಂದು ದಿನದಲ್ಲಿ ಹಲವು ವಿಂಡೋಗಳನ್ನು ಸೇರಿಸಿ.",
+      "save": "ವೇಳಾಪಟ್ಟಿ ಉಳಿಸಿ",
+      "slotLength": "ಸ್ಲಾಟ್ ಅವಧಿ",
+      "minutes15": "15 ನಿಮಿಷ",
+      "minutes30": "30 ನಿಮಿಷ",
+      "addWindow": "ವಿಂಡೋ ಸೇರಿಸಿ",
+      "dayOffNotBookable": "ಇಂದು ರಜಾ — ಬುಕ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+      "copyThisDay": "ಈ ದಿನದ ಸೆಟಪ್ ಅನ್ನು ಬೇರೆ ದಿನಗಳಿಗೆ ನಕಲಿಸಿ",
+      "copyHint": "ಸ್ಲಾಟ್ ಅವಧಿ, ಆನ್/ಆಫ್ ಮತ್ತು ಎಲ್ಲಾ ಸಮಯ ವಿಂಡೋಗಳು ನಕಲಾಗುತ್ತವೆ. ಕೆಳಗಿನ ತ್ವರಿತ ಆಯ್ಕೆಗಳನ್ನು ಬಳಸಿ ಅಥವಾ ದಿನಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+      "copyMonFriTitle": "ಸೋಮವಾರದಿಂದ ಶುಕ್ರವಾರ (ಈ ದಿನ ವಾರದ ದಿನ ಆದರೆ ಹೊರತುಪಡಿಸಿ)",
+      "copyMonFri": "ಸೋಮ-ಶುಕ್ರಕ್ಕೆ ನಕಲಿಸಿ",
+      "copySatSunTitle": "ಶನಿವಾರ ಮತ್ತು ಭಾನುವಾರ (ಈ ದಿನ ವಾರಾಂತ್ಯ ಆದರೆ ಹೊರತುಪಡಿಸಿ)",
+      "copySatSun": "ಶನಿ-ಭಾನುಕ್ಕೆ ನಕಲಿಸಿ",
+      "copyAllOtherTitle": "ವಾರದ ಎಲ್ಲಾ ಬೇರೆ ದಿನಗಳು",
+      "copyAllOther": "ಎಲ್ಲಾ ಬೇರೆ ದಿನಗಳಿಗೆ ನಕಲಿಸಿ",
+      "copySelected": "ಆಯ್ಕೆಮಾಡಿದ ದಿನಗಳಿಗೆ ನಕಲಿಸಿ"
+    },
+    "admin": {
+      "title": "ನಿರ್ವಹಣೆ",
+      "pendingHeading": "ಬಾಕಿ ನೋಂದಣಿಗಳು (ವೈದ್ಯ ಅಥವಾ Admin)",
+      "pendingEmpty": "ಯಾವುದೇ ಬಾಕಿ ವಿನಂತಿಗಳಿಲ್ಲ.",
+      "approveTitle": "ಅನುಮೋದಿಸಿ",
+      "doctorsHeading": "ವೈದ್ಯರು",
+      "deactivateTitle": "ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ",
+      "registerHeading": "ಹೊಸ ವೈದ್ಯ ನೋಂದಣಿ",
+      "createDoctorTitle": "ವೈದ್ಯ ಖಾತೆ ರಚಿಸಿ",
+      "form": {
+        "email": "ಇಮೇಲ್",
+        "password": "ಪಾಸ್‌ವರ್ಡ್",
+        "firstName": "ಮೊದಲ ಹೆಸರು",
+        "lastName": "ಕೊನೆಯ ಹೆಸರು",
+        "address": "ವಿಳಾಸ",
+        "gender": "ಲಿಂಗ",
+        "mobile": "ಮೊಬೈಲ್",
+        "department": "ವಿಭಾಗ",
+        "qualifications": "ಅರ್ಹತೆಗಳು",
+        "smcName": "ರಾಜ್ಯ ವೈದ್ಯಕೀಯ ಮಂಡಳಿ",
+        "smcRegistrationNumber": "SMC ನೋಂದಣಿ #"
+      }
+    }
+  },
+  "chat": {
+    "title": "ಆರೋಗ್ಯ ಸಹಾಯಕ",
+    "intent": {
+      "slotsLabel": "ಸ್ಲಾಟ್‌ಗಳು",
+      "loginRequired": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕ್ ಮಾಡಲು ಅಥವಾ ವೈದ್ಯರ ಲಭ್ಯತೆ ಪರಿಶೀಲಿಸಲು ಮೊದಲು ಸೈನ್ ಇನ್ ಮಾಡಿ. ಮೆನುವಿನಿಂದ Login ಮಾಡಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "cancelled": "ಸರಿ, ಆ ವಿನಂತಿಯನ್ನು ರದ್ದು ಮಾಡಿದ್ದೇನೆ. ಇನ್ನೇನು ಸಹಾಯ ಮಾಡಬಹುದು?",
+      "departmentsUnavailable": "ಈಗ ವಿಭಾಗಗಳು ಲೋಡ್ ಆಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಮೆನುವಿನಿಂದ Book Now ಬಳಸಿ.",
+      "doctorsUnavailable": "{department} ಗಾಗಿ ಈಗ ಯಾವುದೇ ವೈದ್ಯರು ಪಟ್ಟಿ ಮಾಡಲಾಗಿಲ್ಲ. ದಯವಿಟ್ಟು ಬೇರೆ ವಿಭಾಗ ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ನಂತರ ಪ್ರಯತ್ನಿಸಿ.",
+      "missingDepartment": "ಮೊದಲು ನಿಮಗೆ ಯಾವ ವಿಭಾಗ ಬೇಕೆಂದು ಹೇಳಿ.",
+      "missingDoctor": "ಯಾವ ವೈದ್ಯರ ಲಭ್ಯತೆ ಬೇಕೆಂದು ಹೇಳಿ.",
+      "askDepartment": "ನಿಮಗೆ ಯಾವ ವಿಭಾಗ ಬೇಕು?\n\n{options}\n\nಸಂಖ್ಯೆ ಅಥವಾ ವಿಭಾಗದ ಹೆಸರಿನಿಂದ ಉತ್ತರಿಸಿ.",
+      "invalidDepartment": "ಆ ವಿಭಾಗ ಗುರುತಿಸಲಿಲ್ಲ. ಈ ಪಟ್ಟಿಯಿಂದ ಸಂಖ್ಯೆ ಅಥವಾ ಹೆಸರಿನಿಂದ ಉತ್ತರಿಸಿ:\n\n{options}",
+      "askDoctor": "{department} ನಲ್ಲಿ ಯಾವ ವೈದ್ಯ?\n\n{options}\n\nಸಂಖ್ಯೆ ಅಥವಾ ವೈದ್ಯರ ಹೆಸರಿನಿಂದ ಉತ್ತರಿಸಿ.",
+      "invalidDoctor": "ಆ ವೈದ್ಯ ಗುರುತಿಸಲಿಲ್ಲ. ಈ ಪಟ್ಟಿಯಿಂದ ಸಂಖ್ಯೆ ಅಥವಾ ಹೆಸರಿನಿಂದ ಉತ್ತರಿಸಿ:\n\n{options}",
+      "askAge": "ರೋಗಿಯ ವಯಸ್ಸು (ವರ್ಷಗಳಲ್ಲಿ) ಎಷ್ಟು? (ಆನ್‌ಲೈನ್ ಬುಕಿಂಗ್‌ಗೆ ಗರಿಷ್ಠ 20.)",
+      "invalidAge": "ದಯವಿಟ್ಟು 1 ರಿಂದ 20 ರ ನಡುವೆ ಮಾನ್ಯ ವಯಸ್ಸು ನಮೂದಿಸಿ (ಅಂಕಿಗಳು ಮಾತ್ರ).",
+      "askDate": "{doctor} ಗಾಗಿ ಯಾವ ದಿನಾಂಕ ಸೂಕ್ತ?\n\n{options}\n\nಸಂಖ್ಯೆ, YYYY-MM-DD, ಅಥವಾ ಇಂದು/ನಾಳೆ ಎಂದು ಉತ್ತರಿಸಿ.",
+      "invalidDate": "ಆ ದಿನಾಂಕ ಗುರುತಿಸಲಿಲ್ಲ. ಇವುಗಳಿಂದ ಆಯ್ಕೆಮಾಡಿ:\n\n{options}",
+      "noDates": "ಕ್ಷಮಿಸಿ, {doctor} ಗೆ ಮುಂದಿನ ಕೆಲವು ದಿನಗಳಲ್ಲಿ ಸ್ಲಾಟ್‌ಗಳು ಇಲ್ಲ. ಬೇರೆ ವೈದ್ಯ ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ನಂತರ ನೋಡಿ.",
+      "askTimeSlot": "ಯಾವ ಸಮಯ ಸ್ಲಾಟ್ ಬೇಕು?\n\n{options}\n\nಸಂಖ್ಯೆ ಅಥವಾ ಸಮಯ ಎಂದು ಉತ್ತರಿಸಿ.",
+      "invalidTimeSlot": "ಆ ಸಮಯ ಸ್ಲಾಟ್ ಗುರುತಿಸಲಿಲ್ಲ. ಇವುಗಳಿಂದ ಆಯ್ಕೆಮಾಡಿ:\n\n{options}",
+      "noTimeSlots": "{date} ನಲ್ಲಿ ಸಮಯ ಸ್ಲಾಟ್‌ಗಳು ಲಭ್ಯವಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ ಮತ್ತು ಬೇರೆ ದಿನಾಂಕ ಆಯ್ಕೆಮಾಡಿ.",
+      "availability": {
+        "none": "{doctor} ಗೆ ಮುಂದಿನ ಕೆಲವು ದಿನಗಳಲ್ಲಿ ಸ್ಲಾಟ್‌ಗಳು ಇಲ್ಲ.",
+        "summary": "{doctor} ಲಭ್ಯತೆ:\n\n{lines}"
+      },
+      "booking": {
+        "success": "ನಿಮ್ಮ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ವಿನಂತಿ ಸಲ್ಲಿಸಲಾಗಿದೆ. ವಿವರಗಳು ಮತ್ತು ಸ್ಥಿತಿಗಾಗಿ ನಿಮ್ಮ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ನೋಡಿ.",
+        "failed": "ಈಗ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕ್ ಆಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಮೆನುವಿನಿಂದ Book Now ಬಳಸಿ."
+      },
+      "videoCall": {
+        "incomplete": "ವೀಡಿಯೋ ಸಲಹೆ ಬುಕಿಂಗ್ ತೆರೆಯುವ ಮೊದಲು ವಿಭಾಗ ಮತ್ತು ವೈದ್ಯ ಬೇಕು.",
+        "step2": "ನಿಮ್ಮ ಆಯ್ಕೆಮಾಡಿದ ವೈದ್ಯರೊಂದಿಗೆ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಫಾರ್ಮ್ (ಹಂತ 2) ತೆರೆದಿದ್ದೇನೆ. ವೀಡಿಯೋ ಸಲಹೆ ಪೂರ್ಣಗೊಳಿಸಲು ದಿನಾಂಕ ಮತ್ತು ಸಮಯ ಸ್ಲಾಟ್ ಆಯ್ಕೆಮಾಡಿ."
+      },
+      "flowComplete": "ಆ ವಿನಂತಿ ಪೂರ್ಣ. ಇನ್ನೇನು ಸಹಾಯ?",
+      "start": {
+        "bookAppointment": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕ್ ಮಾಡಲು ಸಹಾಯ ಮಾಡಬಲ್ಲೆ. ಅಗತ್ಯವಾದ ಮಾಹಿತಿ ಮಾತ್ರ ಕೇಳುತ್ತೇನೆ.",
+        "checkAvailability": "ವೈದ್ಯರ ಲಭ್ಯತೆ ಪರಿಶೀಲಿಸಬಲ್ಲೆ.",
+        "videoCall": "ವೀಡಿಯೋ ಸಲಹೆ ಬುಕ್ ಮಾಡಲು ಸಹಾಯ ಮಾಡಬಲ್ಲೆ. ಮೊದಲು ಲಭ್ಯತೆ ನೋಡುತ್ತೇನೆ, ನಂತರ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕಿಂಗ್ ತೆರೆಯುತ್ತೇನೆ."
+      }
+    },
+    "quick": {
+      "setAppointment": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಹೊಂದಿಸಿ",
+      "userProfile": "ಬಳಕೆದಾರ ಪ್ರೊಫೈಲ್"
+    },
+    "widget": {
+      "me": "ನಾನು",
+      "support": "ಬೆಂಬಲ",
+      "patient": "ರೋಗಿ",
+      "mode": {
+        "smartAi": "ಸ್ಮಾರ್ಟ್ AI",
+        "humanSupport": "ಮಾನವ ಬೆಂಬಲ"
+      },
+      "generalGuidance": "ಸಾಮಾನ್ಯ ಆರೋಗ್ಯ ಮಾರ್ಗದರ್ಶನ ಮಾತ್ರ",
+      "safetyNoticeTitle": "ಸುರಕ್ಷತಾ ಸೂಚನೆ",
+      "safetyNoticeBody": "ಇದು ಸಾಮಾನ್ಯ ಮಾರ್ಗದರ್ಶನ, ವೈದ್ಯಕೀಯ ರೋಗನಿರ್ಣಯ ಅಲ್ಲ. ತುರ್ತು ಸಂದರ್ಭಗಳಲ್ಲಿ ತಕ್ಷಣ ಹತ್ತಿರದ ತುರ್ತು ಸೇವೆಯನ್ನು ಸಂಪರ್ಕಿಸಿ.",
+      "iUnderstand": "ನಾನು ಅರ್ಥಮಾಡಿಕೊಂಡಿದ್ದೇನೆ",
+      "processingRequest": "Health Assistant ನಿಮ್ಮ ವಿನಂತಿಯನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸುತ್ತಿದೆ...",
+      "incomingRequestTitle": "ಬರುವ ಚಾಟ್ ವಿನಂತಿ",
+      "incomingRequestSubtitle": "Admin 1:1 ಚಾಟ್ ಸ್ವೀಕರಿಸಬಹುದು.",
+      "newSupportRequestToast": "{name} ನಿಂದ ಹೊಸ ಚಾಟ್ ವಿನಂತಿ",
+      "waitingAcceptance": "ಸ್ವೀಕಾರಕ್ಕಾಗಿ ಕಾಯುತ್ತಿದೆ",
+      "reject": "ತಿರಸ್ಕರಿಸಿ",
+      "accept": "ಸ್ವೀಕರಿಸಿ",
+      "starting": "ಪ್ರಾರಂಭವಾಗುತ್ತಿದೆ...",
+      "waitingAdmin": "Admin ಕಾಯುತ್ತಿದೆ...",
+      "startChat": "ಚಾಟ್ ಪ್ರಾರಂಭಿಸಿ",
+      "adminHintPrefix": "ರೋಗಿ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ",
+      "adminHintMiddle": "ಅವರ ವಿನಂತಿ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ, ಜೊತೆಗೆ",
+      "adminHintSuffix": "ಮೊದಲು Start a Chat ಕ್ಲಿಕ್ ಮಾಡಬೇಕಿಲ್ಲ.",
+      "supportWarning": "ನೀವು ಬೆಂಬಲಕ್ಕೆ ಸಂಪರ್ಕಿಸುತ್ತೀರಿ. ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಅಥವಾ ಸಂವೇದನಾಶೀಲ ಮಾಹಿತಿಯನ್ನು ಹಂಚಿಕೊಳ್ಳಬೇಡಿ.",
+      "queuedMessages": "ಸಾಲುಗಟ್ಟಿದ ಸಂದೇಶಗಳು (Admin ಸ್ವೀಕರಿಸಿದ ನಂತರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ)",
+      "sayHi": "ನಮಸ್ಕಾರ ಹೇಳಿ—ಬೆಂಬಲ ಇಲ್ಲಿ ಪ್ರತಿಕ್ರಿಯಿಸುತ್ತದೆ.",
+      "sending": "ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ…",
+      "message": "ಸಂದೇಶ",
+      "edit": "ಸಂಪಾದಿಸಿ",
+      "editAria": "ಸಂದೇಶ ಸಂಪಾದಿಸಿ",
+      "editAndSend": "ಸಂದೇಶ ನವೀಕರಿಸಿ ಮತ್ತು Enter ಅಥವಾ Send ಒತ್ತಿ",
+      "assistantTyping": "Health Assistant ಟೈಪ್ ಮಾಡುತ್ತಿದೆ",
+      "assistantProcessing": "Health Assistant ಪ್ರಕ್ರಿಯೆಗೊಳಿಸುತ್ತಿದೆ",
+      "clickUnderstand": "ಮುಂದುವರಿಯಲು 'ನಾನು ಅರ್ಥಮಾಡಿಕೊಂಡಿದ್ದೇನೆ' ಕ್ಲಿಕ್ ಮಾಡಿ...",
+      "tellSymptoms": "Health Assistant ಗೆ ನಿಮ್ಮ ಲಕ್ಷಣಗಳನ್ನು ಹೇಳಿ...",
+      "typeMessage": "ಸಂದೇಶ ಟೈಪ್ ಮಾಡಿ…",
+      "send": "ಕಳುಹಿಸಿ",
+      "resend": "ಸಮಯ ಮೀರಿದ ನಂತರ ಮತ್ತೆ ಕಳುಹಿಸಿ",
+      "resendAria": "ಸಮಯ ಮೀರಿದ ನಂತರ ಈ ಸಂದೇಶವನ್ನು ಮತ್ತೆ ಕಳುಹಿಸಿ",
+      "welcomeMessage": "ನಮಸ್ಕಾರ 👋 ಸಹಾಯಕ್ಕೆ ಇಲ್ಲಿದ್ದೇನೆ.\n\nನಿಮ್ಮ ಲಕ್ಷಣಗಳನ್ನು ಹೇಳಿ, ಮುಂದೆ ಏನು ಮಾಡಬೇಕೆಂದು ನಾನು ಮಾರ್ಗದರ್ಶನ ಮಾಡುತ್ತೇನೆ.\n\nನೀವು ಇದನ್ನೂ ಹೇಳಬಹುದು:\n• \"ನನಗೆ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಹೊಂದಿಸಬೇಕು\"\n• \"ವೈದ್ಯರ ಲಭ್ಯತೆ ಪರಿಶೀಲಿಸಿ\"\n• \"ವೈದ್ಯರೊಂದಿಗೆ ವೀಡಿಯೋ ಕಾಲ್ ಬೇಕು\"\n\nಅಥವಾ ಲಕ್ಷಣಗಳನ್ನು ವಿವರಿಸಿ:\n• \"2 ದಿನಗಳಿಂದ ಜ್ವರವಿದೆ\"\n• \"ನನ್ನ ಮಗು ಕೆמ್ಮುತ್ತಿದೆ\"",
+      "quickPrompts": {
+        "fever": "2 ದಿನಗಳಿಂದ ಜ್ವರವಿದೆ",
+        "coldCough": "ನೆಗಟು ಮತ್ತು ಕೆಮ್ಮು",
+        "stomachPain": "ತಿನ್ನಿದ ನಂತರ ಹೊಟ್ಟೆ ನೋವು",
+        "childCough": "ನನ್ನ ಮಗು ಕೆಮ್ಮುತ್ತಿದೆ"
+      },
+      "quickPills": {
+        "fever": "ಜ್ವರ 🤒",
+        "coldCough": "ನೆಗಟು ಮತ್ತು ಕೆಮ್ಮು 🤧",
+        "stomachPain": "ಹೊಟ್ಟೆ ನೋವು 🤢",
+        "childCough": "ಮಗುವಿನ ಕೆಮ್ಮು 👶"
+      }
+    }
+  },
+  "education": {
+    "doctorStudio": "ವೈದ್ಯ ಸ್ಟುಡಿಯೋ",
+    "flashcardsTitle": "ಶಿಕ್ಷಣ ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳು",
+    "flashcardsSubtitle": "ವಿಷಯ ಮತ್ತು ಟಿಪ್ಪಣಿಗಳನ್ನು ಸೇರಿಸಿ, ನಂತರ ರಚಿಸಿ — ಮೊದಲು ಸಂಕ್ಷಿಪ್ತ ಕ್ಲಿನಿಕಲ್ ಸಾರಾಂಶ, ನಂತರ Flashcards.",
+    "flashcardsGenerationFailed": "ಈ ವಿಷಯಕ್ಕಾಗಿ Flashcards ರಚಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+    "flashcardsUnavailable": "Education AI ತಾತ್ಕಾಲಿಕವಾಗಿ ಲಭ್ಯವಿಲ್ಲ.",
+    "cardsCount": "{count} ಕಾರ್ಡ್‌ಗಳು",
+    "startTopic": "ಮುಖ್ಯ ವಿಷಯದಿಂದ ಪ್ರಾರಂಭಿಸಿ",
+    "filterBook": "ಪುಸ್ತಕದಿಂದ ಫಿಲ್ಟರ್ ಮಾಡಿ",
+    "allBooks": "ಎಲ್ಲಾ ಸೇರಿಸಿದ ಪುಸ್ತಕಗಳು",
+    "addFocus": "ನಿಮ್ಮ ಗಮನ ಕೇಂದ್ರ ಸೇರಿಸಿ",
+    "focusPlaceholder": "ಉದಾಹರಣೆ: ಮಕ್ಕಳ ಜ್ವರ ಪರೀಕ್ಷೆ, ಎಚ್ಚರಿಕೆ ಲಕ್ಷಣಗಳು ಮತ್ತು ಪ್ರಾರಂಭಿಕ ತನಿಖೆಗಳ Flashcards ರಚಿಸಿ.",
+    "submitFlashcards": "Flashcards ರಚಿಸಿ",
+    "submitFlashcardsLoading": "ಸಾರಾಂಶ ಮತ್ತು Flashcards ರಚಿಸಲಾಗುತ್ತಿದೆ…",
+    "focusSummaryTitle": "ಕ್ಲಿನಿಕಲ್ ಗಮನ ಸಾರಾಂಶ",
+    "generationHint": "ವಿಷಯ ಆಯ್ಕೆಮಾಡಿ ಮತ್ತು/ಅಥವಾ ಗಮನ ವಿವರಿಸಿ, Flashcards ರಚಿಸಿ ಕ್ಲಿಕ್ ಮಾಡಿ. ಸಂಕ್ಷಿಪ್ತ ಸಾರಾಂಶ, ನಂತರ ಕಾರ್ಡ್‌ಗಳು. ಕಾರ್ಡ್‌ನ 'ವಿವರವಾಗಿ ಹುಡುಕಿ' ವಿಷಯವನ್ನು ಈ ಬಾಕ್ಸ್‌ಗೆ ನಕಲಿಸುತ್ತದೆ.",
+    "searchInDetail": "ವಿವರವಾಗಿ ಹುಡುಕಿ",
+    "searching": "ಹುಡುಕಲಾಗುತ್ತಿದೆ…",
+    "front": "ಮುಂಭಾಗ",
+    "backLabel": "ಹಿಂಭಾಗ",
+    "detailedNotes": "ವಿವರವಾದ ಟಿಪ್ಪಣಿಗಳು",
+    "missingCardDetails": "ಕಾರ್ಡ್ ವಿವರಗಳು ಲಭ್ಯವಿಲ್ಲ.",
+    "noAdditionalDetail": "ಈ ಕಾರ್ಡ್‌ಗೆ ಹೆಚ್ಚುವರಿ ವಿವರ ಕಂಡುಬಂದಿಲ್ಲ.",
+    "detailUnavailable": "ಈಗ ಕಾರ್ಡ್ ವಿವರ ಪಡೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+    "emptyState": "ವಿಷಯ ಅಥವಾ ಗಮನ ವಿವರಿಸಿ, Flashcards ರಚಿಸಿ ಕ್ಲಿಕ್ ಮಾಡಿ.",
+    "back": "← ಹಿಂದೆ",
+    "workspace": {
+      "eyebrow": "ಶಿಕ್ಷಣ ಕಾರ್ಯವಿಧಾನ",
+      "layoutTitle": "ಲೇಔಟ್ ಬದಲಾಯಿಸಿ",
+      "layoutSubtitle": "Conversation UI ಮತ್ತು Flashcards ನಡುವೆ ಬದಲಾಯಿಸಬೇಕಾದಾಗ ಮಾತ್ರ ಈ ಪ್ಯಾನಲ್ ತೆರೆಯಿರಿ.",
+      "flashcardsTitle": "Flash Card ಸ್ಟುಡಿಯೋ",
+      "flashcardsSubtitle": "ಸೇರಿಸಿದ ಕಾರ್ಪಸ್‌ನಿಂದ ಸಂಕ್ಷಿಪ್ತ ಸಾರಾಂಶಗಳು ಮತ್ತು ಪುನರಾವರ್ತನೆ ಕಾರ್ಡ್‌ಗಳನ್ನು ರಚಿಸಿ.",
+      "conversationTitle": "Conversation UI ಸ್ಟುಡಿಯೋ",
+      "conversationSubtitle": "ಆಧಾರಿತ ಫಾಲೋ-ಅಪ್‌ಗಳನ್ನು ಕೇಳಿ, ಸೆಷನ್ ಸಂದರ್ಭವನ್ನು ಕಾಪಾಡಿ, ಮೂಲ ಚಿತ್ರಗಳನ್ನು ನೇರವಾಗಿ ವೀಕ್ಷಿಸಿ.",
+      "modeLabel": "ವೀಕ್ಷಣೆ ಮೋಡ್",
+      "modeFlashcards": "ಫ್ಲ್ಯಾಶ್ ಕಾರ್ಡ್",
+      "modeConversation": "ಸಂಭಾಷಣೆ UI",
+      "openLayoutControls": "ಲೇಔಟ್ ನಿಯಂತ್ರಣಗಳನ್ನು ತೆರೆಯಿರಿ",
+      "closeLayoutControls": "ಲೇಔಟ್ ನಿಯಂತ್ರಣಗಳನ್ನು ಮುಚ್ಚಿ",
+      "done": "ಪೂರ್ಣ"
+    },
+    "levels": {
+      "mbbs": "ಪ್ರಾಥಮಿಕ ಪರಿಕಲ್ಪನೆಗಳು ಮತ್ತು ಮೊದಲ ತತ್ವಗಳು",
+      "md": "ಯಂತ್ರಣಗಳು, ಆಳ, ಪುರಾವೆ-ಆಧಾರಿತ ದೃಷ್ಟಿಕೋನ ಮತ್ತು ಕ್ಲಿನಿಕಲ್ ಸೂಕ್ಷ್ಮತೆ",
+      "dm": "ಸುಪರ್-ಸ್ಪೆಷಲಿಸ್ಟ್ ಆಳ ಮತ್ತು ವಿಶೇಷ ಪ್ರಕರಣ ವಿಶ್ಲೇಷಣೆ"
+    },
+    "conversation": {
+      "sidebarEyebrow": "ಉಳಿಸಿದ ಥ್ರೆಡ್‌ಗಳು",
+      "historyTitle": "ಸಂವಾದಗಳು",
+      "newConversation": "ಹೊಸ ಚಾಟ್",
+      "untitledSession": "ಶೀರ್ಷಿಕೆ ಇಲ್ಲದ ಸಂವಾದ",
+      "noMessagesYet": "ಇನ್ನೂ ಯಾವುದೇ ಸಂದೇಶಗಳಿಲ್ಲ.",
+      "currentSession": "ಪ್ರಸ್ತುತ ಥ್ರೆಡ್",
+      "messageCount": "{count} ಸಂದೇಶಗಳು",
+      "eyebrow": "RAG ಸಂವಾದ",
+      "title": "ವೈದ್ಯ ಶಿಕ್ಷಣ ಸಂವಾದ",
+      "subtitle": "ಸೇರಿಸಿದ ಪುಸ್ತಕಗಳನ್ನು ಆಧಾರಿತ ಕ್ಲಿನಿಕಲ್ ಸಹ-ಪೈಲಟ್ ಆಗಿ ಬಳಸಿ, ಕ್ರಮಿಕ ಪ್ರಶ್ನೆಗಳು, ಚಿತ್ರಗಳು ಮತ್ತು ಫಾಲೋ-ಅಪ್‌ಗಳಿಗಾಗಿ.",
+      "topicPrompt": "ತ್ವರಿತ ಪ್ರಾರಂಭ",
+      "quickStartsTitle": "ತ್ವರಿತ ಪ್ರಾರಂಭ",
+      "quickStartsSubtitle": "ವಿಷಯ ಟ್ಯಾಪ್ ಮಾಡಿ ಪ್ರಶ್ನೆ ಬಾಕ್ಸ್‌ಗೆ ನೇರವಾಗಿ ಬರುತ್ತದೆ.",
+      "optionsTitle": "ಆಯ್ಕೆಗಳು",
+      "optionsSubtitle": "ಪುಸ್ತಕ ಫಿಲ್ಟರ್‌ಗಳು ಮತ್ತು ವ್ಯಾಪ್ತಿ ಪುನರ್‌ಪ್ರಾಪ್ತಿ ಸೆಟ್ಟಿಂಗ್‌ಗಳು.",
+      "savedThreadsTitle": "ಉಳಿಸಿದ ಥ್ರೆಡ್‌ಗಳು",
+      "savedThreadsSubtitle": "ಹಿಂದಿನ ಶಿಕ್ಷಣ ಸಂವಾದಗಳಿಗೆ ಹಿಂತಿರುಗಿ.",
+      "showQuickStarts": "ತ್ವರಿತ ಪ್ರಾರಂಭ ತೋರಿಸಿ",
+      "hideQuickStarts": "ತ್ವರಿತ ಪ್ರಾರಂಭ ಮರೆಮಾಡಿ",
+      "showOptions": "ಆಯ್ಕೆಗಳನ್ನು ತೋರಿಸಿ",
+      "hideOptions": "ಆಯ್ಕೆಗಳನ್ನು ಮರೆಮಾಡಿ",
+      "showSavedThreads": "ಉಳಿಸಿದ ಥ್ರೆಡ್‌ಗಳನ್ನು ತೋರಿಸಿ",
+      "hideSavedThreads": "ಉಳಿಸಿದ ಥ್ರೆಡ್‌ಗಳನ್ನು ಮರೆಮಾಡಿ",
+      "showConversationHistory": "ಸಂವಾದ ಇತಿಹಾಸ ತೋರಿಸಿ",
+      "hideConversationHistory": "ಸಂವಾದ ಇತಿಹಾಸ ಮರೆಮಾಡಿ",
+      "openControls": "ಸಂವಾದ ನಿಯಂತ್ರಣಗಳನ್ನು ತೆರೆಯಿರಿ",
+      "closeControls": "ಸಂವಾದ ನಿಯಂತ್ರಣಗಳನ್ನು ಮುಚ್ಚಿ",
+      "done": "ಪೂರ್ಣ",
+      "historySubtitle": "ಈ ಥ್ರೆಡ್‌ನ ಇತ್ತೀಚಿನ ಆಧಾರಿತ ಪ್ರತಿಕ್ರಿಯೆಗಳು",
+      "historyCollapsedHint": "ಸಂವಾದ ಇತಿಹಾಸ ಮುಚ್ಚಿದೆ. ಹಿಂದಿನ ಉತ್ತರಗಳು, ಚಿತ್ರಗಳು, ಫಾಲೋ-ಅಪ್‌ಗಳನ್ನು ವೀಕ್ಷಿಸಲು ವಿಸ್ತರಿಸಿ.",
+      "userLabel": "ವೈದ್ಯ",
+      "assistantLabel": "ಶಿಕ್ಷಣ AI",
+      "sourceChip": "ಮೂಲ: {source}",
+      "chunksChip": "{count} ಭಾಗಗಳು",
+      "loadingAnswer": "ಆಧಾರಿತ ಉತ್ತರ ತಯಾರಿಸಲಾಗುತ್ತಿದೆ…",
+      "searchingSources": "ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಪುಸ್ತಕದಲ್ಲಿ ಹುಡುಕಲಾಗುತ್ತಿದೆ…",
+      "generatingAnswer": "ನಿಮ್ಮ ಉತ್ತರ ಬರೆಯಲಾಗುತ್ತಿದೆ…",
+      "figuresTitle": "ಮೂಲ ಚಿತ್ರಗಳು",
+      "referenceTitle": "ಉಲ್ಲೇಖ",
+      "referenceLine": "{book} · ಪು. {page}",
+      "followUpTitle": "ಫಾಲೋ-ಅಪ್ ಪ್ರಶ್ನೆಗಳು",
+      "figureAlt": "ಪುಟ {page} ಮೂಲ ಚಿತ್ರ",
+      "pageBadge": "ಪು. {page}",
+      "inputLabel": "ಕ್ಲಿನಿಕಲ್ ಪ್ರಶ್ನೆ ಕೇಳಿ",
+      "inputPromptLabel": "ಪ್ರಶ್ನೆ",
+      "inputPlaceholder": "ಉದಾಹರಣೆ: ಮಕ್ಕಳ ನೆಫ್ರೋಟಿಕ್ ಸಿಂಡ್ರೋಮ್‌ನ ಮೊದಲ-ಸಾಲಿನ ಚಿಕಿತ್ಸೆ ಮತ್ತು ಮುಖ್ಯ ಸಲಹಾ ಅಂಶಗಳನ್ನು ವಿವರಿಸಿ.",
+      "submitHint": "ಕಳುಹಿಸಲು Enter ಒತ್ತಿ, ಹೊಸ ಸಾಲಿಗೆ Shift+Enter ಒತ್ತಿ.",
+      "send": "ಪ್ರಶ್ನೆ ಕಳುಹಿಸಿ",
+      "sending": "ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ…",
+      "emptyQuestion": "ಸಂವಾದ ಪ್ರಾರಂಭಿಸಲು ಪ್ರಶ್ನೆ ಟೈಪ್ ಮಾಡಿ.",
+      "emptyAnswer": "ಈ ಪ್ರಶ್ನೆಗೆ ಆಧಾರಿತ ಉತ್ತರ ಕಂಡುಬಂದಿಲ್ಲ.",
+      "unavailable": "ಸಂವಾದ ಸಹಾಯಕ ತಾತ್ಕಾಲಿಕವಾಗಿ ಲಭ್ಯವಿಲ್ಲ.",
+      "resendTitle": "ಈ ಪ್ರಶ್ನೆಯನ್ನು ಮತ್ತೆ ಕಳುಹಿಸಿ (ಅದೇ ಪಠ್ಯ)",
+      "resendAria": "ಅದೇ ಪದಗಳೊಂದಿಗೆ ಪ್ರಶ್ನೆಯನ್ನು ಮತ್ತೆ ಕಳುಹಿಸಿ",
+      "attachFileAria": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ PDF ಅಥವಾ ಚಿತ್ರ ಲಗತ್ತಿಸಿ",
+      "attachCameraAria": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಫೋಟೋ ತೆಗೆಯಿರಿ",
+      "attachedFile": "ಲಗತ್ತಿಸಲಾಗಿದೆ: {name}",
+      "attachmentOrderLabel": "ಕ್ರಮ {order}",
+      "removeFile": "ತೆಗೆದುಹಾಕಿ",
+      "moveFileEarlier": "ಮೊದಲು ಸರಿಸಿ",
+      "moveFileLater": "ನಂತರ ಸರಿಸಿ",
+      "filesAttached": "ಕ್ಲಿನಿಕಲ್ ಸಂದರ್ಭಕ್ಕಾಗಿ {count} ಫೈಲ್(ಗಳು) ಲಗತ್ತಿಸಲಾಗಿದೆ.",
+      "attachmentLimitReached": "ಗರಿಷ್ಠ {count} ಫೈಲ್‌ಗಳನ್ನು ಮಾತ್ರ ಲಗತ್ತಿಸಬಹುದು.",
+      "attachmentsReadyHint": "ಪುನರ್‌ಪ್ರಾಪ್ತಿಗಾಗಿ {count} ಲಗತ್ತಿಸಿದ ಫೈಲ್(ಗಳು) ನಿಮ್ಮ ಪ್ರಶ್ನೆಯೊಂದಿಗೆ ಸೇರಿಸಲಾಗುತ್ತವೆ.",
+      "attachmentsConfirmSequenceHint": "{count} ಫೈಲ್‌ಗಳು ಲಗತ್ತಿಸಲಾಗಿದೆ — ಸಹಾಯಕರಿಗೆ ಕಳುಹಿಸುವ ಮೊದಲು ಕ್ರಮ ದೃಢೀಕರಿಸಿ.",
+      "reviewSequence": "ಕ್ರಮ ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಕಳುಹಿಸಿ",
+      "sequenceModalTitle": "ಫೈಲ್ ಕ್ರಮ ದೃಢೀಕರಿಸಿ",
+      "sequenceModalHint": "ಯಾವ ಫೈಲ್ ಮೊದಲು ಬರುತ್ತದೆ ಎಂದು ಬಾಣಗಳಿಂದ ಹೊಂದಿಸಿ. OK ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಫೈಲ್‌ಗಳು ಈ ಕ್ರಮದಲ್ಲಿ ಸಹಾಯಕರಿಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.",
+      "sequenceModalConfirm": "OK — ಈ ಕ್ರಮದಲ್ಲಿ ಕಳುಹಿಸಿ",
+      "autoSentNotice": "ಸಹಾಯಕರಿಗೆ ಸ್ವಯಂ-ಕಳುಹಿಸಲಾಗಿದೆ",
+      "autoQuestionFromAttachments": "ದಯವಿಟ್ಟು ಲಗತ್ತಿಸಿದ ಕ್ಲಿನಿಕಲ್ ಫೈಲ್‌ಗಳನ್ನು ಕ್ರಮದ ಪ್ರಕಾರ ವಿಶ್ಲೇಷಿಸಿ ಮತ್ತು ರೋಗನಿರ್ಣಯ, ವ್ಯತ್ಯಾಸಗಳು ಮತ್ತು ನಿರ್ವಹಣೆ ತಿಳಿಸಿ.",
+      "prescriptionPreamble": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ (ಅಪ್‌ಲೋಡ್ — ಕ್ಲಿನಿಕಲ್ ಬಳಕೆಗೂ ಮೊದಲು ಪರಿಶೀಲಿಸಿ):",
+      "prescriptionInserted": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಪಠ್ಯ ನಿಮ್ಮ ಪ್ರಶ್ನೆಗೆ ಸೇರಿಸಲಾಗಿದೆ. ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಕಳುಹಿಸಿ.",
+      "prescriptionSentToChat": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಸಾರ ಸಹಾಯಕರಿಗೆ ಕಳುಹಿಸಲಾಗಿದೆ.",
+      "prescriptionDraftOnly": "ರೋಗನಿರ್ಣಯ ಮತ್ತು ಔಷಧಗಳನ್ನು ಹೊರತೆಗೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಪಠ್ಯ ಪ್ರಶ್ನೆ ಕ್ಷೇತ್ರದಲ್ಲಿ—ಬದಲಾಯಿಸಿ ಮತ್ತು ಕಳುಹಿಸಿ.",
+      "prescriptionReadFailed": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಓದಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಬೇರೆ ಫೋಟೋ/ಫೈಲ್ ಪ್ರಯತ್ನಿಸಿ.",
+      "readingPrescription": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಓದಲಾಗುತ್ತಿದೆ…",
+      "cameraModalTitle": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ Capture",
+      "cameraModalHint": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಫ್ರೇಮ್‌ನಲ್ಲಿ ಸರಿಯಾಗಿ ಇರಿಸಿ, Capture ಒತ್ತಿ.",
+      "cameraModalCapture": "ಕ್ಯಾಪ್ಚರ್",
+      "cameraModalCancel": "ರದ್ದುಮಾಡಿ",
+      "cameraNotReady": "ಕ್ಯಾಮೆರಾ ಸಿದ್ಧವಿಲ್ಲ. ಸ್ವಲ್ಪ ಕಾಯಿ ಅಥವಾ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "tabs": {
+        "books": "ಪುಸ್ತಕಗಳು",
+        "prescription": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್"
+      },
+      "bookFilterSelectedCount": "{count} ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ",
+      "bookFilterReset": "ಮರುಹೊಂದಿಸಿ",
+      "bookFilterSearchPlaceholder": "ಪುಸ್ತಕಗಳನ್ನು ಹುಡುಕಿ…",
+      "bookFilterNoResults": "ನಿಮ್ಮ ಹುಡುಕಾಟಕ್ಕೆ ಯಾವುದೇ ಪುಸ್ತಕ ಹೊಂದಿಕೆಯಾಗಲಿಲ್ಲ."
+    },
+    "prescriptionSimilarity": {
+      "banner": "ಕ್ಲಿನಿಕಲ್ ಪಠ್ಯ ಅಥವಾ ಫೈಲ್‌ನಿಂದ ಅಪ್‌ಲೋಡ್ ಮಾಡಿದ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳನ್ನು ಹುಡುಕಿ. ಫಲಿತಾಂಶಗಳು vector similarity (cosine match) ಆಧಾರದಲ್ಲಿ ಕ್ರಮಬದ್ಧ.",
+      "inputLabel": "ಹುಡುಕಾಟ",
+      "inputPlaceholder": "ಉದಾಹರಣೆ: ಮಧುಮೇಹ Metformin — ಅಥವಾ ಪೂರ್ಣ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಅಂಟಿಸಿ, PDF/ಚಿತ್ರ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.",
+      "submitHint": "ಹುಡುಕಲು Enter ಒತ್ತಿ, ಹೊಸ ಸಾಲಿಗೆ Shift+Enter.",
+      "search": "ಸಮಾನ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳನ್ನು ಹುಡುಕಿ",
+      "searching": "ಹುಡುಕಲಾಗುತ್ತಿದೆ…",
+      "streamPhase": {
+        "transcribing": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಓದಲಾಗುತ್ತಿದೆ…",
+        "embedding": "ಹುಡುಕಾಟ ಎಂಬೆಡಿಂಗ್ ರಚಿಸಲಾಗುತ್ತಿದೆ…",
+        "searching": "ಸಮಾನ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳನ್ನು ಹುಡುಕಲಾಗುತ್ತಿದೆ…",
+        "section_scores": "ವಿಭಾಗ ಹೊಂದಾಣಿಕೆ ಅಂಕಿಸಲಾಗುತ್ತಿದೆ…"
+      },
+      "searchFailed": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಹುಡುಕಾಟ ವಿಫಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "emptyQuery": "ಹುಡುಕಲು ಪಠ್ಯ ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಫೈಲ್ ಲಗತ್ತಿಸಿ.",
+      "noResults": "ಎಂಬೆಡಿಂಗ್‌ಗಳೊಂದಿಗೆ ಹೊಂದಾಣಿಕೆಯ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ.",
+      "resultsTitle": "ಅತ್ಯುತ್ತಮ ಹೊಂದಾಣಿಕೆಗಳು",
+      "matchLabel": "ಸಮಾನತೆ ಅಂಕ",
+      "sectionBreakdownTitle": "ವಿಭಾಗದ ಪ್ರಕಾರ ಹೊಂದಾಣಿಕೆ",
+      "sectionBreakdownOverall": "ಒಟ್ಟು ಹೊಂದಾಣಿಕೆ",
+      "unknownPatient": "ಅಜ್ಞಾತ ರೋಗಿ",
+      "noSnippet": "ಈ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗೆ ಕ್ಲಿನಿಕಲ್ ಸಾರ ಸಂಗ್ರಹಿಸಲಾಗಿಲ್ಲ.",
+      "fields": {
+        "diagnosis": "ರೋಗನಿರ್ಣಯ",
+        "medicines": "ಔಷಧಗಳು",
+        "dosage": "ಡೋಸ್",
+        "advice": "ಸಲಹೆ",
+        "notes": "ಟಿಪ್ಪಣಿಗಳು"
+      },
+      "attachedFile": "ಲಗತ್ತಿಸಲಾಗಿದೆ: {name}",
+      "removeFile": "ತೆಗೆದುಹಾಕಿ",
+      "uploadSummaryTitle": "ಅಪ್‌ಲೋಡ್ ಮಾಡಿದ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಸಾರಾಂಶ",
+      "uploadSummaryHint": "ನಿಮ್ಮ ಫೈಲ್‌ನಿಂದ ಹೊರತೆಗೆದ ವಿವರ ಪರಿಶೀಲಿಸಿ. ಕೆಳಗೆ ಗ್ರಂಥಾಲಯದ ಸಮಾನ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು.",
+      "creatingSummary": "ನಿಮ್ಮ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ಓದಲಾಗುತ್ತಿದೆ…",
+      "summaryFileLabel": "ಫೈಲ್",
+      "quickFillTitle": "ಉದಾಹರಣೆಯಿಂದ ತ್ವರಿತ ತುಂಬಿಸಿ",
+      "viewPrescription": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ವೀಕ್ಷಿಸಿ",
+      "viewingPrescription": "ತೆರೆಯಲಾಗುತ್ತಿದೆ…",
+      "viewFailed": "ಈ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ತೆರೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+      "quickFill": {
+        "diabetes": "ಟೈಪ್ 2 ಮಧುಮೇಹ",
+        "hypertension": "ಅತಿ ರಕ್ತದೊತ್ತಡ",
+        "pediatricFever": "ಮಕ್ಕಳ ಜ್ವರ",
+        "diabetesText": "Diagnosis: Type 2 Diabetes\nMedicines: Metformin 500mg BD, Glipizide 5mg OD\nDuration: 30 days",
+        "hypertensionText": "Diagnosis: Essential Hypertension\nMedicines: Amlodipine 5mg OD, Telmisartan 40mg OD\nDuration: 30 days",
+        "pediatricFeverText": "Diagnosis: Viral fever (pediatric)\nMedicines: Paracetamol 15mg/kg TID, ORS\nDuration: 5 days"
+      }
+    },
+    "explainer": {
+      "title": "ವೈದ್ಯಕೀಯ ಪರಿಕಲ್ಪನೆ ವಿವರಣೆ",
+      "subtitle": "MBBS → MD/DNB → DM ಅನುಗುಣವಾಗಿ ಹೊಂದಾಣಿಕೆ ವಿವರಣೆಗಳು",
+      "medicalConcept": "ವೈದ್ಯಕೀಯ ಪರಿಕಲ್ಪನೆ",
+      "conceptPlaceholder": "ಪರಿಕಲ್ಪನೆ",
+      "ragContext": "RAG ಸಂದರ್ಭ / Flash Card ಸಂದರ್ಭ",
+      "selectedConceptDetail": "ಆಯ್ಕೆಮಾಡಿದ ಪರಿಕಲ್ಪನೆ ವಿವರ",
+      "generatingDetail": "ವಿವರವಾದ ವಿವರಣೆ ರಚಿಸಲಾಗುತ್ತಿದೆ...",
+      "noDetailYet": "ಇನ್ನೂ ವಿವರವಾದ ಟಿಪ್ಪಣಿಗಳಿಲ್ಲ. ಈ ದೃಶ್ಯ ರಚಿಸಲು ಕಾರ್ಡ್‌ನ 'ವಿವರವಾಗಿ ಹುಡುಕಿ' ಬಳಸಿ."
+    }
+  },
+  "patientDashboard": {
+    "nav": {
+      "overview": "ಅವಲೋಕನ",
+      "devices": "ಸಾಧನಗಳು"
+    }
+  },
+  "devices": {
+    "title": "ವೈದ್ಯಕೀಯ ಸಾಧನಗಳು",
+    "intro": "ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ರೀಡಿಂಗ್‌ಗಳನ್ನು ದಾಖಲಿಸಲು ಬೆಂಬಲಿತ Bluetooth ಸಾಧನಗಳನ್ನು ಸಂಪರ್ಕಿಸಿ. ಡೆಸ್ಕ್‌ಟಾಪ್ ಅಥವಾ Android ನಲ್ಲಿ Chrome ಅಥವಾ Edge ಬಳಸಿ.",
+    "connectTitle": "ಸಾಧನ ಸಂಪರ್ಕಿಸಿ",
+    "bluetooth": {
+      "types": {
+        "spirometer": "ಸ್ಪೈರೋಮೀಟರ್",
+        "pulse_oximeter": "ಪಲ್ಸ್ ಆಕ್ಸಿಮೀಟರ್",
+        "bp_monitor": "ರಕ್ತದೊತ್ತಡ ಮಾನಿಟರ್",
+        "glucometer": "ಗ್ಲೂಕೋಮೀಟರ್",
+        "thermometer": "ಥರ್ಮಾಮೀಟರ್"
+      },
+      "chooseTypeTitle": "ಸಾಧನ ಪ್ರಕಾರ ಆಯ್ಕೆಮಾಡಿ",
+      "chooseTypeHint": "Bluetooth ಮೂಲಕ ಸಂಪರ್ಕಿಸಲು ವೈದ್ಯಕೀಯ ಸಾಧನದ ಪ್ರಕಾರ ಆಯ್ಕೆಮಾಡಿ.",
+      "modelsTitle": "{type} ಮಾದರಿಗಳು",
+      "backToTypes": "← ಸಾಧನ ಪ್ರಕಾರಗಳಿಗೆ ಹಿಂತಿರುಗಿ",
+      "backToModels": "← ಮಾದರಿಗಳಿಗೆ ಹಿಂತಿರುಗಿ",
+      "unitLabel": "ಘಟಕ: {unit}",
+      "profiles": {
+        "SPIROFY_CIPLA": {
+          "label": "Spirofy (Cipla spirometer)",
+          "action": "Spirofy ಸಾಧನವನ್ನು ಆನ್ ಮಾಡಿ. Chrome ನಲ್ಲಿ, ಪಟ್ಟಿಯಿಂದ LIVSMT-RO-… ಸಾಧನ ಆಯ್ಕೆಮಾಡಿ."
+        },
+        "SPIROFY_SCAN_ALL": {
+          "label": "Spirofy — ಹತ್ತಿರದ ಎಲ್ಲಾ ಸಾಧನಗಳನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+          "action": "Spirofy ಸಾಧನವನ್ನು ಆನ್ ಮಾಡಿ ಮತ್ತು ಕಂಪ್ಯೂಟರ್‌ಗೆ ಹತ್ತಿರ ಇರಿಸಿ."
+        },
+        "MIR_SPIROBANK": {
+          "label": "MIR Spirobank",
+          "action": "ಸೂಚನೆ ಬಂದಾಗ ಬಾಯಿ ತುಣುಕಿನಲ್ಲಿ ಸ್ಥಿರವಾಗಿ ಊದಿ."
+        },
+        "NUVOAIR_AIR_NEXT": {
+          "label": "NuvoAir Air Next",
+          "action": "ಪೂರ್ಣವಾಗಿ ಉಸಿರಾಳಿ, ನಂತರ ಸಾಧ್ಯವಾದಷ್ಟು ವೇಗವಾಗಿ ಊದಿ."
+        },
+        "GENERIC_SPIROMETER": {
+          "label": "ಸಾಮಾನ್ಯ ಸ್ಪೈರೋಮೀಟರ್",
+          "action": "ನಿಮ್ಮ ಸ್ಪೈರೋಮೀಟರ್ ಸಾಧನದ ಸೂಚನೆಗಳನ್ನು ಅನುಸರಿಸಿ."
+        },
+        "GENERIC_OXIMETER": {
+          "label": "ಪಲ್ಸ್ ಆಕ್ಸಿಮೀಟರ್",
+          "action": "ನಿಮ್ಮ ಬೆರಳನ್ನು ಆಕ್ಸಿಮೀಟರ್ ಕ್ಲಿಪ್‌ನ ಒಳಗೆ ಇರಿಸಿ."
+        },
+        "GENERIC_BP_MONITOR": {
+          "label": "ರಕ್ತದೊತ್ತಡ ಮಾನಿಟರ್",
+          "action": "ಕಫ್ ಅನ್ನು ಮೇಲಿನ ತೋಳಿಗೆ ಸುತ್ತಿ, ಸ್ಥಿರವಾಗಿ ಇರಿ."
+        },
+        "GENERIC_GLUCOMETER": {
+          "label": "ಗ್ಲೂಕೋಮೀಟರ್",
+          "action": "ಪರೀಕ್ಷಾ ಸ್ಟ್ರಿಪ್ ಸೇರಿಸಿ ಮತ್ತು ರಕ್ತದ ಮಾದರಿ ಹಾಕಿ."
+        },
+        "GENERIC_THERMOMETER": {
+          "label": "ಥರ್ಮಾಮೀಟರ್",
+          "action": "ಥರ್ಮಾಮೀಟರ್ ಆನ್ ಮಾಡಿ ಮತ್ತು ಅಗತ್ಯವಿದ್ದರೆ ಜೋಡಣೆ ಮೋಡ್ ಸಕ್ರಿಯಗೊಳಿಸಿ. ಬ್ರೌಸರ್ ಪಟ್ಟಿಯಲ್ಲಿ ನಿಮ್ಮ ಥರ್ಮಾಮೀಟರ್ ಹೆಸರು ಆಯ್ಕೆಮಾಡಿ — ಹೆಚ್ಚಿನ ಸಾಧನಗಳು ಸಂಪರ್ಕಗೊಳ್ಳುವವರೆಗೆ ಪ್ರಮಾಣಿತ ಆರೋಗ್ಯ ಸೇವೆಯನ್ನು ಪ್ರಚಾರ ಮಾಡುವುದಿಲ್ಲ."
+        }
+      }
+    }
+  },
+  "legal": {
+    "terms": {
+      "hero": "ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು",
+      "subhero": "ನಿಮ್ಮ ಮಗುವಿಗಾಗಿ ಆನ್‌ಲೈನ್ ವೈದ್ಯಕೀಯ ಸಲಹೆ",
+      "updatedLabel": "ಕೊನೆಯ ಅಪ್‌ಡೇಟ್",
+      "updatedBody": "ಮಕ್ಕಳ ಆರೈಕೆಗಾಗಿ ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ಟೆಲಿಹೆಲ್ತ್ ಮತ್ತು ಆನ್‌ಲೈನ್ ಬುಕಿಂಗ್ ಸೇವೆಗಳನ್ನು ಬಳಸಿದಾಗ ಈ ನಿಯಮಗಳು ಅನ್ವಯಿಸುತ್ತವೆ.",
+      "s1Title": "1. ಸೇವೆಯ ಸ್ವರೂಪ",
+      "s1Body": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ಮಕ್ಕಳ ಮತ್ತು ಕುಟುಂಬ ಆರೋಗ್ಯಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆನ್‌ಲೈನ್ ಮಾಹಿತಿ, ವೇಳಾಪಟ್ಟಿ ಮತ್ತು ದೂರಸ್ಥ ಸಲಹೆಗಳನ್ನು ಒದಗಿಸುತ್ತದೆ. ನಿಮ್ಮ ವೈದ್ಯರು ಶಿಫಾರಸು ಮಾಡಿದಾಗ ಆನ್‌ಲೈನ್ ಸೆಷನ್‌ಗಳು ನೇರ ಪರೀಕ್ಷೆಯ ಬದಲಾಗುವುದಿಲ್ಲ, ಮತ್ತು ಎಲ್ಲಾ ಕಾಳಜಿಗಳನ್ನು ವೀಡಿಯೋ ಅಥವಾ ಚಾಟ್‌ನಿಂದ ಸುರಕ್ಷಿತವಾಗಿ ಮೌಲ್ಯಮಾಪನ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+      "s2Title": "2. ತುರ್ತು ಸಂದರ್ಭಗಳಿಗೆ ಅಲ್ಲ",
+      "s2Body": "ನಿಮ್ಮ ಮಗುವಿಗೆ ಉಸಿರಾಟದ ತೊಂದರೆ, ನೀಲಿ/ಬೂದು ಬಣ್ಣ, ಪ್ರತಿಕ್ರಿಯೆ ಇಲ್ಲ, ಮೂರ್ಛೆ, ಗಂಭೀರ ರಕ್ತಸ್ರಾವ, ಅಥವಾ ಜೀವಕ್ಕೆ ಅಪಾಯದ ಲಕ್ಷಣ ಇದ್ದರೆ, ತಕ್ಷಣ ಸ್ಥಳೀಯ ತುರ್ತು ಸಂಖ್ಯೆಗೆ ಕರೆ ಮಾಡಿ. ತುರ್ತು ಆರೈಕೆಗಾಗಿ ಈ ಸೈಟ್ ಅಥವಾ ಆನ್‌ಲೈನ್ ಸಲಹೆಯನ್ನು ಬಳಸಬೇಡಿ.",
+      "s2bTitle": "2A. Smart AI ಸಹಾಯಕರ ಮಿತಿಗಳು",
+      "s2bBody": "ನಮ್ಮ Smart AI ಚಾಟ್ ಸಾಮಾನ್ಯ ಆರೋಗ್ಯ ಮಾರ್ಗದರ್ಶನ ಮಾತ್ರ ನೀಡುತ್ತದೆ; ವೈದ್ಯ, ರೋಗನಿರ್ಣಯ ಸಾಧನ, ಅಥವಾ ವೃತ್ತಿಪರ ವೈದ್ಯಕೀಯ ಸಲಹೆಯ ಬದಲಾಗುವುದಿಲ್ಲ. Smart AI ಪ್ರತಿಕ್ರಿಯೆಗಳು ಅಪೂರ್ಣ ಅಥವಾ ಅನುಚಿತವಾಗಿರಬಹುದು. ರೋಗನಿರ್ಣಯ ಮತ್ತು ಚಿಕಿತ್ಸೆ ನಿರ್ಧಾರಗಳಿಗಾಗಿ ಅರ್ಹ ವೈದ್ಯರನ್ನು ಸಂಪರ್ಕಿಸಿ; ತುರ್ತು/ಜೀವಕ್ಕೆ ಅಪಾಯದ ಲಕ್ಷಣಗಳಿಗೆ ತುರ್ತು ಸೇವೆಗಳನ್ನು ಬಳಸಿ.",
+      "s3Title": "3. ಪೋಷಕ ಅಥವಾ ಪಾಲಕ",
+      "s3Body": "ಅಪ್ರಾಪ್ತ ವಯಸ್ಕರನ್ನು ನೋಂದಣಿ ಮಾಡಲು ಮತ್ತು ಆರೈಕೆಗೆ ಸಮ್ಮತಿ ನೀಡಲು ನೀವು ಪೋಷಕ ಅಥವಾ ಕಾನೂನು ಪಾಲಕ (ಅಥವಾ ಅವರ ಅಧಿಕೃತ ಪ್ರತಿನಿಧಿ) ಆಗಿರಬೇಕು. ಮಗುವಿನ ಬಗ್ಗೆ ನೀವು ನೀಡುವ ಮಾಹಿತಿ ನಿಮ್ಮ ಅತ್ಯುತ್ತಮ ಜ್ಞಾನದ ಪ್ರಕಾರ ನಿಖರವಾಗಿದೆ ಎಂದು ನೀವು ಒಪ್ಪುತ್ತೀರಿ.",
+      "s4Title": "4. ಖಚಿತ ಫಲಿತಾಂಶಗಳು ಇಲ್ಲ",
+      "s4Body": "ವೈದ್ಯಕೀಯ ನಿರ್ಣಯ ಅನೇಕ ಅಂಶಗಳ ಮೇಲೆ ಅವಲಂಬಿತ. ಯಾವುದೇ ಆನ್‌ಲೈನ್ ಸಂವಾದದಿಂದ ನಿರ್ದಿಷ್ಟ ಫಲಿತಾಂಶ, ರೋಗನಿರ್ಣಯ, ಅಥವಾ ಚಿಕಿತ್ಸೆಯನ್ನು ಖಚಿತಪಡಿಸುವುದಿಲ್ಲ. ನಿಮ್ಮ ವೈದ್ಯರು ನೇರ ಫಾಲೋ-ಅಪ್, ಪರೀಕ್ಷೆಗಳು, ರೆಫರಲ್‌ಗಳನ್ನು ಶಿಫಾರಸು ಮಾಡಬಹುದು.",
+      "s5Title": "5. ಗೌಪ್ಯತೆ ಮತ್ತು ದಾಖಲೆಗಳು",
+      "s5Body": "ಆರೈಕೆ, ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು, ಸೇವೆಗಳ ಸುಧಾರಣೆಗಾಗಿ ಅನ್ವಯವಾಗುವ ಕಾನೂನು/ನೀತಿಗಳ ಪ್ರಕಾರ ನೀವು ಸಲ್ಲಿಸಿದ ಮಾಹಿತಿಯನ್ನು ಬಳಸುತ್ತೇವೆ. ಕ್ಲಿನಿಕಲ್ ರೀತಿಯಲ್ಲಿ ಸೂಕ್ತವಾದಾಗ ವೀಡಿಯೋ/ಚಾಟ್ ಸೆಷನ್‌ಗಳನ್ನು ವೈದ್ಯಕೀಯ ದಾಖಲೆಯಲ್ಲಿ ದಾಖಲಿಸಬಹುದು.",
+      "s6Title": "6. ಟೆಲಿಹೆಲ್ತ್ ಮಿತಿಗಳು",
+      "s6Body": "ದೂರಸ್ಥ ಭೇಟಿಗಳು ನಿಮ್ಮ ಸಾಧನ, ಸಂಪರ್ಕ ಮತ್ತು ಪರಿಸರದ ಮೇಲೆ ಅವಲಂಬಿತ. ಕಳಪೆ ಆಡಿಯೋ, ವೀಡಿಯೋ, ಅಥವಾ ಅಪೂರ್ಣ ಮಾಹಿತಿ ನಾವು ನೀಡಬಹುದಾದ ಸಲಹೆಯನ್ನು ಮಿತಿಗೊಳಿಸಬಹುದು. ಸಾಧ್ಯವಾದಾಗ ನೀವು ಖಾಸಗಿ ಸ್ಥಳದಿಂದ ಸೇರುತ್ತೀರಿ ಮತ್ತು ಕಾನೂನು ಬಾಧ್ಯತೆಯಾಗಿದ್ದರೆ ಪೂರ್ವ ಸಮ್ಮತಿಯಿಲ್ಲದೆ ಸೆಷನ್‌ಗಳನ್ನು ರೆಕಾರ್ಡ್ ಮಾಡಬಾರದು ಎಂದು ಒಪ್ಪುತ್ತೀರಿ.",
+      "s7Title": "7. ಖಾತೆ ಮತ್ತು ಸ್ವೀಕಾರ್ಯ ಬಳಕೆ",
+      "s7Body": "ನಿಮ್ಮ ಲಾಗಿನ್ ರುಜುವಾತುಗಳ ಸುರಕ್ಷತೆಗೆ ನೀವು ಜವಾಬ್ದಾರರು. ಪ್ಲಾಟ್‌ಫಾರ್ಮ್‌ನ ದುರುಪಯೋಗ, ಇತರರನ್ನು ನಕಲು ಮಾಡುವುದು, ಅಥವಾ ಹಾನಿಕಾರಕ ವಿಷಯ ಅಪ್‌ಲೋಡ್ ಮಾಡಬಾರದು. ಉಲ್ಲಂಘನೆಗಳು ಅಥವಾ ಭದ್ರತಾ ಕಾಳಜಿಗಳಿಗಾಗಿ ಪ್ರವೇಶವನ್ನು ನಿಲ್ಲಿಸಬಹುದು.",
+      "s8Title": "8. ಹೊಣೆಗಾರಿಕೆ ಮಿತಿ",
+      "s8Body": "ಕಾನೂನು ಅನುಮತಿಸಿದ ಪೂರ್ಣ ಮಟ್ಟ까지, ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ಮತ್ತು ಅದರ ಸಿಬ್ಬಂದಿ ಈ ವೆಬ್‌ಸೈಟ್ ಅಥವಾ ಆನ್‌ಲೈನ್ ಸಲಹೆಯ ಬಳಕೆಯಿಂದ ಉಂಟಾಗುವ ಪರೋಕ್ಷ ಅಥವಾ ಪರಿಣಾಮಕಾರಿ ಹಾನಿಗೆ ಹೊಣೆಗಾರರಲ್ಲ. ಕೆಲವು ಅಧಿಕಾರ ವ್ಯಾಪ್ತಿಗಳು ಕೆಲವು ಮಿತಿಗಳನ್ನು ಅನುಮತಿಸುವುದಿಲ್ಲ; ಆ ಮಾಮಲೆಗಳಲ್ಲಿ ನಮ್ಮ ಹೊಣೆಗಾರಿಕೆ ಕಾನೂನು ಅನುಮತಿಸಿದ ಗರಿಷ್ಠಕ್ಕೆ ಮಿತಿಗೊಳಿಸಲಾಗಿದೆ.",
+      "s9Title": "9. ಬದಲಾವಣೆಗಳು",
+      "s9Body": "ನಾವು ಸಮಯಕಾಲದಲ್ಲಿ ಈ ನಿಯಮಗಳನ್ನು ನವೀಕರಿಸಬಹುದು. ಬದಲಾವಣೆಗಳ ನಂತರ ಮುಂದುವರಿದ ಬಳಕೆಯು ನವೀಕರಿಸಿದ ನಿಯಮಗಳ ಸ್ವೀಕಾರವಾಗಿದೆ. ಬದಲಾವಣೆಗಳನ್ನು ಪ್ರಕಟಿಸಿದಾಗ ಮೇಲಿನ \"ಕೊನೆಯ ಅಪ್‌ಡೇಟ್\" ಟಿಪ್ಪಣಿ ಪರಿಷ್ಕರಿಸಬಹುದು.",
+      "s10Title": "10. ಸಂಪರ್ಕ",
+      "s10Body": "ಈ ನಿಯಮಗಳು ಅಥವಾ ನಿಮ್ಮ ಆರೈಕೆಯ ಬಗ್ಗೆ ಪ್ರಶ್ನೆಗಳಿಗಾಗಿ, ನಮ್ಮ ವೆಬ್‌ಸೈಟ್‌ನಲ್ಲಿ ನೀಡಿದ ಸಂಪರ್ಕ ಆಯ್ಕೆಗಳನ್ನು ಬಳಸಿ ಅಥವಾ ನಿಮ್ಮ ಮುಂದಿನ ಭೇಟಿಯಲ್ಲಿ ಆರೈಕೆ ತಂಡವನ್ನು ಕೇಳಿ."
+    },
+    "privacy": {
+      "hero": "ಗೌಪ್ಯತೆ ಸೂಚನೆ — ವೈಯಕ್ತಿಕ ಮತ್ತು ಆರೋಗ್ಯ ಡೇಟಾ",
+      "subhero": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ಟೆಲಿಹೆಲ್ತ್ ಸೇವೆಗಳನ್ನು ಬಳಸಿದಾಗ ನಾವು ನಿಮ್ಮ ಮಾಹಿತಿಯನ್ನು ಹೇಗೆ ನಿರ್ವಹಿಸುತ್ತೇವೆ",
+      "updatedBody": "ಈ ಸೂಚನೆ ನಮ್ಮ ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳನ್ನು ಪೂರಕಗೊಳಿಸುತ್ತದೆ. ಭಾರತದ Digital Personal Data Protection Act, 2023 (DPDP) ಅಡಿಯಲ್ಲಿ ಡಿಜಿಟಲ್ ವೈಯಕ್ತಿಕ ಡೇಟಾಕ್ಕಾಗಿ ಪಾರದರ್ಶಕತೆ ನಿರೀಕ್ಷೆಗಳನ್ನು ಪೂರೈಸಲು ವಿನ್ಯಾಸಗೊಳಿಸಲಾಗಿದೆ. ಇದು ಕಾನೂನು ಸಲಹೆ ಅಲ್ಲ; ನಿಮ್ಮ ನಿಯೋಜನೆಗಾಗಿ ಅರ್ಹ counsel ಜೊತೆ ಸಂಪರ್ಕಿಸಿ.",
+      "s1Title": "1. ನಾವು ಯಾರು",
+      "s1Body": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ಈ ವೆಬ್‌ಸೈಟ್ ಮತ್ತು ಟೆಲಿಹೆಲ್ತ್ ಸೇವೆಗಳನ್ನು ನಿರ್ವಹಿಸುತ್ತದೆ. DPDP ಉದ್ದೇಶಗಳಿಗಾಗಿ, ಈ ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಮೂಲಕ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಿದ ವೈಯಕ್ತಿಕ ಡೇಟಾಕ್ಕಾಗಿ ನಾವು ಡೇಟಾ fiduciary ಆಗಿ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತೇವೆ, ನಿಮ್ಮೊಂದಿಗಿನ ನಮ್ಮ ಒಪ್ಪಂದಗಳು ಮತ್ತು ಅನ್ವಯವಾಗುವ ಕಾನೂನಿನ ಅಧೀನ.",
+      "s2Title": "2. ನಾವು ಏನು ಸಂಗ್ರಹಿಸುತ್ತೇವೆ",
+      "s2Body": "ನೀವು ಒದಗಿಸಿದ ಗುರುತಿಸುವಿಕೆ ಮತ್ತು ಸಂಪರ್ಕ ವಿವರಗಳು (ಹೆಸರು, ಇಮೇಲ್, ಫೋನ್), ಖಾತೆ ರುಜುವಾತುಗಳು, ಆರೈಕೆಗೆ ಅಗತ್ಯ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಮತ್ತು ಕ್ಲಿನಿಕಲ್ ಸಂದರ್ಭ (ನೀವು ಹಂಚಿಕೊಂಡ ಮಕ್ಕಳ ಆರೋಗ್ಯ ಮಾಹಿತಿ ಸೇರಿ), ಸೆಷನ್ ಮತ್ತು ಬೆಂಬಲ metadata, ಮತ್ತು ವೀಡಿಯೋ ಸಲಹೆ ನಡೆಸಲು ಮತ್ತು ಸೇವೆಯನ್ನು ಸುರಕ್ಷಿತಗೊಳಿಸಲು ಅಗತ್ಯ ತಾಂತ್ರಿಕ ಡೇಟಾ (ಉದಾ. ಸಾಧನ/ಬ್ರೌಸರ್ ಸಂಕೇತಗಳು ಮತ್ತು ಭದ್ರತಾ ಲಾಗ್‌ಗಳು) ಸಂಗ್ರಹಿಸುತ್ತೇವೆ.",
+      "s3Title": "3. ವೈಯಕ್ತಿಕ ಡೇಟಾವನ್ನು ಏಕೆ ಬಳಸುತ್ತೇವೆ",
+      "s3Body": "ಟೆಲಿಹೆಲ್ತ್ ಸಲಹೆ ಮತ್ತು ವೇಳಾಪಟ್ಟಿ ಒದಗಿಸಲು, ಬಳಕೆದಾರರನ್ನು ಪ್ರಮಾಣೀಕರಿಸಲು, ಅನ್ವಯವಾದಾಗ ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು ಮತ್ತು ಆರೈಕೆ ದಾಖಲೆಗಳನ್ನು ವಿತರಿಸಲು, ಕಾರ್ಯಾಚರಣಾ ಸಂವಹನಗಳನ್ನು ಕಳುಹಿಸಲು, ಸೇವೆಯ ವಿಶ್ವಾಸಾರ್ಹತೆ ಮತ್ತು ಭದ್ರತೆಯನ್ನು ಸುಧಾರಿಸಲು, ಕಾನೂನನ್ನು ಪಾಲಿಸಲು, ಮತ್ತು ಬೆಂಬಲ ವಿನಂತಿಗಳಿಗೆ ಪ್ರತಿಕ್ರಿಯಿಸಲು ವೈಯಕ್ತಿಕ ಡೇಟಾವನ್ನು ಬಳಸುತ್ತೇವೆ. ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಡೇಟಾವನ್ನು ಮಾರಾಟ ಮಾಡುವುದಿಲ್ಲ.",
+      "s4Title": "4. ಕಾನೂನು ಆಧಾರ ಮತ್ತು ಸಮ್ಮತಿ",
+      "s4Body": "DPDP ಅಥವಾ ಇತರ ಕಾನೂನು ನಿರ್ದಿಷ್ಟ ಪ್ರಕ್ರಿಯೆಗೆ ಸಮ್ಮತಿ ಅಗತ್ಯವಿದ್ದಾಗ, ಅದನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ಕೇಳುತ್ತೇವೆ (ಉದಾ. ನೋಂದಣಿಯಲ್ಲಿ ಅಥವಾ ಐಚ್ಛಿಕ ವೈಶಿಷ್ಟ್ಯಗಳ ಮೊದಲು). ಸಮ್ಮತಿ-ಆಧಾರಿತ ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿ, ಕಾನೂನು ಅಥವಾ ಕ್ಲಿನಿಕಲ್ ದಾಖಲೆ-ಉಳಿಸುವಿಕೆ ಬಾಧ್ಯತೆಗಳ ಅಧೀನ, ಸಮ್ಮತಿಯನ್ನು ಹಿಂತೆಗೆದುಕೊಳ್ಳಬಹುದು.",
+      "s5Title": "5. ಆರೋಗ್ಯ ಮಾಹಿತಿ",
+      "s5Body": "ಸಲಹೆಯ ಸಮಯದಲ್ಲಿ ನೀವು ಹಂಚಿಕೊಂಡ ಆರೋಗ್ಯ-ಸಂಬಂಧಿತ ಮಾಹಿತಿ ಸಂವೇದನಾಶೀಲವಾಗಿರಬಹುದು. ಪ್ರವೇಶ ನಿಯಂತ್ರಣಗಳು, ಸಾರಾಂಶದಲ್ಲಿ ಎನ್‌ಕ್ರಿಪ್ಶನ್ (HTTPS/TLS), ಮತ್ತು ನಮ್ಮ ಭದ್ರತಾ ಪದ್ಧತಿಗಳಲ್ಲಿ ವಿವರಿಸಿದ ಹೆಚ್ಚುವರಿ ಸುರಕ್ಷತಾ ಕ್ರಮಗಳೊಂದಿಗೆ ಇದನ್ನು ರಕ್ಷಿಸುತ್ತೇವೆ. ಉಳಿಕೆ ಕ್ಲಿನಿಕಲ್, ಕಾನೂನು, ಮತ್ತು ಕಾರ್ಯಾಚರಣಾ ಅಗತ್ಯಗಳನ್ನು ಪಾಲಿಸುತ್ತದೆ.",
+      "s6Title": "6. ಹಂಚಿಕೆ",
+      "s6Body": "ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ನಿರ್ವಹಿಸಲು ಸಹಾಯ ಮಾಡುವ ಸೇವಾ ಪೂರೈಕೆದಾರರೊಂದಿಗೆ (ಉದಾ. ಹೋಸ್ಟಿಂಗ್, ಇಮೇಲ್, ವೀಡಿಯೋ ಮೂಲಸೌಕರ್ಯ) ಒಪ್ಪಂದಗಳ ಅಡಿಯಲ್ಲಿ ನಿಮ್ಮ ಮಾಹಿತಿಯನ್ನು ರಕ್ಷಿಸುವ ಅಗತ್ಯವಿರುವ ವೈಯಕ್ತಿಕ ಡೇಟಾವನ್ನು ಹಂಚಿಕೊಳ್ಳುತ್ತೇವೆ. ಕಾನೂನು ಬಾಧ್ಯತೆಯಾಗಿದ್ದರೆ ಅಥವಾ ಹಕ್ಕುಗಳು, ಸುರಕ್ಷತೆ ಮತ್ತು ಭದ್ರತೆಯನ್ನು ರಕ್ಷಿಸಲು, ಮಾಹಿತಿಯನ್ನು ಬಹಿರಂಗಪಡಿಸಬಹುದು.",
+      "s7Title": "7. ನಿಮ್ಮ ಹಕ್ಕುಗಳು (ಭಾರತ)",
+      "s7Body": "ಅನ್ವಯವಾಗುವ ಕಾನೂನಿನ ಅಧೀನ, ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು, ಸರಿಪಡಿಸಲು, ಅಥವಾ ಅಳಿಸಲು; ಪ್ರಕ್ರಿಯೆಯ ಬಗ್ಗೆ ಮಾಹಿತಿ ಪಡೆಯಲು; ಪ್ರತಿನಿಧಿಯನ್ನು ನೇಮಿಸಲು; ಮತ್ತು ದೂರು ನಿವಾರಣೆ ಕೇಳಲು ವಿನಂತಿಸಬಹುದು. ಅನ್ವಯವಾದಾಗ, ಕಾನೂನು ನಿರ್ಧರಿಸಿದ ಸಮಯಸೀಮೆಯೊಳಗೆ ಪ್ರತಿಕ್ರಿಯಿಸುತ್ತೇವೆ. ದೂರುಗಳಿಗಾಗಿ, ಈ ಸೈಟ್‌ನಲ್ಲಿ ಪ್ರಕಟಿಸಿದ ಸಂಪರ್ಕ ಚಾನಲ್ ಬಳಸಿ.",
+      "s8Title": "8. ಅಂತರರಾಷ್ಟ್ರೀಯ ವರ್ಗಾವಣೆ",
+      "s8Body": "ವೈಯಕ್ತಿಕ ಡೇಟಾವನ್ನು ಭಾರತದ ಹೊರಗೆ ವರ್ಗಾಯಿಸಿದರೆ, DPDP ಅವಶ್ಯಕತೆಗಳ (ಅನುಮತಿಸಿದ ಪ್ರದೇಶಗಳು ಅಥವಾ ನಿಗದಿಪಡಿಸಿದ ಸೂಕ್ತ ಸುರಕ್ಷತಾ ಕ್ರಮಗಳು ಸೇರಿ) ಪ್ರಕಾರ ಮಾಡುತ್ತೇವೆ.",
+      "s9Title": "9. ಮಕ್ಕಳು",
+      "s9Body": "ನಮ್ಮ ಮಕ್ಕಳ ವೈದ್ಯಕೀಯ ಸೇವೆಗಳು ಪೋಷಕರು ಮತ್ತು ಪಾಲಕರಿಗೆ ನಿರ್ದೇಶಿಸಲಾಗಿವೆ. ಅದನ್ನು ಮಾಡಲು ಅಧಿಕಾರವಿಲ್ಲದೆ ಮಗುವಿನ ಬಗ್ಗೆ ಮಾಹಿತಿ ನೀಡಬೇಡಿ.",
+      "s10Title": "10. ಬದಲಾವಣೆಗಳು",
+      "s10Body": "ಕಾನೂನು, ತಾಂತ್ರಿಕ, ಅಥವಾ ಸೇವಾ ಬದಲಾವಣೆಗಳನ್ನು ಪ್ರತಿಬಿಂಬಿಸಲು ಈ ಸೂಚನೆಯನ್ನು ನವೀಕರಿಸಬಹುದು. ಪ್ರಮುಖ ಅಪ್‌ಡೇಟ್‌ಗಳನ್ನು ಸೂಕ್ತವಾದಲ್ಲಿ ಹೈಲೈಟ್ ಮಾಡಲಾಗುತ್ತದೆ. ಕಾನೂನು ಅನುಮತಿಸಿದಲ್ಲಿ, ನವೀಕರಣದ ನಂತರ ಮುಂದುವರಿದ ಬಳಕೆಯು ಪರಿಷ್ಕೃತ ನೀತಿಯ ಸೂಚನೆಯಾಗಿದೆ."
+    }
+  },
+  "serverCopy": {
+    "acceptLanguageHint": "API server-rendered copy ಗಾಗಿ Accept-Language (ಉದಾ. kn, hi, en) honor ಮಾಡಬೇಕು, ಅಥವಾ client translation ಗಾಗಿ stable codes return."
+  }
+}

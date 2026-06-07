@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.NotificationResponse;
 import com.flexshell.controller.dto.NotificationUnreadCountResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
@@ -29,10 +30,15 @@ import java.util.UUID;
 @RequestMapping("/api/v1/notifications")
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class NotificationController {
+    private final LocalizedApiMessages messages;
+
 
     private final NotificationService notificationService;
 
-    public NotificationController(NotificationService notificationService) {
+    public NotificationController(NotificationService notificationService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.notificationService = notificationService;
     }
 
@@ -48,7 +54,7 @@ public class NotificationController {
         }
         Page<NotificationResponse> page = notificationService.listForUser(userId, unreadOnly, pageable);
         return EntityListResponseSupport.ok(
-                "Notifications fetched",
+                messages.success("success.notification.list"),
                 page.getContent(),
                 page.getNumber(),
                 page.getSize(),
@@ -81,10 +87,10 @@ public class NotificationController {
         }
         try {
             notificationService.markAsRead(externalId, userId);
-            return ResponseEntity.ok(StandardApiResponse.success("Notification marked as read", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.notification.marked.read"), null));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "NOTIFICATION_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "NOTIFICATION_NOT_FOUND"), "NOTIFICATION_NOT_FOUND"));
         }
     }
 
@@ -95,15 +101,15 @@ public class NotificationController {
             return unauthorized();
         }
         notificationService.markAllAsRead(userId);
-        return ResponseEntity.ok(StandardApiResponse.success("All notifications marked as read", null));
+        return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.notification.all.marked.read"), null));
     }
 
     private static String actorId(Authentication authentication) {
         return authentication == null ? "" : Objects.toString(authentication.getName(), "").trim();
     }
 
-    private static <T> ResponseEntity<StandardApiResponse<T>> unauthorized() {
+    private <T> ResponseEntity<StandardApiResponse<T>> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(StandardApiResponse.error("Authentication required.", "AUTH_REQUIRED"));
+                .body(StandardApiResponse.error(messages.forErrorCode("AUTH_REQUIRED"), "AUTH_REQUIRED"));
     }
 }

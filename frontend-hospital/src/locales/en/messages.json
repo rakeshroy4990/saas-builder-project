@@ -113,13 +113,37 @@
     },
     "fields": {
       "firstName": "First name",
+      "lastName": "Last name",
       "emailId": "Email",
       "password": "Password",
       "gender": "Gender",
       "mobileNumber": "Mobile number",
       "qualifications": "Qualifications",
       "smcName": "State Medical Council",
-      "smcRegistrationNumber": "SMC registration number"
+      "smcRegistrationNumber": "SMC registration number",
+      "address": "Address",
+      "role": "Role",
+      "department": "Department"
+    },
+    "placeholders": {
+      "firstName": "Enter first name",
+      "lastName": "Enter last name",
+      "email": "youremail@example.com",
+      "password": "Enter password",
+      "address": "Enter address",
+      "mobile": "Enter mobile number",
+      "qualifications": "MBBS, MD, etc.",
+      "smcName": "Enter State Medical Council",
+      "smcRegistrationNumber": "Enter SMC registration number"
+    },
+    "terms": {
+      "agreePrefix": "I have read and agree to the",
+      "termsLink": "Terms & Conditions",
+      "privacyLink": "Privacy Notice (India)"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "register": "Register"
     }
   },
   "page": {
@@ -297,7 +321,26 @@
     "profileSaveFailed": "Save failed.",
     "deactivateFailed": "Could not deactivate account.",
     "slotsForbiddenDoctor": "You cannot load slots for this doctor.",
-    "slotsLoadFailed": "Could not load available time slots. Try again."
+    "slotsLoadFailed": "Could not load available time slots. Try again.",
+    "healthAssistantUnavailable": "Health Assistant is temporarily unavailable. Please try again shortly.",
+    "videoCallDoctorOnly": "Video call is only available for appointments where you are the assigned doctor.",
+    "videoCallNoPatientAccount": "This appointment has no patient account linked (CreatedBy). Cannot place the call.",
+    "videoCallCannotCallSelf": "You cannot call yourself.",
+    "videoCallNoDoctor": "This appointment has no doctor assigned for a video call.",
+    "videoCallOwnAppointmentsOnly": "You can only start a video call for your own appointments.",
+    "videoCallSignInAsParticipant": "Sign in as the assigned doctor (or patient) to start this call.",
+    "videoCallTargetUnknown": "Could not determine who to call for this appointment.",
+    "chatConnectFailed": "Unable to connect to chat right now.",
+    "chatStartFailed": "Unable to start chat right now.",
+    "chatAcceptFailed": "Unable to accept chat right now.",
+    "callSessionPrepareFailed": "Could not prepare video session. Check server video configuration.",
+    "callConnectFailed": "Unable to connect to calling right now.",
+    "callInviteSendFailed": "Could not send invite. Check your connection and try again.",
+    "callInviteFailed": "Could not send call invite. Check network and login, then try again.",
+    "callAcceptFailed": "Could not accept the call. Check your connection and try again.",
+    "callRejectFailed": "Could not reject the call. Check your connection and try again.",
+    "callEndFailed": "Could not end the call. Check your connection and try again.",
+    "callHeartbeatFailed": "Unable to connect for call heartbeat."
   },
   "appointment": {
     "loginRequired": "Please sign in first to book an appointment with this doctor.",
@@ -505,7 +548,15 @@
     "appointments": {
       "title": "Appointments",
       "loading": "Loading appointments…",
-      "empty": "No appointments found for the selected filters."
+      "empty": "No appointments found for the selected filters.",
+      "rowLine1": "Patient: {patientName} | Doctor: {doctorName} | Status: {statusLabel}",
+      "rowLine2": "Date: {preferredDate} | Slot: {preferredTimeSlot} | Department: {department} | Phone: {phoneNumber} | Age: {ageGroup}",
+      "additionalNotes": "Additional notes: {additionalNotes}",
+      "statusScheduled": "Scheduled",
+      "markVisitComplete": "Mark visit complete",
+      "issueEprescription": "Issue structured e-prescription",
+      "videoCall": "Video Call",
+      "cancelAppointment": "Cancel appointment"
     },
     "workingSlots": {
       "title": "Set working time slots",
@@ -857,7 +908,88 @@
   "devices": {
     "title": "Medical devices",
     "intro": "Connect supported Bluetooth devices to record readings on your profile. Use Chrome or Edge on desktop or Android.",
-    "connectTitle": "Connect a device"
+    "connectTitle": "Connect a device",
+    "bluetooth": {
+      "types": {
+        "spirometer": "Spirometer",
+        "pulse_oximeter": "Pulse Oximeter",
+        "bp_monitor": "Blood Pressure Monitor",
+        "glucometer": "Glucometer",
+        "thermometer": "Thermometer"
+      },
+      "chooseTypeTitle": "Choose device type",
+      "chooseTypeHint": "Select the type of medical device you want to connect via Bluetooth.",
+      "modelsTitle": "{type} models",
+      "backToTypes": "← Back to device types",
+      "backToModels": "← Back to models",
+      "unitLabel": "Unit: {unit}",
+      "profiles": {
+        "SPIROFY_CIPLA": { "label": "Spirofy (Cipla spirometer)", "action": "Turn on the Spirofy device. In Chrome, select the LIVSMT-RO-… device from the list." },
+        "SPIROFY_SCAN_ALL": { "label": "Spirofy — scan all nearby", "action": "Turn on the Spirofy device and keep it near your computer." },
+        "MIR_SPIROBANK": { "label": "MIR Spirobank", "action": "Blow steadily into the mouthpiece when prompted." },
+        "NUVOAIR_AIR_NEXT": { "label": "NuvoAir Air Next", "action": "Breathe in fully, then blow out as hard and fast as possible." },
+        "GENERIC_SPIROMETER": { "label": "Generic Spirometer", "action": "Follow instructions on your spirometer device." },
+        "GENERIC_OXIMETER": { "label": "Pulse Oximeter", "action": "Place your finger inside the oximeter clip." },
+        "GENERIC_BP_MONITOR": { "label": "Blood Pressure Monitor", "action": "Wrap the cuff around your upper arm and stay still." },
+        "GENERIC_GLUCOMETER": { "label": "Glucometer", "action": "Insert a test strip and apply a blood sample." },
+        "GENERIC_THERMOMETER": { "label": "Thermometer", "action": "Turn the thermometer on and enable pairing mode if required. In the browser list, select your thermometer by name — most devices do not advertise a standard health service until connected." }
+      }
+    }
+  },
+  "legal": {
+    "terms": {
+      "hero": "Terms & Conditions",
+      "subhero": "Online medical consultation for your baby",
+      "updatedLabel": "Last updated",
+      "updatedBody": "These terms apply when you use Agastya Healthcare telehealth and online booking services for pediatric care.",
+      "s1Title": "1. Nature of the service",
+      "s1Body": "Agastya Healthcare offers online information, scheduling, and remote consultations related to pediatric and family health. Online sessions are not a substitute for an in-person examination when your clinician recommends one, and not all concerns can be assessed safely by video or chat.",
+      "s2Title": "2. Not for emergencies",
+      "s2Body": "If your baby has trouble breathing, turns blue or gray, is unresponsive, has a seizure, severe bleeding, or any life-threatening symptom, call your local emergency number immediately. Do not use this site or online consultation to request emergency care.",
+      "s2bTitle": "2A. Smart AI assistant limitations",
+      "s2bBody": "Our Smart AI chat provides general health guidance only and is not a doctor, diagnosis tool, or substitute for professional medical advice. Smart AI responses may be incomplete or unsuitable for your specific situation. You must seek a qualified clinician for diagnosis and treatment decisions, and you must use emergency services for urgent or life-threatening symptoms.",
+      "s3Title": "3. Parent or guardian",
+      "s3Body": "You must be a parent or legal guardian (or their authorized representative) to register a minor and to consent to care. You agree that information you provide about the child is accurate to the best of your knowledge.",
+      "s4Title": "4. No guaranteed outcomes",
+      "s4Body": "Medical judgment depends on many factors. We do not guarantee specific results, diagnoses, or treatments from any online interaction. Your clinician may recommend in-person follow-up, tests, or referrals.",
+      "s5Title": "5. Privacy and records",
+      "s5Body": "We use information you submit to provide care, operate appointments, and improve our services, consistent with applicable law and our internal policies. Video or chat sessions may be documented in the medical record where clinically appropriate.",
+      "s6Title": "6. Telehealth limitations",
+      "s6Body": "Remote visits depend on your device, connection, and environment. Poor audio, video, or incomplete information may limit what we can advise. You agree to join from a private space when possible and not to record sessions without prior agreement where required by law.",
+      "s7Title": "7. Account and acceptable use",
+      "s7Body": "You are responsible for safeguarding your login credentials. You will not misuse the platform, impersonate others, or upload harmful content. We may suspend access for violations or security concerns.",
+      "s8Title": "8. Limitation of liability",
+      "s8Body": "To the fullest extent permitted by law, Agastya Healthcare and its staff are not liable for indirect or consequential damages arising from use of this website or online consultations. Some jurisdictions do not allow certain limitations; in those cases, our liability is limited to the maximum allowed by law.",
+      "s9Title": "9. Changes",
+      "s9Body": "We may update these terms from time to time. Continued use after changes constitutes acceptance of the updated terms. The “Last updated” note above may be revised when we publish changes.",
+      "s10Title": "10. Contact",
+      "s10Body": "For questions about these terms or your care, use the contact options shown on our website or ask your care team during your next visit."
+    },
+    "privacy": {
+      "hero": "Privacy Notice — personal and health data",
+      "subhero": "How we handle your information when you use Agastya Healthcare telehealth services",
+      "updatedBody": "This notice supplements our Terms & Conditions. It is designed to meet transparency expectations under India’s Digital Personal Data Protection Act, 2023 (DPDP) for digital personal data. It is not legal advice; engage qualified counsel to finalize wording for your deployment.",
+      "s1Title": "1. Who we are",
+      "s1Body": "Agastya Healthcare operates this website and telehealth services. For DPDP purposes, we act as a data fiduciary for personal data processed through this platform, subject to our agreements with you and applicable law.",
+      "s2Title": "2. What we collect",
+      "s2Body": "We collect identifiers and contact details you provide (such as name, email, phone), account credentials, appointment and clinical context needed for care (including child health information you share), session and support metadata, and technical data needed to run video consultations and secure the service (for example device/browser signals and security logs).",
+      "s3Title": "3. Why we use personal data",
+      "s3Body": "We use personal data to provide telehealth consultations and scheduling, authenticate users, deliver prescriptions and care documentation where applicable, send operational communications, improve reliability and safety of the service, comply with law, and respond to support requests. We do not sell your personal data.",
+      "s4Title": "4. Lawful basis and consent",
+      "s4Body": "Where DPDP or other law requires consent for specific processing, we will ask for it clearly (for example at registration or before optional features). You may withdraw consent where processing is consent-based, subject to legal or clinical record-keeping obligations.",
+      "s5Title": "5. Health information",
+      "s5Body": "Health-related information you share during consultations may be sensitive. We protect it with access controls, encryption in transit (HTTPS/TLS), and additional safeguards described in our security practices. Retention follows clinical, legal, and operational requirements.",
+      "s6Title": "6. Sharing",
+      "s6Body": "We share personal data with service providers who help us operate the platform (such as hosting, email, or video infrastructure) under contracts that require protection of your information. We may disclose information if required by law or to protect rights, safety, and security.",
+      "s7Title": "7. Your rights (India)",
+      "s7Body": "Subject to applicable law, you may request access, correction, or erasure of your personal data; receive information about processing; nominate a representative; and seek grievance redressal. We will respond within timelines prescribed by law where applicable. For grievances, use the contact channel published on this site.",
+      "s8Title": "8. Cross-border transfers",
+      "s8Body": "If personal data is transferred outside India, we do so in line with DPDP requirements (including permitted territories or appropriate safeguards as prescribed).",
+      "s9Title": "9. Children",
+      "s9Body": "Our pediatric services are directed at parents and guardians. Do not provide information about a child unless you have authority to do so.",
+      "s10Title": "10. Changes",
+      "s10Body": "We may update this notice to reflect legal, technical, or service changes. Material updates will be highlighted where appropriate. Continued use after updates constitutes notice of the revised policy where permitted by law."
+    }
   },
   "serverCopy": {
     "acceptLanguageHint": "APIs should honor Accept-Language (e.g. hi, en) for server-rendered copy or return stable codes for client translation."

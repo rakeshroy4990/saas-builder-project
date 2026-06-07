@@ -108,7 +108,7 @@ public class StructuredPrescriptionService {
         assertAssignedDoctor(appt, actorUserId);
         assertAppointmentCompletedForPrescribing(appt);
         if (StructuredPrescriptionEntity.STATUS_SIGNED.equalsIgnoreCase(e.getStatus())) {
-            throw new IllegalArgumentException("Signed prescriptions cannot be re-validated as drafts");
+            throw new IllegalArgumentException("PRESCRIPTION_CANNOT_REVALIDATE_SIGNED");
         }
         List<String> errors = StructuredPrescriptionValidator.validate(e.getDraftPayload());
         appendAudit(e, actorUserId, AUDIT_VALIDATE, errors.isEmpty() ? "ok" : String.join("; ", errors));
@@ -123,7 +123,7 @@ public class StructuredPrescriptionService {
         assertAppointmentCompletedForPrescribing(appt);
         List<String> errors = StructuredPrescriptionValidator.validate(e.getDraftPayload());
         if (!errors.isEmpty()) {
-            throw new IllegalArgumentException("Validation failed: " + String.join("; ", errors));
+            throw new IllegalArgumentException("PRESCRIPTION_VALIDATION_FAILED");
         }
         Map<String, Object> signed = deepCopy(e.getDraftPayload());
         byte[] pdf = pdfRenderer.render(signed);
@@ -159,7 +159,7 @@ public class StructuredPrescriptionService {
         appointmentService.requireAppointmentEntity(appointmentId, actorUserId);
         StructuredPrescriptionEntity e = requireExisting(appointmentId);
         if (!StructuredPrescriptionEntity.STATUS_SIGNED.equalsIgnoreCase(e.getStatus())) {
-            throw new IllegalArgumentException("Prescription PDF is available only after signing");
+            throw new IllegalArgumentException("PRESCRIPTION_PDF_AFTER_SIGNING");
         }
         if (e.getPdfBytes() == null || e.getPdfBytes().length == 0) {
             throw new IllegalStateException("Signed PDF bytes are missing");
@@ -196,7 +196,7 @@ public class StructuredPrescriptionService {
     private StructuredPrescriptionEntity requireDraftEntity(String appointmentId) {
         StructuredPrescriptionEntity e = requireExisting(appointmentId);
         if (!StructuredPrescriptionEntity.STATUS_DRAFT.equalsIgnoreCase(e.getStatus())) {
-            throw new IllegalArgumentException("Prescription is already signed and cannot be edited");
+            throw new IllegalArgumentException("PRESCRIPTION_ALREADY_SIGNED");
         }
         return e;
     }
@@ -213,7 +213,7 @@ public class StructuredPrescriptionService {
 
     private void assertAppointmentCompletedForPrescribing(AppointmentEntity apt) {
         if (!"COMPLETED".equalsIgnoreCase(normalize(apt.getStatus()))) {
-            throw new IllegalArgumentException("Appointment must be marked completed before issuing a structured e-prescription");
+            throw new IllegalArgumentException("PRESCRIPTION_APPOINTMENT_NOT_COMPLETED");
         }
     }
 
@@ -313,7 +313,7 @@ public class StructuredPrescriptionService {
             return objectMapper.readValue(objectMapper.writeValueAsBytes(src), new TypeReference<>() {
             });
         } catch (IOException ex) {
-            throw new IllegalArgumentException("Unable to copy prescription payload", ex);
+            throw new IllegalArgumentException("PRESCRIPTION_PAYLOAD_COPY_FAILED", ex);
         }
     }
 

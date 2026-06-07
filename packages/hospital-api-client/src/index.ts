@@ -29,6 +29,7 @@ export const SERVER_PATHS = {
   hospitalEducationPrescriptionTranscribe: '/api/hospital/education/prescription-transcribe',
   patientPrescriptionsSimilaritySearch: '/api/v1/patient-prescriptions/similarity-search',
   user: '/api/user',
+  userProfile: '/api/user/profile',
   appointmentGet: '/api/appointment/get',
   appointmentCreate: '/api/appointment/create',
   appointmentUpdate: '/api/appointment/update',

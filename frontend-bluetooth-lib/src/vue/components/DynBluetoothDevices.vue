@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { isSpirofyGattBlockedMessage } from '../../bluetooth/gattDiscovery';
 import {
   DEVICE_REGISTRY,
   DEVICE_TYPES,
   DEVICE_TYPE_ICONS,
   DEVICE_TYPE_LABELS,
+  DEVICE_TYPE_LABEL_I18N,
   devicesForType,
-  type DeviceType
+  type DeviceType,
+  type BluetoothDeviceProfile
 } from '../../bluetooth/deviceRegistry';
 import type { BluetoothReading } from '../../bluetooth/types';
 import { useBluetoothDevice } from '../useBluetoothDevice';
@@ -31,6 +34,30 @@ const emit = defineEmits<{
   typeSelect: [type: DeviceType | null];
   deviceKeySelect: [key: string | null];
 }>();
+
+const { t } = useI18n({ useScope: 'global' });
+
+function typeLabel(type: DeviceType): string {
+  const key = DEVICE_TYPE_LABEL_I18N[type];
+  const translated = t(key);
+  return translated === key ? DEVICE_TYPE_LABELS[type] : translated;
+}
+
+function profileLabel(profile: BluetoothDeviceProfile): string {
+  if (profile.labelI18nKey) {
+    const translated = t(profile.labelI18nKey);
+    if (translated !== profile.labelI18nKey) return translated;
+  }
+  return profile.label;
+}
+
+function profileAction(profile: BluetoothDeviceProfile): string {
+  if (profile.requiresUserActionI18nKey) {
+    const translated = t(profile.requiresUserActionI18nKey);
+    if (translated !== profile.requiresUserActionI18nKey) return translated;
+  }
+  return profile.requiresUserAction;
+}
 
 const selectedType = ref<DeviceType | null>(null);
 const selectedDeviceKey = ref<string | null>(null);
@@ -149,7 +176,7 @@ onUnmounted(() => {
             @click="selectType(type)"
           >
             <span class="text-2xl mr-2" aria-hidden="true">{{ DEVICE_TYPE_ICONS[type] }}</span>
-            <span class="font-semibold text-slate-900">{{ DEVICE_TYPE_LABELS[type] }}</span>
+            <span class="font-semibold text-slate-900">{{ typeLabel(type) }}</span>
           </button>
         </div>
       </div>
@@ -163,7 +190,7 @@ onUnmounted(() => {
           ← Back to device types
         </button>
         <h2 class="text-lg font-semibold text-slate-900">
-          {{ DEVICE_TYPE_LABELS[selectedType!] }} models
+          {{ typeLabel(selectedType!) }} models
         </h2>
         <div class="grid grid-cols-1 gap-2">
           <button
@@ -175,7 +202,7 @@ onUnmounted(() => {
             @click="selectDevice(key)"
           >
             <span class="mr-2" aria-hidden="true">{{ profile.icon }}</span>
-            <span class="font-medium text-slate-900">{{ profile.label }}</span>
+            <span class="font-medium text-slate-900">{{ profileLabel(profile) }}</span>
             <span class="block text-xs text-slate-500 mt-0.5">{{ profile.unit }}</span>
           </button>
         </div>
@@ -194,9 +221,9 @@ onUnmounted(() => {
         <div v-if="selectedProfile" class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
           <p class="font-semibold text-slate-900">
             <span aria-hidden="true">{{ selectedProfile.icon }}</span>
-            {{ selectedProfile.label }}
+            {{ profileLabel(selectedProfile) }}
           </p>
-          <p class="text-sm text-slate-700">{{ selectedProfile.requiresUserAction }}</p>
+          <p class="text-sm text-slate-700">{{ profileAction(selectedProfile) }}</p>
           <p class="text-xs text-slate-500">Unit: {{ selectedProfile.unit }}</p>
         </div>
 

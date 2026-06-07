@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.DoctorScheduleResponse;
 import com.flexshell.controller.dto.DoctorScheduleUpsertRequest;
 import com.flexshell.controller.dto.StandardApiResponse;
@@ -21,9 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/doctor/schedule")
 public class DoctorScheduleController {
+    private final LocalizedApiMessages messages;
+
     private final DoctorScheduleService doctorScheduleService;
 
-    public DoctorScheduleController(DoctorScheduleService doctorScheduleService) {
+    public DoctorScheduleController(DoctorScheduleService doctorScheduleService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.doctorScheduleService = doctorScheduleService;
     }
 
@@ -34,15 +40,15 @@ public class DoctorScheduleController {
     ) {
         try {
             return doctorScheduleService.getSchedule(doctorId, authentication.getName())
-                    .map(body -> ResponseEntity.ok(StandardApiResponse.success("Doctor schedule", body)))
-                    .orElseGet(() -> ResponseEntity.ok(StandardApiResponse.success("No schedule saved yet",
+                    .map(body -> ResponseEntity.ok(StandardApiResponse.success(messages.success("success.doctor.schedule.fetched"), body)))
+                    .orElseGet(() -> ResponseEntity.ok(StandardApiResponse.success(messages.success("success.doctor.schedule.empty"),
                             doctorScheduleService.emptyShellForDoctor(doctorId))));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_SCHEDULE_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_SCHEDULE_FORBIDDEN"), "DOCTOR_SCHEDULE_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_SCHEDULE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_SCHEDULE_INVALID"), "DOCTOR_SCHEDULE_INVALID"));
         }
     }
 
@@ -61,13 +67,13 @@ public class DoctorScheduleController {
     ) {
         try {
             DoctorScheduleResponse saved = doctorScheduleService.upsert(request, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Doctor schedule saved", saved));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.doctor.schedule.saved"), saved));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_SCHEDULE_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_SCHEDULE_FORBIDDEN"), "DOCTOR_SCHEDULE_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_SCHEDULE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_SCHEDULE_INVALID"), "DOCTOR_SCHEDULE_INVALID"));
         }
     }
 
@@ -79,15 +85,15 @@ public class DoctorScheduleController {
         try {
             if (!doctorScheduleService.deleteByBusinessKey(businessKey, authentication.getName())) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(StandardApiResponse.error("Doctor schedule not found", "DOCTOR_SCHEDULE_NOT_FOUND"));
+                        .body(StandardApiResponse.error(messages.forErrorCode("DOCTOR_SCHEDULE_NOT_FOUND"), "DOCTOR_SCHEDULE_NOT_FOUND"));
             }
-            return ResponseEntity.ok(StandardApiResponse.success("Doctor schedule deleted", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.doctor.schedule.deleted"), null));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_SCHEDULE_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_SCHEDULE_FORBIDDEN"), "DOCTOR_SCHEDULE_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_SCHEDULE_DELETE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_SCHEDULE_DELETE_INVALID"), "DOCTOR_SCHEDULE_DELETE_INVALID"));
         }
     }
 }

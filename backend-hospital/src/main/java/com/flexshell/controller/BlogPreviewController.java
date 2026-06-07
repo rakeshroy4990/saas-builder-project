@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.BlogPreviewDto;
 import com.flexshell.controller.dto.BlogPreviewsPayloadDto;
 import com.flexshell.controller.dto.StandardApiResponse;
@@ -16,9 +17,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/hospital/blog")
 public class BlogPreviewController {
+    private final LocalizedApiMessages messages;
+
     private final BlogPreviewService blogPreviewService;
 
-    public BlogPreviewController(BlogPreviewService blogPreviewService) {
+    public BlogPreviewController(BlogPreviewService blogPreviewService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.blogPreviewService = blogPreviewService;
     }
 
@@ -27,15 +33,15 @@ public class BlogPreviewController {
             @RequestParam(name = "limit", defaultValue = "6") int limit
     ) {
         BlogPreviewsPayloadDto data = blogPreviewService.getPreviews(limit);
-        return ResponseEntity.ok(StandardApiResponse.success("Blog previews", data));
+        return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.blog.previews"), data));
     }
 
     @GetMapping(value = "/previews/slug/{slug}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<BlogPreviewDto>> previewBySlug(@PathVariable String slug) {
         return blogPreviewService
                 .findPreviewBySlug(slug)
-                .map(dto -> ResponseEntity.ok(StandardApiResponse.success("Blog preview", dto)))
+                .map(dto -> ResponseEntity.ok(StandardApiResponse.success(messages.success("success.blog.preview"), dto)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(StandardApiResponse.error("No preview for this slug", "BLOG_NOT_FOUND")));
+                        .body(StandardApiResponse.error(messages.forErrorCode("BLOG_NOT_FOUND"), "BLOG_NOT_FOUND")));
     }
 }

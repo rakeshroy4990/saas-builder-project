@@ -2,6 +2,10 @@ import { isAxiosError } from 'axios';
 import { pickString } from '@saas-builder/hospital-api-client';
 
 import { useNetworkStore } from '@/network/networkStore';
+import {
+  humanizeServerValidationMessage,
+  looksLikeServerFieldValidation
+} from '@/utils/validationMessages';
 
 const GENERIC_FALLBACK = 'Something went wrong. Please try again.';
 const OFFLINE_MESSAGE =
@@ -56,6 +60,13 @@ export function toUserFacingApiError(error: unknown, fallback: string = GENERIC_
   if (isAxiosError(error)) {
     const payload = (error.response?.data ?? {}) as Record<string, unknown>;
     const serverMessage = pickString(payload, ['Message', 'message']);
+    const errorCode = pickString(payload, ['ErrorCode', 'errorCode']);
+    if (
+      serverMessage &&
+      (errorCode === 'AUTH_VALIDATION_FAILED' || looksLikeServerFieldValidation(serverMessage))
+    ) {
+      return humanizeServerValidationMessage(serverMessage);
+    }
     if (serverMessage) return serverMessage;
     if (!error.response || isNetworkFailure(error)) {
       return NETWORK_MESSAGE;

@@ -58,7 +58,7 @@ public class AiChatService {
         int messageLength = message.length();
         if (message.isBlank()) {
             LOG.warn("aiChat invalid empty message actor={} historyCount={}", actor, request.history() == null ? 0 : request.history().size());
-            throw new IllegalArgumentException("Message is required");
+            throw new IllegalArgumentException("AI_CHAT_MESSAGE_REQUIRED");
         }
         if (isGreetingOnly(message)) {
             LOG.info("aiChat greeting actor={} messageLength={}", actor, messageLength);
@@ -126,7 +126,7 @@ public class AiChatService {
         int messageLength = message.length();
         if (message.isBlank()) {
             LOG.warn("aiChat stream invalid empty message actor={}", actor);
-            throw new IllegalArgumentException("Message is required");
+            throw new IllegalArgumentException("AI_CHAT_MESSAGE_REQUIRED");
         }
         String audience = resolveAudience(userRoles);
         if (isGreetingOnly(message)) {

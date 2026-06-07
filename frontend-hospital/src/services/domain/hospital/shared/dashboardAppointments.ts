@@ -6,7 +6,8 @@ import { URLRegistry } from '../../../http/URLRegistry';
 import { i18n } from '../../../../i18n';
 import { pickString } from './strings';
 
-const tr = (key: string): string => String((i18n.global as any).t(key));
+const tr = (key: string, params?: Record<string, unknown>): string =>
+  String((i18n.global as { t: (k: string, p?: Record<string, unknown>) => string }).t(key, params ?? {}));
 
 function parseTimeToMinutes(raw: string): number | null {
   const text = String(raw ?? '').trim();
@@ -135,24 +136,39 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
     Boolean(myUserId && createdByNorm && createdByNorm.toLowerCase() === myUserId.toLowerCase());
   const canStartVideoCall =
     role === 'ADMIN' ? baseCanStartVideoCall && adminCreatedThisAppointment : baseCanStartVideoCall;
+  const patientName = pickString(row, ['PatientName', 'patientName']) || 'Patient';
+  const doctorName =
+    pickString(row, ['DoctorName', 'doctorName', 'AssignedDoctorName', 'assignedDoctorName']) || 'Doctor';
+  const statusLabel = pickString(row, ['Status', 'status']) || tr('dashboard.appointments.statusScheduled');
+  const additionalNotes = pickString(row, ['AdditionalNotes', 'additionalNotes']);
   return {
     id,
-    patientName: pickString(row, ['PatientName', 'patientName']) || 'Patient',
+    patientName,
     email: pickString(row, ['Email', 'email']),
     phoneNumber: pickString(row, ['PhoneNumber', 'phoneNumber']),
     ageGroup: pickString(row, ['AgeGroup', 'ageGroup']),
     department: pickString(row, ['Department', 'department']),
     doctorId: pickString(row, ['DoctorId', 'doctorId']),
-    doctorName:
-      pickString(row, ['DoctorName', 'doctorName', 'AssignedDoctorName', 'assignedDoctorName']) || 'Doctor',
+    doctorName,
     preferredDate,
     preferredTimeSlot: formatPreferredTimeSlot(preferredTimeSlot),
     status: pickString(row, ['Status', 'status']) || 'SCHEDULED',
-    additionalNotes: pickString(row, ['AdditionalNotes', 'additionalNotes']),
+    additionalNotes,
+    rowLine1: tr('dashboard.appointments.rowLine1', { patientName, doctorName, statusLabel }),
+    rowLine2: tr('dashboard.appointments.rowLine2', {
+      preferredDate,
+      preferredTimeSlot: formatPreferredTimeSlot(preferredTimeSlot),
+      department: pickString(row, ['Department', 'department']),
+      phoneNumber: pickString(row, ['PhoneNumber', 'phoneNumber']),
+      ageGroup: pickString(row, ['AgeGroup', 'ageGroup'])
+    }),
+    additionalNotesLine: additionalNotes.trim()
+      ? tr('dashboard.appointments.additionalNotes', { additionalNotes })
+      : '',
     createdTimestamp,
     createdBy: createdByNorm,
     sortTimestamp: preferredDate || createdTimestamp || '',
-    statusLabel: pickString(row, ['Status', 'status']) || 'Scheduled',
+    statusLabel,
     hasReceipt:
       Array.isArray(row.PrescriptionFiles) && (row.PrescriptionFiles as unknown[]).length > 0
         ? 'Y'

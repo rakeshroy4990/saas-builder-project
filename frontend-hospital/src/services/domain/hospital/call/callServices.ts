@@ -24,6 +24,9 @@ import {
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
 import { getOrCreateTraceId } from '../../../logging/traceContext';
 import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
+import { i18n } from '../../../../i18n';
+
+const tr = (key: string): string => String((i18n.global as { t: (k: string) => string }).t(key));
 
 /**
  * Agora (etc.) requires a minted session before ringing the peer; builtin WebRTC does not.
@@ -141,7 +144,7 @@ export const callHospitalServices: ServiceDefinition[] = [
           /** Stops the follow-up `call-send-appointment-invite` from ringing without a joinable session. */
           videoCallOutgoingInvite: false
         });
-        toastStore.show('Could not prepare video session. Check server video configuration.', 'error');
+        toastStore.show(tr('toast.callSessionPrepareFailed'), 'error');
         trackEvent('video_call_event', {
           domain: 'video',
           status: 'fail',
@@ -163,7 +166,7 @@ export const callHospitalServices: ServiceDefinition[] = [
         return ok();
       } catch (err: unknown) {
         console.error('[STOMP] call-connect failed', err);
-        toastStore.show('Unable to connect to calling right now.', 'error');
+        toastStore.show(tr('toast.callConnectFailed'), 'error');
         return { responseCode: 'CALL_CONNECT_FAILED', message: 'Unable to connect to calling right now.' };
       }
     }
@@ -210,7 +213,7 @@ export const callHospitalServices: ServiceDefinition[] = [
         return ok();
       } catch (err: unknown) {
         console.error('[STOMP] call-invite failed', { toUserId, err });
-        toastStore.show('Could not send invite. Check your connection and try again.', 'error');
+        toastStore.show(tr('toast.callInviteSendFailed'), 'error');
         trackEvent('video_call_event', {
           domain: 'video',
           status: 'fail',
@@ -283,7 +286,7 @@ export const callHospitalServices: ServiceDefinition[] = [
         return ok({ toUserId });
       } catch (err: unknown) {
         console.error('[STOMP] call-send-appointment-invite failed', { toUserId, err });
-        toastStore.show('Could not send call invite. Check network and login, then try again.', 'error');
+        toastStore.show(tr('toast.callInviteFailed'), 'error');
         trackEvent('video_call_event', {
           domain: 'video',
           status: 'fail',
@@ -317,7 +320,7 @@ export const callHospitalServices: ServiceDefinition[] = [
         const afterFail = (appStore.getData('hospital', 'VideoCall') ?? {}) as Record<string, unknown>;
         appStore.setData('hospital', 'VideoCall', { ...afterFail, webrtcCalleeAccepted: false });
         console.error('[STOMP] call-accept failed', { callId, err });
-        toastStore.show('Could not accept the call. Check your connection and try again.', 'error');
+        toastStore.show(tr('toast.callAcceptFailed'), 'error');
         return { responseCode: 'CALL_ACCEPT_FAILED', message: 'Publish failed' };
       }
     }
@@ -347,7 +350,7 @@ export const callHospitalServices: ServiceDefinition[] = [
         return ok();
       } catch (err: unknown) {
         console.error('[STOMP] call-reject failed', { callId, err });
-        toastStore.show('Could not reject the call. Check your connection and try again.', 'error');
+        toastStore.show(tr('toast.callRejectFailed'), 'error');
         return { responseCode: 'CALL_REJECT_FAILED', message: 'Publish failed' };
       }
     }
@@ -377,7 +380,7 @@ export const callHospitalServices: ServiceDefinition[] = [
         return ok();
       } catch (err: unknown) {
         console.error('[STOMP] call-end failed', { callId, err });
-        toastStore.show('Could not end the call. Check your connection and try again.', 'error');
+        toastStore.show(tr('toast.callEndFailed'), 'error');
         return { responseCode: 'CALL_END_FAILED', message: 'Publish failed' };
       }
     }
@@ -400,7 +403,7 @@ export const callHospitalServices: ServiceDefinition[] = [
         subscribeHospitalWebRtcInboundIfNeeded();
       } catch (err: unknown) {
         console.error('[STOMP] call-heartbeat initial connect failed', { callId, err });
-        toastStore.show('Unable to connect for call heartbeat.', 'error');
+        toastStore.show(tr('toast.callHeartbeatFailed'), 'error');
         return { responseCode: 'CALL_HEARTBEAT_FAILED', message: 'Connect failed' };
       }
       setCallHeartbeatTimer(

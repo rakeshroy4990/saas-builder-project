@@ -11,6 +11,7 @@ import {
 } from '@/auth/biometricPreferences';
 import { useBiometricLockStore } from '@/auth/biometricLockStore';
 import { AuthGate } from '@/components/AuthGate';
+import { LanguagePicker } from '@/components/LanguagePicker';
 import { useSessionStore } from '@/auth/sessionStore';
 import { LoadingView } from '@/components/LoadingView';
 import { fetchUserProfile, logout } from '@/features/auth/api';
@@ -105,6 +106,8 @@ export default function ProfileTab() {
               />
             </View>
           ) : null}
+
+          <LanguagePicker userId={user?.userId} />
 
           <Pressable style={[sharedStyles.buttonSecondary, { marginTop: 24 }]} onPress={() => void onSignOut()}>
             <Text style={sharedStyles.buttonSecondaryText}>{t('nav.signOut')}</Text>

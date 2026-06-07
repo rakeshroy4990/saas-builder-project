@@ -26,7 +26,7 @@ public class MedicalDepartmentLocaleCatalog {
     @Transactional
     public void upsertMessages(String departmentId, List<MedicalDepartmentMessageRequest> messages) {
         if (departmentId == null || departmentId.isBlank()) {
-            throw new IllegalArgumentException("Department id is required for locale messages");
+            throw new IllegalArgumentException("MEDICAL_DEPARTMENT_LOCALE_ID_REQUIRED");
         }
         if (messages == null || messages.isEmpty()) {
             return;
@@ -36,7 +36,7 @@ public class MedicalDepartmentLocaleCatalog {
         for (MedicalDepartmentMessageRequest message : messages) {
             String locale = SupportedLocale.normalize(message.getLocale());
             if (byLocale.containsKey(locale)) {
-                throw new IllegalArgumentException("Duplicate locale in Messages: " + locale);
+                throw new IllegalArgumentException("MEDICAL_DEPARTMENT_DUPLICATE_LOCALE");
             }
             byLocale.put(locale, message);
         }
@@ -154,7 +154,7 @@ public class MedicalDepartmentLocaleCatalog {
     private static String requireText(String value, String field) {
         String normalized = normalizeOptional(value);
         if (normalized.isBlank()) {
-            throw new IllegalArgumentException(field + " is required");
+            throw new IllegalArgumentException("MEDICAL_DEPARTMENT_FIELD_REQUIRED");
         }
         return normalized;
     }

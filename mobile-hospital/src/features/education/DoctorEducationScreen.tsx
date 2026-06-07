@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObjec
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -114,6 +114,13 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
   );
 }
 
+type AttachMenuAnchorRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 function AttachMenuButton({
   disabled,
   onDocument,
@@ -128,65 +135,130 @@ function AttachMenuButton({
   compact?: boolean;
 }) {
   const { t } = useTranslation();
+  const anchorRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<AttachMenuAnchorRect | null>(null);
+
+  function closeMenu() {
+    setOpen(false);
+    setAnchorRect(null);
+  }
+
+  function openMenu() {
+    anchorRef.current?.measureInWindow((x, y, width, height) => {
+      setAnchorRect({ x, y, width, height });
+      setOpen(true);
+    });
+  }
+
+  function toggleMenu() {
+    if (open) {
+      closeMenu();
+      return;
+    }
+    openMenu();
+  }
 
   function closeAndRun(action: () => void) {
-    setOpen(false);
+    closeMenu();
     action();
   }
 
+  const popoverPosition = anchorRect
+    ? {
+        left: anchorRect.x,
+        bottom: Dimensions.get('window').height - anchorRect.y + 4
+      }
+    : null;
+
   return (
-    <View style={styles.attachMenuAnchor}>
-      {open ? (
-        <View style={styles.attachMenuPopover}>
+    <>
+      <View ref={anchorRef} style={styles.attachMenuAnchor} collapsable={false}>
+        <Pressable
+          style={[
+            styles.plusBtn,
+            compact && styles.plusBtnCompact,
+            open && styles.plusBtnActive,
+            disabled && styles.plusBtnDisabled
+          ]}
+          onPress={toggleMenu}
+          disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel={open ? t('education.closeAttachMenu') : t('education.openAttachMenu')}
+        >
+          <Ionicons
+            name={open ? 'close' : 'add'}
+            size={compact ? 22 : 26}
+            color={disabled ? colors.textMuted : open ? colors.text : colors.primary}
+          />
+        </Pressable>
+      </View>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={closeMenu}>
+        <View style={styles.attachMenuModalRoot}>
           <Pressable
-            style={styles.attachMenuItem}
-            onPress={() => closeAndRun(onDocument)}
+            style={styles.attachMenuBackdrop}
+            onPress={closeMenu}
             accessibilityRole="button"
-            accessibilityLabel={t('education.attachFile')}
-          >
-            <Ionicons name="attach" size={20} color={colors.primary} />
-            <Text style={styles.attachMenuLabel}>{t('education.attachFile')}</Text>
-          </Pressable>
-          <Pressable
-            style={styles.attachMenuItem}
-            onPress={() => closeAndRun(onGallery)}
-            accessibilityRole="button"
-            accessibilityLabel={t('education.attachGallery')}
-          >
-            <Ionicons name="images-outline" size={20} color={colors.primary} />
-            <Text style={styles.attachMenuLabel}>{t('education.attachGallery')}</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.attachMenuItem, styles.attachMenuItemLast]}
-            onPress={() => closeAndRun(onCamera)}
-            accessibilityRole="button"
-            accessibilityLabel={t('education.attachCamera')}
-          >
-            <Ionicons name="camera-outline" size={20} color={colors.primary} />
-            <Text style={styles.attachMenuLabel}>{t('education.attachCamera')}</Text>
-          </Pressable>
+            accessibilityLabel={t('education.closeAttachMenu')}
+          />
+          {anchorRect ? (
+            <>
+              <Pressable
+                style={[
+                  styles.plusBtn,
+                  compact && styles.plusBtnCompact,
+                  styles.plusBtnActive,
+                  styles.attachMenuTriggerOverlay,
+                  {
+                    left: anchorRect.x,
+                    top: anchorRect.y,
+                    width: anchorRect.width,
+                    height: anchorRect.height
+                  }
+                ]}
+                onPress={closeMenu}
+                accessibilityRole="button"
+                accessibilityLabel={t('education.closeAttachMenu')}
+              >
+                <Ionicons name="close" size={compact ? 22 : 26} color={colors.text} />
+              </Pressable>
+              {popoverPosition ? (
+                <View style={[styles.attachMenuPopover, popoverPosition]}>
+                  <Pressable
+                    style={styles.attachMenuItem}
+                    onPress={() => closeAndRun(onDocument)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('education.attachFile')}
+                  >
+                    <Ionicons name="attach" size={20} color={colors.primary} />
+                    <Text style={styles.attachMenuLabel}>{t('education.attachFile')}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.attachMenuItem}
+                    onPress={() => closeAndRun(onGallery)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('education.attachGallery')}
+                  >
+                    <Ionicons name="images-outline" size={20} color={colors.primary} />
+                    <Text style={styles.attachMenuLabel}>{t('education.attachGallery')}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.attachMenuItem, styles.attachMenuItemLast]}
+                    onPress={() => closeAndRun(onCamera)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('education.attachCamera')}
+                  >
+                    <Ionicons name="camera-outline" size={20} color={colors.primary} />
+                    <Text style={styles.attachMenuLabel}>{t('education.attachCamera')}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </>
+          ) : null}
         </View>
-      ) : null}
-      <Pressable
-        style={[
-          styles.plusBtn,
-          compact && styles.plusBtnCompact,
-          open && styles.plusBtnActive,
-          disabled && styles.plusBtnDisabled
-        ]}
-        onPress={() => setOpen((prev) => !prev)}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityLabel={open ? t('education.closeAttachMenu') : t('education.openAttachMenu')}
-      >
-        <Ionicons
-          name={open ? 'close' : 'add'}
-          size={compact ? 22 : 26}
-          color={disabled ? colors.textMuted : open ? colors.text : colors.primary}
-        />
-      </Pressable>
-    </View>
+      </Modal>
+    </>
   );
 }
 
@@ -377,8 +449,8 @@ export function DoctorEducationScreen() {
   }, [isDoctor, loadBooks]);
 
   useEffect(() => {
-    navigation.setOptions({ headerShown: tab === 'prescription' });
-  }, [navigation, tab]);
+    navigation.setOptions({ headerShown: !chatFullScreen });
+  }, [navigation, chatFullScreen]);
 
   useEffect(() => {
     if (!isDoctor || selectedBooks.length === 0) {
@@ -421,11 +493,11 @@ export function DoctorEducationScreen() {
   }, [messages, sending]);
 
   useEffect(() => {
-    if (tab !== 'books' || keyboardInset <= 0) return;
+    if (tab !== 'books' || chatFullScreen || keyboardInset <= 0) return;
     scrollChatToEnd();
     const t = setTimeout(scrollChatToEnd, 120);
     return () => clearTimeout(t);
-  }, [keyboardInset, tab]);
+  }, [keyboardInset, tab, chatFullScreen]);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -832,8 +904,7 @@ export function DoctorEducationScreen() {
     </Pressable>
   );
 
-  function renderBooksMessageList(options?: { adjustKeyboardInsets?: boolean }) {
-    const adjustKeyboardInsets = options?.adjustKeyboardInsets ?? true;
+  function renderBooksMessageList() {
     return (
       <FlatList
         ref={listRef}
@@ -846,8 +917,8 @@ export function DoctorEducationScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets={adjustKeyboardInsets}
-        onContentSizeChange={scrollChatToEnd}
+        automaticallyAdjustKeyboardInsets
+        onContentSizeChange={() => scrollChatToEnd(false)}
         renderItem={renderMessage}
         ListFooterComponent={typingFooter}
         ListEmptyComponent={<Text style={styles.emptyChatHint}>{t('education.booksEmptyHint')}</Text>}
@@ -855,9 +926,9 @@ export function DoctorEducationScreen() {
     );
   }
 
-  function scrollChatToEnd() {
+  function scrollChatToEnd(animated = true) {
     requestAnimationFrame(() => {
-      listRef.current?.scrollToEnd({ animated: true });
+      listRef.current?.scrollToEnd({ animated });
     });
   }
 
@@ -991,16 +1062,11 @@ export function DoctorEducationScreen() {
             styles.fullScreenRoot,
             {
               backgroundColor: colors.background,
-              paddingTop: insets.top,
-              paddingBottom: insets.bottom
+              paddingTop: insets.top
             }
           ]}
         >
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={0}
-          >
+          <KeyboardSafeView style={styles.flex}>
             <View style={styles.fullScreenHeader}>
               <Pressable
                 style={styles.fullScreenExitBtn}
@@ -1012,9 +1078,9 @@ export function DoctorEducationScreen() {
                 <Text style={styles.fullScreenExitText}>{t('education.exitFullScreen')}</Text>
               </Pressable>
             </View>
-            {renderBooksMessageList({ adjustKeyboardInsets: false })}
-            {renderBooksComposer(4)}
-          </KeyboardAvoidingView>
+            {renderBooksMessageList()}
+            {renderBooksComposer(keyboardVisible ? 0 : Math.max(insets.bottom, 8))}
+          </KeyboardSafeView>
         </View>
       </Modal>
     );
@@ -1026,13 +1092,13 @@ export function DoctorEducationScreen() {
 
   return (
     <View style={sharedStyles.screen}>
-      <KeyboardSafeView style={styles.flex}>
+      <KeyboardSafeView style={styles.flex} liftEnabled={!chatFullScreen}>
       {!chatFullScreen ? (
-      <View style={[styles.header, tab === 'books' && { paddingTop: insets.top + 6 }]}>
+      <View style={styles.header}>
         {tab === 'prescription' ? (
           <Text style={sharedStyles.subtitle}>{t('education.subtitle')}</Text>
         ) : null}
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: tab === 'prescription' ? 10 : 0 }}>
+        <View style={[styles.tabRow, tab === 'prescription' && styles.tabRowWithSubtitle]}>
           <TabButton
             label={t('education.tabs.books')}
             active={tab === 'books'}
@@ -1133,6 +1199,7 @@ export function DoctorEducationScreen() {
           {renderPrescriptionComposer()}
         </View>
       ) : null}
+      </KeyboardSafeView>
       {tab === 'books' ? renderBooksFullScreenModal() : null}
       <EducationAttachmentSequenceModal
         visible={sequenceModalVisible}
@@ -1144,7 +1211,6 @@ export function DoctorEducationScreen() {
           setSequencePending((prev) => moveAttachmentRows(prev, index, direction));
         }}
       />
-      </KeyboardSafeView>
     </View>
   );
 }
@@ -1163,6 +1229,13 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border
+  },
+  tabRow: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  tabRowWithSubtitle: {
+    marginTop: 10
   },
   fullScreenRoot: {
     flex: 1
@@ -1500,13 +1573,19 @@ const styles = StyleSheet.create({
     marginBottom: 0
   },
   attachMenuAnchor: {
-    position: 'relative',
     justifyContent: 'center'
+  },
+  attachMenuModalRoot: {
+    flex: 1
+  },
+  attachMenuBackdrop: {
+    ...StyleSheet.absoluteFill
+  },
+  attachMenuTriggerOverlay: {
+    position: 'absolute'
   },
   attachMenuPopover: {
     position: 'absolute',
-    left: 0,
-    bottom: 52,
     minWidth: 200,
     borderRadius: 12,
     borderWidth: 1,

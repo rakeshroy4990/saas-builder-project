@@ -1,4 +1,4 @@
-import { parseAuthLoginPayload, SERVER_PATHS } from '@saas-builder/hospital-api-client';
+import { parseAuthLoginPayload, SERVER_PATHS, unwrapEnvelope } from '@saas-builder/hospital-api-client';
 import { Platform } from 'react-native';
 
 import { authLoginTelemetryFromResponse, AUTH_TELEMETRY_PATHS } from '@/analytics/authTelemetry';
@@ -11,6 +11,7 @@ import { useSessionStore, type SessionUser } from '@/auth/sessionStore';
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
 import { getGoogleOAuthClientIds, isGoogleOAuthConfigured } from '@/config/env';
 
+import { finalizeMobileLoginLocale } from '@/features/auth/localeSync';
 import { mapNativeGoogleSignInError } from './googleSignInErrors';
 import {
   isExpoGoClient,
@@ -49,6 +50,7 @@ export async function completeGoogleSignIn(
     googleLoginRequestBody(credential),
     { timeout: AUTH_API_TIMEOUT_MS }
   );
+  const userData = unwrapEnvelope<Record<string, unknown>>(response.data) ?? {};
   const parsed = parseAuthLoginPayload(response.data, identityFallback);
   if (!parsed.accessToken) {
     throw new Error('Google sign-in did not return an access token');
@@ -66,6 +68,7 @@ export async function completeGoogleSignIn(
   });
   useBiometricLockStore.getState().grantUnlockGrace();
   persistSessionSecrets(parsed.refreshToken, user);
+  await finalizeMobileLoginLocale(userData, parsed.userId);
   recordSuccessfulLoginTelemetry(
     'google',
     authLoginTelemetryFromResponse(AUTH_TELEMETRY_PATHS.googleLogin, startedAtMs, response.status)

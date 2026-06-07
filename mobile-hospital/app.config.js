@@ -39,6 +39,7 @@ module.exports = ({ config }) => {
       }
     }
   ]);
+  plugins.push('expo-localization');
 
   if (useDevClient) {
     plugins.unshift('expo-dev-client');

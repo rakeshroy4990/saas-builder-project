@@ -5,12 +5,12 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Supported API locales — align with {@code @saas-builder/i18n-contract} ({@code en}, {@code hi}).
+ * Supported API locales — align with {@code @saas-builder/i18n-contract} ({@code en}, {@code hi}, {@code kn}).
  */
 public final class SupportedLocale {
 
     public static final String DEFAULT = "en";
-    public static final Set<String> SUPPORTED = Set.of("en", "hi");
+    public static final Set<String> SUPPORTED = Set.of("en", "hi", "kn");
 
     private SupportedLocale() {
     }

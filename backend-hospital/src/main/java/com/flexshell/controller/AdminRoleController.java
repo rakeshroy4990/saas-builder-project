@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.RoleDecisionRequest;
 import com.flexshell.controller.dto.RoleRequestSummary;
 import com.flexshell.controller.dto.StandardApiResponse;
@@ -23,9 +24,14 @@ import java.util.List;
 @RequestMapping("/api/admin/role-requests")
 @ConditionalOnBean(AdminRoleService.class)
 public class AdminRoleController {
+    private final LocalizedApiMessages messages;
+
     private final AdminRoleService adminRoleService;
 
-    public AdminRoleController(AdminRoleService adminRoleService) {
+    public AdminRoleController(AdminRoleService adminRoleService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.adminRoleService = adminRoleService;
     }
 
@@ -37,10 +43,10 @@ public class AdminRoleController {
     ) {
         try {
             List<RoleRequestSummary> data = adminRoleService.listPendingRoleRequests(authentication.getName(), page, size);
-            return ResponseEntity.ok(StandardApiResponse.success("Pending role requests loaded", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.role.requests.loaded"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ROLE_REQUEST_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ROLE_REQUEST_FORBIDDEN"), "ROLE_REQUEST_FORBIDDEN"));
         }
     }
 
@@ -51,13 +57,13 @@ public class AdminRoleController {
     ) {
         try {
             RoleRequestSummary data = adminRoleService.approveRoleRequest(userId, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Role request approved", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.role.request.approved"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ROLE_REQUEST_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ROLE_REQUEST_FORBIDDEN"), "ROLE_REQUEST_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ROLE_REQUEST_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ROLE_REQUEST_INVALID"), "ROLE_REQUEST_INVALID"));
         }
     }
 
@@ -70,13 +76,13 @@ public class AdminRoleController {
         String reason = request == null ? null : request.getReason();
         try {
             RoleRequestSummary data = adminRoleService.rejectRoleRequest(userId, authentication.getName(), reason);
-            return ResponseEntity.ok(StandardApiResponse.success("Role request rejected", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.role.request.rejected"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ROLE_REQUEST_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ROLE_REQUEST_FORBIDDEN"), "ROLE_REQUEST_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "ROLE_REQUEST_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "ROLE_REQUEST_INVALID"), "ROLE_REQUEST_INVALID"));
         }
     }
 }

@@ -152,7 +152,7 @@ public class SessionTelemetryService {
         String entryId = normalize(incoming.getEntryId());
         String kind = normalize(incoming.getKind());
         if (entryId.isEmpty() || kind.isEmpty()) {
-            throw new IllegalArgumentException("session_summary_entry requires entry_id and kind");
+            throw new IllegalArgumentException("SESSION_TELEMETRY_ENTRY_REQUIRED");
         }
         List<SessionSummaryEntryDocument> list = entity.getSessionSummary();
         if (list == null) {

@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.auth.i18n.RequestLocaleAttributes;
 import com.flexshell.controller.dto.DoctorOptionResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
@@ -20,9 +21,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/doctor")
 public class DoctorDirectoryController {
+    private final LocalizedApiMessages messages;
+
     private final ObjectProvider<DoctorDirectoryService> doctorDirectoryServiceProvider;
 
-    public DoctorDirectoryController(ObjectProvider<DoctorDirectoryService> doctorDirectoryServiceProvider) {
+    public DoctorDirectoryController(ObjectProvider<DoctorDirectoryService> doctorDirectoryServiceProvider,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.doctorDirectoryServiceProvider = doctorDirectoryServiceProvider;
     }
 
@@ -36,18 +42,18 @@ public class DoctorDirectoryController {
         DoctorDirectoryService service = doctorDirectoryServiceProvider.getIfAvailable();
         if (service == null) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
         String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
             List<DoctorOptionResponse> doctors = service.getDoctorsByDepartment(department, page, size, locale);
-            return ResponseEntity.ok(StandardApiResponse.success("Doctors fetched", doctors));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.doctor.directory.fetched"), doctors));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_DIRECTORY_INVALID_REQUEST"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_DIRECTORY_INVALID_REQUEST"), "DOCTOR_DIRECTORY_INVALID_REQUEST"));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
     }
 
@@ -61,7 +67,7 @@ public class DoctorDirectoryController {
         DoctorDirectoryService service = doctorDirectoryServiceProvider.getIfAvailable();
         if (service == null) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
         String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
@@ -71,13 +77,13 @@ public class DoctorDirectoryController {
                     size,
                     locale
             );
-            return ResponseEntity.ok(StandardApiResponse.success("Doctors fetched", doctors));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.doctor.directory.fetched"), doctors));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_LIST_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_LIST_FORBIDDEN"), "DOCTOR_LIST_FORBIDDEN"));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
     }
 
@@ -90,15 +96,15 @@ public class DoctorDirectoryController {
         DoctorDirectoryService service = doctorDirectoryServiceProvider.getIfAvailable();
         if (service == null) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
         String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
             List<DoctorOptionResponse> doctors = service.listActiveDoctorsPublic(page, size, locale);
-            return ResponseEntity.ok(StandardApiResponse.success("Doctors fetched", doctors));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.doctor.directory.fetched"), doctors));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.forErrorCode("DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
     }
 }

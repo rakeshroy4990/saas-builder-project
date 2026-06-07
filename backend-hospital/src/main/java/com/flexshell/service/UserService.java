@@ -1,6 +1,7 @@
 package com.flexshell.service;
 
 import com.flexshell.auth.RoleRequestStatus;
+import com.flexshell.auth.i18n.SupportedLocale;
 import com.flexshell.auth.UserEntity;
 import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
@@ -19,12 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
 
 @Service
 public class UserService {
-    private static final Set<String> ALLOWED_UI_LOCALES = Set.of("en", "hi");
-
     private final ObjectProvider<UserAccess> userAccessProvider;
 
     public UserService(ObjectProvider<UserAccess> userAccessProvider) {
@@ -69,11 +67,11 @@ public class UserService {
         }
         String id = actorUserId == null ? "" : actorUserId.trim();
         if (id.isEmpty()) {
-            throw new IllegalArgumentException("Missing user");
+            throw new IllegalArgumentException("USER_MISSING");
         }
         UserEntity user = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
         if (!user.isActive()) {
-            throw new IllegalArgumentException("Account is inactive");
+            throw new IllegalArgumentException("USER_INACTIVE");
         }
 
         String firstName = mergeTrim(request.getFirstName(), user.getFirstName());
@@ -85,12 +83,12 @@ public class UserService {
         String department = request.getDepartment() != null ? request.getDepartment().trim() : nz(user.getDepartment());
 
         if (firstName.isEmpty() || lastName.isEmpty() || emailRaw.isEmpty() || address.isEmpty() || gender.isEmpty() || mobile.isEmpty()) {
-            throw new IllegalArgumentException("First name, last name, email, address, gender, and mobile number are required");
+            throw new IllegalArgumentException("USER_PROFILE_REQUIRED_FIELDS");
         }
         String emailNorm = emailRaw.toLowerCase();
         Optional<UserEntity> other = repo.findByEmail(emailNorm);
         if (other.isPresent() && !other.get().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Email is already in use");
+            throw new IllegalArgumentException("USER_EMAIL_IN_USE");
         }
 
         user.setEmail(emailNorm);
@@ -103,8 +101,8 @@ public class UserService {
 
         if (request.getPreferredLocale() != null && !request.getPreferredLocale().isBlank()) {
             String localeNorm = request.getPreferredLocale().trim().toLowerCase();
-            if (!ALLOWED_UI_LOCALES.contains(localeNorm)) {
-                throw new IllegalArgumentException("Unsupported language. Use one of: en, hi");
+            if (!SupportedLocale.SUPPORTED.contains(localeNorm)) {
+                throw new IllegalArgumentException("USER_UNSUPPORTED_LOCALE");
             }
             user.setPreferredLocale(localeNorm);
         }
@@ -155,7 +153,7 @@ public class UserService {
     public RegisterResponse saveUser(String actorUserId, UserSaveRequest request) {
         String userId = request.getUserId() == null ? "" : request.getUserId().trim();
         if (userId.isBlank()) {
-            throw new IllegalArgumentException("UserId is required for save");
+            throw new IllegalArgumentException("USER_ID_REQUIRED");
         }
         UserAccess repo = userAccessProvider.getIfAvailable();
         if (repo == null) {
@@ -166,7 +164,7 @@ public class UserService {
             AdminAuthorizationSupport.requireAdminUser(repo, actorUserId);
         }
         if (!repo.findById(userId).isPresent()) {
-            throw new IllegalArgumentException("User not found");
+            throw new IllegalArgumentException("USER_NOT_FOUND");
         }
         return updateProfile(userId, request);
     }
@@ -178,7 +176,7 @@ public class UserService {
         }
         String targetId = targetUserId == null ? "" : targetUserId.trim();
         if (targetId.isBlank()) {
-            throw new IllegalArgumentException("User id is required");
+            throw new IllegalArgumentException("USER_ID_REQUIRED");
         }
         if (targetId.equalsIgnoreCase(actorUserId.trim())) {
             deactivateAccount(targetId);
@@ -194,7 +192,7 @@ public class UserService {
         }
         String id = actorUserId == null ? "" : actorUserId.trim();
         if (id.isEmpty()) {
-            throw new IllegalArgumentException("Missing user");
+            throw new IllegalArgumentException("USER_MISSING");
         }
         UserEntity user = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
         applyDeactivation(user);
@@ -212,14 +210,14 @@ public class UserService {
         AdminAuthorizationSupport.requireAdminUser(repo, adminUserId);
         String targetId = targetUserId == null ? "" : targetUserId.trim();
         if (targetId.isEmpty()) {
-            throw new IllegalArgumentException("Missing user");
+            throw new IllegalArgumentException("USER_MISSING");
         }
         if (targetId.equalsIgnoreCase(adminUserId.trim())) {
-            throw new IllegalArgumentException("You cannot deactivate your own account from the admin console.");
+            throw new IllegalArgumentException("USER_SELF_DEACTIVATE_FORBIDDEN");
         }
         UserEntity target = repo.findById(targetId).orElseThrow(() -> new IllegalArgumentException("User not found"));
         if (target.getRole() != UserRole.DOCTOR) {
-            throw new IllegalArgumentException("Only doctor accounts can be deactivated through this admin action.");
+            throw new IllegalArgumentException("USER_DOCTOR_ONLY_DEACTIVATE");
         }
         applyDeactivation(target);
         repo.save(target);
@@ -282,7 +280,7 @@ public class UserService {
         try {
             return UserRole.valueOf(raw.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid role filter. Use PATIENT, DOCTOR, or ADMIN.");
+            throw new IllegalArgumentException("USER_ROLE_FILTER_INVALID");
         }
     }
 }

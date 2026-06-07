@@ -202,7 +202,7 @@ public class PatientPrescriptionService {
     @Transactional
     public PatientPrescriptionSummaryResponse save(String actorUserId, PatientPrescriptionSaveRequest request) {
         if (request == null || request.getExternalId() == null) {
-            throw new IllegalArgumentException("ExternalId is required");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_EXTERNAL_ID_REQUIRED");
         }
         PatientPrescriptionJpaEntity row = requireRow(request.getExternalId());
         assertCanRead(actorUserId, row);
@@ -286,7 +286,7 @@ public class PatientPrescriptionService {
         group.setGroupType(groupType);
         String sharedDiagnosis = Objects.toString(request.sharedDiagnosis(), "").trim();
         if ("diagnosis".equals(groupType) && sharedDiagnosis.isBlank()) {
-            throw new IllegalArgumentException("sharedDiagnosis is required for diagnosis groups");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_SHARED_DIAGNOSIS_REQUIRED");
         }
         group.setSharedDiagnosis(sharedDiagnosis.isBlank() ? null : sharedDiagnosis);
         String label = Objects.toString(request.label(), "").trim();
@@ -319,7 +319,7 @@ public class PatientPrescriptionService {
     @Transactional
     public void linkPrescriptionToGroup(String actorUserId, UUID groupExternalId, PatientPrescriptionGroupLinkRequest request) {
         if (request == null || request.prescriptionExternalId() == null) {
-            throw new IllegalArgumentException("prescriptionExternalId is required");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_ID_REQUIRED");
         }
         PatientPrescriptionGroupJpaEntity group = groupRepository.findByExternalIdAndDeletedFalse(groupExternalId)
                 .orElseThrow(() -> new IllegalArgumentException("Group not found"));
@@ -379,7 +379,7 @@ public class PatientPrescriptionService {
             throw new SecurityException("Forbidden");
         }
         if (groupItemRepository.existsByPrescriptionId(prescription.getId())) {
-            throw new IllegalArgumentException("Prescription is already linked to a group");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_ALREADY_LINKED");
         }
         boolean diagnosisGroup = "diagnosis".equalsIgnoreCase(Objects.toString(group.getGroupType(), "").trim());
         int page;
@@ -391,7 +391,7 @@ public class PatientPrescriptionService {
             page = pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
         }
         if (groupItemRepository.existsByGroupIdAndPageNumber(group.getId(), page)) {
-            throw new IllegalArgumentException("Page " + page + " is already assigned in this group");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_PAGE_ALREADY_ASSIGNED");
         }
         PatientPrescriptionGroupItemJpaEntity item = new PatientPrescriptionGroupItemJpaEntity();
         item.setPrescriptionId(prescription.getId());
@@ -537,10 +537,10 @@ public class PatientPrescriptionService {
 
     private static void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("A non-empty file is required.");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_FILE_REQUIRED");
         }
         if (file.getSize() > MAX_BYTES) {
-            throw new IllegalArgumentException("File is too large (max 20 MB).");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_FILE_TOO_LARGE");
         }
     }
 
@@ -548,7 +548,7 @@ public class PatientPrescriptionService {
         try {
             return file.getBytes();
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Could not read uploaded file.");
+            throw new IllegalArgumentException("PATIENT_PRESCRIPTION_FILE_READ_FAILED");
         }
     }
 
@@ -585,7 +585,7 @@ public class PatientPrescriptionService {
                 && bytes[3] == 'G') {
             return "image/png";
         }
-        throw new IllegalArgumentException("Unsupported file type. Use JPEG, PNG, or PDF.");
+        throw new IllegalArgumentException("PATIENT_PRESCRIPTION_UNSUPPORTED_FILE_TYPE");
     }
 
     private static String extensionForMime(String mimeType) {

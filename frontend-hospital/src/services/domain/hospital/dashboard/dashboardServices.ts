@@ -518,7 +518,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const doctorOrAdminCallsPatient = role === 'ADMIN' || isAssignedDoctor;
 
       if (role === 'DOCTOR' && !isAssignedDoctor) {
-        toastStore.show('Video call is only available for appointments where you are the assigned doctor.', 'error');
+        toastStore.show(tr('toast.videoCallDoctorOnly'), 'error');
         return { responseCode: 'APPOINTMENT_VIDEO_NOT_YOUR_APPOINTMENT', message: 'Wrong doctor' };
       }
 
@@ -526,32 +526,32 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
 
       if (doctorOrAdminCallsPatient) {
         if (!createdBy) {
-          toastStore.show('This appointment has no patient account linked (CreatedBy). Cannot place the call.', 'error');
+          toastStore.show(tr('toast.videoCallNoPatientAccount'), 'error');
           return { responseCode: 'APPOINTMENT_VIDEO_NO_PATIENT', message: 'Missing createdBy' };
         }
         if (myUserId && createdBy === myUserId) {
-          toastStore.show('You cannot call yourself.', 'info');
+          toastStore.show(tr('toast.videoCallCannotCallSelf'), 'info');
           return { responseCode: 'APPOINTMENT_VIDEO_SELF', message: 'Same user' };
         }
         inviteToUserId = createdBy;
       } else {
         if (!doctorId) {
-          toastStore.show('This appointment has no doctor assigned for a video call.', 'error');
+          toastStore.show(tr('toast.videoCallNoDoctor'), 'error');
           return { responseCode: 'APPOINTMENT_VIDEO_NO_DOCTOR', message: 'Missing doctor' };
         }
         if (role === 'PATIENT' && createdBy && myUserId && createdBy !== myUserId) {
-          toastStore.show('You can only start a video call for your own appointments.', 'error');
+          toastStore.show(tr('toast.videoCallOwnAppointmentsOnly'), 'error');
           return { responseCode: 'APPOINTMENT_VIDEO_NOT_OWNER', message: 'Not owner' };
         }
         if (myUserId && doctorId === myUserId) {
-          toastStore.show('Sign in as the assigned doctor (or patient) to start this call.', 'info');
+          toastStore.show(tr('toast.videoCallSignInAsParticipant'), 'info');
           return { responseCode: 'APPOINTMENT_VIDEO_SELF', message: 'Doctor id matches user' };
         }
         inviteToUserId = doctorId;
       }
 
       if (!inviteToUserId) {
-        toastStore.show('Could not determine who to call for this appointment.', 'error');
+        toastStore.show(tr('toast.videoCallTargetUnknown'), 'error');
         return { responseCode: 'APPOINTMENT_VIDEO_NO_TARGET', message: 'No callee' };
       }
 

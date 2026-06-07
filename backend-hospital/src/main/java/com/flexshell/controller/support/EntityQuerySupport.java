@@ -31,7 +31,7 @@ public final class EntityQuerySupport {
         try {
             JsonNode node = objectMapper.readTree(queryJson.trim());
             if (!node.isObject()) {
-                throw new IllegalArgumentException("Query must be a JSON object");
+                throw new IllegalArgumentException("QUERY_MUST_BE_OBJECT");
             }
             Map<String, String> out = new LinkedHashMap<>();
             node.fields().forEachRemaining(entry -> {
@@ -42,14 +42,14 @@ public final class EntityQuerySupport {
             });
             return out;
         } catch (JsonProcessingException ex) {
-            throw new IllegalArgumentException("Invalid Query JSON: " + ex.getMessage());
+            throw new IllegalArgumentException("QUERY_INVALID_JSON");
         }
     }
 
     public static void rejectUnknownKeys(Map<String, String> parsed, Set<String> allowedKeys) {
         for (String key : parsed.keySet()) {
             if (!allowedKeys.contains(key)) {
-                throw new IllegalArgumentException("Unknown query field: " + key);
+                throw new IllegalArgumentException("QUERY_UNKNOWN_FIELD");
             }
         }
     }

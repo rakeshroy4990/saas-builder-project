@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.PatientDeviceReadingCreateRequest;
 import com.flexshell.controller.dto.PatientDeviceReadingResponse;
 import com.flexshell.controller.dto.PatientDeviceReadingSaveRequest;
@@ -31,10 +32,15 @@ import java.util.UUID;
 @RequestMapping("/api/v1/patient-device-readings")
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PatientDeviceReadingController {
+    private final LocalizedApiMessages messages;
+
 
     private final PatientDeviceReadingService patientDeviceReadingService;
 
-    public PatientDeviceReadingController(PatientDeviceReadingService patientDeviceReadingService) {
+    public PatientDeviceReadingController(PatientDeviceReadingService patientDeviceReadingService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.patientDeviceReadingService = patientDeviceReadingService;
     }
 
@@ -50,10 +56,10 @@ public class PatientDeviceReadingController {
         try {
             PatientDeviceReadingResponse data = patientDeviceReadingService.create(userId, request);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(StandardApiResponse.success("Device reading saved", data));
+                    .body(StandardApiResponse.success(messages.success("success.patient.device.reading.saved"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_DEVICE_READING_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_DEVICE_READING_INVALID"), "PATIENT_DEVICE_READING_INVALID"));
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         }
@@ -71,7 +77,7 @@ public class PatientDeviceReadingController {
         try {
             Page<PatientDeviceReadingResponse> page = patientDeviceReadingService.listForActor(userId, pageable);
             return EntityListResponseSupport.ok(
-                    "Device readings fetched",
+                    messages.success("success.patient.device.reading.list"),
                     page.getContent(),
                     page.getNumber(),
                     page.getSize(),
@@ -93,10 +99,10 @@ public class PatientDeviceReadingController {
         try {
             PatientDeviceReadingResponse data = patientDeviceReadingService.save(userId, request);
             HttpStatus status = request.getExternalId() == null ? HttpStatus.CREATED : HttpStatus.OK;
-            return ResponseEntity.status(status).body(StandardApiResponse.success("Device reading saved", data));
+            return ResponseEntity.status(status).body(StandardApiResponse.success(messages.success("success.patient.device.reading.saved"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_DEVICE_READING_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_DEVICE_READING_INVALID"), "PATIENT_DEVICE_READING_INVALID"));
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         }
@@ -113,10 +119,10 @@ public class PatientDeviceReadingController {
         }
         try {
             patientDeviceReadingService.deleteByBusinessKey(userId, businessKey);
-            return ResponseEntity.ok(StandardApiResponse.success("Device reading deleted", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.device.reading.deleted"), null));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_DEVICE_READING_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_DEVICE_READING_NOT_FOUND"), "PATIENT_DEVICE_READING_NOT_FOUND"));
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         }
@@ -126,15 +132,15 @@ public class PatientDeviceReadingController {
         return authentication == null ? "" : Objects.toString(authentication.getName(), "").trim();
     }
 
-    private static <T> ResponseEntity<StandardApiResponse<T>> unauthorized() {
+    private <T> ResponseEntity<StandardApiResponse<T>> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(StandardApiResponse.error("Authentication required.", "AUTH_REQUIRED"));
+                .body(StandardApiResponse.error(messages.forErrorCode("AUTH_REQUIRED"), "AUTH_REQUIRED"));
     }
 
-    private static <T> ResponseEntity<StandardApiResponse<T>> forbidden(String message) {
+    private <T> ResponseEntity<StandardApiResponse<T>> forbidden(String message) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(StandardApiResponse.error(
-                        message.isBlank() ? "Forbidden" : message,
+                        message.isBlank() ? messages.forErrorCode("PATIENT_DEVICE_READING_FORBIDDEN") : message,
                         "PATIENT_DEVICE_READING_FORBIDDEN"
                 ));
     }

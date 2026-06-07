@@ -19,6 +19,7 @@ import { AUTH_API_TIMEOUT_MS } from '@/api/timeouts';
 import { clearSecureAuth, persistSessionSecrets } from '@/auth/secureTokens';
 import { useSessionStore, type SessionUser } from '@/auth/sessionStore';
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
+import { applyPreferredLocaleFromProfile, finalizeMobileLoginLocale } from '@/features/auth/localeSync';
 
 export async function loginWithPassword(identity: string, password: string): Promise<void> {
   const startedAtMs = Date.now();
@@ -28,6 +29,7 @@ export async function loginWithPassword(identity: string, password: string): Pro
     { timeout: AUTH_API_TIMEOUT_MS }
   );
 
+  const userData = unwrapEnvelope<Record<string, unknown>>(response.data) ?? {};
   const parsed = parseAuthLoginPayload(response.data, identity.trim());
   if (!parsed.accessToken) {
     throw new Error('Login response missing access token');
@@ -47,6 +49,7 @@ export async function loginWithPassword(identity: string, password: string): Pro
   });
 
   persistSessionSecrets(parsed.refreshToken, user);
+  await finalizeMobileLoginLocale(userData, parsed.userId);
   const { useBiometricLockStore } = await import('@/auth/biometricLockStore');
   useBiometricLockStore.getState().grantUnlockGrace();
   recordSuccessfulLoginTelemetry(
@@ -89,6 +92,10 @@ export async function hydrateSessionFromStorage(): Promise<{ hasRefreshToken: bo
   const [profile, refreshToken] = await Promise.all([getStoredSessionProfile(), getStoredRefreshToken()]);
   if (profile) {
     useSessionStore.setState({ user: profile });
+    if (profile.preferredLocale) {
+      const { setMobileLocale } = await import('@/i18n/locale');
+      await setMobileLocale(profile.preferredLocale);
+    }
   }
   return { hasRefreshToken: Boolean(refreshToken?.trim()) };
 }
@@ -99,6 +106,10 @@ export async function tryRestoreSessionFromRefresh(options?: { timeoutMs?: numbe
   if (ok && useSessionStore.getState().accessToken) {
     if (!readLoginSessionId()) {
       recordSuccessfulLoginTelemetry('token_refresh');
+    }
+    const userId = useSessionStore.getState().user?.userId;
+    if (userId) {
+      void applyPreferredLocaleFromProfile(userId);
     }
     const { connectRealtimeAfterAuth } = await import('@/features/video/connectOnAuth');
     void connectRealtimeAfterAuth();

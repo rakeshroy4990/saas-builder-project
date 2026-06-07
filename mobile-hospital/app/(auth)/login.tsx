@@ -15,9 +15,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/components/BrandHeader';
 import { AuthBusyOverlay } from '@/components/AuthBusyOverlay';
+import { LanguagePicker } from '@/components/LanguagePicker';
 import { cancelPendingTokenRefresh } from '@/api/client';
 import { getLoginErrorMessage, loginWithPassword } from '@/features/auth/api';
 import { formatBackendAuthFailure } from '@/features/auth/authLoginErrors';
+import { validateLoginForm } from '@/utils/validationMessages';
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton';
 import {
   ensureGoogleSignInConfigured,
@@ -61,6 +63,11 @@ export default function LoginScreen() {
 
   async function onSubmit() {
     setError('');
+    const validationError = validateLoginForm(email, password);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     cancelPendingTokenRefresh();
     useSessionStore.getState().setSessionRestoreInFlight(false);
     setLoading(true);
@@ -144,6 +151,8 @@ export default function LoginScreen() {
             getLoginErrorMessage={getLoginErrorMessage}
           />
         ) : null}
+
+        <LanguagePicker style={{ marginTop: 20 }} />
 
         <Pressable
           style={{ marginTop: 20, alignItems: 'center', opacity: authBusy ? 0.4 : 1 }}

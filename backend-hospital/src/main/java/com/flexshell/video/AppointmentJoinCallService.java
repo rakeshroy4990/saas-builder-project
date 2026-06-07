@@ -100,7 +100,7 @@ public class AppointmentJoinCallService {
         }
         String apId = Objects.toString(appointmentId, "").trim();
         if (apId.isEmpty()) {
-            throw new IllegalArgumentException("Appointment id is required");
+            throw new IllegalArgumentException("APPOINTMENT_JOIN_ID_REQUIRED");
         }
 
         AppointmentAccess appointmentRepository = requireAppointmentAccess();
@@ -108,7 +108,7 @@ public class AppointmentJoinCallService {
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
 
         if (AppointmentCallStates.isTerminal(ap.getCallStatus())) {
-            throw new IllegalArgumentException("Video call has already ended for this appointment");
+            throw new IllegalArgumentException("APPOINTMENT_VIDEO_CALL_ENDED");
         }
 
         assertCallableStatus(ap);
@@ -144,7 +144,7 @@ public class AppointmentJoinCallService {
         }
         String apId = Objects.toString(appointmentId, "").trim();
         if (apId.isEmpty()) {
-            throw new IllegalArgumentException("Appointment id is required");
+            throw new IllegalArgumentException("APPOINTMENT_JOIN_ID_REQUIRED");
         }
 
         AppointmentAccess appointmentRepository = requireAppointmentAccess();
@@ -152,7 +152,7 @@ public class AppointmentJoinCallService {
                 .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
 
         if (AppointmentCallStates.isTerminal(ap.getCallStatus())) {
-            throw new IllegalArgumentException("Cannot renew token after the call has ended");
+            throw new IllegalArgumentException("APPOINTMENT_CANNOT_RENEW_AFTER_END");
         }
 
         assertCallableStatus(ap);
@@ -185,7 +185,7 @@ public class AppointmentJoinCallService {
         }
         String apId = Objects.toString(appointmentId, "").trim();
         if (apId.isEmpty()) {
-            throw new IllegalArgumentException("Appointment id is required");
+            throw new IllegalArgumentException("APPOINTMENT_JOIN_ID_REQUIRED");
         }
 
         AppointmentAccess appointmentRepository = requireAppointmentAccess();
@@ -196,7 +196,7 @@ public class AppointmentJoinCallService {
 
         String cs = normalize(ap.getCallStatus());
         if (cs.isEmpty() || AppointmentCallStates.isTerminal(cs)) {
-            throw new IllegalArgumentException("No active video call to end");
+            throw new IllegalArgumentException("APPOINTMENT_NO_ACTIVE_CALL");
         }
 
         Instant now = Instant.now();
@@ -244,8 +244,7 @@ public class AppointmentJoinCallService {
         }
         Instant maxEnd = start.plus(Duration.ofHours(maxCallDurationHours));
         if (Instant.now().isAfter(maxEnd)) {
-            throw new IllegalArgumentException(
-                    "Maximum call duration (" + maxCallDurationHours + " hours) exceeded; end the call and book again if needed.");
+            throw new IllegalArgumentException("APPOINTMENT_CALL_DURATION_EXCEEDED");
         }
     }
 
@@ -287,32 +286,30 @@ public class AppointmentJoinCallService {
     private void assertCallableStatus(AppointmentEntity ap) {
         String raw = normalize(ap.getStatus());
         if (STATUS_CANCELLED.equalsIgnoreCase(raw)) {
-            throw new IllegalArgumentException("Cannot join a cancelled appointment");
+            throw new IllegalArgumentException("APPOINTMENT_CANNOT_JOIN_CANCELLED");
         }
         if (STATUS_COMPLETED.equalsIgnoreCase(raw)) {
-            throw new IllegalArgumentException("Cannot join a completed appointment");
+            throw new IllegalArgumentException("APPOINTMENT_CANNOT_JOIN_COMPLETED");
         }
         if (raw.isEmpty()) {
-            throw new IllegalArgumentException("Appointment has no status");
+            throw new IllegalArgumentException("APPOINTMENT_NO_STATUS");
         }
         if (!allowedStatusesLower.contains(raw.toLowerCase())) {
-            throw new IllegalArgumentException(
-                    "Appointment is not in a callable state for video (allowed: " + String.join(", ", allowedStatusesLower) + ")");
+            throw new IllegalArgumentException("APPOINTMENT_JOIN_STATUS_INVALID");
         }
     }
 
     private void assertWithinSlotWindow(AppointmentEntity ap) {
         AppointmentCallSlotParser.SlotWindow w = AppointmentCallSlotParser.parseWindow(ap, hospitalZoneId);
         if (w == null) {
-            throw new IllegalArgumentException("Appointment has no valid preferred date and time slot for call window checks");
+            throw new IllegalArgumentException("APPOINTMENT_NO_CALL_WINDOW");
         }
         ZonedDateTime now = ZonedDateTime.now(hospitalZoneId);
         Duration grace = Duration.ofMinutes(graceMinutes);
         ZonedDateTime earliest = w.start().minus(grace);
         ZonedDateTime latest = w.end().plus(grace);
         if (now.isBefore(earliest) || now.isAfter(latest)) {
-            throw new IllegalArgumentException(
-                    "Video call is only allowed within the appointment window (± " + graceMinutes + " minutes)");
+            throw new IllegalArgumentException("APPOINTMENT_CALL_WINDOW_OUTSIDE");
         }
     }
 

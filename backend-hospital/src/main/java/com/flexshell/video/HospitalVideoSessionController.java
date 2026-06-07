@@ -1,5 +1,6 @@
 package com.flexshell.video;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.HospitalVideoSessionRequest;
 import com.flexshell.controller.dto.HospitalVideoSessionResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
@@ -21,9 +22,14 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/api/hospital/video")
 public class HospitalVideoSessionController {
+    private final LocalizedApiMessages messages;
+
     private final HospitalVideoSessionService hospitalVideoSessionService;
 
-    public HospitalVideoSessionController(HospitalVideoSessionService hospitalVideoSessionService) {
+    public HospitalVideoSessionController(HospitalVideoSessionService hospitalVideoSessionService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.hospitalVideoSessionService = hospitalVideoSessionService;
     }
 
@@ -35,16 +41,16 @@ public class HospitalVideoSessionController {
         try {
             String userId = authentication == null ? "" : Objects.toString(authentication.getName(), "").trim();
             HospitalVideoSessionResponse data = hospitalVideoSessionService.create(userId, request);
-            return ResponseEntity.ok(StandardApiResponse.success("Video session", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.hospital.video.session"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "HOSPITAL_VIDEO_SESSION_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "HOSPITAL_VIDEO_SESSION_INVALID"), "HOSPITAL_VIDEO_SESSION_INVALID"));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "HOSPITAL_VIDEO_SESSION_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "HOSPITAL_VIDEO_SESSION_FORBIDDEN"), "HOSPITAL_VIDEO_SESSION_FORBIDDEN"));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "HOSPITAL_VIDEO_SESSION_CONFIG"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "HOSPITAL_VIDEO_SESSION_CONFIG"), "HOSPITAL_VIDEO_SESSION_CONFIG"));
         }
     }
 }

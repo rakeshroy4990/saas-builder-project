@@ -18,6 +18,9 @@ export const DEVICE_TYPES: DeviceType[] = [
 export interface BluetoothDeviceProfile {
   type: DeviceType;
   label: string;
+  /** vue-i18n key under devices.bluetooth.profiles.* */
+  labelI18nKey?: string;
+  requiresUserActionI18nKey?: string;
   icon: string;
   serviceUUIDs: string[];
   characteristicUUID: string;
@@ -102,6 +105,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
   MIR_SPIROBANK: {
     type: 'spirometer',
     label: 'MIR Spirobank',
+    labelI18nKey: 'devices.bluetooth.profiles.MIR_SPIROBANK.label',
+    requiresUserActionI18nKey: 'devices.bluetooth.profiles.MIR_SPIROBANK.action',
     icon: '🫁',
     serviceUUIDs: ['0000fff0-0000-1000-8000-00805f9b34fb'],
     characteristicUUID: '0000fff1-0000-1000-8000-00805f9b34fb',
@@ -114,6 +119,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
   NUVOAIR_AIR_NEXT: {
     type: 'spirometer',
     label: 'NuvoAir Air Next',
+    labelI18nKey: 'devices.bluetooth.profiles.NUVOAIR_AIR_NEXT.label',
+    requiresUserActionI18nKey: 'devices.bluetooth.profiles.NUVOAIR_AIR_NEXT.action',
     icon: '🫁',
     serviceUUIDs: ['00001800-0000-1000-8000-00805f9b34fb'],
     characteristicUUID: '00002a00-0000-1000-8000-00805f9b34fb',
@@ -126,6 +133,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
   GENERIC_SPIROMETER: {
     type: 'spirometer',
     label: 'Generic Spirometer',
+    labelI18nKey: 'devices.bluetooth.profiles.GENERIC_SPIROMETER.label',
+    requiresUserActionI18nKey: 'devices.bluetooth.profiles.GENERIC_SPIROMETER.action',
     icon: '🫁',
     serviceUUIDs: ['0000fff0-0000-1000-8000-00805f9b34fb'],
     characteristicUUID: '0000fff1-0000-1000-8000-00805f9b34fb',
@@ -150,6 +159,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
   GENERIC_OXIMETER: {
     type: 'pulse_oximeter',
     label: 'Pulse Oximeter',
+    labelI18nKey: 'devices.bluetooth.profiles.GENERIC_OXIMETER.label',
+    requiresUserActionI18nKey: 'devices.bluetooth.profiles.GENERIC_OXIMETER.action',
     icon: '❤️',
     serviceUUIDs: ['00001822-0000-1000-8000-00805f9b34fb'],
     characteristicUUID: '00002a5f-0000-1000-8000-00805f9b34fb',
@@ -162,6 +173,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
   GENERIC_BP_MONITOR: {
     type: 'bp_monitor',
     label: 'Blood Pressure Monitor',
+    labelI18nKey: 'devices.bluetooth.profiles.GENERIC_BP_MONITOR.label',
+    requiresUserActionI18nKey: 'devices.bluetooth.profiles.GENERIC_BP_MONITOR.action',
     icon: '🩺',
     serviceUUIDs: ['00001810-0000-1000-8000-00805f9b34fb'],
     characteristicUUID: '00002a35-0000-1000-8000-00805f9b34fb',
@@ -174,6 +187,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
   GENERIC_GLUCOMETER: {
     type: 'glucometer',
     label: 'Glucometer',
+    labelI18nKey: 'devices.bluetooth.profiles.GENERIC_GLUCOMETER.label',
+    requiresUserActionI18nKey: 'devices.bluetooth.profiles.GENERIC_GLUCOMETER.action',
     icon: '🩸',
     serviceUUIDs: ['00001808-0000-1000-8000-00805f9b34fb'],
     characteristicUUID: '00002a18-0000-1000-8000-00805f9b34fb',
@@ -186,6 +201,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
   GENERIC_THERMOMETER: {
     type: 'thermometer',
     label: 'Thermometer',
+    labelI18nKey: 'devices.bluetooth.profiles.GENERIC_THERMOMETER.label',
+    requiresUserActionI18nKey: 'devices.bluetooth.profiles.GENERIC_THERMOMETER.action',
     icon: '🌡️',
     serviceUUIDs: ['00001809-0000-1000-8000-00805f9b34fb'],
     characteristicUUID: '00002a1c-0000-1000-8000-00805f9b34fb',
@@ -203,6 +220,14 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
     requiresUserAction:
       'Turn the thermometer on and enable pairing mode if required. In the browser list, select your thermometer by name — most devices do not advertise a standard health service until connected.'
   }
+};
+
+export const DEVICE_TYPE_LABEL_I18N: Record<DeviceType, string> = {
+  spirometer: 'devices.bluetooth.types.spirometer',
+  pulse_oximeter: 'devices.bluetooth.types.pulse_oximeter',
+  bp_monitor: 'devices.bluetooth.types.bp_monitor',
+  glucometer: 'devices.bluetooth.types.glucometer',
+  thermometer: 'devices.bluetooth.types.thermometer'
 };
 
 export const DEVICE_TYPE_LABELS: Record<DeviceType, string> = {

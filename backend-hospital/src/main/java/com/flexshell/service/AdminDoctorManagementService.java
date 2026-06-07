@@ -51,7 +51,7 @@ public class AdminDoctorManagementService {
         AdminAuthorizationSupport.requireAdminUser(users, adminUserId);
 
         if (request == null) {
-            throw new IllegalArgumentException("Request body is required");
+            throw new IllegalArgumentException("ADMIN_DOCTOR_REQUEST_REQUIRED");
         }
         String email = request.getEmailId() == null ? "" : request.getEmailId().trim().toLowerCase();
         String firstName = request.getFirstName() == null ? "" : request.getFirstName().trim();
@@ -78,7 +78,7 @@ public class AdminDoctorManagementService {
             missingRequired.add("MobileNumber");
         }
         if (!missingRequired.isEmpty()) {
-            throw new IllegalArgumentException("Missing required fields: " + String.join(", ", missingRequired));
+            throw new IllegalArgumentException("ADMIN_DOCTOR_MISSING_FIELDS");
         }
 
         try {
@@ -89,7 +89,7 @@ public class AdminDoctorManagementService {
 
         Optional<UserEntity> existingOpt = users.findByEmail(email);
         if (existingOpt.isPresent()) {
-            throw new IllegalArgumentException("An account already exists for this email address.");
+            throw new IllegalArgumentException("ADMIN_DOCTOR_EMAIL_EXISTS");
         }
 
         UserEntity user = new UserEntity();
@@ -125,7 +125,7 @@ public class AdminDoctorManagementService {
         String smc = user.getSmcName().trim();
         String reg = user.getSmcRegistrationNumber().trim();
         if (q.isEmpty() || smc.isEmpty() || reg.isEmpty()) {
-            throw new IllegalArgumentException("Doctor qualifications, State Medical Council (SmcName), and SMC registration number are required.");
+            throw new IllegalArgumentException("ADMIN_DOCTOR_QUALIFICATIONS_REQUIRED");
         }
 
         UserEntity saved = users.save(user);

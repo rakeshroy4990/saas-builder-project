@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.PatientPrescriptionDownloadResponse;
 import com.flexshell.controller.dto.PatientPrescriptionDiagnosisGroupSummaryResponse;
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateRequest;
@@ -49,6 +50,8 @@ import java.util.UUID;
 @RequestMapping("/api/v1/patient-prescriptions")
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PatientPrescriptionController {
+    private final LocalizedApiMessages messages;
+
 
     private static final Logger LOG = LoggerFactory.getLogger(PatientPrescriptionController.class);
     private static final MediaType NDJSON = MediaType.parseMediaType("application/x-ndjson");
@@ -56,10 +59,11 @@ public class PatientPrescriptionController {
     private final PatientPrescriptionService patientPrescriptionService;
     private final PatientPrescriptionSimilarityService patientPrescriptionSimilarityService;
 
-    public PatientPrescriptionController(
-            PatientPrescriptionService patientPrescriptionService,
-            PatientPrescriptionSimilarityService patientPrescriptionSimilarityService
-    ) {
+    public PatientPrescriptionController(PatientPrescriptionService patientPrescriptionService,
+            PatientPrescriptionSimilarityService patientPrescriptionSimilarityService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.patientPrescriptionService = patientPrescriptionService;
         this.patientPrescriptionSimilarityService = patientPrescriptionSimilarityService;
     }
@@ -90,8 +94,8 @@ public class PatientPrescriptionController {
                     userId, file, groupExternalId, pageNumber, appointmentExternalId);
             HttpStatus status = data.isDuplicate() ? HttpStatus.OK : HttpStatus.CREATED;
             String message = data.isDuplicate()
-                    ? "Prescription already exists"
-                    : "Prescription uploaded. Extraction in progress.";
+                    ? messages.success("success.patient.prescription.duplicate")
+                    : messages.success("success.patient.prescription.uploaded");
             LOG.info(
                     "patient_prescription_upload_http_ok httpStatus={} externalId={} duplicate={} status={}",
                     status.value(),
@@ -125,7 +129,7 @@ public class PatientPrescriptionController {
                     ex
             );
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_STORAGE_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_PRESCRIPTION_STORAGE_UNAVAILABLE"), "PATIENT_PRESCRIPTION_STORAGE_UNAVAILABLE"));
         } catch (Exception ex) {
             LOG.error(
                     "patient_prescription_upload_http_unexpected errorType={} message={}",
@@ -135,8 +139,7 @@ public class PatientPrescriptionController {
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(StandardApiResponse.error(
-                            "Prescription upload failed unexpectedly. Check server logs for "
-                                    + "patient_prescription_upload_* entries.",
+                            messages.forErrorCode("PATIENT_PRESCRIPTION_UPLOAD_FAILED"),
                             "PATIENT_PRESCRIPTION_UPLOAD_FAILED"
                     ));
         }
@@ -153,7 +156,7 @@ public class PatientPrescriptionController {
         }
         Page<PatientPrescriptionSummaryResponse> page = patientPrescriptionService.listForActor(userId, pageable);
         return EntityListResponseSupport.ok(
-                "Prescriptions fetched",
+                messages.success("success.patient.prescription.list"),
                 page.getContent(),
                 page.getNumber(),
                 page.getSize(),
@@ -171,7 +174,7 @@ public class PatientPrescriptionController {
         }
         try {
             PatientPrescriptionSummaryResponse data = patientPrescriptionService.save(userId, request);
-            return ResponseEntity.ok(StandardApiResponse.success("Prescription saved", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.prescription.saved"), data));
         } catch (IllegalArgumentException ex) {
             return badRequest(ex.getMessage(), "PATIENT_PRESCRIPTION_SAVE_INVALID");
         } catch (SecurityException ex) {
@@ -190,10 +193,10 @@ public class PatientPrescriptionController {
         }
         try {
             patientPrescriptionService.softDelete(userId, businessKey);
-            return ResponseEntity.ok(StandardApiResponse.success("Prescription deleted", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.prescription.deleted"), null));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_PRESCRIPTION_NOT_FOUND"), "PATIENT_PRESCRIPTION_NOT_FOUND"));
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         }
@@ -210,10 +213,10 @@ public class PatientPrescriptionController {
         }
         try {
             PatientPrescriptionSummaryResponse data = patientPrescriptionService.getMetadata(userId, externalId);
-            return ResponseEntity.ok(StandardApiResponse.success("Prescription fetched", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.prescription.fetched"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_PRESCRIPTION_NOT_FOUND"), "PATIENT_PRESCRIPTION_NOT_FOUND"));
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         }
@@ -230,15 +233,15 @@ public class PatientPrescriptionController {
         }
         try {
             PatientPrescriptionDownloadResponse data = patientPrescriptionService.downloadUrl(userId, externalId);
-            return ResponseEntity.ok(StandardApiResponse.success("Signed URL ready", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.prescription.signed.url"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_PRESCRIPTION_NOT_FOUND"), "PATIENT_PRESCRIPTION_NOT_FOUND"));
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_STORAGE_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_PRESCRIPTION_STORAGE_UNAVAILABLE"), "PATIENT_PRESCRIPTION_STORAGE_UNAVAILABLE"));
         }
     }
 
@@ -253,7 +256,7 @@ public class PatientPrescriptionController {
         }
         try {
             PatientPrescriptionGroupCreateResponse data = patientPrescriptionService.createGroup(userId, request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(StandardApiResponse.success("Group created", data));
+            return ResponseEntity.status(HttpStatus.CREATED).body(StandardApiResponse.success(messages.success("success.patient.prescription.group.created"), data));
         } catch (IllegalArgumentException ex) {
             return badRequest(ex.getMessage(), "PATIENT_PRESCRIPTION_GROUP_INVALID");
         }
@@ -268,7 +271,7 @@ public class PatientPrescriptionController {
             return unauthorized();
         }
         List<PatientPrescriptionDiagnosisGroupSummaryResponse> data = patientPrescriptionService.listDiagnosisGroups(userId);
-        return ResponseEntity.ok(StandardApiResponse.success("Diagnosis groups fetched", data));
+        return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.prescription.groups.fetched"), data));
     }
 
     @PostMapping(
@@ -287,13 +290,13 @@ public class PatientPrescriptionController {
         }
         try {
             patientPrescriptionService.linkPrescriptionToGroup(userId, groupExternalId, request);
-            return ResponseEntity.ok(StandardApiResponse.success("Prescription linked to group", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.prescription.group.linked"), null));
         } catch (IllegalArgumentException ex) {
             boolean notFound = "Group not found".equalsIgnoreCase(Objects.toString(ex.getMessage(), "").trim())
                     || "Prescription not found".equalsIgnoreCase(Objects.toString(ex.getMessage(), "").trim());
             HttpStatus status = notFound ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
             String code = notFound ? "PATIENT_PRESCRIPTION_GROUP_NOT_FOUND" : "PATIENT_PRESCRIPTION_GROUP_LINK_INVALID";
-            return ResponseEntity.status(status).body(StandardApiResponse.error(ex.getMessage(), code));
+            return ResponseEntity.status(status).body(StandardApiResponse.error(messages.resolveException(ex, code), code));
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         }
@@ -325,14 +328,14 @@ public class PatientPrescriptionController {
         try {
             List<PatientPrescriptionSimilarityHitResponse> hits = patientPrescriptionSimilarityService.search(
                     userId, hasFile ? file : null, queryText, limit);
-            return ResponseEntity.ok(StandardApiResponse.success("Similar prescriptions ranked", hits));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.prescription.similarity.ranked"), hits));
         } catch (IllegalArgumentException ex) {
             return badRequest(ex.getMessage(), "PATIENT_PRESCRIPTION_SIMILARITY_INVALID");
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_SIMILARITY_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_PRESCRIPTION_SIMILARITY_UNAVAILABLE"), "PATIENT_PRESCRIPTION_SIMILARITY_UNAVAILABLE"));
         }
     }
 
@@ -389,10 +392,10 @@ public class PatientPrescriptionController {
         }
         try {
             List<PatientPrescriptionSummaryResponse> data = patientPrescriptionService.listGroupItems(userId, groupExternalId);
-            return ResponseEntity.ok(StandardApiResponse.success("Group prescriptions fetched", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.patient.prescription.group.fetched"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_GROUP_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_PRESCRIPTION_GROUP_NOT_FOUND"), "PATIENT_PRESCRIPTION_GROUP_NOT_FOUND"));
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         }
@@ -412,18 +415,23 @@ public class PatientPrescriptionController {
                 .anyMatch(a -> a.toUpperCase().contains("DOCTOR"));
     }
 
-    private static <T> ResponseEntity<StandardApiResponse<T>> unauthorized() {
+    private <T> ResponseEntity<StandardApiResponse<T>> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(StandardApiResponse.error("Authentication required.", "AUTH_REQUIRED"));
+                .body(StandardApiResponse.error(messages.forErrorCode("AUTH_REQUIRED"), "AUTH_REQUIRED"));
     }
 
-    private static <T> ResponseEntity<StandardApiResponse<T>> forbidden(String message) {
+    private <T> ResponseEntity<StandardApiResponse<T>> forbidden(String message) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(StandardApiResponse.error(message.isBlank() ? "Forbidden" : message, "PATIENT_PRESCRIPTION_FORBIDDEN"));
+                .body(StandardApiResponse.error(
+                        message.isBlank() ? messages.forErrorCode("PATIENT_PRESCRIPTION_FORBIDDEN") : message,
+                        "PATIENT_PRESCRIPTION_FORBIDDEN"));
     }
 
-    private static <T> ResponseEntity<StandardApiResponse<T>> badRequest(String message, String code) {
+    private <T> ResponseEntity<StandardApiResponse<T>> badRequest(String message, String code) {
+        String resolved = message != null && message.matches("[A-Z][A-Z0-9_]+")
+                ? messages.forErrorCode(message.trim())
+                : messages.forErrorCode(code);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(StandardApiResponse.error(message.isBlank() ? "Invalid request" : message, code));
+                .body(StandardApiResponse.error(resolved, code));
     }
 }

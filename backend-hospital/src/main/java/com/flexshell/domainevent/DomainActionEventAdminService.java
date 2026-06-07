@@ -55,7 +55,7 @@ public class DomainActionEventAdminService {
     @Transactional
     public DomainActionEventResponse saveBinding(DomainActionEventSaveRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Request body is required");
+            throw new IllegalArgumentException("DOMAIN_ACTION_EVENT_REQUEST_REQUIRED");
         }
         if (request.getExternalId() != null) {
             UpdateDomainActionEventRequest update = new UpdateDomainActionEventRequest();
@@ -88,7 +88,7 @@ public class DomainActionEventAdminService {
 
         repository.findByHttpMethodIgnoreCaseAndEndpointPatternIgnoreCaseAndDeletedFalse(httpMethod, endpointPattern)
                 .ifPresent(existing -> {
-                    throw new IllegalArgumentException("Domain action binding already exists for " + httpMethod + " " + endpointPattern);
+                    throw new IllegalArgumentException("DOMAIN_ACTION_EVENT_ALREADY_EXISTS");
                 });
 
         DomainActionEventJpaEntity row = new DomainActionEventJpaEntity();
@@ -137,7 +137,7 @@ public class DomainActionEventAdminService {
 
     private DomainActionEventJpaEntity findBinding(UUID externalId) {
         if (externalId == null) {
-            throw new IllegalArgumentException("Binding external id is required");
+            throw new IllegalArgumentException("DOMAIN_ACTION_EVENT_BINDING_ID_REQUIRED");
         }
         return repository.findByExternalIdAndDeletedFalse(externalId)
                 .orElseThrow(() -> new IllegalArgumentException("Domain action binding not found"));
@@ -160,7 +160,7 @@ public class DomainActionEventAdminService {
     private static String normalizeProfile(String profile) {
         String normalized = requireText(profile, "contextProfile").toUpperCase(Locale.ROOT);
         if (!ALLOWED_PROFILES.contains(normalized)) {
-            throw new IllegalArgumentException("contextProfile must be one of: APPOINTMENT, USER, GENERIC");
+            throw new IllegalArgumentException("DOMAIN_ACTION_EVENT_CONTEXT_PROFILE_INVALID");
         }
         return normalized;
     }
@@ -176,7 +176,7 @@ public class DomainActionEventAdminService {
     private static String requireText(String value, String fieldName) {
         String trimmed = Objects.toString(value, "").trim();
         if (trimmed.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " is required");
+            throw new IllegalArgumentException("DOMAIN_ACTION_EVENT_FIELD_REQUIRED");
         }
         return trimmed;
     }

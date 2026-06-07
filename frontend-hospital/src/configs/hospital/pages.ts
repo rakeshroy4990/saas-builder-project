@@ -17,6 +17,7 @@ import {
   hospitalSiteFooter
 } from './hospitalPublicChrome';
 import { buildDoctorsByDepartmentListConfig } from './homeDoctorListConfig';
+import { buildLocaleOnboardingButtons } from './localeOnboardingConfig';
 
 const todayDateInputValue = new Date().toISOString().split('T')[0] ?? '';
 
@@ -961,7 +962,7 @@ export const hospitalPages: PageConfig[] = [
                                     id: 'hospital-dashboard-appointment-line-1',
                                     type: 'text',
                                     config: {
-                                      text: 'Patient: {{patientName}} | Doctor: {{doctorName}} | Status: {{statusLabel}}',
+                                      text: '{{rowLine1}}',
                                       styles: { utilityClasses: 'text-sm font-semibold text-slate-800' }
                                     }
                                   },
@@ -969,7 +970,7 @@ export const hospitalPages: PageConfig[] = [
                                     id: 'hospital-dashboard-appointment-line-2',
                                     type: 'text',
                                     config: {
-                                      text: 'Date: {{preferredDate}} | Slot: {{preferredTimeSlot}} | Department: {{department}} | Phone: {{phoneNumber}} | Age: {{ageGroup}}',
+                                      text: '{{rowLine2}}',
                                       styles: { utilityClasses: 'text-xs text-slate-600' }
                                     }
                                   },
@@ -980,7 +981,7 @@ export const hospitalPages: PageConfig[] = [
                                       expression: 'String(additionalNotes ?? "").trim().length > 0'
                                     },
                                     config: {
-                                      text: 'Additional notes: {{additionalNotes}}',
+                                      text: '{{additionalNotesLine}}',
                                       styles: { utilityClasses: 'text-xs text-slate-600' }
                                     }
                                   }
@@ -1004,7 +1005,7 @@ export const hospitalPages: PageConfig[] = [
                                     },
                                     config: {
                                       text: '✓',
-                                      title: 'Mark visit complete',
+                                      titleI18nKey: 'dashboard.appointments.markVisitComplete',
                                       styles: {
                                         utilityClasses:
                                           'rounded-md border border-sky-500 px-2 py-1 text-xs leading-none text-sky-800 hover:bg-sky-50'
@@ -2532,46 +2533,7 @@ export const hospitalPages: PageConfig[] = [
           type: 'container',
           config: {
             layout: { type: 'flex', flex: ['flex', 'flex-col', 'sm:flex-row', 'gap-3', 'w-full', 'max-w-lg', 'mx-auto'] },
-            children: [
-              {
-                id: 'hospital-locale-onboarding-en',
-                type: 'button',
-                config: {
-                  text: 'English',
-                  styles: {
-                    styleTemplate: 'hosp.popup.button.primary',
-                    utilityClasses: 'w-full sm:flex-1 min-h-[48px] text-base'
-                  },
-                  click: {
-                    actionId: 'save-preferred-locale',
-                    data: { locale: 'en' },
-                    onSuccess: {
-                      actionType: 'closePopup',
-                      onSuccess: { actionId: 'run-dashboard-init-if-present' }
-                    }
-                  }
-                }
-              },
-              {
-                id: 'hospital-locale-onboarding-hi',
-                type: 'button',
-                config: {
-                  text: 'हिंदी',
-                  styles: {
-                    styleTemplate: 'hosp.popup.button.secondary',
-                    utilityClasses: 'w-full sm:flex-1 min-h-[48px] text-base'
-                  },
-                  click: {
-                    actionId: 'save-preferred-locale',
-                    data: { locale: 'hi' },
-                    onSuccess: {
-                      actionType: 'closePopup',
-                      onSuccess: { actionId: 'run-dashboard-init-if-present' }
-                    }
-                  }
-                }
-              }
-            ]
+            children: buildLocaleOnboardingButtons()
           }
         }
       ]
@@ -2626,13 +2588,13 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-first-name-label',
                       type: 'text',
-                      config: { text: 'FirstName *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.firstName', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-first-name',
                       type: 'input',
                       config: {
-                        placeholder: 'Enter first name',
+                        placeholderI18nKey: 'register.placeholders.firstName',
                         styles: { styleTemplate: 'hosp.form.input' },
                         labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                         change: { actionId: 'set-register-first-name' }
@@ -2650,13 +2612,13 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-last-name-label',
                       type: 'text',
-                      config: { text: 'LastName', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.lastName', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-last-name',
                       type: 'input',
                       config: {
-                        placeholder: 'Enter last name',
+                        placeholderI18nKey: 'register.placeholders.lastName',
                         styles: { styleTemplate: 'hosp.form.input' },
                         labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                         change: { actionId: 'set-register-last-name' }
@@ -2674,7 +2636,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-email-label',
                       type: 'text',
-                      config: { text: 'EmailId *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.emailId', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-email',
@@ -2698,14 +2660,14 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-password-label',
                       type: 'text',
-                      config: { text: 'Password *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.password', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-password',
                       type: 'input',
                       config: {
                         inputType: 'password',
-                        placeholder: 'Enter password',
+                        placeholderI18nKey: 'register.placeholders.password',
                         styles: { styleTemplate: 'hosp.form.input' },
                         labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                         change: { actionId: 'set-register-password' }
@@ -2723,13 +2685,13 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-address-label',
                       type: 'text',
-                      config: { text: 'Address', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.address', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-address',
                       type: 'input',
                       config: {
-                        placeholder: 'Enter address',
+                        placeholderI18nKey: 'register.placeholders.address',
                         styles: { styleTemplate: 'hosp.form.input' },
                         labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                         change: { actionId: 'set-register-address' }
@@ -2747,7 +2709,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-gender-label',
                       type: 'text',
-                      config: { text: 'Gender *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.gender', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-gender-field',
@@ -2782,13 +2744,13 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-mobile-label',
                       type: 'text',
-                      config: { text: 'Phone', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.mobileNumber', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-mobile',
                       type: 'input',
                       config: {
-                        placeholder: 'Enter mobile number',
+                        placeholderI18nKey: 'register.placeholders.mobile',
                         styles: { styleTemplate: 'hosp.form.input' },
                         labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                         change: { actionId: 'set-register-mobile' }
@@ -2806,7 +2768,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-role-label',
                       type: 'text',
-                      config: { text: 'Role *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.role', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-role-field',
@@ -2865,7 +2827,7 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-department-label',
                       type: 'text',
-                      config: { text: 'Department *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.department', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-department-field',
@@ -2910,13 +2872,13 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-qualifications-label',
                       type: 'text',
-                      config: { text: 'Qualifications *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.qualifications', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-qualifications',
                       type: 'input',
                       config: {
-                        placeholder: 'MBBS, MD, etc.',
+                        placeholderI18nKey: 'register.placeholders.qualifications',
                         styles: { styleTemplate: 'hosp.form.input' },
                         labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                         change: { actionId: 'set-register-qualifications' }
@@ -2945,13 +2907,13 @@ export const hospitalPages: PageConfig[] = [
                     {
                       id: 'hospital-register-popup-smc-name-label',
                       type: 'text',
-                      config: { text: 'State Medical Council *', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
+                      config: { i18nKey: 'register.fields.smcName', styles: { styleTemplate: 'hosp.form.inlineLabel' } }
                     },
                     {
                       id: 'hospital-register-popup-smc-name',
                       type: 'input',
                       config: {
-                        placeholder: 'Enter state medical council',
+                        placeholderI18nKey: 'register.placeholders.smcName',
                         styles: { styleTemplate: 'hosp.form.input' },
                         labelStyles: { styleTemplate: 'hosp.form.inlineField' },
                         change: { actionId: 'set-register-smc-name' }

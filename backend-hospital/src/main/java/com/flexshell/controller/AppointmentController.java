@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.AppointmentBookingFormContextResponse;
 import com.flexshell.controller.dto.AppointmentQueryDto;
 import com.flexshell.controller.dto.AppointmentRequest;
@@ -50,6 +51,8 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/appointment")
 public class AppointmentController {
+    private final LocalizedApiMessages messages;
+
     private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
     private static final Set<String> QUERY_KEYS = Set.of(
             "DoctorId", "Status", "PreferredDate", "PatientName", "Department", "UpcomingOnly"
@@ -60,12 +63,13 @@ public class AppointmentController {
     private final ObjectProvider<DoctorDirectoryService> doctorDirectoryServiceProvider;
     private final ObjectMapper objectMapper;
 
-    public AppointmentController(
-            AppointmentService appointmentService,
+    public AppointmentController(AppointmentService appointmentService,
             AppointmentJoinCallService appointmentJoinCallService,
             ObjectProvider<DoctorDirectoryService> doctorDirectoryServiceProvider,
-            ObjectMapper objectMapper
-    ) {
+            ObjectMapper objectMapper,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.appointmentService = appointmentService;
         this.appointmentJoinCallService = appointmentJoinCallService;
         this.doctorDirectoryServiceProvider = doctorDirectoryServiceProvider;
@@ -83,16 +87,16 @@ public class AppointmentController {
     ) {
         try {
             AppointmentJoinCallResponse data = appointmentJoinCallService.joinCall(authentication.getName(), id);
-            return ResponseEntity.ok(StandardApiResponse.success("Join call", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.join.call"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_JOIN_CALL_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_JOIN_CALL_FORBIDDEN"), "APPOINTMENT_JOIN_CALL_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_JOIN_CALL_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_JOIN_CALL_INVALID"), "APPOINTMENT_JOIN_CALL_INVALID"));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_JOIN_CALL_CONFIG"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_JOIN_CALL_CONFIG"), "APPOINTMENT_JOIN_CALL_CONFIG"));
         }
     }
 
@@ -106,16 +110,16 @@ public class AppointmentController {
     ) {
         try {
             AppointmentRenewTokenResponse data = appointmentJoinCallService.renewToken(authentication.getName(), id);
-            return ResponseEntity.ok(StandardApiResponse.success("Token renewed", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.token.renewed"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_RENEW_TOKEN_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_RENEW_TOKEN_FORBIDDEN"), "APPOINTMENT_RENEW_TOKEN_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_RENEW_TOKEN_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_RENEW_TOKEN_INVALID"), "APPOINTMENT_RENEW_TOKEN_INVALID"));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_RENEW_TOKEN_CONFIG"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_RENEW_TOKEN_CONFIG"), "APPOINTMENT_RENEW_TOKEN_CONFIG"));
         }
     }
 
@@ -127,13 +131,13 @@ public class AppointmentController {
     ) {
         try {
             appointmentJoinCallService.endCall(authentication.getName(), id);
-            return ResponseEntity.ok(StandardApiResponse.success("Call ended", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.call.ended"), null));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_END_CALL_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_END_CALL_FORBIDDEN"), "APPOINTMENT_END_CALL_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_END_CALL_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_END_CALL_INVALID"), "APPOINTMENT_END_CALL_INVALID"));
         }
     }
 
@@ -147,13 +151,13 @@ public class AppointmentController {
             HttpStatus status = request.getId() == null || request.getId().isBlank()
                     ? HttpStatus.CREATED
                     : HttpStatus.OK;
-            return ResponseEntity.status(status).body(StandardApiResponse.success("Appointment saved", data));
+            return ResponseEntity.status(status).body(StandardApiResponse.success(messages.success("success.appointment.saved"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_SAVE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_SAVE_INVALID"), "APPOINTMENT_SAVE_INVALID"));
         }
     }
 
@@ -166,14 +170,14 @@ public class AppointmentController {
         try {
             AppointmentResponse data = appointmentService.create(request, prescriptions, authentication.getName());
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(StandardApiResponse.success("Appointment created", data));
+                    .body(StandardApiResponse.success(messages.success("success.appointment.created"), data));
         } catch (IllegalArgumentException ex) {
             ObservabilityLogger.warn(log, "appointment_create", java.util.Map.of(
                     "domain", "appointment",
                     "status", "fail",
                     "reason_code", "validation_error"));
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_CREATE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_CREATE_INVALID"), "APPOINTMENT_CREATE_INVALID"));
         }
     }
 
@@ -186,13 +190,13 @@ public class AppointmentController {
     ) {
         try {
             AppointmentResponse data = appointmentService.update(id, request, prescriptions, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Appointment updated", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.updated"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_UPDATE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_UPDATE_INVALID"), "APPOINTMENT_UPDATE_INVALID"));
         }
     }
 
@@ -200,13 +204,13 @@ public class AppointmentController {
     public ResponseEntity<StandardApiResponse<Void>> delete(@PathVariable String id, Authentication authentication) {
         try {
             appointmentService.delete(id, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Appointment deleted", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.deleted"), null));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_DELETE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_DELETE_INVALID"), "APPOINTMENT_DELETE_INVALID"));
         }
     }
 
@@ -217,13 +221,13 @@ public class AppointmentController {
     ) {
         try {
             appointmentService.delete(businessKey, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Appointment deleted", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.deleted"), null));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_NOT_FOUND"), "APPOINTMENT_NOT_FOUND"));
         }
     }
 
@@ -234,13 +238,13 @@ public class AppointmentController {
     ) {
         try {
             AppointmentResponse data = appointmentService.cancel(id, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Appointment cancelled", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.cancelled"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_CANCEL_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_CANCEL_INVALID"), "APPOINTMENT_CANCEL_INVALID"));
         }
     }
 
@@ -251,13 +255,13 @@ public class AppointmentController {
     ) {
         try {
             AppointmentResponse data = appointmentService.completeVisit(id, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Visit marked complete", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.visit.complete"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_COMPLETE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_COMPLETE_INVALID"), "APPOINTMENT_COMPLETE_INVALID"));
         }
     }
 
@@ -268,13 +272,13 @@ public class AppointmentController {
     ) {
         try {
             AppointmentResponse data = appointmentService.getById(id, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Appointment fetched", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.fetched"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_NOT_FOUND"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_NOT_FOUND"), "APPOINTMENT_NOT_FOUND"));
         }
     }
 
@@ -290,17 +294,17 @@ public class AppointmentController {
             EntityQueryBinder.bind(query, queryJson, objectMapper, QUERY_KEYS);
             PagedAppointmentListDto paged = appointmentService.listPaged(authentication.getName(), page, size, query);
             return EntityListResponseSupport.ok(
-                    "Appointments fetched",
+                    messages.success("success.appointment.list"),
                     paged.getContent(),
                     paged.getNumber(),
                     paged.getSize(),
                     paged.getTotalElements());
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_LIST_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_LIST_INVALID"), "APPOINTMENT_LIST_INVALID"));
         }
     }
 
@@ -317,13 +321,13 @@ public class AppointmentController {
                     date,
                     excludeAppointmentId,
                     authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Available time slots", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.available.slots"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_AVAILABLE_SLOTS_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_AVAILABLE_SLOTS_INVALID"), "APPOINTMENT_AVAILABLE_SLOTS_INVALID"));
         }
     }
 
@@ -343,13 +347,13 @@ public class AppointmentController {
                     date,
                     excludeAppointmentId,
                     authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Booking available time slots", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.booking.slots"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_BOOKING_SLOTS_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_BOOKING_SLOTS_INVALID"), "APPOINTMENT_BOOKING_SLOTS_INVALID"));
         }
     }
 
@@ -369,13 +373,13 @@ public class AppointmentController {
                     lookaheadDays,
                     excludeAppointmentId,
                     authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Booking date availability", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.booking.date.availability"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_BOOKING_DATE_AVAILABILITY_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_BOOKING_DATE_AVAILABILITY_INVALID"), "APPOINTMENT_BOOKING_DATE_AVAILABILITY_INVALID"));
         }
     }
 
@@ -414,16 +418,16 @@ public class AppointmentController {
                         excludeAppointmentId,
                         authentication.getName()));
             }
-            return ResponseEntity.ok(StandardApiResponse.success("Appointment booking form context", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.booking.form.context"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_BOOKING_FORM_CONTEXT_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_BOOKING_FORM_CONTEXT_INVALID"), "APPOINTMENT_BOOKING_FORM_CONTEXT_INVALID"));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
     }
 
@@ -440,13 +444,13 @@ public class AppointmentController {
                     date,
                     excludeAppointmentId,
                     authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("Occupied time slots", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.occupied.slots"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_OCCUPIED_SLOTS_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_OCCUPIED_SLOTS_INVALID"), "APPOINTMENT_OCCUPIED_SLOTS_INVALID"));
         }
     }
 

@@ -1,5 +1,6 @@
 package com.flexshell.controller.v1;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.auth.api.RegisterResponse;
 import com.flexshell.controller.dto.PagedUserListDto;
@@ -29,13 +30,18 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserV1Controller {
+    private final LocalizedApiMessages messages;
+
 
     private static final Set<String> QUERY_KEYS = Set.of("Query", "Role", "Email");
 
     private final UserService userService;
     private final ObjectMapper objectMapper;
 
-    public UserV1Controller(UserService userService, ObjectMapper objectMapper) {
+    public UserV1Controller(UserService userService, ObjectMapper objectMapper,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.userService = userService;
         this.objectMapper = objectMapper;
     }
@@ -58,17 +64,17 @@ public class UserV1Controller {
                     query.getRole()
             );
             return EntityListResponseSupport.ok(
-                    "Users loaded",
+                    messages.success("success.user.list"),
                     paged.getContent(),
                     paged.getNumber(),
                     paged.getSize(),
                     paged.getTotalElements());
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_LIST_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_LIST_FORBIDDEN"), "USER_LIST_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_LIST_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_LIST_INVALID"), "USER_LIST_INVALID"));
         }
     }
 
@@ -79,13 +85,13 @@ public class UserV1Controller {
     ) {
         try {
             RegisterResponse data = userService.saveUser(authentication.getName(), request);
-            return ResponseEntity.ok(StandardApiResponse.success("User saved", data));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.user.saved"), data));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_SAVE_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_SAVE_FORBIDDEN"), "USER_SAVE_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_SAVE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_SAVE_INVALID"), "USER_SAVE_INVALID"));
         }
     }
 
@@ -96,13 +102,13 @@ public class UserV1Controller {
     ) {
         try {
             userService.deleteByBusinessKey(businessKey, authentication.getName());
-            return ResponseEntity.ok(StandardApiResponse.success("User deactivated", null));
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.user.deactivated"), null));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_DELETE_FORBIDDEN"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_DELETE_FORBIDDEN"), "USER_DELETE_FORBIDDEN"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(StandardApiResponse.error(ex.getMessage(), "USER_DELETE_INVALID"));
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "USER_DELETE_INVALID"), "USER_DELETE_INVALID"));
         }
     }
 }

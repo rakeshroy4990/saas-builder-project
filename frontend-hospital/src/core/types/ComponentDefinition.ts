@@ -27,7 +27,8 @@ export type ComponentType =
   | 'doctor-schedule-editor'
   | 'medicine-list-editor'
   | 'doctor-education-workspace'
-  | 'education-attachment-sequence';
+  | 'education-attachment-sequence'
+  | 'bluetooth-devices';
 
 export interface LayoutConfig {
   type: 'flex' | 'grid';

@@ -1,5 +1,6 @@
 package com.flexshell.controller;
 
+import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.MedicineSearchResultDto;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.service.MedicineCatalogService;
@@ -15,11 +16,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/medicines")
 public class MedicineSearchController {
+    private final LocalizedApiMessages messages;
+
     private static final int DEFAULT_LIMIT = 25;
 
     private final MedicineCatalogService medicineCatalogService;
 
-    public MedicineSearchController(MedicineCatalogService medicineCatalogService) {
+    public MedicineSearchController(MedicineCatalogService medicineCatalogService,
+            LocalizedApiMessages messages) {
+        this.messages = messages;
+
         this.medicineCatalogService = medicineCatalogService;
     }
 
@@ -30,6 +36,6 @@ public class MedicineSearchController {
     ) {
         int capped = Math.min(Math.max(limit, 1), 50);
         List<MedicineSearchResultDto> data = medicineCatalogService.search(q, capped);
-        return ResponseEntity.ok(StandardApiResponse.success("Medicines fetched", data));
+        return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.medicine.fetched"), data));
     }
 }
