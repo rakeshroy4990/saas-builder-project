@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
 
+import { useSessionStore } from '@/auth/sessionStore';
 import { LoadingView } from '@/components/LoadingView';
 import { colors } from '@/theme/colors';
 import { sharedStyles } from '@/theme/styles';
@@ -48,6 +49,10 @@ export function DoctorsListScreen() {
   }, [load]);
 
   function onBookDoctor(section: DepartmentDoctorsSection, doctorId: string) {
+    if (!useSessionStore.getState().accessToken) {
+      router.push('/(auth)/login');
+      return;
+    }
     router.push({
       pathname: '/(app)/appointments/book',
       params: {

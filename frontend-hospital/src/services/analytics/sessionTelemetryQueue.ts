@@ -3,6 +3,7 @@
  * (logout / session expiry) instead of one HTTP request per UI/API event.
  */
 
+import { toTelemetryWire } from '@saas-builder/hospital-api-client';
 import { URLRegistry } from '../http/URLRegistry';
 import { getClientContext } from './clientContext';
 
@@ -174,11 +175,10 @@ async function postSessionEventsBatch(bodies: string[]): Promise<Response> {
     return new Response(null, { status: 400 });
   }
   const clientContext = getClientContext();
-  const eventsForWire =
-    events.length > 0
-      ? events.map((event, index) => (index === 0 ? { ...clientContext, ...event } : event))
-      : events;
-  const wrapped = JSON.stringify({ events: eventsForWire });
+  const eventsForWire = events.map((event, index) =>
+    toTelemetryWire(index === 0 ? { ...clientContext, ...event } : event)
+  );
+  const wrapped = JSON.stringify(toTelemetryWire({ events: eventsForWire }));
   return URLRegistry.request('telemetrySessionEvents', {
     method: 'POST',
     credentials: 'omit',

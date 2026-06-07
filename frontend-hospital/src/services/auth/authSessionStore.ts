@@ -1,6 +1,8 @@
 import { useAppStore } from '../../store/useAppStore';
 import { pinia } from '../../store/pinia';
-import { getAuthToken, parseJwtSubject } from './authToken';
+import { clearLoginSessionId } from '../logging/loginSessionContext';
+import { clearAuthToken, getAuthToken, parseJwtSubject } from './authToken';
+import { clearEphemeralRefreshToken } from './refreshTokenEphemeral';
 
 type PersistedAuthSession = {
   userId: string;
@@ -61,6 +63,29 @@ export function clearPersistedAuthSessionProfile(): void {
   } catch {
     // no-op
   }
+}
+
+/** Clears in-memory + persisted hospital session hints without opening the login popup. */
+export function clearHospitalAuthSessionLocally(): void {
+  const appStore = useAppStore(pinia);
+  appStore.setProperty('hospital', 'AuthSession', 'userId', '');
+  appStore.setProperty('hospital', 'AuthSession', 'userDisplayName', '');
+  appStore.setProperty('hospital', 'AuthSession', 'email', '');
+  appStore.setProperty('hospital', 'AuthSession', 'mobileNumber', '');
+  appStore.setProperty('hospital', 'AuthSession', 'address', '');
+  appStore.setProperty('hospital', 'AuthSession', 'gender', '');
+  appStore.setProperty('hospital', 'AuthSession', 'department', '');
+  appStore.setProperty('hospital', 'AuthSession', 'qualifications', '');
+  appStore.setProperty('hospital', 'AuthSession', 'smcName', '');
+  appStore.setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', '');
+  appStore.setProperty('hospital', 'AuthSession', 'fullName', '');
+  appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
+  appStore.setProperty('hospital', 'AuthSession', 'preferredLocale', '');
+  appStore.setProperty('hospital', 'AuthSession', 'role', '');
+  clearPersistedAuthSessionProfile();
+  clearLoginSessionId();
+  clearAuthToken();
+  clearEphemeralRefreshToken();
 }
 
 /**

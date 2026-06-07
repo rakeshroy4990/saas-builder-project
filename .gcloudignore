@@ -40,3 +40,76 @@ backend-social/build/
 # ── Logs ──
 *.log
 logs/
+
+# ── Env & secrets (belt-and-suspenders, even if in .gitignore) ──
+*.env
+*.env.*
+**/.env
+**/.env.*
+client_secret_*.json
+
+# ── PDF assets (go to GCS, not Cloud Build) ──
+pdf-rag-pipeline/pdfs/
+**/*.pdf
+
+# ── Python cache in nested service dirs ──
+pdf-rag-pipeline/**/*.pyc
+pdf-rag-pipeline/**/*.pyo
+
+# ── email-notify node_modules (if it has its own) ──
+email-notify/node_modules/
+
+# ── Test & docs ──
+docs/
+**/coverage/
+**/__tests__/
+**/*.test.*
+**/*.spec.*
+
+# ── Gradle wrapper cache (heavy, regenerated on build) ──
+backend-hospital/.gradle/
+**/.gradle/
+**/gradle/wrapper/gradle-wrapper.jar
+
+# ── Mobile app (if it lives in the monorepo root) ──
+mobile-hospital/
+*.apk
+*.aab
+*.ipa
+
+# ── Root-level stray assets ──
+images/
+*.jpeg
+*.jpg
+*.png
+logo.*
+
+# ── System .pycache (macOS Python, not your code) ──
+.pycache/
+
+# ── Cursor IDE rules ──
+.cursor/
+
+# ── Java build artifacts from sibling libs (missed earlier) ──
+backend-uimetadata-lib/build/
+backend-realtime-lib/build/
+backend-auth-lib/build/
+backend-extensibility-lib/build/
+backend-uimetadata-lib/.gradle/
+backend-realtime-lib/.gradle/
+backend-auth-lib/.gradle/
+backend-extensibility-lib/.gradle/
+
+# ── Root package-lock.json (no Node service at root) ──
+package-lock.json
+package.json
+
+
+# ── Compiled email-notify dist (rebuild on CI, not source) ──
+packages/email-notify/dist/
+
+# ── Test sources (not needed to build Docker images) ──
+**/src/test/
+
+# ── Bluetooth lib (frontend, not deployed to Cloud Run) ──
+frontend-bluetooth-lib/

@@ -97,3 +97,39 @@ This document is the quick navigation guide for the dynamic declarative UI frame
 6. `src/core/README.md`
 7. `src/configs/README.md`
 8. `src/services/README.md`
+
+## 8) Device integration architecture
+
+The Devices dashboard tab (`devicesDashboardPanel.ts`) exposes only **Connect a device** (Web Bluetooth UI). The integration design below is documentation for engineers — not shown in the patient/doctor UI.
+
+### Integration flow
+
+Readings from bedside and home devices flow through adapters and an integration service, normalized to healthcare interchange standards, then into Agastya Healthcare:
+
+```text
+Medical Device
+      ↓
+Device Adapter
+      ↓
+Integration Service
+      ↓
+FHIR / HL7 Standard
+      ↓
+Agastya Healthcare
+```
+
+### Recommended standards
+
+Learn and adopt these interoperability standards for clinical data exchange:
+
+| Standard | Role |
+|----------|------|
+| HL7 International | Messaging and clinical document exchange |
+| FHIR | RESTful clinical resources (primary internal target) |
+| DICOM | Radiology imaging |
+| SNOMED CT | Clinical terminology |
+| LOINC | Laboratory and clinical observations |
+
+**FHIR as internal standard:** Map device readings and clinical records to FHIR resources (e.g. `Observation`, `Device`) at the integration layer. FHIR should become the internal data standard for normalized clinical data inside Agastya Healthcare.
+
+**Implementation references:** Web Bluetooth device registry and parsers — `.cursor/rules/agastya-web-bluetooth.mdc`; dashboard panel config — `src/configs/hospital/devicesDashboardPanel.ts`; `bluetooth-devices` primitive.

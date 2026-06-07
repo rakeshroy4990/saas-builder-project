@@ -193,6 +193,42 @@ export function sortAppointmentsByDateDesc(list: Array<Record<string, unknown>>)
   });
 }
 
+/** Build PascalCase `Query` JSON for appointment list endpoints from dashboard filter state. */
+export function buildAppointmentListQuery(filters: Record<string, unknown>): Record<string, string | boolean> {
+  const status = String(filters.status ?? '').trim().toUpperCase();
+  const statusSelectedExplicitly = Boolean(filters.statusSelectedExplicitly);
+  const preferredDate = String(filters.preferredDate ?? '').trim();
+  const doctorId = String(filters.doctorId ?? '').trim();
+  const department = String(filters.department ?? '').trim();
+  const statusFilterApplied = Boolean(status && status !== '__ALL__');
+  const adminFullListing = Boolean(filters.adminFullListing);
+  const defaultFilterState =
+    !adminFullListing &&
+    !statusSelectedExplicitly &&
+    !statusFilterApplied &&
+    !preferredDate &&
+    !doctorId &&
+    !department;
+
+  const query: Record<string, string | boolean> = {};
+  if (defaultFilterState) {
+    query.UpcomingOnly = true;
+  }
+  if (statusFilterApplied) {
+    query.Status = status;
+  }
+  if (preferredDate) {
+    query.PreferredDate = preferredDate;
+  }
+  if (doctorId) {
+    query.DoctorId = doctorId;
+  }
+  if (department) {
+    query.Department = department;
+  }
+  return query;
+}
+
 export function filterDashboardAppointments(
   list: Array<Record<string, unknown>>,
   filters: Record<string, unknown>
@@ -252,7 +288,12 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
   try {
     const listUrl =
       userRole === 'ADMIN' ? URLRegistry.paths.adminAppointments : URLRegistry.paths.appointmentGet;
-    const response = await apiClient.get(listUrl, { params: { page, size } });
+    const query = buildAppointmentListQuery(filters);
+    const params: Record<string, unknown> = { page, size };
+    if (Object.keys(query).length > 0) {
+      params.Query = JSON.stringify(query);
+    }
+    const response = await apiClient.get(listUrl, { params });
     const envelope = (response.data ?? {}) as Record<string, unknown>;
     const dataNode = (envelope.Data ?? envelope.data ?? []) as unknown;
     const rows = Array.isArray(dataNode)
@@ -260,9 +301,8 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
       : Array.isArray((dataNode as Record<string, unknown>)?.content)
         ? (((dataNode as Record<string, unknown>).content as unknown[]) ?? [])
         : [];
-    const normalized = sortAppointmentsByDateDesc(rows.map((entry, idx) => normalizeAppointmentRecord(entry, idx)));
-    const filtered = filterDashboardAppointments(normalized, filters);
-    const doctorFromAppointments = normalized
+    const list = sortAppointmentsByDateDesc(rows.map((entry, idx) => normalizeAppointmentRecord(entry, idx)));
+    const doctorFromAppointments = list
       .map((row) => {
         const value = String(row.doctorId ?? '').trim();
         const label = String(row.doctorName ?? value).trim();
@@ -303,21 +343,24 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
         (dataNode as Record<string, unknown>)?.totalElements ??
         (dataNode as Record<string, unknown>)?.TotalElements ??
         (dataNode as Record<string, unknown>)?.total ??
-        filtered.length
+        list.length
     );
-    const totalElements = Number.isFinite(totalElementsRaw) ? Math.max(0, totalElementsRaw) : filtered.length;
+    const totalElements = Number.isFinite(totalElementsRaw) ? Math.max(0, totalElementsRaw) : list.length;
     const totalPagesRaw = Number(
-      (dataNode as Record<string, unknown>)?.totalPages ?? Math.max(1, Math.ceil(totalElements / size))
+      envelope.TotalPages ??
+        envelope.totalPages ??
+        (dataNode as Record<string, unknown>)?.totalPages ??
+        Math.max(1, Math.ceil(totalElements / size))
     );
-    const totalPages = Number.isFinite(totalPagesRaw) ? Math.max(1, totalPagesRaw) : 1;
-    const hasNext = page + 1 < totalPages || filtered.length === size;
+    const totalPages = Number.isFinite(totalPagesRaw) ? Math.max(1, totalPagesRaw) : Math.max(1, Math.ceil(totalElements / size));
+    const hasNext = page + 1 < totalPages;
     appStore.setData('hospital', 'DashboardAppointments', {
       ...current,
       loading: false,
       error: '',
       page,
       size,
-      list: filtered,
+      list,
       totalPages,
       totalElements,
       hasNext,

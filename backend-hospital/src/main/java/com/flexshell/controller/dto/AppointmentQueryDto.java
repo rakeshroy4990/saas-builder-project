@@ -11,6 +11,10 @@ public class AppointmentQueryDto {
     private String preferredDate;
     @JsonProperty("PatientName")
     private String patientName;
+    @JsonProperty("Department")
+    private String department;
+    @JsonProperty("UpcomingOnly")
+    private Boolean upcomingOnly;
 
     public String getDoctorId() {
         return doctorId;
@@ -42,5 +46,21 @@ public class AppointmentQueryDto {
 
     public void setPatientName(String patientName) {
         this.patientName = patientName;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public Boolean getUpcomingOnly() {
+        return upcomingOnly;
+    }
+
+    public void setUpcomingOnly(Boolean upcomingOnly) {
+        this.upcomingOnly = upcomingOnly;
     }
 }

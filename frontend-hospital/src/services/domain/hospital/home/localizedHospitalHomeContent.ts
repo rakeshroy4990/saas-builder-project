@@ -1,7 +1,5 @@
 import type { ComposerTranslation } from 'vue-i18n';
 import { CLOUDINARY_KIDS_WITH_DOC } from '../shared/constants';
-import { useAppStore } from '../../../../store/useAppStore';
-import { pinia } from '../../../../store/pinia';
 
 type HeroVideoKind = 'shorts' | 'video' | null;
 
@@ -10,8 +8,6 @@ export function buildHospitalHomeContent(
   t: ComposerTranslation,
   existing?: Record<string, unknown> | null
 ): Record<string, unknown> {
-  const authSession = (useAppStore(pinia).getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
-  const isDoctor = String(authSession.role ?? '').trim().toUpperCase() === 'DOCTOR';
   const prevHero =
     existing && typeof existing.hero === 'object' && existing.hero !== null
       ? (existing.hero as Record<string, unknown>)
@@ -29,7 +25,8 @@ export function buildHospitalHomeContent(
       subtitle: t('home.hero.subtitle'),
       videoId,
       videoKind,
-      ctaPrimary: isDoctor ? t('home.hero.ctaDoctor') : t('home.hero.ctaPrimary')
+      ctaPrimary: t('home.hero.ctaPrimary'),
+      ctaDoctor: t('home.hero.ctaDoctor')
     },
     sections: {
       doctors: {
@@ -49,7 +46,7 @@ export function buildHospitalHomeContent(
     },
     services: [
       {
-        icon: '👶',
+        // icon: '👶',
         name: t('home.services.pediatrics.name'),
         description: t('home.services.pediatrics.description'),
         image: CLOUDINARY_KIDS_WITH_DOC

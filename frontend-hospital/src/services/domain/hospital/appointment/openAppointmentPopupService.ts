@@ -4,6 +4,10 @@ import { useAppStore } from '../../../../store/useAppStore';
 import { usePopupStore } from '../../../../store/usePopupStore';
 import { pinia } from '../../../../store/pinia';
 import { i18n } from '../../../../i18n';
+import { isAuthTokenExpired } from '../../../auth/authToken';
+import { openHospitalLoginPopup } from '../../../auth/hospitalLoginGate';
+import { getOrCreateTraceId } from '../../../logging/traceContext';
+import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 import { clearAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
 import { ensureMedicalDepartmentOptionsLoaded, syncAppointmentDepartmentsFromMedicalStore } from '../shared/medicalDepartments';
@@ -112,6 +116,44 @@ function queueAppointmentPopupPreparation(department: string, doctorId: string):
   })();
 }
 
+async function serverSessionPing(userId: string): Promise<boolean> {
+  try {
+    const url = `${URLRegistry.getBaseUrl()}/api/user?userId=${encodeURIComponent(userId)}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        'X-Trace-Id': getOrCreateTraceId()
+      }
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function clearLoginFormFields(): void {
+  const appStore = useAppStore(pinia);
+  appStore.setProperty('hospital', 'AuthForm', 'identity', '');
+  appStore.setProperty('hospital', 'AuthForm', 'password', '');
+  appStore.setProperty('hospital', 'AuthForm', 'emailError', '');
+  appStore.setProperty('hospital', 'AuthForm', 'authError', '');
+}
+
+function openLoginBeforeAppointment(
+  preselection: { doctorId: string; department: string; doctorName: string; doctorDegree: string } | undefined,
+  infoMessage: string
+): void {
+  setDeferredPostLoginAction({
+    packageName: 'hospital',
+    actionId: 'open-appointment-popup',
+    ...(preselection ? { data: preselection } : {})
+  });
+  clearLoginFormFields();
+  openHospitalLoginPopup(infoMessage);
+}
+
 function resetAppointmentFormForNewBooking(authSession: Record<string, unknown>): void {
   const appStore = useAppStore(pinia);
   appStore.setProperty('hospital', 'AppointmentForm', 'editingAppointmentId', '');
@@ -158,17 +200,16 @@ export const openAppointmentPopupHospitalServices: ServiceDefinition[] = [
       >;
       const userId = String(authSession.userId ?? '').trim();
       if (!userId) {
-        setDeferredPostLoginAction({
-          packageName: 'hospital',
-          actionId: 'open-appointment-popup',
-          ...(preselection ? { data: preselection } : {})
-        });
-        useAppStore(pinia).setProperty('hospital', 'AuthForm', 'identity', '');
-        useAppStore(pinia).setProperty('hospital', 'AuthForm', 'password', '');
-        useAppStore(pinia).setProperty('hospital', 'AuthForm', 'emailError', '');
-        useAppStore(pinia).setProperty('hospital', 'AuthForm', 'authError', '');
-        useAppStore(pinia).setProperty('hospital', 'AuthForm', 'loginInfoMessage', '');
-        usePopupStore(pinia).open({ packageName: 'hospital', pageId: 'login-popup', title: 'login' });
+        openLoginBeforeAppointment(preselection, tr('appointment.loginRequired'));
+        return ok();
+      }
+      if (isAuthTokenExpired()) {
+        openLoginBeforeAppointment(preselection, tr('appointment.sessionExpired'));
+        return ok();
+      }
+      const alive = await serverSessionPing(userId);
+      if (!alive) {
+        openLoginBeforeAppointment(preselection, tr('appointment.sessionExpired'));
         return ok();
       }
 

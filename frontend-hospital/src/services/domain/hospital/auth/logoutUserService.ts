@@ -23,6 +23,9 @@ import {
   flushPendingSessionSummaryNavigate
 } from '../../../analytics/sessionSummary';
 import { refreshHeroYoutubeFromChannelDefault } from '../home/resolveHeroYoutubeVideoService';
+import { refreshHospitalLocalizedUi } from '../i18n/refreshLocalizedUi';
+import { i18n } from '../../../../i18n';
+import type { Composer } from 'vue-i18n';
 
 async function ensureRefreshTokenForLogout(): Promise<void> {
   if (getEphemeralRefreshToken()) return;
@@ -75,6 +78,7 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'role', '');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
       useAppStore(pinia).setProperty('hospital', 'AuthSession', 'preferredLocale', '');
+      refreshHospitalLocalizedUi(i18n.global as Composer);
       // Clear user-scoped hero media so home never shows prior session's YouTube video after logout.
       const currentHome = (useAppStore(pinia).getData('hospital', 'HomeContent') ?? {}) as Record<string, unknown>;
       const currentHero =

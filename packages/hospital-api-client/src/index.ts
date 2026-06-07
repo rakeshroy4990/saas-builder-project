@@ -318,6 +318,7 @@ export function parseAuthLoginPayload(raw: unknown, identityFallback: string): A
 }
 
 export { toTelemetryWire } from './telemetryWire';
+export { toLogWire } from './logWire';
 export {
   USER_SKETCH_IMAGE_DATA_URL,
   resolveDoctorProfileImage,

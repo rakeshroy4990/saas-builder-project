@@ -17,8 +17,7 @@ import {
   subscribeAuthToken
 } from '../auth/authToken';
 import { getEphemeralRefreshToken, setEphemeralRefreshToken } from '../auth/refreshTokenEphemeral';
-import { clearPersistedAuthSessionProfile } from '../auth/authSessionStore';
-import { clearLoginSessionId } from '../logging/loginSessionContext';
+import { clearHospitalAuthSessionLocally } from '../auth/authSessionStore';
 import { useAppStore } from '../../store/useAppStore';
 import { flushSessionTelemetryQueue, ingestSessionTelemetry } from '../analytics/sessionTelemetry';
 import { emitLoggedInSessionSummary, SessionSummaryKind } from '../analytics/sessionSummary';
@@ -92,22 +91,7 @@ function isPleaseLoginUserMessage(message: string): boolean {
 }
 
 function clearAuthSessionUi(): void {
-  const appStore = useAppStore(pinia);
-  appStore.setProperty('hospital', 'AuthSession', 'userId', '');
-  appStore.setProperty('hospital', 'AuthSession', 'userDisplayName', '');
-  appStore.setProperty('hospital', 'AuthSession', 'email', '');
-  appStore.setProperty('hospital', 'AuthSession', 'mobileNumber', '');
-  appStore.setProperty('hospital', 'AuthSession', 'address', '');
-  appStore.setProperty('hospital', 'AuthSession', 'gender', '');
-  appStore.setProperty('hospital', 'AuthSession', 'department', '');
-  appStore.setProperty('hospital', 'AuthSession', 'qualifications', '');
-  appStore.setProperty('hospital', 'AuthSession', 'smcName', '');
-  appStore.setProperty('hospital', 'AuthSession', 'smcRegistrationNumber', '');
-  appStore.setProperty('hospital', 'AuthSession', 'fullName', '');
-  appStore.setProperty('hospital', 'AuthSession', 'loginDisplayName', 'Login');
-  appStore.setProperty('hospital', 'AuthSession', 'preferredLocale', '');
-  clearPersistedAuthSessionProfile();
-  clearLoginSessionId();
+  clearHospitalAuthSessionLocally();
 }
 
 function navigateToLogin(): void {
@@ -369,6 +353,10 @@ apiClient.interceptors.response.use(
       });
       return Promise.reject(error);
     }
+    const isRefreshRequest = requestUrl.includes(URLRegistry.paths.refresh);
+    if (isRefreshRequest && (status === 401 || status === 403)) {
+      return Promise.reject(error);
+    }
     localizeTimeoutErrorMessageIfNeeded(error);
     void logClient('ERROR', 'HTTP request failed', {
       status: error.response?.status,
@@ -408,7 +396,6 @@ apiClient.interceptors.response.use(
     const isLoginRequest =
       requestUrl.includes(URLRegistry.paths.login) || requestUrl.includes(URLRegistry.paths.googleLogin);
     const isLogoutRequest = requestUrl.includes(URLRegistry.paths.logout);
-    const isRefreshRequest = requestUrl.includes(URLRegistry.paths.refresh);
     const isDoctorDirectoryRequest = requestUrl.includes(URLRegistry.paths.doctorGet);
     const isSmartAiRequest = requestUrl.includes(URLRegistry.paths.hospitalAiChat);
     const isChatSupportOpenRequest = requestUrl.includes(URLRegistry.paths.chatSupportOpen);

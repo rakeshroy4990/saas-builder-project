@@ -11,6 +11,7 @@ import { hospitalTermsPage } from './termsPage';
 import { hospitalPrivacyPage } from './privacyPage';
 import {
   disabledWhenLoggedInAsDoctor,
+  visibleWhenLoggedInAsDoctor,
   visibleWhenNotLoggedInAsDoctor,
   hospitalPublicChromeTop,
   hospitalSiteFooter
@@ -99,13 +100,13 @@ export const hospitalPages: PageConfig[] = [
                           {
                             id: 'hospital-home-hero-primary-cta-doctor',
                             type: 'button',
-                            condition: disabledWhenLoggedInAsDoctor,
+                            condition: visibleWhenLoggedInAsDoctor,
                             config: {
                               mapping: {
                                 packageName: 'hospital',
                                 key: 'HomeContent',
                                 path: 'hero',
-                                property: 'ctaPrimary'
+                                property: 'ctaDoctor'
                               },
                               styles: { styleTemplate: 'hosp.button.primary' },
                               click: {

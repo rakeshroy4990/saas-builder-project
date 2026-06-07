@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { bootstrapSessionCookiesFromRefresh } from './sessionCookieBootstrap';
+import { hasPersistedAuthSessionProfile, persistAuthSessionProfile } from './authSessionStore';
 import { clearEphemeralRefreshToken, getEphemeralRefreshToken, setEphemeralRefreshToken } from './refreshTokenEphemeral';
 import { apiClient } from '../http/apiClient';
 import { URLRegistry } from '../http/URLRegistry';
@@ -9,7 +10,12 @@ vi.mock('../http/apiClient', () => ({
 }));
 
 vi.mock('./authToken', () => ({
-  applyAccessExpiryHintFromAuthPayload: vi.fn()
+  applyAccessExpiryHintFromAuthPayload: vi.fn(),
+  clearAuthToken: vi.fn()
+}));
+
+vi.mock('../domain/hospital/i18n/refreshLocalizedUi', () => ({
+  refreshHospitalLocalizedUi: vi.fn()
 }));
 
 describe('bootstrapSessionCookiesFromRefresh', () => {
@@ -42,5 +48,12 @@ describe('bootstrapSessionCookiesFromRefresh', () => {
     await bootstrapSessionCookiesFromRefresh();
     expect(apiClient.post).toHaveBeenCalled();
     expect(getEphemeralRefreshToken()).toBe('rotated-rt');
+  });
+
+  it('clears stale persisted session when refresh fails', async () => {
+    persistAuthSessionProfile({ userId: 'user-1', role: 'PATIENT' });
+    vi.mocked(apiClient.post).mockRejectedValue({ response: { status: 401 } });
+    await bootstrapSessionCookiesFromRefresh();
+    expect(hasPersistedAuthSessionProfile()).toBe(false);
   });
 });

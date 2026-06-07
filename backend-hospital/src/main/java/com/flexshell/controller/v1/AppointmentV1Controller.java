@@ -30,7 +30,9 @@ import java.util.Set;
 @RequestMapping("/api/v1/appointments")
 public class AppointmentV1Controller {
 
-    private static final Set<String> QUERY_KEYS = Set.of("DoctorId", "Status", "PreferredDate", "PatientName");
+    private static final Set<String> QUERY_KEYS = Set.of(
+            "DoctorId", "Status", "PreferredDate", "PatientName", "Department", "UpcomingOnly"
+    );
 
     private final AppointmentService appointmentService;
     private final ObjectMapper objectMapper;

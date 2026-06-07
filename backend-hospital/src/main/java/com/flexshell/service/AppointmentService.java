@@ -310,6 +310,16 @@ public class AppointmentService {
                 && (entity.getPreferredDate() == null || !entity.getPreferredDate().equalsIgnoreCase(preferredDate.trim()))) {
             return false;
         }
+        String department = query.getDepartment();
+        if (department != null && !department.isBlank()) {
+            String entityDepartment = entity.getDepartment() == null ? "" : entity.getDepartment().trim();
+            if (!entityDepartment.equalsIgnoreCase(department.trim())) {
+                return false;
+            }
+        }
+        if (Boolean.TRUE.equals(query.getUpcomingOnly()) && !isUpcomingAppointment(entity)) {
+            return false;
+        }
         String patientName = query.getPatientName();
         if (patientName != null && !patientName.isBlank()) {
             String hay = entity.getPatientName() == null ? "" : entity.getPatientName().toLowerCase();
@@ -318,6 +328,80 @@ public class AppointmentService {
             }
         }
         return true;
+    }
+
+    private static boolean isUpcomingAppointment(AppointmentEntity entity) {
+        String preferredDate = entity.getPreferredDate();
+        if (preferredDate == null || preferredDate.isBlank()) {
+            return true;
+        }
+        String datePart = preferredDate.trim().length() >= 10
+                ? preferredDate.trim().substring(0, 10)
+                : preferredDate.trim();
+        Long startMs = parseAppointmentStartEpochMs(datePart, entity.getPreferredTimeSlot());
+        if (startMs != null) {
+            return startMs >= System.currentTimeMillis();
+        }
+        try {
+            java.time.LocalDate rowDate = java.time.LocalDate.parse(datePart);
+            java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneId.systemDefault());
+            return !rowDate.isBefore(today);
+        } catch (java.time.format.DateTimeParseException ex) {
+            return true;
+        }
+    }
+
+    private static Long parseAppointmentStartEpochMs(String preferredDate, String preferredTimeSlot) {
+        if (preferredDate == null || preferredDate.isBlank()
+                || preferredTimeSlot == null || preferredTimeSlot.isBlank()) {
+            return null;
+        }
+        String firstToken = preferredTimeSlot.trim().split("(?i)\\s*(?:-|–|—|\\bto\\b)\\s*")[0].trim();
+        Integer minutes = parseTimeToMinutes(firstToken);
+        if (minutes == null) {
+            return null;
+        }
+        try {
+            java.time.LocalDate date = java.time.LocalDate.parse(preferredDate.trim().substring(0, Math.min(10, preferredDate.trim().length())));
+            java.time.LocalDateTime dateTime = date.atStartOfDay().plusMinutes(minutes);
+            return dateTime.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private static Integer parseTimeToMinutes(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String text = raw.trim();
+        java.util.regex.Matcher twentyFour = java.util.regex.Pattern.compile("^(\\d{1,2}):(\\d{2})$").matcher(text);
+        if (twentyFour.matches()) {
+            int hh = Integer.parseInt(twentyFour.group(1));
+            int mm = Integer.parseInt(twentyFour.group(2));
+            if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) {
+                return hh * 60 + mm;
+            }
+            return null;
+        }
+        java.util.regex.Matcher twelveHour = java.util.regex.Pattern.compile("^(\\d{1,2}):(\\d{2})\\s*([AaPp][Mm])$").matcher(text);
+        if (!twelveHour.matches()) {
+            return null;
+        }
+        int hh = Integer.parseInt(twelveHour.group(1));
+        int mm = Integer.parseInt(twelveHour.group(2));
+        String meridiem = twelveHour.group(3).toUpperCase();
+        if (hh < 1 || hh > 12 || mm < 0 || mm > 59) {
+            return null;
+        }
+        if ("AM".equals(meridiem)) {
+            if (hh == 12) {
+                hh = 0;
+            }
+        } else if (hh != 12) {
+            hh += 12;
+        }
+        return hh * 60 + mm;
     }
 
     /**

@@ -32,10 +32,10 @@ class LogControllerTest {
 
         String body = """
                 {
-                  "traceId":"t-1",
-                  "entries":[
-                    {"level":"INFO","message":"ok","timestamp":"2026-01-01T00:00:00Z","traceId":"t-1","context":{}},
-                    {"level":"WARN","message":"retry","timestamp":"2026-01-01T00:01:00Z","traceId":"t-1","context":{}}
+                  "TraceId":"t-1",
+                  "Entries":[
+                    {"Level":"INFO","Message":"ok","Timestamp":"2026-01-01T00:00:00Z","TraceId":"t-1","Context":{}},
+                    {"Level":"WARN","Message":"retry","Timestamp":"2026-01-01T00:01:00Z","TraceId":"t-1","Context":{}}
                   ]
                 }
                 """;
@@ -55,7 +55,7 @@ class LogControllerTest {
 
         mockMvc.perform(post("/api/logs/level")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"level\":\"DEBUG\"}"))
+                        .content("{\"Level\":\"DEBUG\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.level").value("DEBUG"));
     }

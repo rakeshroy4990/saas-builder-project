@@ -11,6 +11,8 @@ import com.flexshell.controller.dto.DoctorOptionResponse;
 import com.flexshell.controller.dto.PagedAppointmentListDto;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.support.EntityListResponseSupport;
+import com.flexshell.controller.support.EntityQueryBinder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.auth.i18n.RequestLocaleAttributes;
 import com.flexshell.service.DoctorDirectoryService;
 import com.flexshell.appointment.AppointmentEntity;
@@ -29,6 +31,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -42,23 +45,31 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/appointment")
 public class AppointmentController {
     private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
+    private static final Set<String> QUERY_KEYS = Set.of(
+            "DoctorId", "Status", "PreferredDate", "PatientName", "Department", "UpcomingOnly"
+    );
+
     private final AppointmentService appointmentService;
     private final AppointmentJoinCallService appointmentJoinCallService;
     private final ObjectProvider<DoctorDirectoryService> doctorDirectoryServiceProvider;
+    private final ObjectMapper objectMapper;
 
     public AppointmentController(
             AppointmentService appointmentService,
             AppointmentJoinCallService appointmentJoinCallService,
-            ObjectProvider<DoctorDirectoryService> doctorDirectoryServiceProvider
+            ObjectProvider<DoctorDirectoryService> doctorDirectoryServiceProvider,
+            ObjectMapper objectMapper
     ) {
         this.appointmentService = appointmentService;
         this.appointmentJoinCallService = appointmentJoinCallService;
         this.doctorDirectoryServiceProvider = doctorDirectoryServiceProvider;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -271,10 +282,13 @@ public class AppointmentController {
     public ResponseEntity<StandardApiResponse<List<AppointmentResponse>>> getAll(
             Authentication authentication,
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "20") int size
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestParam(name = "Query", required = false) String queryJson,
+            @ModelAttribute AppointmentQueryDto query
     ) {
         try {
-            PagedAppointmentListDto paged = appointmentService.listPaged(authentication.getName(), page, size, new AppointmentQueryDto());
+            EntityQueryBinder.bind(query, queryJson, objectMapper, QUERY_KEYS);
+            PagedAppointmentListDto paged = appointmentService.listPaged(authentication.getName(), page, size, query);
             return EntityListResponseSupport.ok(
                     "Appointments fetched",
                     paged.getContent(),
@@ -284,6 +298,9 @@ public class AppointmentController {
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_LIST_INVALID"));
         }
     }
 

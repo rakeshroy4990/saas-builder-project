@@ -1,3 +1,4 @@
+import { toLogWire } from '@saas-builder/hospital-api-client';
 import { URLRegistry } from '../http/URLRegistry';
 import { getOrCreateTraceId } from './traceContext';
 
@@ -115,7 +116,7 @@ export async function syncLogsNow(): Promise<void> {
     const response = await URLRegistry.request('logsBatch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(toLogWire(payload as unknown as Record<string, unknown>))
     });
     if (!response.ok) return;
     const ids = entries.map((e) => e.id).filter((v): v is number => typeof v === 'number');
@@ -164,7 +165,7 @@ export async function syncServerLogLevel(level: ClientLogLevel): Promise<boolean
     const response = await URLRegistry.request('logsLevel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ level })
+      body: JSON.stringify(toLogWire({ level }))
     });
     return response.ok;
   } catch {

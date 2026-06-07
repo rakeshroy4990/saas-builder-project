@@ -13,7 +13,7 @@ export type HomeContentModel = {
 
 export function buildHomeContent(t: TFunction, isDoctor: boolean): HomeContentModel {
   return {
-    heroCta: isDoctor ? t('home.hero.ctaDoctor') : t('home.launcher.heroCta'),
+    heroCta: isDoctor ? t('home.hero.ctaDoctor') : t('home.hero.ctaPrimary'),
     videoChips: [
       {
         id: 'hero',

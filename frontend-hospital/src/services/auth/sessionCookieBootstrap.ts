@@ -1,3 +1,7 @@
+import type { Composer } from 'vue-i18n';
+import { i18n } from '../../i18n';
+import { refreshHospitalLocalizedUi } from '../domain/hospital/i18n/refreshLocalizedUi';
+import { clearHospitalAuthSessionLocally } from './authSessionStore';
 import { applyAccessExpiryHintFromAuthPayload } from './authToken';
 import { getEphemeralRefreshToken, setEphemeralRefreshToken } from './refreshTokenEphemeral';
 import { apiClient } from '../http/apiClient';
@@ -25,6 +29,8 @@ export async function bootstrapSessionCookiesFromRefresh(): Promise<void> {
       setEphemeralRefreshToken(newRt);
     }
   } catch {
-    // No valid refresh cookie — user must log in again when accessing protected routes.
+    // Stale tab profile or expired refresh cookie — treat as signed out until the user logs in again.
+    clearHospitalAuthSessionLocally();
+    refreshHospitalLocalizedUi(i18n.global as Composer);
   }
 }

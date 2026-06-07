@@ -21,7 +21,7 @@ export default function HomeTab() {
   const accessToken = useSessionStore((s) => s.accessToken);
   const role = String(useSessionStore((s) => s.user?.role ?? '')).toUpperCase();
   const isLoggedIn = Boolean(accessToken);
-  const isDoctor = role === 'DOCTOR' || role === 'ADMIN';
+  const isDoctor = isLoggedIn && role === 'DOCTOR';
   const [videoId, setVideoId] = useState<string | null>(null);
   const [doctors, setDoctors] = useState<DoctorListEntry[]>([]);
 

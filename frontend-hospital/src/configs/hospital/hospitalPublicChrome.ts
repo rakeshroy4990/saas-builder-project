@@ -1,6 +1,6 @@
 import type { ComponentDefinition, ConditionConfig } from '../../core/types/ComponentDefinition';
 
-/** Patient-facing booking; doctors use the dashboard instead. */
+/** Patient-facing booking; doctors use doctor education instead. */
 export const disabledWhenLoggedInAsDoctor: ConditionConfig = {
   expression: "String(role ?? '').toUpperCase() === 'DOCTOR'",
   mappings: {
@@ -8,9 +8,22 @@ export const disabledWhenLoggedInAsDoctor: ConditionConfig = {
   }
 };
 
+/** Hero/header booking CTA — everyone except a signed-in doctor. */
 export const visibleWhenNotLoggedInAsDoctor: ConditionConfig = {
-  expression: "String(role ?? '').toUpperCase() !== 'DOCTOR'",
+  expression:
+    "!(String(userId ?? '').trim().length > 0 && String(role ?? '').toUpperCase() === 'DOCTOR')",
   mappings: {
+    userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+  }
+};
+
+/** Hero AI Diagnosis CTA — signed-in doctors only. */
+export const visibleWhenLoggedInAsDoctor: ConditionConfig = {
+  expression:
+    "String(userId ?? '').trim().length > 0 && String(role ?? '').toUpperCase() === 'DOCTOR'",
+  mappings: {
+    userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
     role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
   }
 };
