@@ -51,7 +51,8 @@ function readJsonStringForKey(blob: string): string | null {
     out += c;
     i += 1;
   }
-  return null;
+  const partial = out.trim();
+  return partial ? partial : null;
 }
 
 function readStringArrayForFollowUps(blob: string): string[] {

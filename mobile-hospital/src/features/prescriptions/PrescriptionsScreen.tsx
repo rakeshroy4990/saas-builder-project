@@ -1,3 +1,4 @@
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
@@ -18,6 +19,12 @@ export function PrescriptionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      setTab('view');
+    }, [])
+  );
 
   const load = useCallback(async () => {
     setError('');

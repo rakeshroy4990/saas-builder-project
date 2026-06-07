@@ -254,6 +254,39 @@ export const hospitalProfilePage: PageConfig = {
                                             }
                                           },
                                           {
+                                            id: 'hospital-profile-experience-summary',
+                                            type: 'input',
+                                            condition: profileDoctorRoleOnly,
+                                            config: {
+                                              labelI18nKey: 'profilePage.fields.experienceSummary',
+                                              mapping: {
+                                                packageName: 'hospital',
+                                                key: 'ProfileForm',
+                                                property: 'experienceSummary'
+                                              },
+                                              change: {
+                                                actionId: 'set-profile-form-field',
+                                                data: { field: 'experienceSummary' }
+                                              },
+                                              styles: { styleTemplate: 'hosp.form.input', utilityClasses: 'md:col-span-2' }
+                                            }
+                                          },
+                                          {
+                                            id: 'hospital-profile-profile-pic',
+                                            type: 'input',
+                                            condition: profileDoctorRoleOnly,
+                                            config: {
+                                              labelI18nKey: 'profilePage.fields.profilePic',
+                                              mapping: {
+                                                packageName: 'hospital',
+                                                key: 'ProfileForm',
+                                                property: 'profilePic'
+                                              },
+                                              change: { actionId: 'set-profile-form-field', data: { field: 'profilePic' } },
+                                              styles: { styleTemplate: 'hosp.form.input', utilityClasses: 'md:col-span-2' }
+                                            }
+                                          },
+                                          {
                                             id: 'hospital-profile-smc-name',
                                             type: 'input',
                                             condition: profileDoctorRoleOnly,

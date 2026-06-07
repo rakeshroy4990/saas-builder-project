@@ -298,7 +298,9 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
       doctorOptions: mergedDoctorOptions
     });
     const totalElementsRaw = Number(
-      (dataNode as Record<string, unknown>)?.totalElements ??
+      envelope.TotalCount ??
+        envelope.totalCount ??
+        (dataNode as Record<string, unknown>)?.totalElements ??
         (dataNode as Record<string, unknown>)?.TotalElements ??
         (dataNode as Record<string, unknown>)?.total ??
         filtered.length

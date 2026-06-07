@@ -13,7 +13,6 @@ import { normalizeUploadMimeType } from '@/api/multipart';
 import {
   buildLookaheadDates,
   buildSlotSummary,
-  countFutureSlotsForToday,
   keepOnlyFutureSlotsForToday,
   mapAvailableSlotsPayload,
   toReadableDateLabel
@@ -116,8 +115,8 @@ export async function fetchDoctorsByDepartment(department: string): Promise<Sele
       const firstName = pickString(record, ['FirstName', 'firstName']);
       const lastName = pickString(record, ['LastName', 'lastName']);
       const name = pickString(record, ['Name', 'name']) || [firstName, lastName].filter(Boolean).join(' ').trim();
-      const email = pickString(record, ['Email', 'email']);
-      const label = [name, email ? `(${email})` : ''].filter(Boolean).join(' ').trim();
+      const degree = pickString(record, ['Qualifications', 'qualifications', 'Degree', 'degree']);
+      const label = [name, degree ? `(${degree})` : ''].filter(Boolean).join(' ').trim();
       return { id, label: label || id, value: id };
     })
     .filter((option) => option.label.trim().length > 0);
@@ -142,26 +141,47 @@ export async function fetchDateAvailability(
   doctorId: string,
   excludeAppointmentId?: string
 ): Promise<{ unavailableDates: string[]; slotCounts: DateAvailabilityRow[]; summaryText: string }> {
-  const dates = buildLookaheadDates();
-  const slotCounts: DateAvailabilityRow[] = await Promise.all(
-    dates.map(async (date) => {
-      try {
-        const raw = await fetchAvailableSlotsRaw(doctorId, date, excludeAppointmentId);
-        return {
-          date,
-          dateLabel: toReadableDateLabel(date),
-          slotCount: countFutureSlotsForToday(raw, date)
-        };
-      } catch (error) {
-        if (isAxiosError(error) && error.response?.status === 403) {
-          return { date, dateLabel: toReadableDateLabel(date), slotCount: 0 };
-        }
-        return { date, dateLabel: toReadableDateLabel(date), slotCount: 1 };
+  try {
+    const response = await apiClient.get(SERVER_PATHS.appointmentBookingDateAvailability, {
+      params: {
+        doctorId,
+        lookaheadDays: buildLookaheadDates().length,
+        ...(excludeAppointmentId ? { excludeAppointmentId } : {})
       }
-    })
-  );
-  const unavailableDates = slotCounts.filter((row) => row.slotCount === 0).map((row) => row.date);
-  return { unavailableDates, slotCounts, summaryText: buildSlotSummary(slotCounts) };
+    });
+    const envelope = (response.data ?? {}) as Record<string, unknown>;
+    const dataNode = (envelope.Data ?? envelope.data ?? {}) as Record<string, unknown>;
+    const daysRaw = dataNode.Days ?? dataNode.days ?? [];
+    const slotCounts: DateAvailabilityRow[] = Array.isArray(daysRaw)
+      ? daysRaw
+          .map((row) => {
+            const node = (row ?? {}) as Record<string, unknown>;
+            const date = pickString(node, ['Date', 'date']).trim();
+            const slotCountRaw = node.SlotCount ?? node.slotCount ?? 0;
+            const slotCount =
+              typeof slotCountRaw === 'number' && Number.isFinite(slotCountRaw)
+                ? Math.max(0, Math.floor(slotCountRaw))
+                : 0;
+            if (!date) return null;
+            return { date, dateLabel: toReadableDateLabel(date), slotCount };
+          })
+          .filter((row): row is DateAvailabilityRow => row !== null)
+      : [];
+    const unavailableDates = slotCounts.filter((row) => row.slotCount === 0).map((row) => row.date);
+    return { unavailableDates, slotCounts, summaryText: buildSlotSummary(slotCounts) };
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status === 403) {
+      return { unavailableDates: [], slotCounts: [], summaryText: '' };
+    }
+    const dates = buildLookaheadDates();
+    const slotCounts: DateAvailabilityRow[] = dates.map((date) => ({
+      date,
+      dateLabel: toReadableDateLabel(date),
+      slotCount: 1
+    }));
+    const unavailableDates = slotCounts.filter((row) => row.slotCount === 0).map((row) => row.date);
+    return { unavailableDates, slotCounts, summaryText: buildSlotSummary(slotCounts) };
+  }
 }
 
 export async function fetchTimeSlotsForDate(

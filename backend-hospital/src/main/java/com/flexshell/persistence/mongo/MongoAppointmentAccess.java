@@ -59,4 +59,13 @@ public class MongoAppointmentAccess implements AppointmentAccess {
     public List<AppointmentEntity> findByDoctorIdAndPreferredDate(String doctorId, String preferredDate) {
         return delegate.findByDoctorIdAndPreferredDate(doctorId, preferredDate);
     }
+
+    @Override
+    public List<AppointmentEntity> findByDoctorIdAndPreferredDateBetween(
+            String doctorId,
+            String fromDateInclusive,
+            String toDateInclusive
+    ) {
+        return delegate.findByDoctorIdAndPreferredDateBetween(doctorId, fromDateInclusive, toDateInclusive);
+    }
 }

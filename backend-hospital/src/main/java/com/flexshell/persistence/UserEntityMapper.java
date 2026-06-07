@@ -40,6 +40,8 @@ public final class UserEntityMapper {
         e.setRoleDecisionBy(j.getRoleDecisionBy());
         e.setRoleRejectedReason(j.getRoleRejectedReason());
         e.setPreferredLocale(j.getPreferredLocale());
+        e.setProfilePic(j.getProfilePic());
+        e.setExperienceSummary(j.getExperienceSummary());
         return e;
     }
 
@@ -79,6 +81,8 @@ public final class UserEntityMapper {
         j.setRoleDecisionBy(e.getRoleDecisionBy());
         j.setRoleRejectedReason(e.getRoleRejectedReason());
         j.setPreferredLocale(e.getPreferredLocale());
+        j.setProfilePic(e.getProfilePic());
+        j.setExperienceSummary(e.getExperienceSummary());
         j.setDeleted(false);
         return j;
     }

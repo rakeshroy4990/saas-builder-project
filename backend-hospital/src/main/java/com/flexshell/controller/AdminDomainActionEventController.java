@@ -2,6 +2,7 @@ package com.flexshell.controller;
 
 import com.flexshell.controller.dto.CreateDomainActionEventRequest;
 import com.flexshell.controller.dto.DomainActionEventResponse;
+import com.flexshell.controller.dto.DomainActionEventSaveRequest;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.dto.UpdateDomainActionEventRequest;
 import com.flexshell.domainevent.DomainActionEventAdminService;
@@ -38,6 +39,19 @@ public class AdminDomainActionEventController {
                 "Domain action bindings loaded",
                 domainActionEventAdminService.listBindings()
         ));
+    }
+
+    @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<DomainActionEventResponse>> saveBinding(
+            @RequestBody DomainActionEventSaveRequest request
+    ) {
+        try {
+            DomainActionEventResponse data = domainActionEventAdminService.saveBinding(request);
+            return ResponseEntity.ok(StandardApiResponse.success("Domain action binding saved", data));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "DOMAIN_ACTION_EVENT_SAVE_INVALID"));
+        }
     }
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)

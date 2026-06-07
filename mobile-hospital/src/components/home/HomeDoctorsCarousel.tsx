@@ -1,15 +1,15 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import type { HomeDoctor } from '@/features/home/homeContent';
+import type { DoctorListEntry } from '@/features/doctors/doctorsApi';
 import { colors } from '@/theme/colors';
 
 type HomeDoctorsCarouselProps = {
   title: string;
   seeAllLabel: string;
   bookLabel: string;
-  doctors: HomeDoctor[];
+  doctors: DoctorListEntry[];
   onSeeAll: () => void;
-  onBook: (doctor: HomeDoctor) => void;
+  onBook: (doctor: DoctorListEntry) => void;
 };
 
 export function HomeDoctorsCarousel({
@@ -37,7 +37,7 @@ export function HomeDoctorsCarousel({
         contentContainerStyle={styles.row}
       >
         {doctors.map((doctor) => (
-          <View key={doctor.name} style={styles.card}>
+          <View key={doctor.id} style={styles.card}>
             <Image source={{ uri: doctor.imageUrl }} style={styles.avatar} accessibilityLabel={doctor.name} />
             <View style={styles.meta}>
               <Text style={styles.name} numberOfLines={1}>

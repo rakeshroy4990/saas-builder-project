@@ -4,14 +4,19 @@ import com.flexshell.auth.UserEntity;
 import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.DoctorScheduleDayDto;
+import com.flexshell.controller.dto.DoctorScheduleQueryDto;
 import com.flexshell.controller.dto.DoctorScheduleResponse;
 import com.flexshell.controller.dto.DoctorScheduleUpsertRequest;
+import com.flexshell.controller.dto.PagedDoctorScheduleListDto;
+import com.flexshell.controller.support.EntityQuerySupport;
 import com.flexshell.controller.dto.DoctorScheduleWindowDto;
 import com.flexshell.doctorschedule.DoctorScheduleDay;
 import com.flexshell.doctorschedule.DoctorScheduleEntity;
 import com.flexshell.persistence.api.DoctorScheduleAccess;
 import com.flexshell.doctorschedule.DoctorScheduleWindow;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -92,6 +97,43 @@ public class DoctorScheduleService {
         entity.setUpdatedAt(Instant.now());
         entity.setUpdatedBy(actorUserId);
         return toResponse(doctorScheduleAccess.save(entity));
+    }
+
+    /**
+     * Business key: {@code doctorId}.
+     */
+    public PagedDoctorScheduleListDto listPaged(String actorUserId, int page, int size, DoctorScheduleQueryDto query) {
+        int safePage = EntityQuerySupport.safePage(page);
+        int safeSize = EntityQuerySupport.safeSize(size);
+        String doctorFilter = query == null || query.getDoctorId() == null ? "" : query.getDoctorId().trim();
+        if (!doctorFilter.isBlank()) {
+            ensureCanReadSchedule(actorUserId, doctorFilter);
+            Optional<DoctorScheduleResponse> one = getSchedule(doctorFilter, actorUserId);
+            List<DoctorScheduleResponse> content = one.map(List::of)
+                    .orElseGet(() -> List.of(emptyShellForDoctor(doctorFilter)));
+            return new PagedDoctorScheduleListDto(content, content.size(), 1, 0, safeSize);
+        }
+        UserRole role = resolveRole(actorUserId);
+        if (role != UserRole.ADMIN) {
+            throw new SecurityException("Only admins can list all doctor schedules");
+        }
+        Page<DoctorScheduleEntity> rows = requireScheduleAccess().findAll(PageRequest.of(safePage, safeSize));
+        List<DoctorScheduleResponse> content = rows.stream().map(this::toResponse).toList();
+        return new PagedDoctorScheduleListDto(
+                content,
+                rows.getTotalElements(),
+                rows.getTotalPages(),
+                rows.getNumber(),
+                rows.getSize());
+    }
+
+    public boolean deleteByBusinessKey(String doctorId, String actorUserId) {
+        String docId = normalize(doctorId);
+        if (docId.isBlank()) {
+            throw new IllegalArgumentException("DoctorId is required");
+        }
+        ensureCanWriteSchedule(actorUserId, docId);
+        return requireScheduleAccess().deleteByDoctorId(docId);
     }
 
     public void ensureCanReadSchedule(String actorUserId, String doctorId) {

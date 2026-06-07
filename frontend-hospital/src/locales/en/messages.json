@@ -156,6 +156,8 @@
       "gender": "Gender *",
       "department": "Department",
       "qualifications": "Qualifications *",
+      "experienceSummary": "Experience (shown on home page)",
+      "profilePic": "Profile photo (Cloudinary public ID or URL)",
       "smcName": "State Medical Council *",
       "smcRegistrationNumber": "SMC registration number *",
       "address": "Address *"
@@ -739,7 +741,7 @@
       "pageBadge": "p. {page}",
       "inputLabel": "Ask a clinical question",
       "inputPromptLabel": "Question",
-      "inputPlaceholder": "Example: Explain the first-line management of pediatric nephrotic syndrome and key counseling points.",
+      "inputPlaceholder": "Clinical Case Query",
       "submitHint": "Press Enter to send, Shift+Enter for a new line.",
       "send": "Send question",
       "sending": "Sending…",

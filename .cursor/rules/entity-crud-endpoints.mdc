@@ -1,0 +1,144 @@
+---
+description: Mandatory list / save / delete endpoints for every entity (backend + clients)
+alwaysApply: true
+---
+
+# Entity CRUD — default endpoints
+
+Every **persisted entity** (existing or new) must expose exactly these three REST operations unless explicitly exempt (see **Exemptions**). Path prefix is **`/api/v1/`** (not `/v1/api/`). Resource segment is **kebab-case plural** (`medical-departments`, `notification-rules`).
+
+Wire JSON: PascalCase envelope and DTO keys (`api-json-pascal-case.mdc`). User-facing `Message`/`Title`: server-localized (`server-message-i18n.mdc`).
+
+## 1. List — `GET /api/v1/{entityName}`
+
+Paginated list of entity rows.
+
+| Query param | Default | Notes |
+|-------------|---------|-------|
+| `page` | `0` | Zero-based page index |
+| `size` | `20` | Cap at 100 in service layer |
+| `sort` | entity-specific | Optional; e.g. `createdAt,desc` |
+| `Query` | — | Optional JSON object (URL-encoded) whose keys match filterable entity attributes |
+
+**Query object:** Accept a structured filter DTO (`{Entity}QueryDto`) bound from request params. Every optional field maps to an entity attribute (exact or case-insensitive match per field). Also support a URL-encoded JSON `Query` param for clients that send a single object, e.g. `?page=0&size=20&Query=%7B%22Code%22%3A%22CARD%22%7D`. Reject unknown or non-filterable keys with `400` + stable `ErrorCode`.
+
+**Response shape:** `Data` is the **JSON array of rows** directly — never wrap rows in a `Content` property. Pagination metadata is on the **envelope** (same level as `Success`, `Message`, `Data`):
+
+| Envelope field | Value |
+|----------------|-------|
+| `Page` | Zero-based page index returned |
+| `Size` | Page size returned |
+| `TotalCount` | Total matching rows across all pages |
+
+Non-paged responses omit `Page`/`Size`/`TotalCount` (null / absent).
+
+```json
+{
+  "Success": true,
+  "Message": "Users loaded",
+  "Page": 0,
+  "Size": 20,
+  "TotalCount": 9,
+  "Data": [ { "UserId": "…", "EmailId": "…" } ],
+  "Timestamp": "2026-06-06T12:00:00Z"
+}
+```
+
+Use `EntityListResponseSupport.ok(message, items, page, size, totalCount)` in controllers. Service layer may still use internal `Paged{Entity}ListDto` types; unwrap `.getContent()` at the controller boundary only.
+
+```java
+@GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+public ResponseEntity<StandardApiResponse<List<MedicalDepartmentResponse>>> list(…) {
+    PagedMedicalDepartmentListDto paged = service.listPaged(page, size, query, locale);
+    return EntityListResponseSupport.ok(
+            "Medical departments loaded",
+            paged.getContent(),
+            paged.getNumber(),
+            paged.getSize(),
+            paged.getTotalElements());
+}
+```
+
+## 2. Save (upsert) — `POST /api/v1/{entityName}/save`
+
+Create **or** update one row keyed by the entity's **business key**.
+
+- **Business key:** The natural identifier declared per entity (usually `ExternalId` UUID; may be `Code`, `Slug`, etc.). Document it on the service class.
+- **Upsert:** Service loads by business key → merge non-null request fields → save. Missing key → insert.
+- **Partial updates:** Omitted/null fields must not wipe existing DB values unless the DTO explicitly allows clear semantics.
+- **i18n:** Entities with per-locale copy accept nested locale message arrays/maps in the save body; persist one row per supported locale (`en`, `hi`), fallback to `en`. Reference: `MedicalDepartmentService.createOrUpdate` + `notification_event_rule_messages`.
+- **Response:** `200` with saved `{Entity}Response` in `Data`; localized success `Message`. Validation → `400` + `{ENTITY}_SAVE_INVALID`.
+
+```java
+@PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+public ResponseEntity<StandardApiResponse<MedicalDepartmentResponse>> save(
+        @RequestBody MedicalDepartmentSaveRequest request,
+        HttpServletRequest servletRequest) { … }
+```
+
+Prefer **`/save`** over separate `/create`, `/update`, `/createOrUpdate` for new work. Legacy paths may remain until migrated.
+
+**Mandatory:** Every persisted entity below must expose `POST …/save` on its **v1 base path**. If a **legacy base path** also exists, add `POST {legacyBase}/save` with the same upsert semantics (delegate to the same service method). When auditing or touching entities, grep controllers for `/save` — add it if missing before finishing.
+
+## Entity inventory (hospital backend)
+
+| Entity | v1 `POST …/save` | Legacy `POST …/save` | Notes |
+|--------|------------------|----------------------|-------|
+| User | `/api/v1/users/save` | `/api/user/save` | |
+| Medical department | `/api/v1/medical-departments/save` | `/api/medical-department/save`, `/api/Em/save` | |
+| Appointment | `/api/v1/appointments/save` | `/api/appointment/save` | multipart create/update legacy paths remain |
+| Doctor schedule | `/api/v1/doctor-schedules/save` | `/api/doctor/schedule/save` | |
+| Patient prescription | `/api/v1/patient-prescriptions/save` | — | metadata upsert; file create via `POST …/upload` |
+| Patient device reading | `/api/v1/patient-device-readings/save` | — | |
+| Notification rule (admin) | `/api/v1/notification-rules/save` | `/api/v1/admin/notification-rules/save` | |
+| Domain action event (admin) | `/api/v1/domain-action-events/save` | `/api/v1/admin/domain-action-events/save` | |
+| UI metadata (singleton) | — | `/api/uiMetdata/save` | fixed id; see `extensibility.mdc` |
+| Notification (inbox row) | — | — | **Exempt** — system-generated; read/mark-read only |
+| Structured e-prescription | — | — | **Exempt** — appointment workflow actions (`ensure-draft`, `finalize`) |
+
+When touching a legacy entity that lacks these endpoints, **add them** alongside existing routes; deprecate duplicates in a follow-up rather than breaking callers silently.
+
+## 3. Delete — `DELETE /api/v1/{entityName}/{businessKey}`
+
+Remove (or soft-delete) the row identified by `{businessKey}`.
+
+- **Medical / PII entities:** Soft-delete only (`deleted_at`, `@SQLDelete` + `@Where`) — never hard-delete prescriptions, appointments, or patient records.
+- **Response:** `200` + localized success `Message`; `Data` null. Not found → `404` + `{ENTITY}_NOT_FOUND`.
+- **Auth:** `@PreAuthorize` + audit for sensitive deletes.
+
+```java
+@DeleteMapping(value = "/{businessKey}", produces = MediaType.APPLICATION_JSON_VALUE)
+public ResponseEntity<StandardApiResponse<Void>> delete(@PathVariable String businessKey) { … }
+```
+
+## Layering (Spring)
+
+Controller → `{Entity}Service` → `{Entity}Access` / JPA repository. No business logic in controllers. DTOs under `dto/request|response`; never return JPA entities. After Java changes: `cd backend-hospital && gradle compileJava`.
+
+## Clients (Vue / mobile / packages)
+
+- Add list/save/delete methods in the domain service layer (`services/domain/…`, `hospital-api-client`).
+- Send `Accept-Language` on every call; display envelope `Message` as returned.
+- Parse PascalCase wire keys; map to internal camelCase in one parser module.
+- For entity list GET: read pagination from envelope `Page`, `Size`, `TotalCount` via `parsePagedEntityList(body, parser)`.
+
+## Exemptions
+
+Do **not** force this trio on:
+
+- Auth/token flows (`/api/auth/*`), webhooks, file/stream endpoints, idempotent **actions** (`…/join-call`, `…/publish`)
+- Aggregates or read-only catalogs with no mutable row
+- Singleton config rows that intentionally use a fixed id (e.g. `uiMetdata`) — still use `GET` + `POST …/save` + `DELETE /{id}` but pagination/query may be no-ops
+
+**Legacy paginated list routes** (e.g. `GET /api/user` without `userId`, `GET /api/admin/appointments`) must use the **same list response contract** as v1: `Data` = row array; `Page`/`Size`/`TotalCount` on the envelope via `EntityListResponseSupport.ok(...)`. Never expose internal `Paged{Entity}ListDto` or Spring `Page` wrappers on the wire.
+
+**Legacy save/delete aliases** — when a legacy base path exists, add `POST …/save` and `DELETE …/{businessKey}` alongside v1 (see **Entity inventory** above). Do not remove legacy create/update/delete until callers migrate.
+
+## Checklist (new entity)
+
+- [ ] `GET /api/v1/{entityName}` with `page`/`size` defaults and `{Entity}QueryDto`; **`Data` = row array**; envelope **`Page`/`Size`/`TotalCount`**
+- [ ] `POST /api/v1/{entityName}/save` upsert by business key (+ i18n if applicable); **legacy base `/save` if legacy path exists**
+- [ ] `DELETE /api/v1/{entityName}/{businessKey}` (soft-delete when required)
+- [ ] `{Entity}SaveRequest`, `{Entity}Response` with `@JsonProperty` PascalCase (internal `Paged{Entity}ListDto` optional in services)
+- [ ] Stable `ErrorCode` values; localized messages via bundle/DB
+- [ ] Client service methods + types in `hospital-api-client` or app services

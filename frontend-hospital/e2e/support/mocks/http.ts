@@ -46,8 +46,25 @@ export async function installHospitalApiMocks(page: Page): Promise<void> {
       return;
     }
 
-    if (url.includes('/api/appointment/booking/available-slots') || url.includes('/api/appointment/available-slots')) {
-      await fulfillJson(200, { Success: true, Data: { Slots: [], slots: [] }, data: { Slots: [], slots: [] } });
+    if (url.includes('/api/appointment/booking/form-context')) {
+      await fulfillJson(200, {
+        Success: true,
+        Data: { Doctors: [], DateAvailability: { Days: [] } },
+        data: { Doctors: [], DateAvailability: { Days: [] } }
+      });
+      return;
+    }
+
+    if (
+      url.includes('/api/appointment/booking/date-availability') ||
+      url.includes('/api/appointment/booking/available-slots') ||
+      url.includes('/api/appointment/available-slots')
+    ) {
+      await fulfillJson(200, {
+        Success: true,
+        Data: { UsesSchedule: false, Days: [], Slots: [], slots: [] },
+        data: { UsesSchedule: false, Days: [], Slots: [], slots: [] }
+      });
       return;
     }
 

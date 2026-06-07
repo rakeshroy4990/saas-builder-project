@@ -117,7 +117,17 @@ const resolveTemplateObject = (value: unknown): unknown => {
 const resolvedConfig = computed(() => {
   void appStore.dataRevision;
   void locale.value;
-  const config = resolveTemplateObject(props.definition.config ?? {}) as Record<string, unknown>;
+  const rawConfig = (props.definition.config ?? {}) as Record<string, unknown>;
+  // List row templates must stay unresolved here; DynList passes each item as `context` later.
+  const config =
+    props.definition.type === 'list'
+      ? ({
+          ...resolveTemplateObject(
+            Object.fromEntries(Object.entries(rawConfig).filter(([key]) => key !== 'itemTemplate'))
+          ),
+          ...(rawConfig.itemTemplate !== undefined ? { itemTemplate: rawConfig.itemTemplate } : {})
+        } as Record<string, unknown>)
+      : (resolveTemplateObject(rawConfig) as Record<string, unknown>);
 
   if (props.definition.type === 'text' && config.mapping) {
     const { text, truncatedTitle } = resolveMappedDisplayFields(
@@ -178,9 +188,18 @@ const resolvedConfig = computed(() => {
     return mergeLabelPlaceholderI18n(out, t);
   }
 
-  if (props.definition.type === 'list' && config.mapping) {
-    const mapped = resolveMapping(config.mapping as MappingConfig);
-    return { ...config, items: Array.isArray(mapped) ? mapped : [] };
+  if (props.definition.type === 'list') {
+    if (config.mapping) {
+      const mapped = resolveMapping(config.mapping as MappingConfig);
+      return { ...config, items: Array.isArray(mapped) ? mapped : [] };
+    }
+    const contextItemsProperty =
+      typeof config.contextItemsProperty === 'string' ? config.contextItemsProperty.trim() : '';
+    if (contextItemsProperty && props.context) {
+      const contextItems = props.context[contextItemsProperty];
+      return { ...config, items: Array.isArray(contextItems) ? contextItems : [] };
+    }
+    return config;
   }
 
   if (props.definition.type === 'image' && config.mapping) {

@@ -31,7 +31,7 @@ public class CallSessionEntity {
     private String endedReason;
 
     @Field("ExpiresAt")
-    @Indexed(expireAfterSeconds = 0)
+    @Indexed(expireAfter = "0s")
     private Instant expiresAt;
 
     public String getCallId() {

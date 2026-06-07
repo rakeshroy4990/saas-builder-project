@@ -56,5 +56,25 @@ public interface UserRepository extends MongoRepository<UserEntity, String> {
             "{ '$or': [ { 'Active': true }, { 'Active': null }, { 'Active': { '$exists': false } } ] } " +
             "] }")
     Page<UserEntity> findActiveDoctorsAllRoles(UserRole role, RoleRequestStatus roleStatus, Pageable pageable);
+
+    @Query("{ $or: [ " +
+            "{ 'FirstName': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'LastName': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'Email': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'MobileNumber': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'Department': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'Username': { $regex: ?0, $options: 'i' } } " +
+            "] }")
+    Page<UserEntity> searchByText(String query, Pageable pageable);
+
+    @Query("{ 'Role': ?1, $or: [ " +
+            "{ 'FirstName': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'LastName': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'Email': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'MobileNumber': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'Department': { $regex: ?0, $options: 'i' } }, " +
+            "{ 'Username': { $regex: ?0, $options: 'i' } } " +
+            "] }")
+    Page<UserEntity> searchByTextAndRole(String query, UserRole role, Pageable pageable);
 }
 

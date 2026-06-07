@@ -9,6 +9,7 @@ Before implementing any change that could **materially affect performance**, **s
 
 ## What counts as performance-impacting
 
+- **Client request fan-out:** loops or `Promise.all` over the **same** endpoint with different params (e.g. per-day slot checks) instead of one combined API — fix by adding a batch/aggregate endpoint (`api-combined-endpoints.mdc`)
 - Database: new indexes, query shape changes, N+1 fixes, pagination changes, caching layers, connection pool tuning, batch vs single-row access
 - API/runtime: new filters/interceptors/aspects on hot paths, synchronous work moved onto request threads, extra serialization/deserialization, blocking I/O in controllers
 - Frontend/mobile: render loops, large list virtualization, bundle size, polling intervals, STOMP/WebSocket traffic, memoization refactors that change update frequency

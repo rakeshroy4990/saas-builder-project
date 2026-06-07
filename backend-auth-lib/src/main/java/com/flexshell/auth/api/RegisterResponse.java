@@ -60,6 +60,12 @@ public class RegisterResponse {
     @JsonProperty("PreferredLocale")
     private String preferredLocale;
 
+    @JsonProperty("ProfilePic")
+    private String profilePic;
+
+    @JsonProperty("ExperienceSummary")
+    private String experienceSummary;
+
     public RegisterResponse() {
     }
 
@@ -82,7 +88,9 @@ public class RegisterResponse {
             String roleStatus,
             String requestedRole,
             String roleRejectedReason,
-            String preferredLocale) {
+            String preferredLocale,
+            String profilePic,
+            String experienceSummary) {
         this.userId = userId;
         this.emailId = emailId;
         this.firstName = firstName;
@@ -102,6 +110,8 @@ public class RegisterResponse {
         this.requestedRole = requestedRole;
         this.roleRejectedReason = roleRejectedReason;
         this.preferredLocale = preferredLocale;
+        this.profilePic = profilePic;
+        this.experienceSummary = experienceSummary;
     }
 
     public String getUserId() {
@@ -254,5 +264,21 @@ public class RegisterResponse {
 
     public void setPreferredLocale(String preferredLocale) {
         this.preferredLocale = preferredLocale;
+    }
+
+    public String getProfilePic() {
+        return profilePic;
+    }
+
+    public void setProfilePic(String profilePic) {
+        this.profilePic = profilePic;
+    }
+
+    public String getExperienceSummary() {
+        return experienceSummary;
+    }
+
+    public void setExperienceSummary(String experienceSummary) {
+        this.experienceSummary = experienceSummary;
     }
 }

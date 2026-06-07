@@ -85,4 +85,37 @@ public class MongoUserAccess implements UserAccess {
     public Page<UserEntity> findActiveDoctorsAllRoles(UserRole role, RoleRequestStatus roleStatus, Pageable pageable) {
         return userRepository.findActiveDoctorsAllRoles(role, roleStatus, pageable);
     }
+
+    @Override
+    public Page<UserEntity> searchUsers(String query, UserRole roleFilter, Pageable pageable) {
+        String trimmed = query == null ? "" : query.trim();
+        if (trimmed.isEmpty()) {
+            if (roleFilter == null) {
+                return userRepository.findAll(pageable);
+            }
+            return userRepository.findByRole(roleFilter, pageable);
+        }
+        String regex = escapeMongoRegex(trimmed);
+        if (roleFilter == null) {
+            return userRepository.searchByText(regex, pageable);
+        }
+        return userRepository.searchByTextAndRole(regex, roleFilter, pageable);
+    }
+
+    private static String escapeMongoRegex(String value) {
+        return value.replace("\\", "\\\\")
+                .replace(".", "\\.")
+                .replace("*", "\\*")
+                .replace("+", "\\+")
+                .replace("?", "\\?")
+                .replace("^", "\\^")
+                .replace("$", "\\$")
+                .replace("{", "\\{")
+                .replace("}", "\\}")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+                .replace("|", "\\|");
+    }
 }

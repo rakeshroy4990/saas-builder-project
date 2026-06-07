@@ -33,9 +33,12 @@ export const SERVER_PATHS = {
   appointmentCreate: '/api/appointment/create',
   appointmentUpdate: '/api/appointment/update',
   appointmentBookingAvailableSlots: '/api/appointment/booking/available-slots',
+  appointmentBookingDateAvailability: '/api/appointment/booking/date-availability',
+  appointmentBookingFormContext: '/api/appointment/booking/form-context',
   adminAppointments: '/api/admin/appointments',
   medicalDepartmentGet: '/api/medical-department/get',
   doctorGet: '/api/doctor/get',
+  doctorListPublic: '/api/doctor/list-public',
   patientPrescriptions: '/api/v1/patient-prescriptions',
   hospitalVideoSession: '/api/hospital/video/session',
   chatRooms: '/api/chat/rooms',
@@ -109,18 +112,6 @@ export function parseNotificationItem(raw: unknown): NotificationItem | null {
   };
 }
 
-export function parseNotificationPage(raw: unknown): NotificationItem[] {
-  const page = unwrapEnvelope<SpringPage<unknown>>(raw);
-  const content = Array.isArray(page?.content)
-    ? page.content
-    : Array.isArray(page?.Content)
-      ? page.Content
-      : [];
-  return content
-    .map((entry) => parseNotificationItem(entry))
-    .filter((entry): entry is NotificationItem => entry !== null);
-}
-
 export function parseUnreadNotificationCount(raw: unknown): number {
   const data = unwrapEnvelope<Record<string, unknown>>(raw);
   const row = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
@@ -174,6 +165,75 @@ export interface ApiEnvelope<T = unknown> {
   Timestamp?: string;
   errorCode?: string;
   ErrorCode?: string;
+  page?: number;
+  Page?: number;
+  size?: number;
+  Size?: number;
+  totalCount?: number;
+  TotalCount?: number;
+  /** @deprecated legacy pagination — prefer envelope TotalCount */
+  totalElements?: number;
+  /** @deprecated legacy pagination — prefer envelope TotalCount */
+  TotalElements?: number;
+  /** @deprecated legacy pagination */
+  totalPages?: number;
+  /** @deprecated legacy pagination */
+  TotalPages?: number;
+  /** @deprecated legacy pagination */
+  number?: number;
+  /** @deprecated legacy pagination */
+  Number?: number;
+}
+
+export interface ParsedPagedList<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  size: number;
+}
+
+/**
+ * Parses entity list responses: row array in envelope Data; Page/Size/TotalCount on the envelope.
+ * Falls back to legacy Data.Content and TotalElements when envelope pagination is absent.
+ */
+export function parsePagedEntityList<T>(
+  raw: unknown,
+  parseItem: (row: unknown) => T | null
+): ParsedPagedList<T> {
+  const envelope =
+    raw != null && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  const data = envelope.Data ?? envelope.data;
+  let rows: unknown[] = [];
+  if (Array.isArray(data)) {
+    rows = data;
+  } else if (data != null && typeof data === 'object') {
+    const legacy = data as SpringPage<unknown>;
+    rows = Array.isArray(legacy.content)
+      ? legacy.content
+      : Array.isArray(legacy.Content)
+        ? legacy.Content
+        : [];
+  }
+  const items = rows.map(parseItem).filter((entry): entry is T => entry !== null);
+  const page =
+    pickNumber(envelope, ['Page', 'page']) ??
+    pickNumber((data ?? {}) as Record<string, unknown>, ['Number', 'number']) ??
+    0;
+  const size =
+    pickNumber(envelope, ['Size', 'size']) ??
+    pickNumber((data ?? {}) as Record<string, unknown>, ['Size', 'size']) ??
+    items.length;
+  const totalCount =
+    pickNumber(envelope, ['TotalCount', 'totalCount', 'TotalElements', 'totalElements']) ??
+    pickNumber((data ?? {}) as Record<string, unknown>, ['TotalCount', 'totalCount', 'TotalElements', 'totalElements']) ??
+    items.length;
+  return { items, page, size, totalCount };
+}
+
+export function parseNotificationPage(raw: unknown): NotificationItem[] {
+  return parsePagedEntityList(raw, parseNotificationItem).items;
 }
 
 export function unwrapEnvelope<T = unknown>(raw: unknown): T {
@@ -258,3 +318,10 @@ export function parseAuthLoginPayload(raw: unknown, identityFallback: string): A
 }
 
 export { toTelemetryWire } from './telemetryWire';
+export {
+  USER_SKETCH_IMAGE_DATA_URL,
+  resolveDoctorProfileImage,
+  parsePublicDoctorProfile,
+  type PublicDoctorProfile
+} from './doctorProfileImage';
+export { loadDoctorsAcrossDepartments } from './departmentDoctors';

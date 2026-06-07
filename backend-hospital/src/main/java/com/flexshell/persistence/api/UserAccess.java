@@ -40,4 +40,10 @@ public interface UserAccess {
             Pageable pageable);
 
     Page<UserEntity> findActiveDoctorsAllRoles(UserRole role, RoleRequestStatus roleStatus, Pageable pageable);
+
+    /**
+     * Paginated user directory with optional case-insensitive text search and role filter.
+     * Excludes soft-deleted rows on PostgreSQL; returns all persisted users on Mongo.
+     */
+    Page<UserEntity> searchUsers(String query, UserRole roleFilter, Pageable pageable);
 }

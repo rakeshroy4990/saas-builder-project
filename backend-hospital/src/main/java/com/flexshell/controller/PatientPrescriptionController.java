@@ -5,10 +5,12 @@ import com.flexshell.controller.dto.PatientPrescriptionDiagnosisGroupSummaryResp
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateRequest;
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateResponse;
 import com.flexshell.controller.dto.PatientPrescriptionGroupLinkRequest;
+import com.flexshell.controller.dto.PatientPrescriptionSaveRequest;
 import com.flexshell.controller.dto.PatientPrescriptionSimilarityHitResponse;
 import com.flexshell.controller.dto.PatientPrescriptionSummaryResponse;
 import com.flexshell.controller.dto.PatientPrescriptionUploadResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.controller.support.EntityListResponseSupport;
 import com.flexshell.service.PatientPrescriptionService;
 import com.flexshell.service.PatientPrescriptionSimilarityService;
 import org.slf4j.Logger;
@@ -24,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,6 +40,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.util.List;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -139,7 +143,7 @@ public class PatientPrescriptionController {
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardApiResponse<Page<PatientPrescriptionSummaryResponse>>> list(
+    public ResponseEntity<StandardApiResponse<List<PatientPrescriptionSummaryResponse>>> list(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             Authentication authentication
     ) {
@@ -148,7 +152,51 @@ public class PatientPrescriptionController {
             return unauthorized();
         }
         Page<PatientPrescriptionSummaryResponse> page = patientPrescriptionService.listForActor(userId, pageable);
-        return ResponseEntity.ok(StandardApiResponse.success("Prescriptions fetched", page));
+        return EntityListResponseSupport.ok(
+                "Prescriptions fetched",
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements());
+    }
+
+    @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<PatientPrescriptionSummaryResponse>> save(
+            @RequestBody PatientPrescriptionSaveRequest request,
+            Authentication authentication
+    ) {
+        String userId = actorId(authentication);
+        if (userId.isBlank()) {
+            return unauthorized();
+        }
+        try {
+            PatientPrescriptionSummaryResponse data = patientPrescriptionService.save(userId, request);
+            return ResponseEntity.ok(StandardApiResponse.success("Prescription saved", data));
+        } catch (IllegalArgumentException ex) {
+            return badRequest(ex.getMessage(), "PATIENT_PRESCRIPTION_SAVE_INVALID");
+        } catch (SecurityException ex) {
+            return forbidden(ex.getMessage());
+        }
+    }
+
+    @DeleteMapping(value = "/{businessKey}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<Void>> delete(
+            @PathVariable("businessKey") UUID businessKey,
+            Authentication authentication
+    ) {
+        String userId = actorId(authentication);
+        if (userId.isBlank()) {
+            return unauthorized();
+        }
+        try {
+            patientPrescriptionService.softDelete(userId, businessKey);
+            return ResponseEntity.ok(StandardApiResponse.success("Prescription deleted", null));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(StandardApiResponse.error(ex.getMessage(), "PATIENT_PRESCRIPTION_NOT_FOUND"));
+        } catch (SecurityException ex) {
+            return forbidden(ex.getMessage());
+        }
     }
 
     @GetMapping(value = "/{externalId}", produces = MediaType.APPLICATION_JSON_VALUE)

@@ -6,6 +6,14 @@ import { getGoogleOAuthClientIds } from '@/config/env';
 
 let configured = false;
 
+/** Cap silent sign-in so a stale Google session does not block the account picker for several seconds. */
+const SILENT_SIGN_IN_TIMEOUT_MS = 2_000;
+
+export type GoogleNativeCredential = {
+  idToken: string | null;
+  accessToken: string;
+};
+
 export function isNativeGoogleSignInAvailable(): boolean {
   return Platform.OS === 'android' || Platform.OS === 'ios';
 }
@@ -41,7 +49,22 @@ export function ensureGoogleSignInConfigured(): void {
   }
 }
 
-/** Pre-warm Play Services (Android) while the login screen is visible. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('silent_sign_in_timeout')), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error: unknown) => {
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error('silent_sign_in_failed'));
+      });
+  });
+}
+
+/** Pre-warm Play Services (Android) and Google silent session while the login screen is visible. */
 export async function warmGoogleSignInNative(): Promise<void> {
   if (!isNativeGoogleSignInAvailable() || isExpoGoClient()) return;
   try {
@@ -49,32 +72,39 @@ export async function warmGoogleSignInNative(): Promise<void> {
     if (Platform.OS === 'android') {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: false });
     }
+    void trySilentGoogleCredential();
   } catch {
     // Non-fatal; interactive sign-in may still work
   }
 }
 
-async function readAccessTokenAfterSignIn(): Promise<string> {
+async function readCredentialAfterSignIn(idTokenFromResponse?: string | null): Promise<GoogleNativeCredential> {
   const tokens = await GoogleSignin.getTokens();
   const accessToken = tokens.accessToken?.trim();
   if (!accessToken) {
     throw new Error('Google sign-in did not return an access token');
   }
-  return accessToken;
+  const idToken = (idTokenFromResponse ?? tokens.idToken)?.trim() || null;
+  return { idToken, accessToken };
 }
 
-async function trySilentGoogleAccessToken(): Promise<string | null> {
+async function trySilentGoogleCredential(): Promise<GoogleNativeCredential | null> {
   if (!GoogleSignin.hasPreviousSignIn()) return null;
   try {
-    const silent: SignInSilentlyResponse = await GoogleSignin.signInSilently();
-    if (!isSuccessResponse(silent)) return null;
-    return await readAccessTokenAfterSignIn();
+    const silent: SignInSilentlyResponse = await withTimeout(
+      GoogleSignin.signInSilently(),
+      SILENT_SIGN_IN_TIMEOUT_MS
+    );
+    if (silent.type !== 'success') return null;
+    const idTokenFromResponse =
+      typeof silent.data?.idToken === 'string' ? silent.data.idToken.trim() : null;
+    return await readCredentialAfterSignIn(idTokenFromResponse);
   } catch {
     return null;
   }
 }
 
-export async function signInWithGoogleNative(): Promise<string> {
+export async function signInWithGoogleNative(): Promise<GoogleNativeCredential> {
   if (isExpoGoClient()) {
     throw new Error(
       'Google sign-in needs a development or preview build (EAS). It does not work in Expo Go.'
@@ -83,13 +113,15 @@ export async function signInWithGoogleNative(): Promise<string> {
 
   ensureGoogleSignInConfigured();
 
-  const silentToken = await trySilentGoogleAccessToken();
-  if (silentToken) return silentToken;
+  const silentCredential = await trySilentGoogleCredential();
+  if (silentCredential) return silentCredential;
 
   const response = await GoogleSignin.signIn();
   if (!isSuccessResponse(response)) {
     throw new Error('Google sign-in was cancelled');
   }
 
-  return readAccessTokenAfterSignIn();
+  const idTokenFromResponse =
+    typeof response.data?.idToken === 'string' ? response.data.idToken.trim() : null;
+  return readCredentialAfterSignIn(idTokenFromResponse);
 }

@@ -519,7 +519,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               id: 'hospital-public-header-actions-cta-row',
               type: 'container',
               config: {
-                styles: { utilityClasses: 'flex w-auto shrink-0 justify-start md:justify-end' },
+                styles: { utilityClasses: 'hidden md:flex w-auto shrink-0 justify-end' },
                 children: [
                   {
                     id: 'hospital-public-header-cta',

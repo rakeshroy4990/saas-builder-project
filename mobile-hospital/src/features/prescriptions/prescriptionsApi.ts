@@ -1,5 +1,6 @@
 import {
   isEnvelopeSuccess,
+  parsePagedEntityList,
   pickString,
   SERVER_PATHS,
   unwrapEnvelope
@@ -30,14 +31,14 @@ function pickStringArray(obj: Record<string, unknown>, ...keys: string[]): strin
 function mapExtractedData(raw: Record<string, unknown> | undefined): PrescriptionExtractedData | undefined {
   if (!raw) return undefined;
   const data: PrescriptionExtractedData = {
-    patientName: pickString(raw, 'patientName', 'patient_name', 'PatientName'),
-    doctorName: pickString(raw, 'doctorName', 'doctor_name', 'DoctorName'),
-    consultant: pickString(raw, 'consultant', 'Consultant'),
-    diagnosis: pickString(raw, 'diagnosis', 'Diagnosis'),
+    patientName: pickString(raw, ['patientName', 'patient_name', 'PatientName']),
+    doctorName: pickString(raw, ['doctorName', 'doctor_name', 'DoctorName']),
+    consultant: pickString(raw, ['consultant', 'Consultant']),
+    diagnosis: pickString(raw, ['diagnosis', 'Diagnosis']),
     medicines: pickStringArray(raw, 'medicines', 'Medicines'),
-    prescriptionDate: pickString(raw, 'prescriptionDate', 'prescription_date', 'PrescriptionDate'),
-    appointmentDate: pickString(raw, 'appointmentDate', 'appointment_date', 'AppointmentDate'),
-    department: pickString(raw, 'department', 'Department')
+    prescriptionDate: pickString(raw, ['prescriptionDate', 'prescription_date', 'PrescriptionDate']),
+    appointmentDate: pickString(raw, ['appointmentDate', 'appointment_date', 'AppointmentDate']),
+    department: pickString(raw, ['department', 'Department'])
   };
   const hasAny = Object.values(data).some(
     (v) => v != null && (Array.isArray(v) ? v.length > 0 : String(v).trim() !== '')
@@ -65,12 +66,11 @@ export async function fetchPrescriptionsPage(page = 0, size = 20): Promise<Presc
   const response = await apiClient.get(SERVER_PATHS.patientPrescriptions, {
     params: { page, size, sort: 'createdAt,desc' }
   });
-  const data = unwrapEnvelope<Record<string, unknown>>(response.data);
-  const content = (data.content ?? data.Content ?? data.items ?? data.Items ?? []) as unknown[];
-  if (!Array.isArray(content)) return [];
-  return content
-    .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && !Array.isArray(entry))
-    .map((row, index) => mapListItem(row, index));
+  let index = 0;
+  return parsePagedEntityList(response.data, (row) => {
+    if (row == null || typeof row !== 'object' || Array.isArray(row)) return null;
+    return mapListItem(row as Record<string, unknown>, index++);
+  }).items;
 }
 
 export async function uploadPatientPrescriptionFile(

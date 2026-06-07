@@ -11,4 +11,10 @@ public interface AppointmentRepository extends MongoRepository<AppointmentEntity
     Page<AppointmentEntity> findByDoctorId(String doctorId, Pageable pageable);
 
     List<AppointmentEntity> findByDoctorIdAndPreferredDate(String doctorId, String preferredDate);
+
+    List<AppointmentEntity> findByDoctorIdAndPreferredDateBetween(
+            String doctorId,
+            String fromDateInclusive,
+            String toDateInclusive
+    );
 }

@@ -4,7 +4,11 @@ import com.flexshell.controller.dto.CreateNotificationRuleRequest;
 import com.flexshell.controller.dto.NotificationEventRuleMessageRequest;
 import com.flexshell.controller.dto.NotificationEventRuleMessageResponse;
 import com.flexshell.controller.dto.NotificationEventRuleResponse;
+import com.flexshell.controller.dto.NotificationRuleQueryDto;
+import com.flexshell.controller.dto.NotificationRuleSaveRequest;
+import com.flexshell.controller.dto.PagedNotificationRuleListDto;
 import com.flexshell.controller.dto.UpdateNotificationRuleRequest;
+import com.flexshell.controller.support.EntityQuerySupport;
 import com.flexshell.persistence.postgres.model.NotificationEventRuleJpaEntity;
 import com.flexshell.persistence.postgres.model.NotificationEventRuleMessageJpaEntity;
 import com.flexshell.persistence.postgres.repository.NotificationEventRuleJpaRepository;
@@ -43,9 +47,46 @@ public class NotificationRuleAdminService {
 
     @Transactional(readOnly = true)
     public List<NotificationEventRuleResponse> listRules() {
-        return ruleCatalog.listAllRules().stream()
+        return listRulesPaged(0, Integer.MAX_VALUE, new NotificationRuleQueryDto()).getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public PagedNotificationRuleListDto listRulesPaged(int page, int size, NotificationRuleQueryDto query) {
+        int safePage = EntityQuerySupport.safePage(page);
+        int safeSize = EntityQuerySupport.safeSize(size);
+        List<NotificationEventRuleResponse> filtered = ruleCatalog.listAllRules().stream()
+                .filter(rule -> matchesQuery(rule, query))
                 .map(this::toResponse)
                 .toList();
+        int total = filtered.size();
+        int from = Math.min(safePage * safeSize, total);
+        int to = Math.min(from + safeSize, total);
+        List<NotificationEventRuleResponse> content = filtered.subList(from, to);
+        int totalPages = safeSize == 0 ? 0 : (int) Math.ceil((double) total / safeSize);
+        return new PagedNotificationRuleListDto(content, total, totalPages, safePage, safeSize);
+    }
+
+    @Transactional
+    public NotificationEventRuleResponse saveRule(NotificationRuleSaveRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+        if (request.getExternalId() != null) {
+            UpdateNotificationRuleRequest update = new UpdateNotificationRuleRequest();
+            update.setEnabled(request.getEnabled());
+            update.setSortOrder(request.getSortOrder());
+            update.setEntityType(request.getEntityType());
+            update.setMessages(request.getMessages());
+            return updateRule(request.getExternalId(), update);
+        }
+        CreateNotificationRuleRequest create = new CreateNotificationRuleRequest();
+        create.setEventType(request.getEventType());
+        create.setRecipientRole(request.getRecipientRole());
+        create.setEntityType(request.getEntityType());
+        create.setEnabled(request.getEnabled());
+        create.setSortOrder(request.getSortOrder());
+        create.setMessages(request.getMessages());
+        return createRule(create);
     }
 
     @Transactional
@@ -210,5 +251,23 @@ public class NotificationRuleAdminService {
             return null;
         }
         return trimmed;
+    }
+
+    private static boolean matchesQuery(NotificationEventRuleJpaEntity rule, NotificationRuleQueryDto query) {
+        if (query == null) {
+            return true;
+        }
+        String eventType = query.getEventType();
+        if (eventType != null && !eventType.isBlank()
+                && !rule.getEventType().equalsIgnoreCase(eventType.trim())) {
+            return false;
+        }
+        String recipientRole = query.getRecipientRole();
+        if (recipientRole != null && !recipientRole.isBlank()
+                && !rule.getRecipientRole().equalsIgnoreCase(recipientRole.trim())) {
+            return false;
+        }
+        Boolean enabled = query.getEnabled();
+        return enabled == null || rule.isEnabled() == enabled;
     }
 }

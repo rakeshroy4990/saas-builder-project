@@ -97,8 +97,16 @@ public class AuthController {
             HttpServletResponse servletResponse
     ) {
         String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
+        if (!request.hasIdToken() && !request.hasAccessToken()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(
+                            messages.get("error.auth.google_token_missing", locale),
+                            "AUTH_GOOGLE_TOKEN_MISSING"));
+        }
         try {
-            Optional<LoginResponse> response = authFacade.loginWithGoogleAccessToken(request.getAccessToken());
+            Optional<LoginResponse> response = request.hasIdToken()
+                    ? authFacade.loginWithGoogleIdToken(request.getIdToken().trim())
+                    : authFacade.loginWithGoogleAccessToken(request.getAccessToken().trim());
             return response
                     .map(login -> {
                         setAuthCookies(servletResponse, login.getAccessToken(), login.getRefreshToken());

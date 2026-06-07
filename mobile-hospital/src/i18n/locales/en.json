@@ -139,6 +139,18 @@
   "common": {
     "selectPlaceholder": "Select…"
   },
+  "doctors": {
+    "list": {
+      "title": "Our doctors",
+      "subtitle": "Browse specialists by department and book a consultation.",
+      "empty": "No doctors are available right now. Please try again later.",
+      "loadError": "Unable to load doctors. Check your connection and try again.",
+      "doctorCount": "{{count}} doctor",
+      "doctorCount_other": "{{count}} doctors",
+      "book": "Book",
+      "bookDoctor": "Book appointment with {{name}}"
+    }
+  },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
     "role": "Role: {{role}}",
@@ -329,6 +341,9 @@
     "questionPlaceholder": "Example: Explain first-line management of pediatric nephrotic syndrome.",
     "sendQuestion": "Send question",
     "sending": "Sending…",
+    "streamLoadingAnswer": "Preparing a grounded answer…",
+    "streamSearchingSources": "Searching the selected textbook…",
+    "streamGeneratingAnswer": "Writing your answer…",
     "userLabel": "Doctor",
     "assistantLabel": "Education AI",
     "followUpTitle": "Follow-up questions",

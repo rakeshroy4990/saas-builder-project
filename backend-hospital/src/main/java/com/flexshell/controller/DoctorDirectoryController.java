@@ -1,8 +1,10 @@
 package com.flexshell.controller;
 
+import com.flexshell.auth.i18n.RequestLocaleAttributes;
 import com.flexshell.controller.dto.DoctorOptionResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.service.DoctorDirectoryService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,15 +30,17 @@ public class DoctorDirectoryController {
     public ResponseEntity<StandardApiResponse<List<DoctorOptionResponse>>> getByDepartment(
             @RequestParam(name = "department") String department,
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "20") int size
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            HttpServletRequest servletRequest
     ) {
         DoctorDirectoryService service = doctorDirectoryServiceProvider.getIfAvailable();
         if (service == null) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
-            List<DoctorOptionResponse> doctors = service.getDoctorsByDepartment(department, page, size);
+            List<DoctorOptionResponse> doctors = service.getDoctorsByDepartment(department, page, size, locale);
             return ResponseEntity.ok(StandardApiResponse.success("Doctors fetched", doctors));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -51,15 +55,22 @@ public class DoctorDirectoryController {
     public ResponseEntity<StandardApiResponse<List<DoctorOptionResponse>>> listActiveForAdmin(
             Authentication authentication,
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "200") int size
+            @RequestParam(name = "size", defaultValue = "200") int size,
+            HttpServletRequest servletRequest
     ) {
         DoctorDirectoryService service = doctorDirectoryServiceProvider.getIfAvailable();
         if (service == null) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
         try {
-            List<DoctorOptionResponse> doctors = service.listActiveDoctorsForAdmin(authentication.getName(), page, size);
+            List<DoctorOptionResponse> doctors = service.listActiveDoctorsForAdmin(
+                    authentication.getName(),
+                    page,
+                    size,
+                    locale
+            );
             return ResponseEntity.ok(StandardApiResponse.success("Doctors fetched", doctors));
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -67,6 +78,27 @@ public class DoctorDirectoryController {
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+        }
+    }
+
+    @GetMapping(value = "/list-public", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<List<DoctorOptionResponse>>> listPublic(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "100") int size,
+            HttpServletRequest servletRequest
+    ) {
+        DoctorDirectoryService service = doctorDirectoryServiceProvider.getIfAvailable();
+        if (service == null) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
+        }
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
+        try {
+            List<DoctorOptionResponse> doctors = service.listActiveDoctorsPublic(page, size, locale);
+            return ResponseEntity.ok(StandardApiResponse.success("Doctors fetched", doctors));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(StandardApiResponse.error("Doctor directory service is unavailable", "DOCTOR_DIRECTORY_SERVICE_UNAVAILABLE"));
         }
     }
 }

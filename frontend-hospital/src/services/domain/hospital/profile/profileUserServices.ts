@@ -39,6 +39,8 @@ function mapMeToProfileForm(row: Record<string, unknown>): void {
     gender: pickString(row, ['Gender', 'gender']),
     department: pickString(row, ['Department', 'department']),
     qualifications: pickString(row, ['Qualifications', 'qualifications', 'Qualification', 'qualification']),
+    experienceSummary: pickString(row, ['ExperienceSummary', 'experienceSummary']),
+    profilePic: pickString(row, ['ProfilePic', 'profilePic']),
     smcName: pickString(row, ['SmcName', 'smcName', 'StateMedicalCouncil', 'stateMedicalCouncil']),
     smcRegistrationNumber: pickString(row, [
       'SmcRegistrationNumber',
@@ -137,6 +139,8 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
         'gender',
         'department',
         'qualifications',
+        'experienceSummary',
+        'profilePic',
         'smcName',
         'smcRegistrationNumber',
         'preferredLocale'
@@ -227,6 +231,8 @@ export const profileUserHospitalServices: ServiceDefinition[] = [
       };
       if (String(session.role ?? '').toUpperCase() === 'DOCTOR') {
         body.Qualifications = pickString(form, ['qualifications', 'Qualifications']);
+        body.ExperienceSummary = pickString(form, ['experienceSummary', 'ExperienceSummary']);
+        body.ProfilePic = pickString(form, ['profilePic', 'ProfilePic']);
         body.SmcName = pickString(form, ['smcName', 'SmcName']);
         body.SmcRegistrationNumber = pickString(form, ['smcRegistrationNumber', 'SmcRegistrationNumber']);
       }

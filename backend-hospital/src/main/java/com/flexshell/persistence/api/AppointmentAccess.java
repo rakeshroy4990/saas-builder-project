@@ -25,4 +25,10 @@ public interface AppointmentAccess {
     Page<AppointmentEntity> findAll(Pageable pageable);
 
     List<AppointmentEntity> findByDoctorIdAndPreferredDate(String doctorId, String preferredDate);
+
+    List<AppointmentEntity> findByDoctorIdAndPreferredDateBetween(
+            String doctorId,
+            String fromDateInclusive,
+            String toDateInclusive
+    );
 }

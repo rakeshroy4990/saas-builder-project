@@ -73,6 +73,12 @@ public class LoginResponse {
     @JsonProperty("PreferredLocale")
     private String preferredLocale;
 
+    @JsonProperty("ProfilePic")
+    private String profilePic;
+
+    @JsonProperty("ExperienceSummary")
+    private String experienceSummary;
+
     public LoginResponse() {
     }
 
@@ -298,6 +304,22 @@ public class LoginResponse {
 
     public void setPreferredLocale(String preferredLocale) {
         this.preferredLocale = preferredLocale;
+    }
+
+    public String getProfilePic() {
+        return profilePic;
+    }
+
+    public void setProfilePic(String profilePic) {
+        this.profilePic = profilePic;
+    }
+
+    public String getExperienceSummary() {
+        return experienceSummary;
+    }
+
+    public void setExperienceSummary(String experienceSummary) {
+        this.experienceSummary = experienceSummary;
     }
 }
 

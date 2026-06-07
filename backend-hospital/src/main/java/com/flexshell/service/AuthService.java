@@ -16,6 +16,7 @@ import com.flexshell.auth.api.RefreshTokenRequest;
 import com.flexshell.auth.api.RefreshTokenResponse;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
+import com.flexshell.auth.google.GoogleIdTokenVerifier;
 import com.flexshell.email.AppEmailProperties;
 import com.flexshell.security.PasswordPolicy;
 import com.flexshell.observability.ObservabilityLogger;
@@ -46,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class AuthService implements AuthFacade {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+    private static final RestClient GOOGLE_HTTP = RestClient.builder().build();
     private static final int PRIVILEGED_REQUEST_LIMIT = 5;
     private static final long PRIVILEGED_REQUEST_WINDOW_SECONDS = 600L;
     private final ObjectProvider<UserAccess> userAccessProvider;
@@ -55,6 +57,7 @@ public class AuthService implements AuthFacade {
     private final Map<String, PrivilegedRequestAttempt> privilegedRequestAttempts = new ConcurrentHashMap<>();
     private final AppEmailProperties appEmailProperties;
     private final PasswordPolicy passwordPolicy;
+    private final GoogleIdTokenVerifier googleIdTokenVerifier;
 
     private record PrivilegedRequestAttempt(int count, Instant windowStart) {
     }
@@ -71,13 +74,15 @@ public class AuthService implements AuthFacade {
             ObjectProvider<RefreshTokenAccess> refreshTokenAccessProvider,
             JwtService jwtService,
             AppEmailProperties appEmailProperties,
-            PasswordPolicy passwordPolicy
+            PasswordPolicy passwordPolicy,
+            GoogleIdTokenVerifier googleIdTokenVerifier
     ) {
         this.userAccessProvider = userAccessProvider;
         this.refreshTokenAccessProvider = refreshTokenAccessProvider;
         this.jwtService = jwtService;
         this.appEmailProperties = appEmailProperties;
         this.passwordPolicy = passwordPolicy;
+        this.googleIdTokenVerifier = googleIdTokenVerifier;
     }
 
     public Optional<LoginResponse> login(String usernameOrEmail, String rawPassword) {
@@ -125,15 +130,28 @@ public class AuthService implements AuthFacade {
     }
 
     @Override
+    public Optional<LoginResponse> loginWithGoogleIdToken(String idToken) {
+        if (idToken == null || idToken.isBlank() || !googleIdTokenVerifier.isConfigured()) {
+            return Optional.empty();
+        }
+        Optional<GoogleVerifiedProfile> profileOpt = googleIdTokenVerifier.verify(idToken.trim())
+                .map(this::toVerifiedProfile);
+        return completeGoogleLogin(profileOpt);
+    }
+
+    @Override
     public Optional<LoginResponse> loginWithGoogleAccessToken(String accessToken) {
         if (accessToken == null || accessToken.isBlank()) return Optional.empty();
+        Optional<GoogleVerifiedProfile> profileOpt = fetchVerifiedGoogleProfile(accessToken.trim());
+        return completeGoogleLogin(profileOpt);
+    }
+
+    private Optional<LoginResponse> completeGoogleLogin(Optional<GoogleVerifiedProfile> profileOpt) {
+        if (profileOpt.isEmpty()) return Optional.empty();
         UserAccess users = userAccessProvider.getIfAvailable();
         if (users == null) return Optional.empty();
 
-        Optional<GoogleVerifiedProfile> profileOpt = fetchVerifiedGoogleProfile(accessToken.trim());
-        if (profileOpt.isEmpty()) return Optional.empty();
         GoogleVerifiedProfile profile = profileOpt.get();
-
         Optional<UserEntity> existing = findUserByEmailCaseInsensitive(users, profile.email());
         UserEntity account;
         if (existing.isPresent()) {
@@ -154,6 +172,15 @@ public class AuthService implements AuthFacade {
             return Optional.empty();
         }
         return completeLoginWithTokens(account, "google_login_attempt");
+    }
+
+    private GoogleVerifiedProfile toVerifiedProfile(GoogleIdTokenVerifier.VerifiedGoogleProfile profile) {
+        return new GoogleVerifiedProfile(
+                profile.email(),
+                profile.givenName(),
+                profile.familyName(),
+                profile.gender(),
+                profile.mobileNumber());
     }
 
     /**
@@ -236,6 +263,8 @@ public class AuthService implements AuthFacade {
         response.setRequestedRole(account.getRequestedRole() == null ? null : account.getRequestedRole().name());
         response.setRoleRejectedReason(account.getRoleRejectedReason());
         response.setPreferredLocale(account.getPreferredLocale());
+        response.setProfilePic(account.getProfilePic() == null ? "" : account.getProfilePic());
+        response.setExperienceSummary(account.getExperienceSummary() == null ? "" : account.getExperienceSummary());
         ObservabilityLogger.info(log, telemetryEvent, Map.of(
                 "domain", "auth",
                 "status", "success",
@@ -247,7 +276,7 @@ public class AuthService implements AuthFacade {
 
     private Optional<GoogleVerifiedProfile> fetchVerifiedGoogleProfile(String googleAccessToken) {
         try {
-            Map<String, Object> body = RestClient.create()
+            Map<String, Object> body = GOOGLE_HTTP
                     .get()
                     .uri("https://www.googleapis.com/oauth2/v3/userinfo")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + googleAccessToken)
@@ -504,6 +533,8 @@ public class AuthService implements AuthFacade {
         user.setSmcName(request.getSmcName() == null ? "" : request.getSmcName().trim());
         user.setSmcRegistrationNumber(
                 request.getSmcRegistrationNumber() == null ? "" : request.getSmcRegistrationNumber().trim());
+        user.setProfilePic(request.getProfilePic() == null ? "" : request.getProfilePic().trim());
+        user.setExperienceSummary(request.getExperienceSummary() == null ? "" : request.getExperienceSummary().trim());
         Instant now = Instant.now();
         user.setCreatedTimestamp(now);
         user.setUpdatedTimestamp(now);
@@ -552,7 +583,9 @@ public class AuthService implements AuthFacade {
                 saved.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : saved.getRoleStatus().name(),
                 saved.getRequestedRole() == null ? null : saved.getRequestedRole().name(),
                 saved.getRoleRejectedReason(),
-                saved.getPreferredLocale()));
+                saved.getPreferredLocale(),
+                saved.getProfilePic(),
+                saved.getExperienceSummary()));
     }
 
     private void sendWelcomeRegistrationEmail(UserEntity user) {

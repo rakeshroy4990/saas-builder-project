@@ -106,6 +106,8 @@ public class AdminDoctorManagementService {
         user.setSmcName(request.getSmcName() == null ? "" : request.getSmcName().trim());
         user.setSmcRegistrationNumber(
                 request.getSmcRegistrationNumber() == null ? "" : request.getSmcRegistrationNumber().trim());
+        user.setProfilePic(request.getProfilePic() == null ? "" : request.getProfilePic().trim());
+        user.setExperienceSummary(request.getExperienceSummary() == null ? "" : request.getExperienceSummary().trim());
         Instant now = Instant.now();
         user.setCreatedTimestamp(now);
         user.setUpdatedTimestamp(now);
@@ -146,7 +148,9 @@ public class AdminDoctorManagementService {
                 saved.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : saved.getRoleStatus().name(),
                 null,
                 null,
-                saved.getPreferredLocale());
+                saved.getPreferredLocale(),
+                saved.getProfilePic(),
+                saved.getExperienceSummary());
     }
 
     private DoctorAdminRow toRow(UserEntity u) {

@@ -29,8 +29,8 @@ export async function loadDoctorOptionsByDepartment(
         const lastName = pickString(record, ['LastName', 'lastName']);
         const combinedName = [firstName, lastName].filter(Boolean).join(' ').trim();
         const name = pickString(record, ['Name', 'name']) || combinedName;
-        const email = pickString(record, ['Email', 'email']);
-        const label = [name, email ? `(${email})` : ''].filter(Boolean).join(' ').trim();
+        const degree = pickString(record, ['Qualifications', 'qualifications', 'Degree', 'degree']);
+        const label = [name, degree ? `(${degree})` : ''].filter(Boolean).join(' ').trim();
         return { id, label: label || id, value: id };
       })
       .filter((option) => option.label.trim().length > 0);

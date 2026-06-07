@@ -1,0 +1,46 @@
+---
+description: Combine logical API work into single endpoints — no client-side request fan-out (~N calls)
+alwaysApply: true
+---
+
+# API design — combine logical operations
+
+Do **not** implement UI flows that fan out into many HTTP calls for one user action (e.g. 10× the same endpoint with different `date` params). **Design and ship one server endpoint** that returns everything the screen needs for that step.
+
+## Anti-pattern
+
+```typescript
+// ❌ One network round-trip per day / row / id
+for (const date of lookaheadDates) {
+  await apiClient.get('/api/.../available-slots', { params: { doctorId, date } });
+}
+await apiClient.get('/api/doctor/get', { params: { department } });
+```
+
+## Required pattern
+
+| User / UI step | Client | Server |
+|----|--------|--------|
+| Open booking with doctor pre-selected | **1** `GET …/booking/form-context` | Doctors (optional) + date availability |
+| Refresh booking calendar for a doctor | **1** `GET …/booking/date-availability` | Slot counts for all lookahead days; **one** occupied-slots DB query |
+| Pick a date → time-slot dropdown | **1** `GET …/booking/available-slots?date=` | Full slots for that day only (lazy detail) |
+
+- **Aggregate on the server** (batch DB reads, compute in memory). Do not push loops to the client.
+- **Name endpoints by UI intent** (`form-context`, `date-availability`), not by internal table rows.
+- **PascalCase** wire keys on new DTOs (`api-json-pascal-case.mdc`).
+- Add the path to `frontend-hospital` `apiPaths.ts`, `packages/hospital-api-client` `SERVER_PATHS`, and e2e mocks when applicable.
+- After `backend-hospital` Java changes: `cd backend-hospital && gradle compileJava`.
+
+## When designing new features
+
+1. Count HTTP calls for the **primary user gesture** (open popup, submit filter, load tab). Target **1–2**, not ~N.
+2. If the same route would be called **3+ times** with only a param change → add a bulk/combined backend endpoint first.
+3. **Lazy load** is fine for drill-down detail the user has not requested yet (e.g. single-day slot list after date pick).
+
+## Reference implementations
+
+- `GET /api/appointment/booking/form-context` — `AppointmentController`, `AppointmentBookingFormContextResponse`
+- `GET /api/appointment/booking/date-availability` — `BookingDateAvailabilityResponse`, `AppointmentService.listBookingDateAvailability`
+- Frontend: `frontend-hospital/.../shared/appointmentBookingApi.ts`, `openAppointmentPopupService.ts`
+
+See also `performance-change-approval.mdc` when a combined endpoint changes DB shape or hot-path cost.

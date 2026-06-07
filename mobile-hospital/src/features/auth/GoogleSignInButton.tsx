@@ -75,7 +75,10 @@ function GoogleSignInButtonWeb({
       setGoogleLoading(true);
       setError('');
       try {
-        await completeGoogleSignIn(token, email.trim() || 'google-user');
+        await completeGoogleSignIn(
+          { idToken: null, accessToken: token },
+          email.trim() || 'google-user'
+        );
         setGoogleLoading(false);
         onSuccess();
       } catch (err) {
@@ -93,7 +96,10 @@ function GoogleSignInButtonWeb({
     try {
       const result = await promptGoogle();
       if (result?.type === 'success' && result.authentication?.accessToken) {
-        await completeGoogleSignIn(result.authentication.accessToken, email.trim() || 'google-user');
+        await completeGoogleSignIn(
+          { idToken: null, accessToken: result.authentication.accessToken },
+          email.trim() || 'google-user'
+        );
         setGoogleLoading(false);
         onSuccess();
         return;
@@ -139,9 +145,9 @@ function GoogleSignInButtonNative(props: GoogleSignInButtonProps) {
     useSessionStore.getState().setSessionRestoreInFlight(false);
     setGoogleLoading(true);
     try {
-      const token = await signInWithGoogle();
+      const credential = await signInWithGoogle();
       try {
-        await completeGoogleSignIn(token, email.trim() || 'google-user');
+        await completeGoogleSignIn(credential, email.trim() || 'google-user');
         setGoogleLoading(false);
         onSuccess();
       } catch (backendErr) {

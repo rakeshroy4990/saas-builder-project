@@ -1,6 +1,10 @@
 import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
 
-import { getOrCreateTraceId } from '@/analytics/sessionTelemetry';
+import {
+  getOrCreateTraceId,
+  recordAiChatStreamTelemetry,
+  type AiChatStreamTelemetryMeta
+} from '@/analytics/sessionTelemetry';
 import { useSessionStore } from '@/auth/sessionStore';
 import { getMobileApiBaseUrl } from '@/api/config';
 import { fetchWithAuthRetry } from '@/api/client';
@@ -15,6 +19,8 @@ export type HospitalAiChatStreamHandlers = {
   onComplete?: (data: Record<string, unknown>) => void;
 };
 
+export type AiChatStreamContext = 'education' | 'chat';
+
 type NdjsonEvent = Record<string, unknown> & {
   type?: string;
   Type?: string;
@@ -24,14 +30,27 @@ type NdjsonEvent = Record<string, unknown> & {
   Text?: string;
 };
 
+type StreamTiming = {
+  t0: number;
+  firstByteMs?: number;
+  readyMs?: number;
+  firstStatusMs?: number;
+  firstDeltaMs?: number;
+};
+
 export function pickReplyFromChatPayload(data: Record<string, unknown>): string {
   return String(data.reply ?? data.Reply ?? data.message ?? data.Message ?? '').trim();
+}
+
+function markFirstBodyByte(timing: StreamTiming): void {
+  if (timing.firstByteMs == null) timing.firstByteMs = Date.now() - timing.t0;
 }
 
 function dispatchNdjsonLine(
   line: string,
   handlers: HospitalAiChatStreamHandlers,
-  sawComplete: { value: boolean }
+  sawComplete: { value: boolean },
+  timing: StreamTiming
 ): void {
   if (!line) return;
   let obj: NdjsonEvent;
@@ -45,10 +64,16 @@ function dispatchNdjsonLine(
     .toLowerCase();
   const payload = obj.data !== undefined && obj.data !== null ? obj.data : obj.Data;
 
-  if (t === 'ready') handlers.onReady?.();
+  if (t === 'ready') {
+    if (timing.readyMs == null) timing.readyMs = Date.now() - timing.t0;
+    handlers.onReady?.();
+  }
   if (t === 'status' && payload && typeof payload === 'object' && !Array.isArray(payload)) {
     const phase = String((payload as Record<string, unknown>).phase ?? '').trim();
-    if (phase) handlers.onStatus?.(phase);
+    if (phase) {
+      if (timing.firstStatusMs == null) timing.firstStatusMs = Date.now() - timing.t0;
+      handlers.onStatus?.(phase);
+    }
   }
   if (t === 'delta' || t === 'token') {
     let chunk = '';
@@ -58,7 +83,10 @@ function dispatchNdjsonLine(
       const p = payload as Record<string, unknown>;
       chunk = String(p.token ?? p.Token ?? '');
     }
-    if (chunk) handlers.onDelta?.(chunk);
+    if (chunk) {
+      if (timing.firstDeltaMs == null) timing.firstDeltaMs = Date.now() - timing.t0;
+      handlers.onDelta?.(chunk);
+    }
   }
   if (t === 'complete' && payload && typeof payload === 'object' && !Array.isArray(payload)) {
     sawComplete.value = true;
@@ -87,6 +115,29 @@ async function readHttpErrorDetail(res: Response): Promise<string> {
   return compact.slice(0, 500) || `HTTP ${res.status}`;
 }
 
+function emitStreamTelemetry(
+  timing: StreamTiming,
+  streamMode: AiChatStreamTelemetryMeta['stream_mode'],
+  context: AiChatStreamContext | undefined,
+  httpStatus: number,
+  error?: { message: string }
+): void {
+  recordAiChatStreamTelemetry({
+    api_path: SERVER_PATHS.hospitalAiChat,
+    http_method: 'POST',
+    http_status: httpStatus,
+    duration_ms: Date.now() - timing.t0,
+    stream_mode: streamMode,
+    context,
+    time_to_first_byte_ms: timing.firstByteMs,
+    time_to_ready_ms: timing.readyMs,
+    time_to_first_status_ms: timing.firstStatusMs,
+    time_to_first_delta_ms: timing.firstDeltaMs,
+    error: Boolean(error),
+    error_message: error?.message
+  });
+}
+
 /**
  * POST `/api/hospital/ai/chat` with NDJSON streaming (matches web `postHospitalAiChatNdjson`).
  * Returns the final reply text (from `complete` event or accumulated deltas).
@@ -94,10 +145,23 @@ async function readHttpErrorDetail(res: Response): Promise<string> {
 export async function postHospitalAiChatNdjson(
   body: Record<string, unknown>,
   handlers: HospitalAiChatStreamHandlers = {},
-  signal?: AbortSignal
+  options?: { signal?: AbortSignal; context?: AiChatStreamContext }
 ): Promise<string> {
   const url = `${getMobileApiBaseUrl()}${SERVER_PATHS.hospitalAiChat}`;
+  const timing: StreamTiming = { t0: Date.now() };
+  const context = options?.context;
   let accumulated = '';
+  let streamMode: AiChatStreamTelemetryMeta['stream_mode'] = 'ndjson';
+  let telemetrySent = false;
+
+  const finishTelemetry = (
+    httpStatus: number,
+    error?: { message: string }
+  ): void => {
+    if (telemetrySent) return;
+    telemetrySent = true;
+    emitStreamTelemetry(timing, streamMode, context, httpStatus, error);
+  };
 
   const runFetch = async (): Promise<Response> => {
     const token = useSessionStore.getState().accessToken;
@@ -114,86 +178,116 @@ export async function postHospitalAiChatNdjson(
         method: 'POST',
         headers,
         body: JSON.stringify(body),
-        signal
+        signal: options?.signal
       },
       UPLOAD_API_TIMEOUT_MS
     );
   };
 
-  const res = await fetchWithAuthRetry(runFetch);
-  if (!res.ok) {
-    const detail = await readHttpErrorDetail(res);
-    throw new Error(toUserFacingApiError(new Error(detail || `HTTP ${res.status}`), 'AI chat is unavailable right now.'));
-  }
+  try {
+    const res = await fetchWithAuthRetry(runFetch);
 
-  const wrappedHandlers: HospitalAiChatStreamHandlers = {
-    ...handlers,
-    onDelta: (chunk) => {
-      accumulated += chunk;
-      handlers.onDelta?.(chunk);
-    },
-    onComplete: (data) => {
-      const finalReply = pickReplyFromChatPayload(data);
-      if (finalReply) accumulated = finalReply;
-      handlers.onComplete?.(data);
+    if (!res.ok) {
+      const detail = await readHttpErrorDetail(res);
+      const err = new Error(
+        toUserFacingApiError(new Error(detail || `HTTP ${res.status}`), 'AI chat is unavailable right now.')
+      );
+      finishTelemetry(res.status, { message: err.message });
+      throw err;
     }
-  };
 
-  const contentType = String(res.headers.get('content-type') ?? '').toLowerCase();
-  if (contentType.includes('application/json') && !contentType.includes('ndjson')) {
-    const json = (await res.json()) as Record<string, unknown>;
-    const root = json;
-    const inner = (root.data ?? root.Data) as Record<string, unknown> | undefined;
-    const reply = pickReplyFromChatPayload((inner ?? root) as Record<string, unknown>);
-    if (reply) return reply;
-    throw new Error('Empty AI response');
-  }
+    const wrappedHandlers: HospitalAiChatStreamHandlers = {
+      ...handlers,
+      onDelta: (chunk) => {
+        accumulated += chunk;
+        handlers.onDelta?.(chunk);
+      },
+      onComplete: (data) => {
+        const finalReply = pickReplyFromChatPayload(data);
+        if (finalReply) accumulated = finalReply;
+        handlers.onComplete?.(data);
+      }
+    };
 
-  if (!res.body || typeof res.body.getReader !== 'function') {
-    const text = await res.text();
+    const contentType = String(res.headers.get('content-type') ?? '').toLowerCase();
+    if (contentType.includes('application/json') && !contentType.includes('ndjson')) {
+      streamMode = 'json_fallback';
+      markFirstBodyByte(timing);
+      const json = (await res.json()) as Record<string, unknown>;
+      const root = json;
+      const inner = (root.data ?? root.Data) as Record<string, unknown> | undefined;
+      const reply = pickReplyFromChatPayload((inner ?? root) as Record<string, unknown>);
+      if (reply) {
+        finishTelemetry(res.status);
+        return reply;
+      }
+      const err = new Error('Empty AI response');
+      finishTelemetry(res.status, { message: err.message });
+      throw err;
+    }
+
+    if (!res.body || typeof res.body.getReader !== 'function') {
+      streamMode = 'buffered_fallback';
+      const text = await res.text();
+      markFirstBodyByte(timing);
+      const sawComplete = { value: false };
+      for (const line of text.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed) dispatchNdjsonLine(trimmed, wrappedHandlers, sawComplete, timing);
+      }
+      if (!accumulated.trim() && !sawComplete.value) {
+        const err = new Error('AI stream ended without a reply');
+        finishTelemetry(res.status, { message: err.message });
+        throw err;
+      }
+      finishTelemetry(res.status);
+      return accumulated.trim();
+    }
+
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
     const sawComplete = { value: false };
-    for (const line of text.split('\n')) {
-      const trimmed = line.trim();
-      if (trimmed) dispatchNdjsonLine(trimmed, wrappedHandlers, sawComplete);
-    }
-    if (!accumulated.trim() && !sawComplete.value) {
-      throw new Error('AI stream ended without a reply');
-    }
-    return accumulated.trim();
-  }
 
-  const reader = res.body.getReader();
-  const dec = new TextDecoder();
-  let buf = '';
-  const sawComplete = { value: false };
+    const drainBufferedLines = (): void => {
+      for (;;) {
+        const nl = buf.indexOf('\n');
+        if (nl < 0) break;
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        dispatchNdjsonLine(line, wrappedHandlers, sawComplete, timing);
+      }
+    };
 
-  const drainBufferedLines = (): void => {
     for (;;) {
-      const nl = buf.indexOf('\n');
-      if (nl < 0) break;
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      dispatchNdjsonLine(line, wrappedHandlers, sawComplete);
-    }
-  };
-
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (value && value.byteLength > 0) {
-      buf += dec.decode(value, { stream: !done });
-    }
-    drainBufferedLines();
-    if (done) {
-      buf += dec.decode(new Uint8Array(), { stream: false });
+      const { done, value } = await reader.read();
+      if (value && value.byteLength > 0) {
+        markFirstBodyByte(timing);
+        buf += dec.decode(value, { stream: !done });
+      }
       drainBufferedLines();
-      const tail = buf.trim();
-      if (tail) dispatchNdjsonLine(tail, wrappedHandlers, sawComplete);
-      break;
+      if (done) {
+        buf += dec.decode(new Uint8Array(), { stream: false });
+        drainBufferedLines();
+        const tail = buf.trim();
+        if (tail) dispatchNdjsonLine(tail, wrappedHandlers, sawComplete, timing);
+        break;
+      }
     }
-  }
 
-  if (!accumulated.trim() && !sawComplete.value) {
-    throw new Error('AI stream ended without a reply');
+    if (!accumulated.trim() && !sawComplete.value) {
+      const err = new Error('AI stream ended without a reply');
+      finishTelemetry(res.status, { message: err.message });
+      throw err;
+    }
+    finishTelemetry(res.status);
+    return accumulated.trim();
+  } catch (err) {
+    if (!telemetrySent) {
+      finishTelemetry(0, {
+        message: err instanceof Error ? err.message : 'AI stream failed'
+      });
+    }
+    throw err;
   }
-  return accumulated.trim();
 }

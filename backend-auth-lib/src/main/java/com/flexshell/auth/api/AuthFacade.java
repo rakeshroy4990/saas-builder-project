@@ -18,6 +18,14 @@ public interface AuthFacade {
         return Optional.empty();
     }
 
+    /**
+     * Completes login using a Google ID token from native mobile sign-in. Implementations should verify
+     * the JWT (issuer, audience, signature) and issue the same tokens as password login.
+     */
+    default Optional<LoginResponse> loginWithGoogleIdToken(String idToken) {
+        return Optional.empty();
+    }
+
     Optional<RegisterResponse> register(RegisterRequest request);
 
     /**

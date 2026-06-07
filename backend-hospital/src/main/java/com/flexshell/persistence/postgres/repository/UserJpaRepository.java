@@ -82,4 +82,45 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, String> 
               AND (u.active = true OR u.active IS NULL)
             """)
     List<String> findActiveUserIdsByRole(@Param("role") UserRole role);
+
+    Page<UserJpaEntity> findByDeletedFalse(Pageable pageable);
+
+    Page<UserJpaEntity> findByDeletedFalseAndRole(UserRole role, Pageable pageable);
+
+    @Query(
+            value = """
+                    SELECT * FROM users u
+                    WHERE u.deleted = false
+                      AND (:roleFilter IS NULL OR u.role = :roleFilter)
+                      AND (
+                        CAST(:queryPattern AS TEXT) IS NULL
+                        OR CAST(:queryPattern AS TEXT) = ''
+                        OR u.first_name ILIKE :queryPattern
+                        OR u.last_name ILIKE :queryPattern
+                        OR u.email ILIKE :queryPattern
+                        OR u.mobile_number ILIKE :queryPattern
+                        OR u.department ILIKE :queryPattern
+                        OR u.username ILIKE :queryPattern
+                      )
+                    """,
+            countQuery = """
+                    SELECT count(*) FROM users u
+                    WHERE u.deleted = false
+                      AND (:roleFilter IS NULL OR u.role = :roleFilter)
+                      AND (
+                        CAST(:queryPattern AS TEXT) IS NULL
+                        OR CAST(:queryPattern AS TEXT) = ''
+                        OR u.first_name ILIKE :queryPattern
+                        OR u.last_name ILIKE :queryPattern
+                        OR u.email ILIKE :queryPattern
+                        OR u.mobile_number ILIKE :queryPattern
+                        OR u.department ILIKE :queryPattern
+                        OR u.username ILIKE :queryPattern
+                      )
+                    """,
+            nativeQuery = true)
+    Page<UserJpaEntity> searchNonDeletedUsers(
+            @Param("queryPattern") String queryPattern,
+            @Param("roleFilter") String roleFilter,
+            Pageable pageable);
 }

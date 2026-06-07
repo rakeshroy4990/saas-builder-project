@@ -2,15 +2,21 @@ package com.flexshell.controller;
 
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
+import com.flexshell.controller.dto.PagedUserListDto;
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.controller.dto.UserSaveRequest;
 import com.flexshell.controller.dto.YoutubeQueryCacheEntryDto;
+import com.flexshell.controller.support.EntityListResponseSupport;
 import com.flexshell.service.UserService;
 import com.flexshell.service.YoutubeQueryCacheService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,19 +37,76 @@ public class UserController {
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardApiResponse<RegisterResponse>> getUser(
-            @RequestParam("userId") String userId,
+    public ResponseEntity<StandardApiResponse<?>> getUser(
+            @RequestParam(value = "userId", required = false) String userId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestParam(name = "query", required = false) String query,
+            @RequestParam(name = "role", required = false) String role,
             Authentication authentication
     ) {
-        if (!isSelf(authentication, userId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(StandardApiResponse.error("Forbidden", "USER_FORBIDDEN"));
+        if (userId != null && !userId.isBlank()) {
+            if (!isSelf(authentication, userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(StandardApiResponse.error("Forbidden", "USER_FORBIDDEN"));
+            }
+            return userService
+                    .getByUserId(trim(userId))
+                    .<ResponseEntity<StandardApiResponse<?>>>map(body -> ResponseEntity.ok(StandardApiResponse.success("OK", body)))
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(StandardApiResponse.error("User not found", "USER_NOT_FOUND")));
         }
-        return userService
-                .getByUserId(trim(userId))
-                .map(body -> ResponseEntity.ok(StandardApiResponse.success("OK", body)))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(StandardApiResponse.error("User not found", "USER_NOT_FOUND")));
+        try {
+            PagedUserListDto paged = userService.listUsers(authentication.getName(), page, size, query, role);
+            @SuppressWarnings("unchecked")
+            ResponseEntity<StandardApiResponse<?>> listResponse = (ResponseEntity) EntityListResponseSupport.ok(
+                    "Users loaded",
+                    paged.getContent(),
+                    paged.getNumber(),
+                    paged.getSize(),
+                    paged.getTotalElements());
+            return listResponse;
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "USER_LIST_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "USER_LIST_INVALID"));
+        }
+    }
+
+    @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<RegisterResponse>> save(
+            @RequestBody UserSaveRequest request,
+            Authentication authentication
+    ) {
+        try {
+            RegisterResponse data = userService.saveUser(authentication.getName(), request);
+            return ResponseEntity.ok(StandardApiResponse.success("User saved", data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "USER_SAVE_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "USER_SAVE_INVALID"));
+        }
+    }
+
+    @DeleteMapping(value = "/{businessKey}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<Void>> delete(
+            @PathVariable String businessKey,
+            Authentication authentication
+    ) {
+        try {
+            userService.deleteByBusinessKey(businessKey, authentication.getName());
+            return ResponseEntity.ok(StandardApiResponse.success("User deactivated", null));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "USER_DELETE_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "USER_DELETE_INVALID"));
+        }
     }
 
     /**

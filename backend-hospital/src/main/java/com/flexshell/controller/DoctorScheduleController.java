@@ -8,7 +8,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,6 +46,14 @@ public class DoctorScheduleController {
         }
     }
 
+    @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<DoctorScheduleResponse>> save(
+            @RequestBody DoctorScheduleUpsertRequest request,
+            Authentication authentication
+    ) {
+        return put(request, authentication);
+    }
+
     @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<DoctorScheduleResponse>> put(
             @RequestBody DoctorScheduleUpsertRequest request,
@@ -57,6 +68,26 @@ public class DoctorScheduleController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_SCHEDULE_INVALID"));
+        }
+    }
+
+    @DeleteMapping(value = "/{businessKey}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<Void>> delete(
+            @PathVariable String businessKey,
+            Authentication authentication
+    ) {
+        try {
+            if (!doctorScheduleService.deleteByBusinessKey(businessKey, authentication.getName())) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(StandardApiResponse.error("Doctor schedule not found", "DOCTOR_SCHEDULE_NOT_FOUND"));
+            }
+            return ResponseEntity.ok(StandardApiResponse.success("Doctor schedule deleted", null));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_SCHEDULE_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "DOCTOR_SCHEDULE_DELETE_INVALID"));
         }
     }
 }

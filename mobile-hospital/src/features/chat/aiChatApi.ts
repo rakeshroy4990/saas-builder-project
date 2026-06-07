@@ -27,7 +27,8 @@ export async function sendAiChatMessageStreaming(
         textSoFar += chunk;
         handlers.onDelta?.(textSoFar);
       }
-    }
+    },
+    { context: 'chat' }
   );
   if (!reply.trim()) {
     throw new Error('Empty AI response');

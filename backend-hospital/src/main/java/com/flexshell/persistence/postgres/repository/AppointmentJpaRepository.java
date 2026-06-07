@@ -18,4 +18,10 @@ public interface AppointmentJpaRepository extends JpaRepository<AppointmentJpaEn
     Page<AppointmentJpaEntity> findByCreatedByAndDeletedFalse(String createdBy, Pageable pageable);
 
     List<AppointmentJpaEntity> findByDoctorIdAndPreferredDateAndDeletedFalse(String doctorId, String preferredDate);
+
+    List<AppointmentJpaEntity> findByDoctorIdAndPreferredDateBetweenAndDeletedFalse(
+            String doctorId,
+            String fromDateInclusive,
+            String toDateInclusive
+    );
 }

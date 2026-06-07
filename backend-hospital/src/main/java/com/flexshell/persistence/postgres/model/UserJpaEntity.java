@@ -87,6 +87,12 @@ public class UserJpaEntity {
     @Column(name = "preferred_locale", length = 16)
     private String preferredLocale;
 
+    @Column(name = "profile_pic", length = 512)
+    private String profilePic;
+
+    @Column(name = "experience_summary", length = 255)
+    private String experienceSummary;
+
     private boolean deleted;
 
     public String getId() {
@@ -303,5 +309,21 @@ public class UserJpaEntity {
 
     public void setPreferredLocale(String preferredLocale) {
         this.preferredLocale = preferredLocale;
+    }
+
+    public String getProfilePic() {
+        return profilePic;
+    }
+
+    public void setProfilePic(String profilePic) {
+        this.profilePic = profilePic;
+    }
+
+    public String getExperienceSummary() {
+        return experienceSummary;
+    }
+
+    public void setExperienceSummary(String experienceSummary) {
+        this.experienceSummary = experienceSummary;
     }
 }

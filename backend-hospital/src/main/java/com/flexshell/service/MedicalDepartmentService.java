@@ -1,8 +1,11 @@
 package com.flexshell.service;
 
 import com.flexshell.controller.dto.MedicalDepartmentMessageRequest;
+import com.flexshell.controller.dto.MedicalDepartmentQueryDto;
 import com.flexshell.controller.dto.MedicalDepartmentRequest;
 import com.flexshell.controller.dto.MedicalDepartmentResponse;
+import com.flexshell.controller.dto.PagedMedicalDepartmentListDto;
+import com.flexshell.controller.support.EntityQuerySupport;
 import com.flexshell.medicaldepartment.MedicalDepartmentEntity;
 import com.flexshell.medicaldepartment.MedicalDepartmentLocaleCatalog;
 import com.flexshell.persistence.api.MedicalDepartmentAccess;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class MedicalDepartmentService {
@@ -103,13 +107,69 @@ public class MedicalDepartmentService {
     }
 
     public List<MedicalDepartmentResponse> getAll(int page, int size, String locale) {
+        return listPaged(page, size, new MedicalDepartmentQueryDto(), locale).getContent();
+    }
+
+    /**
+     * Business key: department {@code id} (String) or {@code code} (case-insensitive).
+     */
+    public PagedMedicalDepartmentListDto listPaged(int page, int size, MedicalDepartmentQueryDto query, String locale) {
         MedicalDepartmentAccess repository = requireDepartmentAccess();
-        int safePage = Math.max(0, page);
-        int safeSize = Math.max(1, size);
-        return repository.findAll(PageRequest.of(safePage, safeSize))
+        int safePage = EntityQuerySupport.safePage(page);
+        int safeSize = EntityQuerySupport.safeSize(size);
+        List<MedicalDepartmentEntity> filtered = repository.findAll(PageRequest.of(0, Integer.MAX_VALUE))
                 .stream()
+                .filter(entity -> matchesQuery(entity, query))
+                .toList();
+        int total = filtered.size();
+        int from = Math.min(safePage * safeSize, total);
+        int to = Math.min(from + safeSize, total);
+        List<MedicalDepartmentResponse> content = filtered.subList(from, to).stream()
                 .map(entity -> toResponse(entity, locale))
                 .toList();
+        int totalPages = safeSize == 0 ? 0 : (int) Math.ceil((double) total / safeSize);
+        return new PagedMedicalDepartmentListDto(content, total, totalPages, safePage, safeSize);
+    }
+
+    public boolean deleteByBusinessKey(String businessKey) {
+        String id = resolveBusinessKey(businessKey);
+        return delete(id);
+    }
+
+    private String resolveBusinessKey(String businessKey) {
+        String key = businessKey == null ? "" : businessKey.trim();
+        if (key.isBlank()) {
+            throw new IllegalArgumentException("Business key is required");
+        }
+        MedicalDepartmentAccess repository = requireDepartmentAccess();
+        if (repository.existsById(key)) {
+            return key;
+        }
+        return repository.findByCodeIgnoreCase(key.toUpperCase(Locale.ROOT))
+                .map(MedicalDepartmentEntity::getId)
+                .orElseThrow(() -> new IllegalArgumentException("Department not found"));
+    }
+
+    private static boolean matchesQuery(MedicalDepartmentEntity entity, MedicalDepartmentQueryDto query) {
+        if (query == null) {
+            return true;
+        }
+        String code = query.getCode();
+        if (code != null && !code.isBlank()
+                && !entity.getCode().equalsIgnoreCase(code.trim())) {
+            return false;
+        }
+        String name = query.getName();
+        if (name != null && !name.isBlank()
+                && (entity.getName() == null || !entity.getName().toLowerCase(Locale.ROOT)
+                .contains(name.trim().toLowerCase(Locale.ROOT)))) {
+            return false;
+        }
+        Boolean active = query.getActive();
+        if (active != null && entity.isActive() != active) {
+            return false;
+        }
+        return true;
     }
 
     private void persistLocaleMessages(String departmentId, MedicalDepartmentRequest request) {

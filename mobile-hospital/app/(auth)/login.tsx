@@ -22,7 +22,7 @@ import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton';
 import {
   ensureGoogleSignInConfigured,
   isGoogleSignInConfigured,
-  warmGoogleSignInNative
+  warmGoogleLogin
 } from '@/features/auth/googleLogin';
 import { useSessionStore } from '@/auth/sessionStore';
 import { colors } from '@/theme/colors';
@@ -43,9 +43,11 @@ export default function LoginScreen() {
   const authBusy = loading || googleLoading;
 
   useEffect(() => {
-    if (!googleConfigured || Platform.OS === 'web') return;
-    ensureGoogleSignInConfigured();
-    void warmGoogleSignInNative();
+    if (!googleConfigured) return;
+    if (Platform.OS !== 'web') {
+      ensureGoogleSignInConfigured();
+    }
+    warmGoogleLogin();
   }, [googleConfigured]);
 
   const onGoogleSuccess = useCallback(() => {

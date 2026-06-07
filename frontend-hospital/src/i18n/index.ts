@@ -8,6 +8,7 @@ import { useAppStore } from '../store/useAppStore';
 import { pinia } from '../store/pinia';
 import { refreshHospitalLocalizedUi } from '../services/domain/hospital/i18n/refreshLocalizedUi';
 import { reloadMedicalDepartmentOptionsForActiveLocale } from '../services/domain/hospital/shared/medicalDepartments';
+import { reloadHomeDoctorsForActiveLocale } from '../services/domain/hospital/home/loadDoctorsService';
 import { refreshHospitalLocalizedChatWelcome } from '../services/domain/hospital/chat/localizedChatWelcome';
 import { applyCachedServerI18nBundles, attachServerI18nBundles } from './serverI18nBundles';
 
@@ -44,6 +45,7 @@ export async function setAppLocale(next: LocaleCode): Promise<void> {
   const composer = i18n.global as Composer;
   composer.locale.value = next;
   await reloadMedicalDepartmentOptionsForActiveLocale();
+  await reloadHomeDoctorsForActiveLocale();
   refreshHospitalLocalizedUi(composer);
   refreshHospitalLocalizedChatWelcome(composer);
 }

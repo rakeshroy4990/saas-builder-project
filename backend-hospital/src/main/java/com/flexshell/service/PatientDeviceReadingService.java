@@ -3,6 +3,7 @@ package com.flexshell.service;
 import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.PatientDeviceReadingCreateRequest;
 import com.flexshell.controller.dto.PatientDeviceReadingResponse;
+import com.flexshell.controller.dto.PatientDeviceReadingSaveRequest;
 import com.flexshell.persistence.postgres.model.PatientDeviceReadingJpaEntity;
 import com.flexshell.persistence.postgres.model.UserJpaEntity;
 import com.flexshell.persistence.postgres.repository.PatientDeviceReadingJpaRepository;
@@ -20,6 +21,7 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
@@ -71,6 +73,68 @@ public class PatientDeviceReadingService {
                 deviceKey
         );
         return toResponse(saved);
+    }
+
+    @Transactional
+    public PatientDeviceReadingResponse save(String actorUserId, PatientDeviceReadingSaveRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+        if (request.getExternalId() != null) {
+            return update(actorUserId, request);
+        }
+        return create(actorUserId, request.toCreateRequest());
+    }
+
+    @Transactional
+    public void deleteByBusinessKey(String actorUserId, UUID externalId) {
+        UserRole role = resolveRole(actorUserId);
+        if (role != UserRole.PATIENT) {
+            throw new SecurityException("Only patients can delete their device readings.");
+        }
+        if (externalId == null) {
+            throw new IllegalArgumentException("ExternalId is required");
+        }
+        PatientDeviceReadingJpaEntity row = readingRepository.findByExternalIdAndDeletedFalse(externalId)
+                .orElseThrow(() -> new IllegalArgumentException("Device reading not found"));
+        if (!actorUserId.equals(row.getPatientUserId())) {
+            throw new SecurityException("Forbidden");
+        }
+        row.setDeleted(true);
+        readingRepository.save(row);
+    }
+
+    @Transactional
+    PatientDeviceReadingResponse update(String actorUserId, PatientDeviceReadingSaveRequest request) {
+        UserRole role = resolveRole(actorUserId);
+        if (role != UserRole.PATIENT) {
+            throw new SecurityException("Only patients can save device readings to their profile.");
+        }
+        UUID externalId = request.getExternalId();
+        PatientDeviceReadingJpaEntity row = readingRepository.findByExternalIdAndDeletedFalse(externalId)
+                .orElseThrow(() -> new IllegalArgumentException("Device reading not found"));
+        if (!actorUserId.equals(row.getPatientUserId())) {
+            throw new SecurityException("Forbidden");
+        }
+        if (request.getDeviceKey() != null && !request.getDeviceKey().isBlank()) {
+            row.setDeviceKey(request.getDeviceKey().trim());
+        }
+        if (request.getDeviceName() != null) {
+            row.setDeviceName(trimToNull(request.getDeviceName()));
+        }
+        if (request.getDeviceType() != null && !request.getDeviceType().isBlank()) {
+            row.setDeviceType(request.getDeviceType().trim());
+        }
+        if (request.getMeasurements() != null && !request.getMeasurements().isEmpty()) {
+            row.setMeasurements(new LinkedHashMap<>(request.getMeasurements()));
+        }
+        if (request.getRecordedAt() != null) {
+            row.setRecordedAt(request.getRecordedAt());
+        }
+        if (request.getRawBytesBase64() != null) {
+            row.setRawBytes(decodeRawBytes(request.getRawBytesBase64()));
+        }
+        return toResponse(readingRepository.save(row));
     }
 
     @Transactional(readOnly = true)

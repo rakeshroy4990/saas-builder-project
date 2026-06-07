@@ -1,7 +1,9 @@
 package com.flexshell.controller;
 
+import com.flexshell.controller.dto.AppointmentResponse;
 import com.flexshell.controller.dto.PagedAppointmentListDto;
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.controller.support.EntityListResponseSupport;
 import com.flexshell.service.AppointmentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.flexshell.controller.dto.AppointmentResponse;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/appointments")
@@ -26,14 +28,19 @@ public class AdminAppointmentController {
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardApiResponse<PagedAppointmentListDto>> listAll(
+    public ResponseEntity<StandardApiResponse<List<AppointmentResponse>>> listAll(
             Authentication authentication,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size
     ) {
         try {
-            PagedAppointmentListDto data = appointmentService.listAllAppointmentsPagedForAdmin(authentication.getName(), page, size);
-            return ResponseEntity.ok(StandardApiResponse.success("Appointments loaded", data));
+            PagedAppointmentListDto paged = appointmentService.listAllAppointmentsPagedForAdmin(authentication.getName(), page, size);
+            return EntityListResponseSupport.ok(
+                    "Appointments loaded",
+                    paged.getContent(),
+                    paged.getNumber(),
+                    paged.getSize(),
+                    paged.getTotalElements());
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(StandardApiResponse.error(ex.getMessage(), "APPOINTMENT_ADMIN_FORBIDDEN"));

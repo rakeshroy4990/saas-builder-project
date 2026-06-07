@@ -6,12 +6,18 @@ import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.auth.UserRole;
 import com.flexshell.auth.api.RegisterRequest;
 import com.flexshell.auth.api.RegisterResponse;
+import com.flexshell.controller.dto.PagedUserListDto;
+import com.flexshell.controller.dto.UserSaveRequest;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
@@ -31,6 +37,29 @@ public class UserService {
             return Optional.empty();
         }
         return repo.findById(actorUserId.trim()).map(this::toRegisterResponse);
+    }
+
+    /**
+     * Admin directory of users with optional text search and role filter.
+     */
+    public PagedUserListDto listUsers(String actorUserId, int page, int size, String query, String roleFilterRaw) {
+        UserAccess repo = userAccessProvider.getIfAvailable();
+        if (repo == null) {
+            throw new IllegalStateException("User persistence unavailable");
+        }
+        AdminAuthorizationSupport.requireAdminUser(repo, actorUserId);
+        int safePage = Math.max(page, 0);
+        int safeSize = size <= 0 ? 20 : Math.min(size, 100);
+        UserRole roleFilter = parseRoleFilter(roleFilterRaw);
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+        Page<UserEntity> result = repo.searchUsers(query, roleFilter, pageable);
+        List<RegisterResponse> content = result.getContent().stream().map(this::toRegisterResponse).toList();
+        return new PagedUserListDto(
+                content,
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.getNumber(),
+                result.getSize());
     }
 
     public RegisterResponse updateProfile(String actorUserId, RegisterRequest request) {
@@ -91,6 +120,12 @@ public class UserService {
             if (request.getSmcRegistrationNumber() != null && !request.getSmcRegistrationNumber().trim().isEmpty()) {
                 user.setSmcRegistrationNumber(request.getSmcRegistrationNumber().trim());
             }
+            if (request.getProfilePic() != null) {
+                user.setProfilePic(request.getProfilePic().trim());
+            }
+            if (request.getExperienceSummary() != null) {
+                user.setExperienceSummary(request.getExperienceSummary().trim());
+            }
             String q = user.getQualifications() == null ? "" : user.getQualifications().trim();
             String smc = user.getSmcName() == null ? "" : user.getSmcName().trim();
             String reg = user.getSmcRegistrationNumber() == null ? "" : user.getSmcRegistrationNumber().trim();
@@ -115,6 +150,41 @@ public class UserService {
         user.setUpdatedTimestamp(Instant.now());
         UserEntity saved = repo.save(user);
         return toRegisterResponse(saved);
+    }
+
+    public RegisterResponse saveUser(String actorUserId, UserSaveRequest request) {
+        String userId = request.getUserId() == null ? "" : request.getUserId().trim();
+        if (userId.isBlank()) {
+            throw new IllegalArgumentException("UserId is required for save");
+        }
+        UserAccess repo = userAccessProvider.getIfAvailable();
+        if (repo == null) {
+            throw new IllegalStateException("User persistence unavailable");
+        }
+        boolean isSelf = userId.equalsIgnoreCase(actorUserId.trim());
+        if (!isSelf) {
+            AdminAuthorizationSupport.requireAdminUser(repo, actorUserId);
+        }
+        if (!repo.findById(userId).isPresent()) {
+            throw new IllegalArgumentException("User not found");
+        }
+        return updateProfile(userId, request);
+    }
+
+    public void deleteByBusinessKey(String targetUserId, String actorUserId) {
+        UserAccess repo = userAccessProvider.getIfAvailable();
+        if (repo == null) {
+            throw new IllegalStateException("User persistence unavailable");
+        }
+        String targetId = targetUserId == null ? "" : targetUserId.trim();
+        if (targetId.isBlank()) {
+            throw new IllegalArgumentException("User id is required");
+        }
+        if (targetId.equalsIgnoreCase(actorUserId.trim())) {
+            deactivateAccount(targetId);
+            return;
+        }
+        deactivateUserAsAdmin(targetId, actorUserId);
     }
 
     public void deactivateAccount(String actorUserId) {
@@ -182,7 +252,9 @@ public class UserService {
                 saved.getRoleStatus() == null ? RoleRequestStatus.ACTIVE.name() : saved.getRoleStatus().name(),
                 saved.getRequestedRole() == null ? null : saved.getRequestedRole().name(),
                 saved.getRoleRejectedReason(),
-                saved.getPreferredLocale());
+                saved.getPreferredLocale(),
+                saved.getProfilePic(),
+                saved.getExperienceSummary());
     }
 
     private static String nz(String s) {
@@ -201,5 +273,16 @@ public class UserService {
         String l = lastName == null ? "" : lastName.trim();
         String joined = (f + " " + l).trim();
         return joined.isEmpty() ? "User" : joined;
+    }
+
+    private static UserRole parseRoleFilter(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return UserRole.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid role filter. Use PATIENT, DOCTOR, or ADMIN.");
+        }
     }
 }

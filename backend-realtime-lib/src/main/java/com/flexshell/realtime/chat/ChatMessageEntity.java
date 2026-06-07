@@ -31,7 +31,7 @@ public class ChatMessageEntity {
     private Instant createdTimestamp;
 
     @Field("ExpiresAt")
-    @Indexed(expireAfterSeconds = 0)
+    @Indexed(expireAfter = "0s")
     private Instant expiresAt;
 
     public String getId() {

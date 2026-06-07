@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -67,6 +67,7 @@ function prefillFromSession(base: AppointmentBookingForm): AppointmentBookingFor
 export function BookAppointmentScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const params = useLocalSearchParams<{ department?: string; doctorId?: string }>();
   const insets = useSafeAreaInsets();
   const [form, setForm] = useState<AppointmentBookingForm>(() => prefillFromSession(emptyForm()));
   const [departments, setDepartments] = useState<SelectOption[]>([]);
@@ -145,13 +146,37 @@ export function BookAppointmentScreen() {
       try {
         const list = await fetchMedicalDepartments();
         setDepartments(list);
+        const initialDepartment = String(params.department ?? '').trim();
+        const initialDoctorId = String(params.doctorId ?? '').trim();
+        if (initialDepartment) {
+          setDoctorLoading(true);
+          try {
+            const doctorList = await fetchDoctorsByDepartment(initialDepartment);
+            setDoctors(doctorList);
+            const nextDoctorId =
+              initialDoctorId && doctorList.some((row) => row.value === initialDoctorId)
+                ? initialDoctorId
+                : '';
+            patchForm({ department: initialDepartment, doctorId: nextDoctorId });
+            if (nextDoctorId) {
+              await refreshDates(nextDoctorId);
+            } else if (doctorList.length === 0) {
+              setDoctorLoadError(t('appointment.book.noDoctors'));
+            }
+          } catch {
+            setDoctors([]);
+            setDoctorLoadError(t('appointment.book.doctorLoadFailed'));
+          } finally {
+            setDoctorLoading(false);
+          }
+        }
       } catch {
         setFormError(t('appointment.book.departmentsLoadFailed'));
       } finally {
         setInitLoading(false);
       }
     })();
-  }, [t]);
+  }, [params.department, params.doctorId, patchForm, refreshDates, t]);
 
   const onDepartmentChange = useCallback(
     async (department: string) => {

@@ -193,6 +193,56 @@ export type AuthLoginTelemetryMeta = {
   http_method?: string;
 };
 
+export type AiChatStreamTelemetryMeta = {
+  api_path: string;
+  http_method?: string;
+  http_status?: number;
+  duration_ms: number;
+  stream_mode: 'ndjson' | 'json_fallback' | 'buffered_fallback';
+  context?: string;
+  time_to_first_byte_ms?: number;
+  time_to_ready_ms?: number;
+  time_to_first_status_ms?: number;
+  time_to_first_delta_ms?: number;
+  error?: boolean;
+  error_message?: string;
+};
+
+/** Records NDJSON AI chat timing milestones into session_telemetry (non-blocking). */
+export function recordAiChatStreamTelemetry(meta: AiChatStreamTelemetryMeta): void {
+  void (async () => {
+    try {
+      await emitLoggedInSessionSummary({
+        kind: 'ai_chat_stream',
+        api_path: meta.api_path,
+        http_method: meta.http_method ?? 'POST',
+        http_status: meta.http_status,
+        duration_ms: meta.duration_ms,
+        reason_code: meta.error ? 'stream_error' : 'stream_complete',
+        attributes: {
+          stream_mode: meta.stream_mode,
+          ...(meta.context ? { context: meta.context } : {}),
+          ...(meta.time_to_first_byte_ms != null
+            ? { time_to_first_byte_ms: meta.time_to_first_byte_ms }
+            : {}),
+          ...(meta.time_to_ready_ms != null ? { time_to_ready_ms: meta.time_to_ready_ms } : {}),
+          ...(meta.time_to_first_status_ms != null
+            ? { time_to_first_status_ms: meta.time_to_first_status_ms }
+            : {}),
+          ...(meta.time_to_first_delta_ms != null
+            ? { time_to_first_delta_ms: meta.time_to_first_delta_ms }
+            : {}),
+          ...(meta.error ? { error: true } : {})
+        },
+        ...(meta.error_message ? { error_message: meta.error_message.slice(0, 500) } : {})
+      });
+      scheduleFlushSessionTelemetry();
+    } catch {
+      // Non-blocking
+    }
+  })();
+}
+
 type AuthMethod = 'password' | 'google' | 'token_refresh';
 
 function emitAuthLoginSummary(authMethod: AuthMethod, meta?: AuthLoginTelemetryMeta): Promise<void> {

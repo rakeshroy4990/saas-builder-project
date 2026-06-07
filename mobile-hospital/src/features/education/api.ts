@@ -54,6 +54,7 @@ export async function fetchEducationKeyTopics(bookName: string, limit = 12): Pro
 export type EducationChatTurn = { role: 'user' | 'assistant'; content: string };
 
 export type EducationStreamHandlers = {
+  onReady?: () => void;
   onStatus?: (phase: string) => void;
   onDelta?: (textSoFar: string) => void;
 };
@@ -76,16 +77,21 @@ export async function askEducationQuestionStreaming(
 
   let textSoFar = '';
   let completePayload: Record<string, unknown> | null = null;
-  const streamed = await postHospitalAiChatNdjson(payload, {
-    onStatus: handlers.onStatus,
-    onDelta: (chunk) => {
-      textSoFar += chunk;
-      handlers.onDelta?.(textSoFar);
+  const streamed = await postHospitalAiChatNdjson(
+    payload,
+    {
+      onReady: handlers.onReady,
+      onStatus: handlers.onStatus,
+      onDelta: (chunk) => {
+        textSoFar += chunk;
+        handlers.onDelta?.(textSoFar);
+      },
+      onComplete: (data) => {
+        completePayload = data;
+      }
     },
-    onComplete: (data) => {
-      completePayload = data;
-    }
-  });
+    { context: 'education' }
+  );
   return parseEducationChatComplete(completePayload, streamed || textSoFar);
 }
 

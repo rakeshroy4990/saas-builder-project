@@ -53,6 +53,14 @@ public class RegisterRequest {
     @JsonAlias({"PreferredLocale"})
     private String preferredLocale;
 
+    @JsonAlias({"ProfilePic"})
+    @Size(max = 512, message = "ProfilePic must be at most 512 characters")
+    private String profilePic;
+
+    @JsonAlias({"ExperienceSummary"})
+    @Size(max = 255, message = "ExperienceSummary must be at most 255 characters")
+    private String experienceSummary;
+
     public String getFirstName() {
         return firstName;
     }
@@ -155,5 +163,21 @@ public class RegisterRequest {
 
     public void setPreferredLocale(String preferredLocale) {
         this.preferredLocale = preferredLocale;
+    }
+
+    public String getProfilePic() {
+        return profilePic;
+    }
+
+    public void setProfilePic(String profilePic) {
+        this.profilePic = profilePic;
+    }
+
+    public String getExperienceSummary() {
+        return experienceSummary;
+    }
+
+    public void setExperienceSummary(String experienceSummary) {
+        this.experienceSummary = experienceSummary;
     }
 }

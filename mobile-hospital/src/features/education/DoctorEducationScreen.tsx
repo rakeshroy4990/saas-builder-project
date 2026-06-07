@@ -33,6 +33,7 @@ import {
   assistantDisplayBody,
   assistantDisplayFollowUps
 } from '@/features/education/educationAssistantPayload';
+import { educationStreamStatusLabel } from '@/features/education/educationStreamStatus';
 import { loadEducationBooksCached, peekCachedEducationBooks } from '@/features/education/booksCache';
 import { EducationBookPicker } from '@/features/education/EducationBookPicker';
 import { EducationAttachmentSequenceModal } from '@/features/education/EducationAttachmentSequenceModal';
@@ -340,6 +341,7 @@ export function DoctorEducationScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [history, setHistory] = useState<EducationChatTurn[]>([]);
   const [sending, setSending] = useState(false);
+  const [streamPhaseLabel, setStreamPhaseLabel] = useState('');
   const [readingFile, setReadingFile] = useState(false);
   const [chatError, setChatError] = useState('');
   const [prescriptionQuery, setPrescriptionQuery] = useState('');
@@ -558,6 +560,7 @@ export function DoctorEducationScreen() {
 
     setChatError('');
     setSending(true);
+    setStreamPhaseLabel(t('education.streamLoadingAnswer'));
     if (hadAttachments) setClinicalAttachments([]);
     if (!opts.question) setQuestion('');
 
@@ -589,7 +592,18 @@ export function DoctorEducationScreen() {
       priorHistory = history.slice(0, userTurnsBefore * 2);
     }
 
-    setMessages([...priorMessages, userMessage, { id: assistantId, role: 'assistant', content: '' }]);
+    setMessages([
+      ...priorMessages,
+      userMessage,
+      { id: assistantId, role: 'assistant', content: t('education.streamLoadingAnswer') }
+    ]);
+
+    let streamAcc = '';
+    const patchAssistantBubble = (content: string) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, content } : m))
+      );
+    };
 
     try {
       const result = await askEducationQuestionStreaming(
@@ -598,11 +612,20 @@ export function DoctorEducationScreen() {
         priorHistory,
         conversationId,
         {
+          onStatus: (phase) => {
+            if (!streamAcc.trim()) {
+              const label = educationStreamStatusLabel(phase, t);
+              patchAssistantBubble(label);
+              setStreamPhaseLabel(label);
+            }
+          },
           onDelta: (textSoFar) => {
+            streamAcc = textSoFar;
             const display = assistantDisplayBody(textSoFar) || textSoFar;
-            setMessages((prev) =>
-              prev.map((m) => (m.id === assistantId ? { ...m, content: display } : m))
-            );
+            if (display.trim()) {
+              patchAssistantBubble(display);
+              setStreamPhaseLabel('');
+            }
           }
         },
         retrievalQuestion
@@ -633,6 +656,7 @@ export function DoctorEducationScreen() {
       setChatError(msg || t('education.chatFailed'));
     } finally {
       setSending(false);
+      setStreamPhaseLabel('');
     }
   }
 
@@ -793,7 +817,7 @@ export function DoctorEducationScreen() {
   const typingFooter = sending ? (
     <View style={styles.typingRow}>
       <ActivityIndicator color={colors.primary} />
-      <Text style={styles.typingText}>{t('education.sending')}</Text>
+      <Text style={styles.typingText}>{streamPhaseLabel || t('education.sending')}</Text>
     </View>
   ) : null;
 
@@ -1085,7 +1109,7 @@ export function DoctorEducationScreen() {
             ) : null}
           </View>
 
-          {renderBooksComposer(insets.bottom)}
+          {renderBooksComposer()}
         </View>
       ) : tab === 'prescription' ? (
         <View style={styles.prescriptionPane}>
@@ -1106,7 +1130,7 @@ export function DoctorEducationScreen() {
               </View>
             ))}
           </ScrollView>
-          {renderPrescriptionComposer(insets.bottom)}
+          {renderPrescriptionComposer()}
         </View>
       ) : null}
       {tab === 'books' ? renderBooksFullScreenModal() : null}
@@ -1164,10 +1188,12 @@ const styles = StyleSheet.create({
     color: colors.text
   },
   booksPane: {
-    flex: 1
+    flex: 1,
+    minHeight: 0
   },
   prescriptionPane: {
-    flex: 1
+    flex: 1,
+    minHeight: 0
   },
   prescriptionScroll: {
     flex: 1
@@ -1385,7 +1411,8 @@ const styles = StyleSheet.create({
   composer: {
     paddingHorizontal: 0,
     paddingTop: 0,
-    paddingBottom: 4,
+    paddingBottom: 0,
+    marginTop: 'auto',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
@@ -1401,8 +1428,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 6
+    paddingHorizontal: 12,
+    paddingVertical: 4
   },
   composerMetaRow: {
     marginHorizontal: 16,
@@ -1424,8 +1451,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.text,
     paddingHorizontal: 12,
-    paddingTop: Platform.OS === 'ios' ? 10 : 8,
-    paddingBottom: Platform.OS === 'ios' ? 10 : 8,
+    paddingTop: Platform.OS === 'ios' ? 10 : 6,
+    paddingBottom: Platform.OS === 'ios' ? 10 : 6,
     maxHeight: COMPOSER_INPUT_MAX_HEIGHT,
     textAlignVertical: 'center'
   },

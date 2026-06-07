@@ -3,6 +3,7 @@ package com.flexshell.controller;
 import com.flexshell.controller.dto.NotificationResponse;
 import com.flexshell.controller.dto.NotificationUnreadCountResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.controller.support.EntityListResponseSupport;
 import com.flexshell.notification.NotificationService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -35,7 +37,7 @@ public class NotificationController {
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StandardApiResponse<Page<NotificationResponse>>> list(
+    public ResponseEntity<StandardApiResponse<List<NotificationResponse>>> list(
             @RequestParam(defaultValue = "false") boolean unreadOnly,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             Authentication authentication
@@ -45,7 +47,12 @@ public class NotificationController {
             return unauthorized();
         }
         Page<NotificationResponse> page = notificationService.listForUser(userId, unreadOnly, pageable);
-        return ResponseEntity.ok(StandardApiResponse.success("Notifications fetched", page));
+        return EntityListResponseSupport.ok(
+                "Notifications fetched",
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements());
     }
 
     @GetMapping(value = "/unread-count", produces = MediaType.APPLICATION_JSON_VALUE)

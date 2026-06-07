@@ -5,6 +5,7 @@ import { authLoginTelemetryFromResponse, AUTH_TELEMETRY_PATHS } from '@/analytic
 import { recordSuccessfulLoginTelemetry } from '@/analytics/sessionTelemetry';
 import { apiClient } from '@/api/client';
 import { AUTH_API_TIMEOUT_MS } from '@/api/timeouts';
+import { useBiometricLockStore } from '@/auth/biometricLockStore';
 import { persistSessionSecrets } from '@/auth/secureTokens';
 import { useSessionStore, type SessionUser } from '@/auth/sessionStore';
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
@@ -15,8 +16,10 @@ import {
   isExpoGoClient,
   isNativeGoogleSignInAvailable,
   signInWithGoogleNative,
-  warmGoogleSignInNative
+  warmGoogleSignInNative,
+  type GoogleNativeCredential
 } from './googleSignInNative';
+import { warmAuthBackend } from './warmAuthBackend';
 
 export {
   ensureGoogleSignInConfigured,
@@ -24,13 +27,26 @@ export {
   isNativeGoogleSignInAvailable,
   warmGoogleSignInNative
 } from './googleSignInNative';
+export { warmAuthBackend } from './warmAuthBackend';
 export { isGoogleWebAuthAvailable, useGoogleWebAuthRequest } from './googleSignInWeb';
 
-export async function completeGoogleSignIn(googleAccessToken: string, identityFallback: string): Promise<void> {
+export type GoogleSignInCredential = GoogleNativeCredential | { idToken: null; accessToken: string };
+
+function googleLoginRequestBody(credential: GoogleSignInCredential): Record<string, string> {
+  if (credential.idToken) {
+    return { IdToken: credential.idToken };
+  }
+  return { AccessToken: credential.accessToken };
+}
+
+export async function completeGoogleSignIn(
+  credential: GoogleSignInCredential,
+  identityFallback: string
+): Promise<void> {
   const startedAtMs = Date.now();
   const response = await apiClient.post(
     SERVER_PATHS.googleLogin,
-    { AccessToken: googleAccessToken },
+    googleLoginRequestBody(credential),
     { timeout: AUTH_API_TIMEOUT_MS }
   );
   const parsed = parseAuthLoginPayload(response.data, identityFallback);
@@ -48,6 +64,7 @@ export async function completeGoogleSignIn(googleAccessToken: string, identityFa
     user,
     expiresInSeconds: parsed.expiresInSeconds ?? DEFAULT_ACCESS_TOKEN_TTL_SECONDS
   });
+  useBiometricLockStore.getState().grantUnlockGrace();
   persistSessionSecrets(parsed.refreshToken, user);
   recordSuccessfulLoginTelemetry(
     'google',
@@ -58,7 +75,7 @@ export async function completeGoogleSignIn(googleAccessToken: string, identityFa
 }
 
 /** Preferred sign-in path on Android/iOS (native SDK, no browser redirect). */
-export async function signInWithGoogle(): Promise<string> {
+export async function signInWithGoogle(): Promise<GoogleSignInCredential> {
   if (isNativeGoogleSignInAvailable()) {
     try {
       return await signInWithGoogleNative();
@@ -74,4 +91,10 @@ export function isGoogleSignInConfigured(): boolean {
   if (Platform.OS === 'web') return true;
   const ids = getGoogleOAuthClientIds();
   return Boolean(ids.webClientId);
+}
+
+/** Pre-warm Cloud Run and native Google SDK while the login form is visible. */
+export function warmGoogleLogin(): void {
+  warmAuthBackend();
+  void warmGoogleSignInNative();
 }

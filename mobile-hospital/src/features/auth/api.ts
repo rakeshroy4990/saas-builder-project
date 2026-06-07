@@ -47,6 +47,8 @@ export async function loginWithPassword(identity: string, password: string): Pro
   });
 
   persistSessionSecrets(parsed.refreshToken, user);
+  const { useBiometricLockStore } = await import('@/auth/biometricLockStore');
+  useBiometricLockStore.getState().grantUnlockGrace();
   recordSuccessfulLoginTelemetry(
     'password',
     authLoginTelemetryFromResponse(AUTH_TELEMETRY_PATHS.login, startedAtMs, response.status)

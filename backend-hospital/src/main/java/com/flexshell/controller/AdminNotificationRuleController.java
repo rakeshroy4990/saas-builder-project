@@ -2,6 +2,7 @@ package com.flexshell.controller;
 
 import com.flexshell.controller.dto.CreateNotificationRuleRequest;
 import com.flexshell.controller.dto.NotificationEventRuleResponse;
+import com.flexshell.controller.dto.NotificationRuleSaveRequest;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.dto.UpdateNotificationRuleRequest;
 import com.flexshell.notification.NotificationRuleAdminService;
@@ -36,6 +37,19 @@ public class AdminNotificationRuleController {
     public ResponseEntity<StandardApiResponse<List<NotificationEventRuleResponse>>> listRules() {
         List<NotificationEventRuleResponse> data = notificationRuleAdminService.listRules();
         return ResponseEntity.ok(StandardApiResponse.success("Notification rules loaded", data));
+    }
+
+    @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<NotificationEventRuleResponse>> saveRule(
+            @RequestBody NotificationRuleSaveRequest request
+    ) {
+        try {
+            NotificationEventRuleResponse data = notificationRuleAdminService.saveRule(request);
+            return ResponseEntity.ok(StandardApiResponse.success("Notification rule saved", data));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "NOTIFICATION_RULE_SAVE_INVALID"));
+        }
     }
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)

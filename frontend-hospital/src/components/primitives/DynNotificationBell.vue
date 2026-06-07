@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import type { NotificationItem } from '@saas-builder/hospital-api-client';
@@ -12,10 +12,21 @@ defineProps<{
   config?: Record<string, unknown>;
 }>();
 
+const PANEL_MAX_WIDTH = 380;
+const PANEL_OFFSET_Y = 8;
+const PAGE_HORIZONTAL_PADDING = 16;
+const MOBILE_MEDIA_QUERY = '(max-width: 767px)';
+
 const { t } = useI18n();
 const router = useRouter();
 const appStore = useAppStore(pinia);
 const rootRef = ref<HTMLElement | null>(null);
+const panelRef = ref<HTMLElement | null>(null);
+const panelStyle = ref<{ top: string; left: string }>({
+  top: '0px',
+  left: '0px'
+});
+const panelPositioned = ref(false);
 
 const notificationsState = computed(() => {
   return (appStore.getData('hospital', 'Notifications') ?? {}) as {
@@ -73,7 +84,108 @@ async function togglePanel() {
       isLoading: true
     });
     await runService('load-notifications');
+    await positionPanelAfterOpen();
   }
+}
+
+function getViewportMetrics() {
+  const visualViewport = window.visualViewport;
+  return {
+    width: visualViewport?.width ?? window.innerWidth,
+    offsetLeft: visualViewport?.offsetLeft ?? 0
+  };
+}
+
+function findPageRoot(): HTMLElement | null {
+  let node: HTMLElement | null | undefined = rootRef.value;
+  while (node) {
+    const id = node.id ?? '';
+    if (id.endsWith('-page') && !id.endsWith('-page-host')) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
+/** Left edge shared by header, hero, and section cards (`hosp.page.root` horizontal padding). */
+function getSiteCardAlignmentLeft(): number {
+  const pageRoot = findPageRoot();
+  if (pageRoot) {
+    const rect = pageRoot.getBoundingClientRect();
+    const padLeft = Number.parseFloat(window.getComputedStyle(pageRoot).paddingLeft) || 0;
+    return rect.left + padLeft;
+  }
+
+  let node: HTMLElement | null | undefined = rootRef.value;
+  while (node) {
+    const id = node.id ?? '';
+    if (id.includes('hospital-public-header') && !id.includes('actions') && !id.includes('nav')) {
+      return node.getBoundingClientRect().left;
+    }
+    node = node.parentElement;
+  }
+
+  const { offsetLeft } = getViewportMetrics();
+  return offsetLeft + PAGE_HORIZONTAL_PADDING;
+}
+
+function getSiteCardAlignmentRight(): number {
+  const pageRoot = findPageRoot();
+  if (pageRoot) {
+    const rect = pageRoot.getBoundingClientRect();
+    const padRight = Number.parseFloat(window.getComputedStyle(pageRoot).paddingRight) || 0;
+    return rect.right - padRight;
+  }
+
+  const { width, offsetLeft } = getViewportMetrics();
+  return offsetLeft + width - PAGE_HORIZONTAL_PADDING;
+}
+
+function measurePanelWidth(): number {
+  const panel = panelRef.value;
+  if (panel) {
+    const measured = panel.getBoundingClientRect().width;
+    if (measured > 0) return measured;
+  }
+  const { width } = getViewportMetrics();
+  return Math.min(width * 0.92, PANEL_MAX_WIDTH);
+}
+
+async function positionPanelAfterOpen() {
+  panelPositioned.value = false;
+  await nextTick();
+  updatePanelPosition();
+  await nextTick();
+  updatePanelPosition();
+  panelPositioned.value = true;
+}
+
+function updatePanelPosition() {
+  const root = rootRef.value;
+  if (!root || !panelOpen.value) return;
+
+  const bellRect = root.getBoundingClientRect();
+  const panelWidth = measurePanelWidth();
+  const isMobile = window.matchMedia(MOBILE_MEDIA_QUERY).matches;
+  const cardLeft = getSiteCardAlignmentLeft();
+  const cardRight = getSiteCardAlignmentRight();
+
+  let left: number;
+  if (isMobile) {
+    left = cardLeft;
+  } else {
+    left = bellRect.right - panelWidth;
+    if (left < cardLeft) {
+      left = cardRight - panelWidth;
+    }
+    left = Math.max(cardLeft, left);
+  }
+
+  panelStyle.value = {
+    top: `${bellRect.bottom + PANEL_OFFSET_Y}px`,
+    left: `${left}px`
+  };
 }
 
 async function markAllRead() {
@@ -146,16 +258,33 @@ const onPointerDownCapture = (event: PointerEvent) => {
   const target = event.target;
   if (!(target instanceof Element)) return;
   if (rootRef.value?.contains(target)) return;
+  if (panelRef.value?.contains(target)) return;
   setPanelOpen(false);
 };
 
+watch(panelOpen, async (open) => {
+  if (!open) {
+    panelPositioned.value = false;
+    return;
+  }
+  await positionPanelAfterOpen();
+});
+
 onMounted(() => {
   document.addEventListener('pointerdown', onPointerDownCapture, true);
+  window.addEventListener('resize', updatePanelPosition);
+  window.addEventListener('scroll', updatePanelPosition, true);
+  window.visualViewport?.addEventListener('resize', updatePanelPosition);
+  window.visualViewport?.addEventListener('scroll', updatePanelPosition);
   void runService('init-notifications');
 });
 
 onUnmounted(() => {
   document.removeEventListener('pointerdown', onPointerDownCapture, true);
+  window.removeEventListener('resize', updatePanelPosition);
+  window.removeEventListener('scroll', updatePanelPosition, true);
+  window.visualViewport?.removeEventListener('resize', updatePanelPosition);
+  window.visualViewport?.removeEventListener('scroll', updatePanelPosition);
 });
 </script>
 
@@ -207,10 +336,14 @@ onUnmounted(() => {
       </span>
     </button>
 
-    <div
-      v-if="panelOpen"
-      class="absolute right-0 top-[calc(100%+8px)] z-[1000] w-[min(92vw,380px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
-    >
+    <Teleport to="body">
+      <div
+        v-if="panelOpen"
+        ref="panelRef"
+        class="fixed z-[1000] w-[min(92vw,380px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+        :class="panelPositioned ? '' : 'invisible'"
+        :style="panelStyle"
+      >
       <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <h3 class="text-sm font-semibold text-slate-900">{{ t('notifications.title') }}</h3>
         <button
@@ -271,5 +404,6 @@ onUnmounted(() => {
         </template>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>

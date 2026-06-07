@@ -73,4 +73,17 @@ public class PostgresAppointmentAccess implements AppointmentAccess {
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<AppointmentEntity> findByDoctorIdAndPreferredDateBetween(
+            String doctorId,
+            String fromDateInclusive,
+            String toDateInclusive
+    ) {
+        return jpaRepository
+                .findByDoctorIdAndPreferredDateBetweenAndDeletedFalse(doctorId, fromDateInclusive, toDateInclusive)
+                .stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
+    }
 }

@@ -90,16 +90,7 @@ export const prescriptionNavHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'init-prescriptions',
     execute: async () => {
-      const appStore = useAppStore(pinia);
-      const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
-      const role = String(authSession.role ?? '').trim().toUpperCase();
-      const isDoctor = role.includes('DOCTOR');
-      const prevNav = (appStore.getData('hospital', 'PrescriptionNav') ?? {}) as { activeItem?: string };
-      const previousActiveItem = String(prevNav.activeItem ?? '').trim();
-      const keepView = previousActiveItem === 'view';
-      appStore.setData('hospital', 'PrescriptionNav', {
-        activeItem: keepView || isDoctor ? 'view' : 'upload'
-      });
+      useAppStore(pinia).setData('hospital', 'PrescriptionNav', { activeItem: 'view' });
       return ok();
     }
   },

@@ -1,3 +1,4 @@
+import { parsePagedEntityList } from '@saas-builder/hospital-api-client';
 import { apiClient } from './apiClient';
 import { SERVER_PATHS } from './apiPaths';
 
@@ -313,15 +314,11 @@ export async function listPatientPrescriptions(page = 0, size = 20): Promise<{
   const res = await apiClient.get<unknown>(SERVER_PATHS.patientPrescriptions, {
     params: { page, size, sort: 'createdAt,desc' }
   });
-  const data = readEnvelope<Record<string, unknown>>(res.data);
-  const content = (data.content ?? data.Content ?? data.items ?? data.Items) as unknown[];
-  const items = Array.isArray(content)
-    ? content
-        .filter((row): row is Record<string, unknown> => !!row && typeof row === 'object')
-        .map(mapListItem)
-    : [];
-  const totalElements = Number(data.totalElements ?? data.TotalElements ?? items.length);
-  return { items, totalElements };
+  const parsed = parsePagedEntityList(res.data, (row) => {
+    if (row == null || typeof row !== 'object' || Array.isArray(row)) return null;
+    return mapListItem(row as Record<string, unknown>);
+  });
+  return { items: parsed.items, totalElements: parsed.totalCount };
 }
 
 export async function getPatientPrescriptionDownloadUrl(externalId: string): Promise<PatientPrescriptionDownloadResult> {

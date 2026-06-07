@@ -110,4 +110,24 @@ public class PostgresUserAccess implements UserAccess {
                 .findActiveDoctorsAllRoles(role.name(), roleStatus.name(), pageable)
                 .map(UserEntityMapper::fromJpa);
     }
+
+    @Override
+    public Page<UserEntity> searchUsers(String query, UserRole roleFilter, Pageable pageable) {
+        String queryPattern = toIlikePattern(query);
+        String roleParam = roleFilter == null ? null : roleFilter.name();
+        return userJpaRepository
+                .searchNonDeletedUsers(queryPattern, roleParam, pageable)
+                .map(UserEntityMapper::fromJpa);
+    }
+
+    private static String toIlikePattern(String query) {
+        if (query == null || query.isBlank()) {
+            return "";
+        }
+        String escaped = query.trim()
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        return "%" + escaped + "%";
+    }
 }

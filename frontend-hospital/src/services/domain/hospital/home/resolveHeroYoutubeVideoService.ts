@@ -4,8 +4,18 @@ import { pinia } from '../../../../store/pinia';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
+import { pickString } from '../shared/strings';
 
 type HeroVideoKind = 'shorts' | 'video' | null;
+
+function parseHeroVideoId(row: Record<string, unknown>): string | null {
+  const id = pickString(row, ['VideoId', 'videoId', 'video_id']);
+  return id || null;
+}
+
+function parseHeroVideoTitle(row: Record<string, unknown>): string {
+  return pickString(row, ['VideoTitle', 'videoTitle', 'video_title']);
+}
 
 function inferVideoKindFromTitle(title: string): HeroVideoKind {
   const rawTitle = String(title).trim().toLowerCase();
@@ -14,7 +24,7 @@ function inferVideoKindFromTitle(title: string): HeroVideoKind {
 }
 
 function inferVideoKind(row: Record<string, unknown>): HeroVideoKind {
-  return inferVideoKindFromTitle(String(row.video_title ?? row.videoTitle ?? ''));
+  return inferVideoKindFromTitle(parseHeroVideoTitle(row));
 }
 
 function mergeHeroVideo(videoId: string | null, videoKind: HeroVideoKind): void {
@@ -53,8 +63,7 @@ export async function refreshHeroYoutubeFromUserQueryCache(): Promise<boolean> {
       return false;
     }
     const first = rows[0] as Record<string, unknown>;
-    const vid = first.video_id ?? first.videoId;
-    const id = vid == null || typeof vid !== 'string' || !vid.trim() ? null : vid.trim();
+    const id = parseHeroVideoId(first);
     if (!id) {
       return false;
     }
@@ -68,7 +77,7 @@ export async function refreshHeroYoutubeFromUserQueryCache(): Promise<boolean> {
 /**
  * Public hero-video API: empty `q` resolves on the server to a recent channel video ranked by views or likes.
  */
-async function refreshHeroYoutubeFromChannelDefault(): Promise<void> {
+export async function refreshHeroYoutubeFromChannelDefault(): Promise<void> {
   try {
     const res = await apiClient.get(URLRegistry.paths.youtubeHeroVideo, {
       params: new URLSearchParams({ q: '' })
@@ -81,13 +90,11 @@ async function refreshHeroYoutubeFromChannelDefault(): Promise<void> {
     if (!data || typeof data !== 'object') {
       return;
     }
-    const vid = data.videoId;
-    const id = vid == null || typeof vid !== 'string' || !vid.trim() ? null : vid.trim();
+    const id = parseHeroVideoId(data);
     if (!id) {
       return;
     }
-    const title = String(data.videoTitle ?? '').trim();
-    mergeHeroVideo(id, inferVideoKindFromTitle(title));
+    mergeHeroVideo(id, inferVideoKindFromTitle(parseHeroVideoTitle(data)));
   } catch {
     // leave hero unchanged
   }

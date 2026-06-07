@@ -36,13 +36,39 @@ export async function setBiometricLockEnabled(enabled: boolean): Promise<void> {
   }
 }
 
+/** Native prompt can hang if the app sleeps mid-auth (Android / Samsung). */
+const AUTH_PROMPT_TIMEOUT_MS = 45_000;
+
+export async function cancelBiometricPrompt(): Promise<void> {
+  try {
+    const cancel = (
+      LocalAuthentication as typeof LocalAuthentication & {
+        cancelAuthenticate?: () => Promise<void>;
+      }
+    ).cancelAuthenticate;
+    if (typeof cancel === 'function') {
+      await cancel();
+    }
+  } catch {
+    // Non-fatal
+  }
+}
+
 export async function authenticateForAppUnlock(): Promise<boolean> {
   try {
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Unlock Agastya Healthcare',
-      cancelLabel: 'Cancel',
-      disableDeviceFallback: false
-    });
+    const result = await Promise.race([
+      LocalAuthentication.authenticateAsync({
+        promptMessage: 'Unlock Agastya Healthcare',
+        cancelLabel: 'Cancel',
+        disableDeviceFallback: false
+      }),
+      new Promise<LocalAuthentication.LocalAuthenticationResult>((resolve) => {
+        setTimeout(() => {
+          void cancelBiometricPrompt();
+          resolve({ success: false, error: 'timeout' });
+        }, AUTH_PROMPT_TIMEOUT_MS);
+      })
+    ]);
     return result.success;
   } catch {
     return false;

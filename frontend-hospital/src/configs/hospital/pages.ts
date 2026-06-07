@@ -15,6 +15,7 @@ import {
   hospitalPublicChromeTop,
   hospitalSiteFooter
 } from './hospitalPublicChrome';
+import { buildDoctorsByDepartmentListConfig } from './homeDoctorListConfig';
 
 const todayDateInputValue = new Date().toISOString().split('T')[0] ?? '';
 
@@ -196,6 +197,7 @@ export const hospitalPages: PageConfig[] = [
           type: 'container',
           config: {
             layoutTemplate: 'hosp.section.stack',
+            styles: { styleTemplate: 'hosp.section.card' },
             children: [
               {
                 id: 'hospital-home-doctors-heading',
@@ -223,45 +225,10 @@ export const hospitalPages: PageConfig[] = [
                   styles: { styleTemplate: 'hosp.section.subheading' }
                 }
               },
-              {
-                id: 'hospital-home-doctors-list',
-                type: 'list',
-                config: {
-                  listStyleTemplate: 'hosp.doctors.grid',
-                  mapping: { packageName: 'hospital', key: 'HomeContent', property: 'doctors' },
-                  itemTemplate: {
-                    layoutTemplate: 'hosp.doctor.card',
-                    styles: { styleTemplate: 'hosp.doctor.card' },
-                    children: [
-                      {
-                        id: 'hospital-home-doctor-image',
-                        type: 'image',
-                        config: { src: '{{image}}', styles: { styleTemplate: 'hosp.doctor.image' } }
-                      },
-                      {
-                        id: 'hospital-home-doctor-name',
-                        type: 'text',
-                        config: { text: '{{name}}', styles: { styleTemplate: 'hosp.doctor.name' } }
-                      },
-                      {
-                        id: 'hospital-home-doctor-speciality',
-                        type: 'text',
-                        config: { text: '{{speciality}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
-                      },
-                      {
-                        id: 'hospital-home-doctor-degree',
-                        type: 'text',
-                        config: { text: '{{degree}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
-                      },
-                      {
-                        id: 'hospital-home-doctor-experience',
-                        type: 'text',
-                        config: { text: '{{experience}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
-                      }
-                    ]
-                  }
-                }
-              }
+              buildDoctorsByDepartmentListConfig({
+                listId: 'hospital-home-doctors-list',
+                idPrefix: 'hospital-home'
+              })
             ]
           }
         },
@@ -270,6 +237,7 @@ export const hospitalPages: PageConfig[] = [
           type: 'container',
           config: {
             layoutTemplate: 'hosp.section.stack',
+            styles: { styleTemplate: 'hosp.section.card' },
             children: [
               {
                 id: 'hospital-home-services-heading',
@@ -1732,45 +1700,10 @@ export const hospitalPages: PageConfig[] = [
                   styles: { styleTemplate: 'hosp.section.heading' }
                 }
               },
-              {
-                id: 'hospital-doctor-overview-list',
-                type: 'list',
-                config: {
-                  listStyleTemplate: 'hosp.doctors.grid',
-                  mapping: { packageName: 'hospital', key: 'HomeContent', property: 'doctors' },
-                  itemTemplate: {
-                    layoutTemplate: 'hosp.doctor.card',
-                    styles: { styleTemplate: 'hosp.doctor.card' },
-                    children: [
-                      {
-                        id: 'hospital-doctor-overview-image',
-                        type: 'image',
-                        config: { src: '{{image}}', styles: { styleTemplate: 'hosp.doctor.image' } }
-                      },
-                      {
-                        id: 'hospital-doctor-overview-name',
-                        type: 'text',
-                        config: { text: '{{name}}', styles: { styleTemplate: 'hosp.doctor.name' } }
-                      },
-                      {
-                        id: 'hospital-doctor-overview-speciality',
-                        type: 'text',
-                        config: { text: '{{speciality}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
-                      },
-                      {
-                        id: 'hospital-doctor-overview-degree',
-                        type: 'text',
-                        config: { text: '{{degree}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
-                      },
-                      {
-                        id: 'hospital-doctor-overview-experience',
-                        type: 'text',
-                        config: { text: '{{experience}}', styles: { styleTemplate: 'hosp.doctor.meta' } }
-                      }
-                    ]
-                  }
-                }
-              }
+              buildDoctorsByDepartmentListConfig({
+                listId: 'hospital-doctor-overview-list',
+                idPrefix: 'hospital-doctor-overview'
+              })
             ]
           }
         },
@@ -3760,6 +3693,7 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   labelI18nKey: 'appointment.form.department',
                   mapping: { packageName: 'hospital', key: 'AppointmentDepartments', property: 'list' },
+                  valueMapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'department' },
                   change: { actionId: 'set-appointment-department' },
                   styles: { styleTemplate: 'hosp.form.input' }
                 }
@@ -3800,6 +3734,7 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   labelI18nKey: 'appointment.form.doctor',
                   mapping: { packageName: 'hospital', key: 'AppointmentDoctors', property: 'list' },
+                  valueMapping: { packageName: 'hospital', key: 'AppointmentForm', property: 'doctor' },
                   change: { actionId: 'set-appointment-doctor' },
                   styles: { styleTemplate: 'hosp.form.input' }
                 }

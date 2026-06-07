@@ -17,11 +17,16 @@ import com.flexshell.controller.dto.AppointmentRequest;
 import com.flexshell.controller.dto.AppointmentResponse;
 import com.flexshell.controller.dto.AvailableSlotDto;
 import com.flexshell.controller.dto.AvailableSlotsResponse;
+import com.flexshell.controller.dto.BookingDateAvailabilityDayDto;
+import com.flexshell.controller.dto.BookingDateAvailabilityResponse;
 import com.flexshell.doctorschedule.DoctorScheduleEntity;
 import com.flexshell.persistence.api.DoctorScheduleAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.flexshell.controller.dto.AppointmentQueryDto;
+import com.flexshell.controller.dto.AppointmentSaveRequest;
 import com.flexshell.controller.dto.PagedAppointmentListDto;
+import com.flexshell.controller.support.EntityQuerySupport;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -33,9 +38,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +59,8 @@ public class AppointmentService {
     private static final String STATUS_COMPLETED = "COMPLETED";
     /** Admin-only soft removal from operational views; document stays in Mongo. */
     public static final String STATUS_DELETED = "DELETED";
+    private static final int BOOKING_DATE_AVAILABILITY_DEFAULT_DAYS = 10;
+    private static final int BOOKING_DATE_AVAILABILITY_MAX_DAYS = 31;
     private final ObjectProvider<AppointmentAccess> appointmentAccessProvider;
     private final ObjectProvider<UserAccess> userAccessProvider;
     private final ObjectProvider<DoctorScheduleAccess> doctorScheduleAccessProvider;
@@ -240,18 +249,75 @@ public class AppointmentService {
     }
 
     public List<AppointmentResponse> getAll(String actorUserId, int page, int size) {
+        return listPaged(actorUserId, page, size, new AppointmentQueryDto()).getContent();
+    }
+
+    /**
+     * Business key: appointment {@code id} (String).
+     */
+    public PagedAppointmentListDto listPaged(String actorUserId, int page, int size, AppointmentQueryDto query) {
         AppointmentAccess repository = requireAppointmentAccess();
-        int safePage = Math.max(0, page);
-        int safeSize = size <= 0 ? 20 : Math.min(size, 100);
-        PageRequest pageRequest = PageRequest.of(safePage, safeSize);
+        int safePage = EntityQuerySupport.safePage(page);
+        int safeSize = EntityQuerySupport.safeSize(size);
+        PageRequest pageRequest = PageRequest.of(0, Integer.MAX_VALUE, Sort.by(Sort.Direction.DESC, "createdTimestamp"));
         UserRole actorRole = resolveUserRole(actorUserId);
         Page<AppointmentEntity> result;
         if (actorRole == UserRole.DOCTOR) {
             result = repository.findByDoctorId(actorUserId, pageRequest);
+        } else if (actorRole == UserRole.ADMIN) {
+            result = repository.findAll(pageRequest);
         } else {
             result = repository.findByCreatedBy(actorUserId, pageRequest);
         }
-        return result.stream().map(this::toResponse).toList();
+        List<AppointmentEntity> filtered = result.stream()
+                .filter(entity -> matchesQuery(entity, query))
+                .toList();
+        int total = filtered.size();
+        int from = Math.min(safePage * safeSize, total);
+        int to = Math.min(from + safeSize, total);
+        List<AppointmentResponse> content = filtered.subList(from, to).stream().map(this::toResponse).toList();
+        int totalPages = safeSize == 0 ? 0 : (int) Math.ceil((double) total / safeSize);
+        return new PagedAppointmentListDto(content, total, totalPages, safePage, safeSize);
+    }
+
+    public AppointmentResponse saveOrUpdate(AppointmentSaveRequest request, String actorUserId) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+        String id = request.getId() == null ? "" : request.getId().trim();
+        if (id.isBlank()) {
+            return create(request, List.of(), actorUserId);
+        }
+        return update(id, request, List.of(), actorUserId);
+    }
+
+    private static boolean matchesQuery(AppointmentEntity entity, AppointmentQueryDto query) {
+        if (query == null) {
+            return true;
+        }
+        String doctorId = query.getDoctorId();
+        if (doctorId != null && !doctorId.isBlank()
+                && (entity.getDoctorId() == null || !entity.getDoctorId().equalsIgnoreCase(doctorId.trim()))) {
+            return false;
+        }
+        String status = query.getStatus();
+        if (status != null && !status.isBlank()
+                && (entity.getStatus() == null || !entity.getStatus().equalsIgnoreCase(status.trim()))) {
+            return false;
+        }
+        String preferredDate = query.getPreferredDate();
+        if (preferredDate != null && !preferredDate.isBlank()
+                && (entity.getPreferredDate() == null || !entity.getPreferredDate().equalsIgnoreCase(preferredDate.trim()))) {
+            return false;
+        }
+        String patientName = query.getPatientName();
+        if (patientName != null && !patientName.isBlank()) {
+            String hay = entity.getPatientName() == null ? "" : entity.getPatientName().toLowerCase();
+            if (!hay.contains(patientName.trim().toLowerCase())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -332,6 +398,82 @@ public class AppointmentService {
             String actorUserId
     ) {
         return listAvailableTimeSlots(doctorId, preferredDate, excludeAppointmentId, actorUserId);
+    }
+
+    /**
+     * Booking calendar: slot counts for each day in a lookahead window (one DB round-trip for occupied slots).
+     */
+    public BookingDateAvailabilityResponse listBookingDateAvailability(
+            String doctorId,
+            int lookaheadDays,
+            String excludeAppointmentId,
+            String actorUserId
+    ) {
+        String docId = normalize(doctorId);
+        if (docId.isBlank()) {
+            return new BookingDateAvailabilityResponse(false, List.of());
+        }
+        ensureActorCanQueryDoctorOccupiedSlots(actorUserId, docId);
+        int safeDays = lookaheadDays <= 0
+                ? BOOKING_DATE_AVAILABILITY_DEFAULT_DAYS
+                : Math.min(lookaheadDays, BOOKING_DATE_AVAILABILITY_MAX_DAYS);
+
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusDays(safeDays - 1L);
+        String fromIso = start.toString();
+        String toIso = end.toString();
+
+        boolean usesSchedule = false;
+        Optional<DoctorScheduleEntity> scheduleOpt = Optional.empty();
+        DoctorScheduleAccess scheduleAccess = doctorScheduleAccessProvider.getIfAvailable();
+        if (scheduleAccess != null) {
+            scheduleOpt = scheduleAccess.findByDoctorId(docId);
+            if (scheduleOpt.isPresent() && DoctorSlotGenerator.scheduleHasEnabledWorkingDay(scheduleOpt.get())) {
+                usesSchedule = true;
+            }
+        }
+
+        String exclude = normalize(excludeAppointmentId);
+        AppointmentAccess repository = requireAppointmentAccess();
+        List<AppointmentEntity> rowsInRange = repository.findByDoctorIdAndPreferredDateBetween(docId, fromIso, toIso);
+        Map<String, Set<String>> occupiedByDate = new HashMap<>();
+        for (AppointmentEntity row : rowsInRange) {
+            if (!exclude.isBlank() && exclude.equals(row.getId())) {
+                continue;
+            }
+            if (!isOpenAppointmentBlockingSlot(row)) {
+                continue;
+            }
+            String dateKey = preferredDateKey(row.getPreferredDate());
+            if (dateKey.isBlank()) {
+                continue;
+            }
+            String slot = normalize(row.getPreferredTimeSlot());
+            if (slot.isBlank()) {
+                continue;
+            }
+            occupiedByDate.computeIfAbsent(dateKey, ignored -> new LinkedHashSet<>()).add(slot);
+        }
+
+        String todayIso = start.toString();
+        LocalTime nowLocal = LocalTime.now(hospitalZoneId);
+        int nowMinutes = nowLocal.getHour() * 60 + nowLocal.getMinute();
+
+        List<BookingDateAvailabilityDayDto> days = new ArrayList<>();
+        for (int offset = 0; offset < safeDays; offset += 1) {
+            LocalDate day = start.plusDays(offset);
+            String iso = day.toString();
+            List<String> base;
+            if (usesSchedule && scheduleOpt.isPresent()) {
+                base = DoctorSlotGenerator.generateSlotValues(day, hospitalZoneId, scheduleOpt.get());
+            } else {
+                base = new ArrayList<>(LegacySlotCatalog.slotValues());
+            }
+            Set<String> occupied = occupiedByDate.getOrDefault(iso, Set.of());
+            int count = countUnblockedSlots(base, occupied, iso, todayIso, nowMinutes);
+            days.add(new BookingDateAvailabilityDayDto(iso, count));
+        }
+        return new BookingDateAvailabilityResponse(usesSchedule, days);
     }
 
     public AvailableSlotsResponse listAvailableTimeSlots(
@@ -584,6 +726,60 @@ public class AppointmentService {
         } catch (DateTimeParseException ex) {
             return null;
         }
+    }
+
+    private String preferredDateKey(String raw) {
+        LocalDate parsed = parseIsoLocalDate(raw);
+        return parsed == null ? "" : parsed.toString();
+    }
+
+    private Integer parseSlotStartMinutes(String slotValue) {
+        String value = normalize(slotValue);
+        if (value.isBlank()) {
+            return null;
+        }
+        int dash = value.indexOf('-');
+        String start = dash >= 0 ? value.substring(0, dash).trim() : value;
+        if (start.length() < 4 || start.charAt(start.length() - 3) != ':') {
+            return null;
+        }
+        try {
+            String[] parts = start.split(":");
+            if (parts.length != 2) {
+                return null;
+            }
+            int hours = Integer.parseInt(parts[0]);
+            int minutes = Integer.parseInt(parts[1]);
+            if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                return null;
+            }
+            return hours * 60 + minutes;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private int countUnblockedSlots(
+            List<String> baseSlots,
+            Set<String> occupied,
+            String isoDate,
+            String todayIso,
+            int nowMinutes
+    ) {
+        int count = 0;
+        for (String value : baseSlots) {
+            if (occupied.contains(value)) {
+                continue;
+            }
+            if (isoDate.equals(todayIso)) {
+                Integer startMinutes = parseSlotStartMinutes(value);
+                if (startMinutes != null && startMinutes <= nowMinutes) {
+                    continue;
+                }
+            }
+            count += 1;
+        }
+        return count;
     }
 
     private void ensureCanAccessAppointment(AppointmentEntity entity, String actorUserId) {

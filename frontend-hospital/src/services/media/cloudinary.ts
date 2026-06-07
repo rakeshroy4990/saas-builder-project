@@ -1,3 +1,5 @@
+import { resolveDoctorProfileImage as resolveSharedDoctorProfileImage } from '@saas-builder/hospital-api-client';
+
 const DEFAULT_CLOUDINARY_IMAGE_BASE_URL = 'https://res.cloudinary.com/dbke33vfd/image/upload';
 const DEFAULT_CLOUDINARY_FALLBACK_PUBLIC_ID = 'v1776158879/sea_xgqlrq.jpg';
 
@@ -33,5 +35,10 @@ export function resolveImageSource(src?: string): string {
     }
   }
   return `${CLOUDINARY_IMAGE_BASE_URL}/${src.replace(/^\/+/, '')}`;
+}
+
+/** Doctor avatars: empty profile pic shows a user-sketch placeholder. */
+export function resolveDoctorProfileImage(src?: string): string {
+  return resolveSharedDoctorProfileImage(src, CLOUDINARY_IMAGE_BASE_URL);
 }
 

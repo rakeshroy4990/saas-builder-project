@@ -362,39 +362,52 @@ export function registerStyleTemplates(): void {
     utilityClasses: 'block text-slate-600'
   });
   StyleTemplateRegistry.register('hosp.service.card', {
-    utilityClasses: 'rounded-xl bg-white border border-slate-200 p-4 shadow-sm'
+    utilityClasses:
+      'rounded-xl bg-white border border-slate-200 p-3 sm:p-4 shadow-sm h-full transition-shadow hover:shadow-md'
   });
   StyleTemplateRegistry.register('hosp.service.icon', {
-    utilityClasses: 'block text-2xl'
+    utilityClasses: 'col-start-2 row-start-1 block text-lg leading-none'
   });
   StyleTemplateRegistry.register('hosp.service.image', {
     utilityClasses:
-      'min-h-0 w-full h-auto max-h-[min(42dvh,12rem)] sm:max-h-[14rem] md:max-h-[16rem] rounded-lg bg-slate-100 object-contain'
+      'col-start-1 row-start-1 row-span-3 self-start h-16 w-16 sm:h-20 sm:w-20 shrink-0 rounded-xl bg-emerald-50 object-cover object-center ring-1 ring-slate-100'
   });
   StyleTemplateRegistry.register('hosp.service.title', {
-    utilityClasses: 'block text-lg font-semibold text-slate-900'
+    utilityClasses: 'col-start-2 row-start-2 text-base font-semibold leading-snug text-slate-900'
   });
   StyleTemplateRegistry.register('hosp.service.description', {
-    utilityClasses: 'block text-sm text-slate-600'
+    utilityClasses:
+      'col-start-2 row-start-3 text-xs sm:text-sm leading-snug text-slate-600 line-clamp-3 [&:empty]:hidden'
   });
   StyleTemplateRegistry.register('hosp.services.grid', {
-    utilityClasses: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
+    utilityClasses: 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 items-stretch'
   });
   StyleTemplateRegistry.register('hosp.doctor.card', {
-    utilityClasses: 'rounded-xl bg-white border border-slate-200 p-4 shadow-sm h-full flex flex-col'
+    utilityClasses:
+      'relative rounded-xl bg-white border border-slate-200 p-3 sm:p-4 shadow-sm h-full transition-all duration-150 hover:shadow-md hover:border-emerald-200 cursor-pointer active:scale-[0.99] active:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600'
   });
   StyleTemplateRegistry.register('hosp.doctor.image', {
     utilityClasses:
-      'min-h-0 w-full h-auto max-h-[min(50dvh,15rem)] sm:max-h-[17rem] md:max-h-[19rem] rounded-lg bg-slate-100 object-contain'
+      'col-start-1 row-start-1 row-span-4 self-start h-16 w-16 sm:h-20 sm:w-20 shrink-0 rounded-xl bg-emerald-50 object-cover object-center ring-1 ring-slate-100'
   });
   StyleTemplateRegistry.register('hosp.doctor.name', {
-    utilityClasses: 'block text-lg font-semibold text-slate-900'
+    utilityClasses: 'col-start-2 row-start-1 text-base font-semibold leading-snug text-slate-900'
   });
   StyleTemplateRegistry.register('hosp.doctor.meta', {
-    utilityClasses: 'block text-sm text-slate-600'
+    utilityClasses:
+      'col-start-2 text-xs sm:text-sm leading-snug text-slate-600 line-clamp-2 [&:empty]:hidden'
   });
   StyleTemplateRegistry.register('hosp.doctors.grid', {
-    utilityClasses: 'grid grid-cols-1 md:grid-cols-3 gap-4'
+    utilityClasses: 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4'
+  });
+  StyleTemplateRegistry.register('hosp.doctors.byDepartment', {
+    utilityClasses: 'flex flex-col gap-6 sm:gap-8'
+  });
+  StyleTemplateRegistry.register('hosp.doctors.departmentSection', {
+    utilityClasses: 'flex flex-col gap-3'
+  });
+  StyleTemplateRegistry.register('hosp.doctors.departmentHeading', {
+    utilityClasses: 'block text-lg font-semibold text-slate-900 border-b border-emerald-100 pb-2'
   });
   StyleTemplateRegistry.register('hosp.highlight.card', {
     utilityClasses: 'rounded-xl bg-emerald-50 border border-emerald-100 p-4'

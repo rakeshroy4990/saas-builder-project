@@ -22,6 +22,7 @@ import {
   emitSessionSummaryAuthLogout,
   flushPendingSessionSummaryNavigate
 } from '../../../analytics/sessionSummary';
+import { refreshHeroYoutubeFromChannelDefault } from '../home/resolveHeroYoutubeVideoService';
 
 async function ensureRefreshTokenForLogout(): Promise<void> {
   if (getEphemeralRefreshToken()) return;
@@ -84,6 +85,7 @@ export const logoutUserHospitalServices: ServiceDefinition[] = [
         ...currentHome,
         hero: { ...currentHero, videoId: null, videoKind: null }
       });
+      void refreshHeroYoutubeFromChannelDefault();
       // Remove last Smart AI conversation from Pinia to prevent stale query reuse after logout.
       const currentChat = (useAppStore(pinia).getData('hospital', 'Chat') ?? {}) as Record<string, unknown>;
       useAppStore(pinia).setData('hospital', 'Chat', {

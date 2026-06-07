@@ -262,19 +262,35 @@ export function registerLayoutTemplates(): void {
   });
   LayoutTemplateRegistry.register('hosp.services.grid', {
     type: 'grid',
-    grid: ['grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'gap-4']
+    grid: ['grid', 'grid-cols-1', 'sm:grid-cols-2', 'xl:grid-cols-3', 'gap-3', 'sm:gap-4', 'items-stretch']
   });
   LayoutTemplateRegistry.register('hosp.service.card', {
-    type: 'flex',
-    flex: ['flex', 'flex-col', 'gap-2']
+    type: 'grid',
+    grid: [
+      'grid',
+      'grid-cols-[4rem_1fr]',
+      'sm:grid-cols-[5rem_1fr]',
+      'gap-x-3',
+      'gap-y-0.5',
+      'items-start',
+      'content-start'
+    ]
   });
   LayoutTemplateRegistry.register('hosp.doctors.grid', {
     type: 'grid',
-    grid: ['grid', 'grid-cols-1', 'md:grid-cols-3', 'gap-4', 'items-stretch']
+    grid: ['grid', 'grid-cols-1', 'sm:grid-cols-2', 'xl:grid-cols-3', 'gap-3', 'sm:gap-4', 'items-stretch']
   });
   LayoutTemplateRegistry.register('hosp.doctor.card', {
-    type: 'flex',
-    flex: ['flex', 'flex-col', 'gap-2']
+    type: 'grid',
+    grid: [
+      'grid',
+      'grid-cols-[4rem_1fr]',
+      'sm:grid-cols-[5rem_1fr]',
+      'gap-x-3',
+      'gap-y-0.5',
+      'items-start',
+      'content-start'
+    ]
   });
   LayoutTemplateRegistry.register('hosp.highlights.grid', {
     type: 'grid',

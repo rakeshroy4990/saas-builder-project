@@ -59,6 +59,12 @@ public class UserEntity {
     /** BCP-47 language tag for UI (e.g. en, hi); empty until the user chooses. */
     @Field("PreferredLocale")
     private String preferredLocale;
+    /** Cloudinary public ID or HTTPS delivery URL for profile photo. */
+    @Field("ProfilePic")
+    private String profilePic;
+    /** Human-readable experience line for public doctor cards (e.g. "5+ years experience"). */
+    @Field("ExperienceSummary")
+    private String experienceSummary;
 
     public String getId() {
         return id;
@@ -258,6 +264,22 @@ public class UserEntity {
 
     public void setPreferredLocale(String preferredLocale) {
         this.preferredLocale = preferredLocale;
+    }
+
+    public String getProfilePic() {
+        return profilePic;
+    }
+
+    public void setProfilePic(String profilePic) {
+        this.profilePic = profilePic;
+    }
+
+    public String getExperienceSummary() {
+        return experienceSummary;
+    }
+
+    public void setExperienceSummary(String experienceSummary) {
+        this.experienceSummary = experienceSummary;
     }
 }
 

@@ -3,7 +3,9 @@ package com.flexshell.controller;
 import com.flexshell.auth.i18n.RequestLocaleAttributes;
 import com.flexshell.controller.dto.MedicalDepartmentRequest;
 import com.flexshell.controller.dto.MedicalDepartmentResponse;
+import com.flexshell.controller.dto.PagedMedicalDepartmentListDto;
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.controller.support.EntityListResponseSupport;
 import com.flexshell.service.MedicalDepartmentService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.ObjectProvider;
@@ -88,6 +90,25 @@ public class MedicalDepartmentController {
         return ResponseEntity.ok(StandardApiResponse.success("Medical department deleted", null));
     }
 
+    @DeleteMapping(value = "/{businessKey}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<Void>> deleteByBusinessKey(@PathVariable String businessKey) {
+        MedicalDepartmentService service = serviceProvider.getIfAvailable();
+        if (service == null) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(StandardApiResponse.error("Medical department service is unavailable", "MEDICAL_DEPARTMENT_SERVICE_UNAVAILABLE"));
+        }
+        try {
+            if (!service.deleteByBusinessKey(businessKey)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(StandardApiResponse.error("Medical department not found", "MEDICAL_DEPARTMENT_NOT_FOUND"));
+            }
+            return ResponseEntity.ok(StandardApiResponse.success("Medical department deleted", null));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(StandardApiResponse.error(ex.getMessage(), "MEDICAL_DEPARTMENT_NOT_FOUND"));
+        }
+    }
+
     @GetMapping(value = "/get/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<MedicalDepartmentResponse>> getById(
             @PathVariable String id,
@@ -121,8 +142,43 @@ public class MedicalDepartmentController {
                     .body(StandardApiResponse.error("Medical department service is unavailable", "MEDICAL_DEPARTMENT_SERVICE_UNAVAILABLE"));
         }
         String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
-        List<MedicalDepartmentResponse> data = service.getAll(page, size, locale);
-        return ResponseEntity.ok(StandardApiResponse.success("Medical departments fetched", data));
+        try {
+            PagedMedicalDepartmentListDto paged = service.listPaged(
+                    page,
+                    size,
+                    new com.flexshell.controller.dto.MedicalDepartmentQueryDto(),
+                    locale);
+            return EntityListResponseSupport.ok(
+                    "Medical departments fetched",
+                    paged.getContent(),
+                    paged.getNumber(),
+                    paged.getSize(),
+                    paged.getTotalElements());
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "MEDICAL_DEPARTMENT_LIST_INVALID"));
+        }
+    }
+
+    @PostMapping(value = "/save", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<MedicalDepartmentResponse>> save(
+            @RequestBody MedicalDepartmentRequest request,
+            HttpServletRequest servletRequest
+    ) {
+        MedicalDepartmentService service = serviceProvider.getIfAvailable();
+        if (service == null) {
+            return unavailableResponse();
+        }
+        String locale = RequestLocaleAttributes.readResolvedLocale(servletRequest);
+        try {
+            MedicalDepartmentResponse data = service.createOrUpdate(request, locale);
+            return ResponseEntity.ok(StandardApiResponse.success("Medical department saved", data));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(ex.getMessage(), "MEDICAL_DEPARTMENT_SAVE_INVALID"));
+        } catch (IllegalStateException ex) {
+            return unavailableResponse();
+        }
     }
 
     @PostMapping(value = "/createOrUpdate", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

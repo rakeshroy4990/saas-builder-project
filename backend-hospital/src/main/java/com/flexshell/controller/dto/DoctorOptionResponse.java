@@ -15,6 +15,14 @@ public class DoctorOptionResponse {
     private String email;
     @JsonProperty("Department")
     private String department;
+    @JsonProperty("Speciality")
+    private String speciality;
+    @JsonProperty("Qualifications")
+    private String qualifications;
+    @JsonProperty("ExperienceSummary")
+    private String experienceSummary;
+    @JsonProperty("ProfilePic")
+    private String profilePic;
 
     public DoctorOptionResponse() {
     }
@@ -81,5 +89,37 @@ public class DoctorOptionResponse {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public String getSpeciality() {
+        return speciality;
+    }
+
+    public void setSpeciality(String speciality) {
+        this.speciality = speciality;
+    }
+
+    public String getQualifications() {
+        return qualifications;
+    }
+
+    public void setQualifications(String qualifications) {
+        this.qualifications = qualifications;
+    }
+
+    public String getExperienceSummary() {
+        return experienceSummary;
+    }
+
+    public void setExperienceSummary(String experienceSummary) {
+        this.experienceSummary = experienceSummary;
+    }
+
+    public String getProfilePic() {
+        return profilePic;
+    }
+
+    public void setProfilePic(String profilePic) {
+        this.profilePic = profilePic;
     }
 }

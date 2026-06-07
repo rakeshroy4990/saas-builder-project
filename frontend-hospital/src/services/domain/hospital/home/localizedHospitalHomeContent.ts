@@ -20,6 +20,8 @@ export function buildHospitalHomeContent(
   const videoKind = (prevHero.videoKind as HeroVideoKind) ?? null;
 
   const prevStats = existing?.stats;
+  const prevDoctors = existing?.doctors;
+  const prevDoctorsByDepartment = existing?.doctorsByDepartment;
 
   return {
     hero: {
@@ -53,15 +55,8 @@ export function buildHospitalHomeContent(
         image: CLOUDINARY_KIDS_WITH_DOC
       }
     ],
-    doctors: [
-      {
-        name: t('home.doctors.swati.name'),
-        speciality: t('home.doctors.swati.speciality'),
-        degree: t('home.doctors.swati.degree'),
-        experience: t('home.doctors.swati.experience'),
-        image: 'Dr_Swati_Pandey_rtmfqj'
-      }
-    ],
+    doctors: Array.isArray(prevDoctors) ? prevDoctors : [],
+    doctorsByDepartment: Array.isArray(prevDoctorsByDepartment) ? prevDoctorsByDepartment : [],
     highlights: [
       { title: t('home.highlights.tech.title'), detail: t('home.highlights.tech.detail') },
       { title: t('home.highlights.team.title'), detail: t('home.highlights.team.detail') },

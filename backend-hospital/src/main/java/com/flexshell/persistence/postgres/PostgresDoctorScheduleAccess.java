@@ -5,6 +5,8 @@ import com.flexshell.persistence.api.DoctorScheduleAccess;
 import com.flexshell.persistence.postgres.model.DoctorScheduleJpaEntity;
 import com.flexshell.persistence.postgres.repository.DoctorScheduleJpaRepository;
 import org.bson.types.ObjectId;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,24 @@ public class PostgresDoctorScheduleAccess implements DoctorScheduleAccess {
         DoctorScheduleJpaEntity row = toJpa(entity, existing.orElse(null));
         DoctorScheduleJpaEntity saved = jpaRepository.save(row);
         return toDomain(saved);
+    }
+
+    @Override
+    public Page<DoctorScheduleEntity> findAll(Pageable pageable) {
+        return jpaRepository.findByDeletedFalse(pageable).map(this::toDomain);
+    }
+
+    @Override
+    public boolean deleteByDoctorId(String doctorId) {
+        Optional<DoctorScheduleJpaEntity> row = jpaRepository.findByDoctorIdAndDeletedFalse(doctorId);
+        if (row.isEmpty()) {
+            return false;
+        }
+        DoctorScheduleJpaEntity entity = row.get();
+        entity.setDeleted(true);
+        entity.setUpdatedAt(java.time.Instant.now());
+        jpaRepository.save(entity);
+        return true;
     }
 
     private DoctorScheduleEntity toDomain(DoctorScheduleJpaEntity j) {

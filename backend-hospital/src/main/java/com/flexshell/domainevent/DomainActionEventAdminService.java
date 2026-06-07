@@ -1,8 +1,12 @@
 package com.flexshell.domainevent;
 
 import com.flexshell.controller.dto.CreateDomainActionEventRequest;
+import com.flexshell.controller.dto.DomainActionEventQueryDto;
 import com.flexshell.controller.dto.DomainActionEventResponse;
+import com.flexshell.controller.dto.DomainActionEventSaveRequest;
+import com.flexshell.controller.dto.PagedDomainActionEventListDto;
 import com.flexshell.controller.dto.UpdateDomainActionEventRequest;
+import com.flexshell.controller.support.EntityQuerySupport;
 import com.flexshell.persistence.postgres.model.DomainActionEventJpaEntity;
 import com.flexshell.persistence.postgres.repository.DomainActionEventJpaRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -29,9 +33,50 @@ public class DomainActionEventAdminService {
 
     @Transactional(readOnly = true)
     public List<DomainActionEventResponse> listBindings() {
-        return repository.findByDeletedFalseOrderByHttpMethodAscEndpointPatternAsc().stream()
+        return listBindingsPaged(0, Integer.MAX_VALUE, new DomainActionEventQueryDto()).getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public PagedDomainActionEventListDto listBindingsPaged(int page, int size, DomainActionEventQueryDto query) {
+        int safePage = EntityQuerySupport.safePage(page);
+        int safeSize = EntityQuerySupport.safeSize(size);
+        List<DomainActionEventResponse> filtered = repository.findByDeletedFalseOrderByHttpMethodAscEndpointPatternAsc().stream()
+                .filter(row -> matchesQuery(row, query))
                 .map(this::toResponse)
                 .toList();
+        int total = filtered.size();
+        int from = Math.min(safePage * safeSize, total);
+        int to = Math.min(from + safeSize, total);
+        List<DomainActionEventResponse> content = filtered.subList(from, to);
+        int totalPages = safeSize == 0 ? 0 : (int) Math.ceil((double) total / safeSize);
+        return new PagedDomainActionEventListDto(content, total, totalPages, safePage, safeSize);
+    }
+
+    @Transactional
+    public DomainActionEventResponse saveBinding(DomainActionEventSaveRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+        if (request.getExternalId() != null) {
+            UpdateDomainActionEventRequest update = new UpdateDomainActionEventRequest();
+            update.setEventType(request.getEventType());
+            update.setContextProfile(request.getContextProfile());
+            update.setActorRoleFilter(request.getActorRoleFilter());
+            update.setResponseRoleField(request.getResponseRoleField());
+            update.setResponseRoleValue(request.getResponseRoleValue());
+            update.setEnabled(request.getEnabled());
+            return updateBinding(request.getExternalId(), update);
+        }
+        CreateDomainActionEventRequest create = new CreateDomainActionEventRequest();
+        create.setHttpMethod(request.getHttpMethod());
+        create.setEndpointPattern(request.getEndpointPattern());
+        create.setEventType(request.getEventType());
+        create.setContextProfile(request.getContextProfile());
+        create.setActorRoleFilter(request.getActorRoleFilter());
+        create.setResponseRoleField(request.getResponseRoleField());
+        create.setResponseRoleValue(request.getResponseRoleValue());
+        create.setEnabled(request.getEnabled());
+        return createBinding(create);
     }
 
     @Transactional
@@ -139,5 +184,28 @@ public class DomainActionEventAdminService {
     private static String blankToNull(String value) {
         String trimmed = Objects.toString(value, "").trim();
         return trimmed.isBlank() ? null : trimmed;
+    }
+
+    private static boolean matchesQuery(DomainActionEventJpaEntity row, DomainActionEventQueryDto query) {
+        if (query == null) {
+            return true;
+        }
+        String httpMethod = query.getHttpMethod();
+        if (httpMethod != null && !httpMethod.isBlank()
+                && !row.getHttpMethod().equalsIgnoreCase(httpMethod.trim())) {
+            return false;
+        }
+        String endpointPattern = query.getEndpointPattern();
+        if (endpointPattern != null && !endpointPattern.isBlank()
+                && !row.getEndpointPattern().equalsIgnoreCase(endpointPattern.trim())) {
+            return false;
+        }
+        String eventType = query.getEventType();
+        if (eventType != null && !eventType.isBlank()
+                && !row.getEventType().equalsIgnoreCase(eventType.trim())) {
+            return false;
+        }
+        Boolean enabled = query.getEnabled();
+        return enabled == null || row.isEnabled() == enabled;
     }
 }

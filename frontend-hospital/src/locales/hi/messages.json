@@ -156,6 +156,8 @@
       "gender": "लिंग *",
       "department": "विभाग",
       "qualifications": "योग्यता *",
+      "experienceSummary": "अनुभव (होम पेज पर दिखाया जाता है)",
+      "profilePic": "प्रोफ़ाइल फोटो (Cloudinary public ID या URL)",
       "smcName": "राज्य चिकित्सा परिषद *",
       "smcRegistrationNumber": "एसएमसी पंजीकरण संख्या *",
       "address": "पता *"

@@ -9,6 +9,7 @@ import { HomeQuickActions, type HomeQuickAction } from '@/components/home/HomeQu
 import { HomeVideoChips } from '@/components/home/HomeVideoChips';
 import { useSessionStore } from '@/auth/sessionStore';
 import { buildHomeContent, withHeroVideoChip } from '@/features/home/homeContent';
+import { fetchAllDoctors, type DoctorListEntry } from '@/features/doctors/doctorsApi';
 import { openYoutubeVideo } from '@/features/home/openYoutubeVideo';
 import { fetchPublicHeroVideoId } from '@/features/home/youtubeHero';
 import { openMainTab } from '@/navigation/openTab';
@@ -22,6 +23,7 @@ export default function HomeTab() {
   const isLoggedIn = Boolean(accessToken);
   const isDoctor = role === 'DOCTOR' || role === 'ADMIN';
   const [videoId, setVideoId] = useState<string | null>(null);
+  const [doctors, setDoctors] = useState<DoctorListEntry[]>([]);
 
   const content = useMemo(() => {
     const base = buildHomeContent(t, isDoctor);
@@ -42,6 +44,17 @@ export default function HomeTab() {
     })();
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const rows = await fetchAllDoctors();
+        setDoctors(rows);
+      } catch {
+        setDoctors([]);
+      }
+    })();
+  }, []);
+
   function requireAuth(onAuthed: () => void) {
     if (!isLoggedIn) {
       router.push('/(auth)/login');
@@ -58,8 +71,20 @@ export default function HomeTab() {
     requireAuth(() => router.push('/(app)/appointments/book' as never));
   }
 
-  function onBookDoctor() {
-    requireAuth(() => router.push('/(app)/appointments/book' as never));
+  function onBookDoctor(doctor?: DoctorListEntry) {
+    requireAuth(() =>
+      router.push({
+        pathname: '/(app)/appointments/book',
+        params: {
+          department: doctor?.department ?? '',
+          doctorId: doctor?.id ?? ''
+        }
+      } as never)
+    );
+  }
+
+  function onSeeAllDoctors() {
+    requireAuth(() => router.push('/(app)/doctors' as never));
   }
 
   const quickActions: HomeQuickAction[] = [
@@ -118,9 +143,9 @@ export default function HomeTab() {
           title={t('home.launcher.doctorsTitle')}
           seeAllLabel={t('home.launcher.doctorsSeeAll')}
           bookLabel={t('home.launcher.bookDoctor')}
-          doctors={content.doctors}
-          onSeeAll={onBookDoctor}
-          onBook={() => onBookDoctor()}
+          doctors={doctors}
+          onSeeAll={onSeeAllDoctors}
+          onBook={(doctor) => onBookDoctor(doctor)}
         />
 
         <HomeVideoChips

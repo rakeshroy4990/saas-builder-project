@@ -6,6 +6,7 @@ import com.flexshell.controller.dto.PatientPrescriptionDiagnosisGroupSummaryResp
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateRequest;
 import com.flexshell.controller.dto.PatientPrescriptionGroupCreateResponse;
 import com.flexshell.controller.dto.PatientPrescriptionGroupLinkRequest;
+import com.flexshell.controller.dto.PatientPrescriptionSaveRequest;
 import com.flexshell.controller.dto.PatientPrescriptionSummaryResponse;
 import com.flexshell.controller.dto.PatientPrescriptionUploadResponse;
 import com.flexshell.persistence.postgres.model.AppointmentJpaEntity;
@@ -184,6 +185,63 @@ public class PatientPrescriptionService {
                 saved.getId()
         );
         return new PatientPrescriptionUploadResponse(saved.getExternalId(), false, "processing");
+    }
+
+    @Transactional
+    public void softDelete(String actorUserId, UUID externalId) {
+        PatientPrescriptionJpaEntity row = requireRow(externalId);
+        assertCanRead(actorUserId, row);
+        UserRole role = resolveRole(actorUserId);
+        if (role != UserRole.ADMIN && !actorUserId.equals(row.getPatientUserId()) && !actorUserId.equals(row.getUploadedBy())) {
+            throw new SecurityException("Forbidden");
+        }
+        row.setDeleted(true);
+        prescriptionRepository.save(row);
+    }
+
+    @Transactional
+    public PatientPrescriptionSummaryResponse save(String actorUserId, PatientPrescriptionSaveRequest request) {
+        if (request == null || request.getExternalId() == null) {
+            throw new IllegalArgumentException("ExternalId is required");
+        }
+        PatientPrescriptionJpaEntity row = requireRow(request.getExternalId());
+        assertCanRead(actorUserId, row);
+        UserRole role = resolveRole(actorUserId);
+        if (role != UserRole.ADMIN
+                && !actorUserId.equals(row.getPatientUserId())
+                && !actorUserId.equals(row.getUploadedBy())) {
+            throw new SecurityException("Forbidden");
+        }
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            row.setStatus(request.getStatus().trim());
+        }
+        if (request.getAppointmentExternalId() != null) {
+            ResolvedAppointment resolved = resolveAppointment(request.getAppointmentExternalId(), actorUserId);
+            row.setAppointmentId(resolved.appointmentId());
+            if (resolved.doctorId() != null) {
+                row.setDoctorId(resolved.doctorId());
+            }
+        }
+        if (request.getDoctorName() != null) {
+            row.setDoctorName(request.getDoctorName().trim());
+        }
+        if (request.getDepartment() != null) {
+            row.setDepartment(request.getDepartment().trim());
+        }
+        if (request.getPatientName() != null) {
+            row.setPatientName(request.getPatientName().trim());
+        }
+        if (request.getPatientGender() != null) {
+            row.setPatientGender(request.getPatientGender().trim());
+        }
+        prescriptionRepository.save(row);
+        if (request.getGroupExternalId() != null) {
+            linkPrescriptionToGroup(
+                    actorUserId,
+                    request.getGroupExternalId(),
+                    new PatientPrescriptionGroupLinkRequest(request.getExternalId(), request.getPageNumber()));
+        }
+        return getMetadata(actorUserId, request.getExternalId());
     }
 
     @Transactional(readOnly = true)

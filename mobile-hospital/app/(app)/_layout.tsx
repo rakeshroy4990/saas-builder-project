@@ -33,6 +33,7 @@ export default function AppLayout() {
           name="appointments/book"
           options={{ title: 'Book appointment', headerShown: true }}
         />
+        <Stack.Screen name="doctors/index" options={{ title: 'Our doctors', headerShown: true }} />
         <Stack.Screen name="appointments/[id]" options={{ title: 'Appointment', headerShown: true }} />
         <Stack.Screen
           name="video-call"

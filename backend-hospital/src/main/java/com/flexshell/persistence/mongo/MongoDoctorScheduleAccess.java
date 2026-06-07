@@ -3,6 +3,8 @@ package com.flexshell.persistence.mongo;
 import com.flexshell.doctorschedule.DoctorScheduleEntity;
 import com.flexshell.doctorschedule.DoctorScheduleRepository;
 import com.flexshell.persistence.api.DoctorScheduleAccess;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
@@ -30,5 +32,20 @@ public class MongoDoctorScheduleAccess implements DoctorScheduleAccess {
     @Override
     public DoctorScheduleEntity save(DoctorScheduleEntity entity) {
         return delegate.save(entity);
+    }
+
+    @Override
+    public Page<DoctorScheduleEntity> findAll(Pageable pageable) {
+        return delegate.findAll(pageable);
+    }
+
+    @Override
+    public boolean deleteByDoctorId(String doctorId) {
+        Optional<DoctorScheduleEntity> row = delegate.findByDoctorId(doctorId);
+        if (row.isEmpty()) {
+            return false;
+        }
+        delegate.delete(row.get());
+        return true;
     }
 }
