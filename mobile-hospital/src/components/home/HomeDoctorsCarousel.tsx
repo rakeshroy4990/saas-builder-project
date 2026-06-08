@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DoctorAvatar } from '@/components/DoctorAvatar';
 import type { DoctorListEntry } from '@/features/doctors/doctorsApi';
 import { colors } from '@/theme/colors';
+import { SCREEN_GUTTER, SECTION_GAP, SURFACE_RADIUS } from '@/theme/layout';
 
 type HomeDoctorsCarouselProps = {
   title: string;
@@ -71,7 +72,7 @@ export function HomeDoctorsCarousel({
 
 const styles = StyleSheet.create({
   wrap: {
-    marginBottom: 24
+    marginBottom: SECTION_GAP
   },
   header: {
     flexDirection: 'row',
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
   },
   row: {
     gap: 12,
-    paddingRight: 4
+    paddingRight: SCREEN_GUTTER
   },
   card: {
     width: 280,
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: SURFACE_RADIUS + 2,
     padding: 12
   },
   meta: {

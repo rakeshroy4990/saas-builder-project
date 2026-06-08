@@ -4,7 +4,8 @@
   },
   "hospital": {
     "brandTitle": "Agastya Healthcare",
-    "logoAlt": "Agastya Healthcare logo"
+    "logoAlt": "Agastya Healthcare logo",
+    "goHome": "Go to Home"
   },
   "validation": {
     "checkFields": "Please check the required fields and try again."
@@ -349,7 +350,7 @@
     "messageCount": "{{count}} messages",
     "quickStarts": "Quick starts",
     "booksEmptyHint": "Pick a book and ask a clinical question grounded in the ingested corpus.",
-    "questionPlaceholder": "Example: Explain first-line management of pediatric nephrotic syndrome.",
+    "questionPlaceholder": "First-line Management",
     "sendQuestion": "Send question",
     "sending": "Sending…",
     "streamLoadingAnswer": "Preparing a grounded answer…",
@@ -367,6 +368,10 @@
     "prescriptionSearchFailed": "Could not search prescriptions. Try again.",
     "unknownPatient": "Unknown patient",
     "loadingBooks": "Loading books…",
+    "booksUnavailable": "Book list could not be loaded. Questions still use all ingested books.",
+    "booksUnavailableHint": "Book list unavailable — using all ingested books. Retrying in the background.",
+    "booksEmptyList": "No individual books are listed yet.",
+    "booksRetry": "Retry now",
     "noBooks": "No books available",
     "closePicker": "Done",
     "attachFile": "Attach prescription file",

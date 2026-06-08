@@ -56,6 +56,7 @@ import {
   postEducationPrescriptionTranscribe
 } from '@/features/education/prescriptionTranscribe';
 import { colors } from '@/theme/colors';
+import { SCREEN_GUTTER, SURFACE_RADIUS } from '@/theme/layout';
 import { sharedStyles } from '@/theme/styles';
 
 type QueryTab = 'books' | 'prescription';
@@ -101,15 +102,27 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
       onPress={onPress}
       style={{
         flex: 1,
+        minHeight: 48,
         paddingVertical: 10,
-        borderRadius: 8,
+        paddingHorizontal: 8,
+        borderRadius: SURFACE_RADIUS,
         backgroundColor: active ? colors.primary : colors.surface,
         borderWidth: 1,
         borderColor: active ? colors.primary : colors.border,
-        alignItems: 'center'
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
     >
-      <Text style={{ color: active ? '#fff' : colors.text, fontWeight: '600' }}>{label}</Text>
+      <Text
+        style={{
+          color: active ? '#fff' : colors.text,
+          fontWeight: '600',
+          fontSize: 14,
+          textAlign: 'center'
+        }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -409,6 +422,9 @@ export function DoctorEducationScreen() {
   const [topics, setTopics] = useState<string[]>([]);
   const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(false);
+  const [booksLoadFailed, setBooksLoadFailed] = useState(false);
+  const booksRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadBooksRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => {});
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [history, setHistory] = useState<EducationChatTurn[]>([]);
@@ -429,24 +445,46 @@ export function DoctorEducationScreen() {
   const autoSentNoticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conversationId = 'mobile-education';
 
-  const loadBooks = useCallback(async () => {
+  const clearBooksRetryTimer = useCallback(() => {
+    if (booksRetryTimer.current) {
+      clearTimeout(booksRetryTimer.current);
+      booksRetryTimer.current = null;
+    }
+  }, []);
+
+  const loadBooks = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
     const hadCache = Boolean(peekCachedEducationBooks()?.length);
-    if (!hadCache) setLoadingBooks(true);
+    if ((!silent && !hadCache) || (silent && books.length === 0)) {
+      setLoadingBooks(true);
+    }
     try {
-      const list = await loadEducationBooksCached();
+      const list = await loadEducationBooksCached(silent);
       setBooks(list);
       setSelectedBooks((prev) => prev.filter((b) => list.includes(b)));
+      setBooksLoadFailed(false);
+      clearBooksRetryTimer();
     } catch {
-      if (!hadCache) setBooks([]);
+      setBooksLoadFailed(true);
+      clearBooksRetryTimer();
+      booksRetryTimer.current = setTimeout(() => {
+        void loadBooksRef.current({ silent: true });
+      }, 12_000);
     } finally {
       setLoadingBooks(false);
     }
-  }, []);
+  }, [books.length, clearBooksRetryTimer]);
+
+  useEffect(() => {
+    loadBooksRef.current = loadBooks;
+  }, [loadBooks]);
 
   useEffect(() => {
     if (!isDoctor) return;
     void loadBooks();
   }, [isDoctor, loadBooks]);
+
+  useEffect(() => () => clearBooksRetryTimer(), [clearBooksRetryTimer]);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: !chatFullScreen });
@@ -1120,7 +1158,9 @@ export function DoctorEducationScreen() {
               books={books}
               selectedBooks={selectedBooks}
               loading={loadingBooks}
+              unavailable={booksLoadFailed}
               onChange={setSelectedBooks}
+              onRetry={() => void loadBooks()}
             />
             {topics.length > 0 && !keyboardVisible ? (
               <>
@@ -1224,7 +1264,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   header: {
-    paddingHorizontal: 16,
+    paddingHorizontal: SCREEN_GUTTER,
     paddingTop: 4,
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -1272,13 +1312,13 @@ const styles = StyleSheet.create({
     flex: 1
   },
   prescriptionScrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: SCREEN_GUTTER,
     paddingTop: 8,
     paddingBottom: 12,
     flexGrow: 1
   },
   booksMeta: {
-    paddingHorizontal: 16,
+    paddingHorizontal: SCREEN_GUTTER,
     paddingTop: 6,
     paddingBottom: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -1302,7 +1342,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   messageListContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: SCREEN_GUTTER,
     paddingTop: 4,
     paddingBottom: 8
   },
@@ -1331,9 +1371,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingRight: 8,
+    paddingHorizontal: SCREEN_GUTTER,
     paddingVertical: 10,
-    paddingLeft: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border

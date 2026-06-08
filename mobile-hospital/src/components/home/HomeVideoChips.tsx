@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import type { HomeVideoChip } from '@/features/home/homeContent';
 import { openYoutubeVideo, youtubeThumbnailUrl } from '@/features/home/openYoutubeVideo';
 import { colors } from '@/theme/colors';
+import { SCREEN_GUTTER, SURFACE_RADIUS } from '@/theme/layout';
 
 type HomeVideoChipsProps = {
   title: string;
@@ -73,7 +74,7 @@ const styles = StyleSheet.create({
   },
   row: {
     gap: 10,
-    paddingRight: 4
+    paddingRight: SCREEN_GUTTER
   },
   chip: {
     width: 220,
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: SURFACE_RADIUS,
     padding: 10
   },
   thumb: {

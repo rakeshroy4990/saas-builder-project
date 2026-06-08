@@ -1,15 +1,21 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { HOSPITAL_LOGO_URL } from '@/config/brand';
+import { openMainTab } from '@/navigation/openTab';
 import { colors } from '@/theme/colors';
 
-/** Compact logo + title for stack/tab headers. */
+/** Compact logo + title for stack/tab headers; tap returns to the Home tab. */
 export function AppHeaderBrand() {
   const { t } = useTranslation();
 
   return (
-    <View style={styles.row}>
+    <Pressable
+      onPress={() => openMainTab('home')}
+      style={styles.row}
+      accessibilityRole="button"
+      accessibilityLabel={t('hospital.goHome')}
+    >
       <Image
         source={{ uri: HOSPITAL_LOGO_URL }}
         style={styles.logo}
@@ -18,7 +24,7 @@ export function AppHeaderBrand() {
       <Text style={styles.title} numberOfLines={1}>
         {t('hospital.brandTitle')}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 

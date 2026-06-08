@@ -1,7 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { LoadingView } from '@/components/LoadingView';
 import { colors } from '@/theme/colors';
@@ -11,6 +11,35 @@ import { PrescriptionCard } from './PrescriptionCard';
 import { PrescriptionUploadPanel } from './PrescriptionUploadPanel';
 import { fetchPrescriptionsPage } from './prescriptionsApi';
 import type { PrescriptionItem, PrescriptionTab } from './types';
+
+const MENU_LABEL_LINE_HEIGHT = 18;
+const MENU_LABEL_LINES = 2;
+const MENU_LABEL_BLOCK_HEIGHT = MENU_LABEL_LINE_HEIGHT * MENU_LABEL_LINES;
+
+type PrescriptionNavButtonProps = {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+};
+
+function PrescriptionNavButton({ label, active, onPress }: PrescriptionNavButtonProps) {
+  return (
+    <Pressable
+      style={[styles.menuBtn, active && styles.menuBtnActive]}
+      onPress={onPress}
+      accessibilityRole="button"
+    >
+      <View style={styles.menuBtnLabelSlot}>
+        <Text
+          style={[styles.menuText, active && styles.menuTextActive]}
+          numberOfLines={MENU_LABEL_LINES}
+        >
+          {label}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
 
 export function PrescriptionsScreen() {
   const { t } = useTranslation();
@@ -57,22 +86,16 @@ export function PrescriptionsScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.menu}>
-        <Pressable
-          style={[styles.menuBtn, tab === 'view' && styles.menuBtnActive]}
+        <PrescriptionNavButton
+          label={t('prescriptions.nav.view')}
+          active={tab === 'view'}
           onPress={() => setTab('view')}
-        >
-          <Text style={[styles.menuText, tab === 'view' && styles.menuTextActive]}>
-            {t('prescriptions.nav.view')}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.menuBtn, tab === 'upload' && styles.menuBtnActive]}
+        />
+        <PrescriptionNavButton
+          label={t('prescriptions.nav.upload')}
+          active={tab === 'upload'}
           onPress={() => setTab('upload')}
-        >
-          <Text style={[styles.menuText, tab === 'upload' && styles.menuTextActive]}>
-            {t('prescriptions.nav.upload')}
-          </Text>
-        </Pressable>
+        />
       </View>
 
       {tab === 'upload' ? (
@@ -111,6 +134,7 @@ const styles = StyleSheet.create({
   },
   menu: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: 8,
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -122,18 +146,31 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 10,
     backgroundColor: colors.surface,
-    paddingVertical: 12,
-    paddingHorizontal: 10
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   menuBtnActive: {
     borderColor: '#a7f3d0',
     backgroundColor: '#ecfdf5'
   },
+  menuBtnLabelSlot: {
+    height: MENU_LABEL_BLOCK_HEIGHT,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   menuText: {
+    width: '100%',
     textAlign: 'center',
     fontSize: 14,
+    lineHeight: MENU_LABEL_LINE_HEIGHT,
     fontWeight: '600',
-    color: colors.text
+    color: colors.text,
+    ...(Platform.OS === 'android'
+      ? { includeFontPadding: false, textAlignVertical: 'center' as const }
+      : null)
   },
   menuTextActive: {
     color: colors.primaryDark

@@ -11,23 +11,36 @@ import {
   View
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '@/theme/colors';
+import { SCREEN_GUTTER, SURFACE_RADIUS } from '@/theme/layout';
 import { sharedStyles } from '@/theme/styles';
 
 type EducationBookPickerProps = {
   books: string[];
   selectedBooks: string[];
   loading: boolean;
+  /** Book list fetch failed — chat still uses all ingested books when nothing is selected. */
+  unavailable?: boolean;
   onChange: (books: string[]) => void;
+  onRetry?: () => void;
 };
 
 function normalizeBookNames(raw: string[]): string[] {
   return raw.map((b) => String(b ?? '').trim()).filter(Boolean);
 }
 
-export function EducationBookPicker({ books, selectedBooks, loading, onChange }: EducationBookPickerProps) {
+export function EducationBookPicker({
+  books,
+  selectedBooks,
+  loading,
+  unavailable = false,
+  onChange,
+  onRetry
+}: EducationBookPickerProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -40,9 +53,13 @@ export function EducationBookPicker({ books, selectedBooks, loading, onChange }:
     return books.filter((b) => b.toLowerCase().includes(q));
   }, [books, query]);
 
-  const displayLabel = loading
-    ? t('education.loadingBooks')
-    : count <= 0
+  const selectionSummary =
+    count <= 0
+      ? t('education.allBooks')
+      : t('education.bookFilterSelectedCount', { count });
+
+  const displayLabel =
+    count <= 0
       ? t('education.allBooks')
       : count === 1
         ? [...selectedSet][0]
@@ -70,10 +87,13 @@ export function EducationBookPicker({ books, selectedBooks, loading, onChange }:
   return (
     <>
       <Text style={sharedStyles.label}>{t('education.filterBook')}</Text>
+      {unavailable ? (
+        <Text style={styles.unavailableHint}>{t('education.booksUnavailableHint')}</Text>
+      ) : null}
+
       <Pressable
         style={styles.selector}
-        onPress={() => !loading && setOpen(true)}
-        disabled={loading}
+        onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={t('education.filterBook')}
       >
@@ -83,14 +103,16 @@ export function EducationBookPicker({ books, selectedBooks, loading, onChange }:
           <Ionicons name="book-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />
         )}
         <Text style={styles.selectorText} numberOfLines={2}>
-          {displayLabel}
+          {loading ? `${displayLabel} · ${t('education.loadingBooks')}` : displayLabel}
         </Text>
         <Ionicons name="chevron-down" size={20} color={colors.textMuted} />
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={closePicker}>
-        <Pressable style={styles.backdrop} onPress={closePicker}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.backdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closePicker} accessibilityRole="button" accessibilityLabel={t('education.closePicker')} />
+          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>{t('education.filterBook')}</Text>
 
             <View style={styles.searchRow}>
@@ -108,9 +130,7 @@ export function EducationBookPicker({ books, selectedBooks, loading, onChange }:
             </View>
 
             <View style={styles.toolbar}>
-              <Text style={styles.countText}>
-                {t('education.bookFilterSelectedCount', { count })}
-              </Text>
+              <Text style={styles.countText}>{selectionSummary}</Text>
               <Pressable
                 onPress={resetSelection}
                 disabled={count === 0 && !query.trim()}
@@ -137,7 +157,34 @@ export function EducationBookPicker({ books, selectedBooks, loading, onChange }:
                 </Text>
               </Pressable>
 
-              {filteredBooks.length === 0 ? (
+              {books.length === 0 ? (
+                <View style={styles.emptyState}>
+                  {loading ? (
+                    <>
+                      <ActivityIndicator color={colors.primary} />
+                      <Text style={styles.emptyText}>{t('education.loadingBooks')}</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.emptyText}>
+                        {unavailable
+                          ? t('education.booksUnavailable')
+                          : t('education.booksEmptyList')}
+                      </Text>
+                      {unavailable && onRetry ? (
+                        <Pressable
+                          style={styles.retryBtn}
+                          onPress={onRetry}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('education.booksRetry')}
+                        >
+                          <Text style={styles.retryBtnText}>{t('education.booksRetry')}</Text>
+                        </Pressable>
+                      ) : null}
+                    </>
+                  )}
+                </View>
+              ) : filteredBooks.length === 0 ? (
                 <Text style={styles.emptyText}>{t('education.bookFilterNoResults')}</Text>
               ) : (
                 filteredBooks.map((book) => {
@@ -163,8 +210,8 @@ export function EducationBookPicker({ books, selectedBooks, loading, onChange }:
             <Pressable style={styles.closeBtn} onPress={closePicker}>
               <Text style={styles.closeBtnText}>{t('education.closePicker')}</Text>
             </Pressable>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </>
   );
@@ -174,9 +221,10 @@ const styles = StyleSheet.create({
   selector: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '100%',
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: SURFACE_RADIUS,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
@@ -188,6 +236,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 20
   },
+  unavailableHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textMuted,
+    marginBottom: 6
+  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
@@ -197,9 +251,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24
+    paddingHorizontal: SCREEN_GUTTER,
+    paddingTop: 8,
+    maxHeight: '82%'
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginBottom: 12
   },
   sheetTitle: {
     fontSize: 18,
@@ -212,7 +274,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: SURFACE_RADIUS,
     backgroundColor: colors.background,
     paddingHorizontal: 10,
     marginBottom: 10
@@ -289,11 +351,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primaryDark
   },
+  emptyState: {
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 20,
+    paddingHorizontal: 4
+  },
   emptyText: {
     fontSize: 14,
     color: colors.textMuted,
     paddingVertical: 16,
-    paddingHorizontal: 4
+    paddingHorizontal: 4,
+    textAlign: 'center'
+  },
+  retryBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: '#ecfdf5'
+  },
+  retryBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primaryDark
   },
   closeBtn: {
     marginTop: 12,

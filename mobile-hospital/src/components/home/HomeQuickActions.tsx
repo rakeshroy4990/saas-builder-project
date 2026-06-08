@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
+import { SECTION_GAP } from '@/theme/layout';
 
 export type HomeQuickAction = {
   id: string;
@@ -44,7 +45,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
-    marginBottom: 24
+    marginBottom: SECTION_GAP
   },
   item: {
     flex: 1,

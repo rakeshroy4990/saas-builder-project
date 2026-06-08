@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
+import { SECTION_GAP, SURFACE_RADIUS } from '@/theme/layout';
 
 type HomeHeroBannerProps = {
   onCta: () => void;
@@ -32,11 +33,10 @@ export function HomeHeroBanner({ onCta, ctaLabel }: HomeHeroBannerProps) {
 
 const styles = StyleSheet.create({
   wrap: {
+    width: '100%',
     backgroundColor: colors.primary,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 20,
+    borderRadius: SURFACE_RADIUS + 4,
+    marginBottom: SECTION_GAP,
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 20,

@@ -5,6 +5,7 @@ import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { LoadingView } from '@/components/LoadingView';
 import { ChatFab } from '@/components/ChatFab';
 import { VideoCallNavigator } from '@/features/video/VideoCallNavigator';
+import { appHeaderScreenOptions } from '@/navigation/appHeader';
 
 export default function AppLayout() {
   const accessToken = useSessionStore((s) => s.accessToken);
@@ -23,21 +24,18 @@ export default function AppLayout() {
     <AppErrorBoundary>
       <VideoCallNavigator />
       <ChatFab />
-      <Stack>
+      <Stack screenOptions={appHeaderScreenOptions}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="ai-chat"
-          options={{ title: 'Chat', headerShown: false, presentation: 'modal' }}
+          options={{ headerShown: false, presentation: 'modal' }}
         />
-        <Stack.Screen
-          name="appointments/book"
-          options={{ title: 'Book appointment', headerShown: true }}
-        />
-        <Stack.Screen name="doctors/index" options={{ title: 'Our doctors', headerShown: true }} />
-        <Stack.Screen name="appointments/[id]" options={{ title: 'Appointment', headerShown: true }} />
+        <Stack.Screen name="appointments/book" options={{ headerShown: true }} />
+        <Stack.Screen name="doctors/index" options={{ headerShown: true }} />
+        <Stack.Screen name="appointments/[id]" options={{ headerShown: true }} />
         <Stack.Screen
           name="video-call"
-          options={{ title: 'Video call', headerShown: false, presentation: 'fullScreenModal' }}
+          options={{ headerShown: false, presentation: 'fullScreenModal' }}
         />
       </Stack>
     </AppErrorBoundary>

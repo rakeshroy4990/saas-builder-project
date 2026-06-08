@@ -14,6 +14,7 @@ import { openYoutubeVideo } from '@/features/home/openYoutubeVideo';
 import { fetchPublicHeroVideoId } from '@/features/home/youtubeHero';
 import { openMainTab } from '@/navigation/openTab';
 import { colors } from '@/theme/colors';
+import { SCREEN_GUTTER, TAB_SCROLL_BOTTOM_PADDING } from '@/theme/layout';
 
 export default function HomeTab() {
   const { t } = useTranslation();
@@ -134,9 +135,9 @@ export default function HomeTab() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <HomeHeroBanner onCta={onHeroCta} ctaLabel={content.heroCta} />
+      <View style={styles.page}>
+        <HomeHeroBanner onCta={onHeroCta} ctaLabel={content.heroCta} />
 
-      <View style={styles.body}>
         <HomeQuickActions actions={quickActions} />
 
         <HomeDoctorsCarousel
@@ -165,9 +166,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background
   },
   content: {
-    paddingBottom: 108
+    paddingBottom: TAB_SCROLL_BOTTOM_PADDING
   },
-  body: {
-    paddingHorizontal: 16
+  page: {
+    paddingHorizontal: SCREEN_GUTTER,
+    paddingTop: 8
   }
 });

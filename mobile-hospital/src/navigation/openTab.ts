@@ -4,5 +4,10 @@ import { router } from 'expo-router';
 export type MainTab = 'home' | 'appointments' | 'prescriptions' | 'blog' | 'ai-diagnosis' | 'profile';
 
 export function openMainTab(tab: MainTab): void {
-  router.navigate(`/(app)/(tabs)/${tab}` as never);
+  const path = `/(app)/(tabs)/${tab}` as const;
+  if (tab === 'home') {
+    router.replace(path as never);
+    return;
+  }
+  router.navigate(path as never);
 }

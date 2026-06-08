@@ -1,11 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
-
-import { AppHeaderBrand } from '@/components/AppHeaderBrand';
-import { NotificationHeaderButton } from '@/components/NotificationHeaderButton';
-import { UserHeaderButton } from '@/components/UserHeaderButton';
 import { useSessionStore } from '@/auth/sessionStore';
+import { appHeaderScreenOptions } from '@/navigation/appHeader';
 import { tabIcon } from '@/navigation/tabIcons';
 import { colors } from '@/theme/colors';
 
@@ -13,26 +9,15 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   const role = String(useSessionStore((s) => s.user?.role ?? 'PATIENT')).toUpperCase();
   const isDoctor = role === 'DOCTOR' || role === 'ADMIN';
-  const isLoggedIn = useSessionStore((s) => Boolean(s.accessToken));
 
   return (
     <Tabs
       initialRouteName="home"
       screenOptions={{
+        ...appHeaderScreenOptions,
         tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        headerTitle: () => <AppHeaderBrand />,
-        headerTitleAlign: 'left',
-        headerRight: () =>
-          isLoggedIn ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <NotificationHeaderButton />
-              <UserHeaderButton />
-            </View>
-          ) : null,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
         tabBarLabelStyle: { fontSize: 11 }
       }}

@@ -1,5 +1,5 @@
-import { useRouter, useNavigation } from 'expo-router';
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -14,15 +14,10 @@ import { fetchDoctorsGroupedByDepartment, type DepartmentDoctorsSection } from '
 export function DoctorsListScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const navigation = useNavigation();
   const [sections, setSections] = useState<DepartmentDoctorsSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-
-  useLayoutEffect(() => {
-    navigation.setOptions({ title: t('doctors.list.title') });
-  }, [navigation, t]);
 
   const load = useCallback(async () => {
     setError('');
