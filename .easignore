@@ -1,0 +1,72 @@
+# Sibling projects
+frontend-hospital/
+backend-hospital/
+backend-realtime-lib/
+frontend/
+frontend-ecommerce/
+pdf-rag-pipeline/
+frontend-social/
+# Keep packages/* — mobile-hospital depends on file:../packages/hospital-api-client and i18n-contract
+backend-auth-lib/
+backend-uimetadata-lib/
+backend-extensibility-lib/
+backend/
+frontend-realtime-lib/
+backend-social/
+backend-ecommerce/
+frontend-bluetooth-lib/
+docs/
+/scripts/
+images/
+infra/
+ops/
+render/
+
+# Git internals
+.git/
+.cursor/
+
+# Root-level junk
+logo.jpeg
+start-dev.sh
+cloudbuild.yaml
+cloudbuild-*.yaml
+PRODUCTION_SECURITY_CHECKLIST.md
+*.zip
+pnpm-workspace.yaml
+render.yaml
+/package-lock.json
+/package.json
+Mongodb
+UI\ Metadata
+
+# Secrets — never upload
+*.env
+*secret*.json
+client_secret_*.json
+
+# Mobile app build artifacts
+mobile-hospital/node_modules/
+mobile-hospital/.expo/
+mobile-hospital/android/
+mobile-hospital/ios/
+mobile-hospital/dist/
+mobile-hospital/dist-android/
+mobile-hospital/build/
+mobile-hospital/*.apk
+mobile-hospital/*.aab
+mobile-hospital/__tests__/
+mobile-hospital/coverage/
+
+# General
+**/*.mp4
+**/*.mov
+**/*.log
+**/*.apk
+**/*.aab
+**/*.ipa
+.vscode/
+.idea/
+.DS_Store
+.yarn/cache
+.pnp.*

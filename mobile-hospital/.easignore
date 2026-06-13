@@ -1,0 +1,44 @@
+# === COPY EVERYTHING FROM .gitignore ===
+android/
+ios/
+.gradle/
+*.gradle/
+build/
+.build/
+**/*.mp4
+**/*.mov
+__tests__/
+coverage/
+*.test.*
+*.spec.*
+logs/
+*.log
+.vscode/
+.idea/
+.yarn/cache
+.pnp.*
+
+# === ADDITIONAL EAS-SPECIFIC EXCLUSIONS ===
+
+# The most important one — always exclude explicitly
+node_modules/
+
+# Expo local state
+.expo/
+
+# Local env files (use EAS Secrets instead)
+.env
+.env.local
+.env*.local
+
+# Mac junk
+.DS_Store
+
+# Large asset source files (if any PSDs, raw images etc)
+**/*.psd
+**/*.ai
+
+# Any local test builds
+*.apk
+*.aab
+*.ipa

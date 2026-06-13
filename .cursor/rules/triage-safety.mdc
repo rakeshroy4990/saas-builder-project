@@ -1,0 +1,37 @@
+---
+description: Safety rules for AI pediatric triage feature
+globs: ["**/triage*", "**/symptom*"]
+---
+
+# Triage safety invariants
+
+## Product (locked)
+
+- **Video-call gate:** Soft block only — prompt if no triage within 24h; user may skip and join call.
+- **Child name:** Persist as `child_display_name` on `triage_results`; never log name in triage/analyze logs.
+- **Re-triage:** New analyze within 24h creates a new row; display/link uses latest by `created_at`.
+- **RAG corpus:** No mandatory pediatric book filter — retrieve against all ingested books; `< 3` chunks → safe `CLINIC_VISIT` fallback.
+
+## Clinical overrides (must run before store/return)
+
+- Neonates (`child_age_months < 3`) MUST NEVER receive `HOME_CARE` — escalate to `CLINIC_VISIT` minimum.
+- Symptoms including seizure, convulsion, or breathing difficulty MUST return `EMERGENCY`.
+- Non-empty `red_flags` with `HOME_CARE` → escalate to `CLINIC_VISIT`.
+- LLM output MUST pass `validate_triage_response()` in pdf-rag **and** Java belt-and-suspenders in `TriageResultService`.
+- `confidence == LOW` → append limited-data disclaimer to `urgency_reasoning`.
+
+## Input / logging
+
+- Sanitize symptoms: max 20 items, 100 chars each, strip prompt-injection patterns.
+- Triage logs: age bucket + symptom count only — no PII, no symptom text, no child name.
+- OpenAI client: module-level singleton in `triage.py` — never per-request instantiation.
+
+## UX / compliance
+
+- Decision-support disclaimer on every parent result screen.
+- Server-localized `UrgencyReasoning` / envelope `Message` — do not re-translate with client `t()`.
+- Do not expose triage data in AI chat, blog, or education endpoints.
+
+## Reference
+
+Full implementation plan: `docs/features/symptom-triage-plan.md`

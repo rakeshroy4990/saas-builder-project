@@ -1,0 +1,27 @@
+---
+description: Growth tracking, WHO percentiles, and BLE save invariants
+globs: ["**/growth*", "**/child-profile*", "**/who*", "**/ChildProfile*", "**/GrowthRecord*"]
+---
+
+# Growth tracking invariants
+
+## WHO computation
+- ALL percentile computation must go through `WhoPercentileService` — never compute inline in controllers
+- Percentiles must be stored in the DB at write time — never computed on the fly at read time
+- Age must be stored as `age_months_at_recording` (float) at write time from DOB + `recorded_at`
+
+## BLE safety
+- BLE reads must ONLY be triggered by explicit user tap (never on mount or background)
+- Always validate BLE reading values before saving:
+  weight_kg: 0.5–200, height_cm: 30–250, spo2: 50–100, bp_systolic: 50–250
+- If a reading is outside valid range, reject with user-facing error — never silently save
+
+## Percentile display rules
+- < P3 or > P97: always show red badge — flag prominently
+- P3–P15 or P85–P97: amber badge
+- P15–P85: green badge
+- Always show disclaimer on growth charts: "Consult your doctor for clinical interpretation"
+
+## Data ownership
+- A `child_profile` is owned by the patient (parent)
+- Doctors can read and add readings but cannot delete child profiles or past readings

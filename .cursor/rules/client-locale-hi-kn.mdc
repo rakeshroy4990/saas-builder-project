@@ -1,0 +1,41 @@
+---
+description: Mirror new UI i18n keys to Hindi and Kannada client locale files whenever English keys are added or changed.
+globs:
+  - frontend-hospital/src/locales/**
+  - mobile-hospital/src/i18n/locales/**
+  - frontend-*/src/locales/**
+  - mobile-*/src/i18n/locales/**
+alwaysApply: false
+---
+
+# Client UI locales — always mirror `hi` and `kn`
+
+When adding or changing **client-facing** copy in English locale files, **in the same change** update matching keys in **Hindi (`hi`)** and **Kannada (`kn`)** for the same app.
+
+## Repos and paths
+
+| App | English | Hindi | Kannada |
+|-----|---------|-------|---------|
+| `frontend-hospital` | `src/locales/en/messages.json` | `src/locales/hi/messages.json` | `src/locales/kn/messages.json` |
+| `mobile-hospital` | `src/i18n/locales/en.json` | `src/i18n/locales/hi.json` | `src/i18n/locales/kn.json` |
+
+Apply the same rule to other `frontend-*` / `mobile-*` apps when they gain locale files.
+
+## Workflow
+
+1. Add or edit keys in **English** first.
+2. Copy the **same key structure** into `hi` and `kn` with natural translations (not English placeholders).
+3. Keep wire/API keys and `ErrorCode` values out of client bundles — this rule is for **UI chrome** (`growth.*`, `dashboard.*`, buttons, hints, etc.).
+4. Do **not** finish a feature that introduces new `en` UI strings without updating `hi` and `kn`.
+
+## Translation notes
+
+- Align with `@saas-builder/i18n-contract` locales: `en`, `hi`, `kn`.
+- Preserve placeholders (`{name}`, `{{count}}`) and punctuation style.
+- Medical/parent-facing copy: plain language, same tone as English (informational, not alarmist).
+- Abbreviations like `BMI`, `WHO`, `W`/`H` badges may stay Latin where clarity is better.
+
+## Out of scope
+
+- Server `Message` / `Title` bundles (`hospital-messages_*.properties`) — see `server-message-i18n.mdc`.
+- API `ErrorCode` client registries — display server `Message` as returned.
