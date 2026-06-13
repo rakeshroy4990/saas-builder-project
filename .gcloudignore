@@ -66,10 +66,9 @@ docs/
 **/*.test.*
 **/*.spec.*
 
-# ── Gradle wrapper cache (heavy, regenerated on build) ──
+# ── Gradle caches (heavy, regenerated on build) — keep gradle-wrapper.jar (required for ./gradlew) ──
 backend-hospital/.gradle/
 **/.gradle/
-**/gradle/wrapper/gradle-wrapper.jar
 
 # ── Mobile app (if it lives in the monorepo root) ──
 mobile-hospital/
