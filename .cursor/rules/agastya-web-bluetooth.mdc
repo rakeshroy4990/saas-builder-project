@@ -11,7 +11,7 @@ globs:
   - "**/DynBluetooth*"
   - "**/device*"
   - "**/appointment*"
-  - "**/patient-dashboard*"
+  - "**/dashboard*"
   - "**/devicesDashboard*"
 alwaysApply: false
 ---

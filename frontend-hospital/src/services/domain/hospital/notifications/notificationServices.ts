@@ -311,7 +311,7 @@ export const notificationHospitalServices: ServiceDefinition[] = [
       const appStore = useAppStore(pinia);
       const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const role = String(authSession.role ?? 'PATIENT').trim().toUpperCase();
-      const dashboardPage = role === 'PATIENT' ? 'patient-dashboard' : 'dashboard';
+      const dashboardPage = 'dashboard';
       appStore.setData('hospital', 'DashboardNav', { activeItem: 'appointments' });
       if (appointmentId) {
         appStore.setData('hospital', 'NotificationUiState', {

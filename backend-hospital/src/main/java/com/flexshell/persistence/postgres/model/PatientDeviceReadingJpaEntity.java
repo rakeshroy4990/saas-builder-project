@@ -54,6 +54,15 @@ public class PatientDeviceReadingJpaEntity {
     @Column(nullable = false)
     private boolean deleted;
 
+    @Column(name = "child_profile_external_id")
+    private UUID childProfileExternalId;
+
+    @Column(name = "appointment_external_id")
+    private UUID appointmentExternalId;
+
+    @Column(name = "recorded_by_user_id", length = 64)
+    private String recordedByUserId;
+
     @PrePersist
     void prePersist() {
         if (externalId == null) {
@@ -141,5 +150,29 @@ public class PatientDeviceReadingJpaEntity {
 
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public UUID getChildProfileExternalId() {
+        return childProfileExternalId;
+    }
+
+    public void setChildProfileExternalId(UUID childProfileExternalId) {
+        this.childProfileExternalId = childProfileExternalId;
+    }
+
+    public UUID getAppointmentExternalId() {
+        return appointmentExternalId;
+    }
+
+    public void setAppointmentExternalId(UUID appointmentExternalId) {
+        this.appointmentExternalId = appointmentExternalId;
+    }
+
+    public String getRecordedByUserId() {
+        return recordedByUserId;
+    }
+
+    public void setRecordedByUserId(String recordedByUserId) {
+        this.recordedByUserId = recordedByUserId;
     }
 }

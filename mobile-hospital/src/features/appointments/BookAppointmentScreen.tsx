@@ -1,24 +1,27 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   Text,
   TextInput,
-  View
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FormSelectField } from '@/components/FormSelectField';
-import { KeyboardSafeView } from '@/components/KeyboardSafeView';
 import { LoadingView } from '@/components/LoadingView';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useSessionStore } from '@/auth/sessionStore';
 import { colors } from '@/theme/colors';
+import { TAB_SCROLL_BOTTOM_PADDING } from '@/theme/layout';
 import { sharedStyles } from '@/theme/styles';
 
 import {
@@ -68,7 +71,41 @@ export function BookAppointmentScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{ department?: string; doctorId?: string }>();
-  const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollOffsetRef = useRef(0);
+  const scrollBottomPadding =
+    TAB_SCROLL_BOTTOM_PADDING + (Platform.OS === 'android' ? keyboardInset : 0);
+
+  const ensureInputVisible = useCallback(
+    (inputRef: React.RefObject<TextInput | null>) => {
+      setTimeout(
+        () => {
+          inputRef.current?.measureInWindow((_x, y, _w, height) => {
+            const windowHeight = Dimensions.get('window').height;
+            const keyboardHeight =
+              keyboardInset > 0 ? keyboardInset : Math.round(windowHeight * 0.35);
+            const visibleBottom = windowHeight - keyboardHeight - 24;
+            const fieldBottom = y + height;
+            if (fieldBottom > visibleBottom) {
+              scrollRef.current?.scrollTo({
+                y: scrollOffsetRef.current + (fieldBottom - visibleBottom),
+                animated: true
+              });
+            }
+          });
+        },
+        Platform.OS === 'ios' ? 320 : 120
+      );
+    },
+    [keyboardInset]
+  );
+
+  const patientNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const ageRef = useRef<TextInput>(null);
+  const notesRef = useRef<TextInput>(null);
   const [form, setForm] = useState<AppointmentBookingForm>(() => prefillFromSession(emptyForm()));
   const [departments, setDepartments] = useState<SelectOption[]>([]);
   const [doctors, setDoctors] = useState<SelectOption[]>([]);
@@ -283,39 +320,47 @@ export function BookAppointmentScreen() {
   }
 
   return (
-    <KeyboardSafeView style={sharedStyles.screen}>
+    <View style={sharedStyles.screen}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 48}
       >
         <ScrollView
+          ref={scrollRef}
           style={{ flex: 1 }}
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: 8,
-            paddingBottom: insets.bottom + 24
+            paddingBottom: scrollBottomPadding
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
           nestedScrollEnabled
           showsVerticalScrollIndicator
+          onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+            scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
         >
           <Text style={sharedStyles.title}>{t('appointment.book.title')}</Text>
           <Text style={[sharedStyles.subtitle, { marginBottom: 16 }]}>{t('appointment.book.subtitle')}</Text>
 
           <Text style={sharedStyles.label}>{t('appointment.book.patientName')}</Text>
           <TextInput
+            ref={patientNameRef}
             style={sharedStyles.input}
             value={form.patientName}
             onChangeText={(patientName) => patchForm({ patientName })}
             placeholder={t('appointment.book.patientNamePlaceholder')}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="words"
+            onFocus={() => ensureInputVisible(patientNameRef)}
           />
 
           <Text style={sharedStyles.label}>{t('appointment.book.email')}</Text>
           <TextInput
+            ref={emailRef}
             style={sharedStyles.input}
             value={form.patientEmail}
             onChangeText={(patientEmail) => patchForm({ patientEmail })}
@@ -323,20 +368,24 @@ export function BookAppointmentScreen() {
             placeholderTextColor={colors.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
+            onFocus={() => ensureInputVisible(emailRef)}
           />
 
           <Text style={sharedStyles.label}>{t('appointment.book.phone')}</Text>
           <TextInput
+            ref={phoneRef}
             style={sharedStyles.input}
             value={form.patientPhone}
             onChangeText={(patientPhone) => patchForm({ patientPhone })}
             placeholder={t('appointment.book.phonePlaceholder')}
             placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
+            onFocus={() => ensureInputVisible(phoneRef)}
           />
 
           <Text style={sharedStyles.label}>{t('appointment.book.age')}</Text>
           <TextInput
+            ref={ageRef}
             style={sharedStyles.input}
             value={form.ageGroup}
             onChangeText={(raw) => {
@@ -351,6 +400,7 @@ export function BookAppointmentScreen() {
             placeholderTextColor={colors.textMuted}
             keyboardType="number-pad"
             maxLength={2}
+            onFocus={() => ensureInputVisible(ageRef)}
           />
 
           <FormSelectField
@@ -405,12 +455,14 @@ export function BookAppointmentScreen() {
 
           <Text style={sharedStyles.label}>{t('appointment.book.notes')}</Text>
           <TextInput
+            ref={notesRef}
             style={[sharedStyles.input, { minHeight: 88, textAlignVertical: 'top' }]}
             value={form.additionalNotes}
             onChangeText={(additionalNotes) => patchForm({ additionalNotes })}
             placeholder={t('appointment.book.notesPlaceholder')}
             placeholderTextColor={colors.textMuted}
             multiline
+            onFocus={() => ensureInputVisible(notesRef)}
           />
 
           <Text style={sharedStyles.label}>{t('appointment.book.priorDocs')}</Text>
@@ -452,7 +504,7 @@ export function BookAppointmentScreen() {
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
-    </KeyboardSafeView>
+    </View>
   );
 }
 

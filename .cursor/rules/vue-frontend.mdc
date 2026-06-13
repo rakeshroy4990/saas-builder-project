@@ -12,6 +12,8 @@ alwaysApply: false
 
 **Layout:** Components `src/components/{domain}/{Name}.vue`; pages `src/pages/{patient|doctor|admin}/{Name}.vue`; stores `src/stores/{name}.store.ts`; API `src/services/{name}.service.ts`. Parse API JSON with PascalCase wire keys; map to camelCase in services only (`api-json-pascal-case.mdc`). Tailwind only (no inline styles). Validate forms client-side; user-facing errors sanitized (no raw API errors).
 
+**Buttons (consistent chrome):** Prefer `DynButton` with registered style templates — do not use raw `<button>` with ad-hoc Tailwind in primitives. Primary/secondary CTAs: `hosp.popup.button.primary` / `hosp.popup.button.secondary` (`inline-flex min-w-40 h-12`). Page forms may alias `hosp.page.button.*` (same chrome). Place actions in a flex row (`justify-end` on full-page forms, `justify-center` in popups) — never stretch CTAs full-width unless a design explicitly requires it. Toolbar/hero: `hosp.button.primary` / `secondary`. Config-driven pages: `type: 'button'` + `styles.styleTemplate` (see `bookAppointmentPage.ts`, `triagePopupPage.ts`).
+
 **Popups:** Use `GlobalPopup` + declarative `*-popup` page configs (`usePopupStore` / `open-*` services). Never build success/confirm overlays inside primitives. See `frontend-popups.mdc`.
 
 **Component ids:** Every `id` in page/config TS must be **unique within the file** (required for UI metadata merge). See `ui-component-ids.mdc`; run `npm run check:ui-ids`.

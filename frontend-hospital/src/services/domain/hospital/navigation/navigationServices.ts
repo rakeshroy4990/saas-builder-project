@@ -314,30 +314,9 @@ export const navigationHospitalServices: ServiceDefinition[] = [
   },
   {
     packageName: 'hospital',
-    serviceId: 'set-patient-dashboard-nav-overview',
+    serviceId: 'set-dashboard-nav-growth',
     execute: async () => {
-      useAppStore(pinia).setData('hospital', 'PatientDashboardNav', { activeItem: 'overview' });
-      return ok();
-    }
-  },
-  {
-    packageName: 'hospital',
-    serviceId: 'set-patient-dashboard-nav-devices',
-    execute: async () => {
-      useAppStore(pinia).setData('hospital', 'PatientDashboardNav', { activeItem: 'devices' });
-      return ok();
-    }
-  },
-  {
-    packageName: 'hospital',
-    serviceId: 'init-patient-dashboard-nav',
-    execute: async () => {
-      const appStore = useAppStore(pinia);
-      const prev = (appStore.getData('hospital', 'PatientDashboardNav') ?? {}) as { activeItem?: string };
-      const item = String(prev.activeItem ?? '').trim();
-      appStore.setData('hospital', 'PatientDashboardNav', {
-        activeItem: item === 'devices' ? 'devices' : 'overview'
-      });
+      useAppStore(pinia).setData('hospital', 'DashboardNav', { activeItem: 'growth' });
       return ok();
     }
   },

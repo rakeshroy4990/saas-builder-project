@@ -13,6 +13,8 @@ public record PatientDeviceReadingResponse(
         @JsonProperty("DeviceType") String deviceType,
         @JsonProperty("Measurements") Map<String, Object> measurements,
         @JsonProperty("RecordedAt") Instant recordedAt,
-        @JsonProperty("CreatedAt") Instant createdAt
+        @JsonProperty("CreatedAt") Instant createdAt,
+        @JsonProperty("ChildProfileExternalId") UUID childProfileExternalId,
+        @JsonProperty("AppointmentExternalId") UUID appointmentExternalId
 ) {
 }

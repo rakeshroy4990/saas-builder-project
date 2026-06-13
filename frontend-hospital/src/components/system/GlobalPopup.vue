@@ -96,7 +96,7 @@ const isChatPopup = computed(() => {
 /** First-time language choice: no backdrop dismiss or Escape-to-close without picking a language. */
 const blockBackdropClose = computed(() => {
   const pageId = normalizePopupValue(activePopupRequest.value.pageId, '');
-  return pageId === 'locale-onboarding-popup';
+  return pageId === 'locale-onboarding-popup' || pageId === 'triage-soft-block-popup';
 });
 
 function onBackdropMouseDown(): void {

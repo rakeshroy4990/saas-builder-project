@@ -10,7 +10,6 @@ import { pinia } from '../../store/pinia';
 export const HOSPITAL_PROTECTED_PAGE_IDS = new Set([
   'dashboard',
   'prescriptions',
-  'patient-dashboard',
   'profile',
   'doctor-working-slots',
   'doctor-education',
@@ -18,12 +17,11 @@ export const HOSPITAL_PROTECTED_PAGE_IDS = new Set([
   'chat',
   'appointment-receipts-popup',
   'video-call-popup',
-  'chat-popup'
+  'chat-popup',
+  'triage'
 ]);
 
 export const HOSPITAL_DOCTOR_OR_ADMIN_PAGE_IDS = new Set(['doctor-working-slots']);
-
-export const HOSPITAL_PATIENT_OR_ADMIN_PAGE_IDS = new Set(['patient-dashboard']);
 
 export function hospitalSessionUserId(): string {
   const raw = useAppStore(pinia).getData('hospital', 'AuthSession') as Record<string, unknown> | undefined;
@@ -46,9 +44,6 @@ export function hospitalPageRoleAllowed(pageId: string): boolean {
   const role = hospitalSessionRole();
   if (HOSPITAL_DOCTOR_OR_ADMIN_PAGE_IDS.has(pageId)) {
     return role === 'DOCTOR' || role === 'ADMIN';
-  }
-  if (HOSPITAL_PATIENT_OR_ADMIN_PAGE_IDS.has(pageId)) {
-    return role === 'PATIENT' || role === 'ADMIN';
   }
   return true;
 }

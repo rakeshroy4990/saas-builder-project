@@ -43,8 +43,8 @@
           }
         },
         {
-          "pageId": "patient-dashboard",
-          "title": "Patient Dashboard",
+          "pageId": "dashboard",
+          "title": "Dashboard",
           "container": { "layoutTemplate": "flexshell.page.column" }
         },
         {

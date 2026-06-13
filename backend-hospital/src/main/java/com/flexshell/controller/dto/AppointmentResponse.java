@@ -7,6 +7,8 @@ import java.util.List;
 public record AppointmentResponse(
         @JsonProperty("Id")
         String id,
+        @JsonProperty("ExternalId")
+        String externalId,
         @JsonProperty("PatientName")
         String patientName,
         @JsonProperty("Email")

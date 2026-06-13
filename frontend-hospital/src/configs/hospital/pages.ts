@@ -6,7 +6,7 @@ import { hospitalPrescriptionUploadSuccessPopupPage } from './prescriptionUpload
 import { hospitalEducationAttachmentSequencePopupPage } from './educationAttachmentSequencePopupPage';
 import { hospitalProfilePage } from './profilePage';
 import { dashboardDevicesNavButtons, hospitalDashboardDevicesPanel } from './devicesDashboardPanel';
-import { hospitalPatientDashboardPage } from './patientDashboardPage';
+import { dashboardGrowthNavButtons, hospitalDashboardGrowthPanel } from './growthDashboardPanel';
 import { hospitalTermsPage } from './termsPage';
 import { hospitalPrivacyPage } from './privacyPage';
 import {
@@ -18,6 +18,9 @@ import {
 } from './hospitalPublicChrome';
 import { buildDoctorsByDepartmentListConfig } from './homeDoctorListConfig';
 import { buildLocaleOnboardingButtons } from './localeOnboardingConfig';
+import { triageSoftBlockPopupPage } from './triagePopupPage';
+import { hospitalTriagePage } from './triagePage';
+import { hospitalAppointmentGrowthPopupPage } from './appointmentGrowthPopupPage';
 
 const todayDateInputValue = new Date().toISOString().split('T')[0] ?? '';
 
@@ -96,6 +99,16 @@ export const hospitalPages: PageConfig[] = [
                               },
                               styles: { styleTemplate: 'hosp.button.primary' },
                               click: { actionId: 'open-appointment-popup' }
+                            }
+                          },
+                          {
+                            id: 'hospital-home-hero-triage-cta',
+                            type: 'button',
+                            condition: visibleWhenNotLoggedInAsDoctor,
+                            config: {
+                              i18nKey: 'triage.title',
+                              styles: { styleTemplate: 'hosp.button.secondary' },
+                              click: { actionId: 'open-triage-page' }
                             }
                           },
                           {
@@ -672,6 +685,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       }
                     },
+                    ...dashboardGrowthNavButtons(),
                     ...dashboardDevicesNavButtons()
                   ]
                 }
@@ -1013,6 +1027,30 @@ export const hospitalPages: PageConfig[] = [
                                       click: {
                                         actionId: 'complete-dashboard-visit',
                                         data: { appointmentId: '{{id}}' }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-growth',
+                                    type: 'button',
+                                    condition: {
+                                      expression: 'canMarkVisitComplete === "Y"'
+                                    },
+                                    config: {
+                                      text: '📏',
+                                      titleI18nKey: 'growth.appointment.recordAtVisit',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-800 hover:bg-emerald-50'
+                                      },
+                                      click: {
+                                        actionId: 'open-appointment-growth-popup',
+                                        data: {
+                                          appointmentId: '{{id}}',
+                                          appointmentExternalId: '{{externalId}}',
+                                          patientUserId: '{{createdBy}}',
+                                          patientName: '{{patientName}}'
+                                        }
                                       }
                                     }
                                   },
@@ -1660,6 +1698,7 @@ export const hospitalPages: PageConfig[] = [
                         ]
                       }
                     },
+                    hospitalDashboardGrowthPanel,
                     hospitalDashboardDevicesPanel
                   ]
                 }
@@ -1677,7 +1716,8 @@ export const hospitalPages: PageConfig[] = [
   hospitalPrescriptionsPage,
   hospitalPrescriptionUploadSuccessPopupPage,
   hospitalEducationAttachmentSequencePopupPage,
-  hospitalPatientDashboardPage,
+  hospitalTriagePage,
+  triageSoftBlockPopupPage,
   {
     packageName: 'hospital',
     pageId: 'doctor-overview',
@@ -3987,6 +4027,7 @@ export const hospitalPages: PageConfig[] = [
   hospitalBookAppointmentPage,
   hospitalBookAppointmentPopupPage,
   hospitalEprescriptionPopupPage,
+  hospitalAppointmentGrowthPopupPage,
   hospitalProfilePage,
   hospitalTermsPage,
   hospitalPrivacyPage,

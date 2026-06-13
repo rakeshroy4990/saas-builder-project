@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DoctorAvatar } from '@/components/DoctorAvatar';
 import type { DoctorListEntry } from '@/features/doctors/doctorsApi';
 import { colors } from '@/theme/colors';
-import { SCREEN_GUTTER, SECTION_GAP, SURFACE_RADIUS } from '@/theme/layout';
+import { HOME_CAROUSEL_CARD_WIDTH, SCREEN_GUTTER, SECTION_GAP, SURFACE_RADIUS } from '@/theme/layout';
 
 type HomeDoctorsCarouselProps = {
   title: string;
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     paddingRight: SCREEN_GUTTER
   },
   card: {
-    width: 280,
+    width: HOME_CAROUSEL_CARD_WIDTH,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

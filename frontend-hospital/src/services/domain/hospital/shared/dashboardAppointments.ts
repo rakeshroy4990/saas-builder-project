@@ -143,6 +143,7 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
   const additionalNotes = pickString(row, ['AdditionalNotes', 'additionalNotes']);
   return {
     id,
+    externalId: pickString(row, ['ExternalId', 'externalId']),
     patientName,
     email: pickString(row, ['Email', 'email']),
     phoneNumber: pickString(row, ['PhoneNumber', 'phoneNumber']),

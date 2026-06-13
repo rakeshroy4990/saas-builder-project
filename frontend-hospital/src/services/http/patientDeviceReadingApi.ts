@@ -1,5 +1,6 @@
 import type { DeviceType } from '@bluetooth/bluetooth/deviceRegistry';
 import type { BluetoothReading } from '@bluetooth/bluetooth/types';
+import { parsePagedEntityList, pickString } from '@saas-builder/hospital-api-client';
 import { apiClient } from './apiClient';
 import { SERVER_PATHS } from './apiPaths';
 
@@ -11,6 +12,8 @@ export type PatientDeviceReadingDto = {
   measurements: Record<string, number | null>;
   recordedAt: string;
   createdAt: string;
+  childProfileExternalId?: string | null;
+  appointmentExternalId?: string | null;
 };
 
 export type SavePatientDeviceReadingInput = {
@@ -20,6 +23,15 @@ export type SavePatientDeviceReadingInput = {
   measurements: Record<string, number | null>;
   recordedAt: string;
   rawBytes?: Uint8Array;
+  childProfileExternalId?: string;
+  appointmentExternalId?: string;
+};
+
+export type ListPatientDeviceReadingsOptions = {
+  page?: number;
+  size?: number;
+  childProfileExternalId?: string;
+  deviceType?: string;
 };
 
 function readEnvelope<T>(data: unknown): T {
@@ -43,6 +55,32 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function parsePatientDeviceReading(row: Record<string, unknown>): PatientDeviceReadingDto {
+  const measurementsRaw = (row.Measurements ?? row.measurements ?? {}) as Record<string, unknown>;
+  const measurements: Record<string, number | null> = {};
+  for (const [key, value] of Object.entries(measurementsRaw)) {
+    if (value == null || value === '') {
+      measurements[key] = null;
+    } else if (typeof value === 'number') {
+      measurements[key] = value;
+    } else {
+      const parsed = Number(value);
+      measurements[key] = Number.isFinite(parsed) ? parsed : null;
+    }
+  }
+  return {
+    externalId: pickString(row, ['ExternalId', 'externalId']),
+    deviceKey: pickString(row, ['DeviceKey', 'deviceKey']),
+    deviceName: pickString(row, ['DeviceName', 'deviceName']) || null,
+    deviceType: pickString(row, ['DeviceType', 'deviceType']),
+    measurements,
+    recordedAt: pickString(row, ['RecordedAt', 'recordedAt']),
+    createdAt: pickString(row, ['CreatedAt', 'createdAt']),
+    childProfileExternalId: pickString(row, ['ChildProfileExternalId', 'childProfileExternalId']) || null,
+    appointmentExternalId: pickString(row, ['AppointmentExternalId', 'appointmentExternalId']) || null
+  };
+}
+
 export function dtoToBluetoothReading(dto: PatientDeviceReadingDto): BluetoothReading {
   return {
     deviceKey: dto.deviceKey,
@@ -57,26 +95,49 @@ export async function savePatientDeviceReading(
   input: SavePatientDeviceReadingInput
 ): Promise<PatientDeviceReadingDto> {
   const body: Record<string, unknown> = {
-    deviceKey: input.deviceKey,
-    deviceName: input.deviceName,
-    deviceType: input.deviceType,
-    measurements: input.measurements,
-    recordedAt: input.recordedAt
+    DeviceKey: input.deviceKey,
+    DeviceName: input.deviceName,
+    DeviceType: input.deviceType,
+    Measurements: input.measurements,
+    RecordedAt: input.recordedAt
   };
   if (input.rawBytes && input.rawBytes.length > 0) {
-    body.rawBytesBase64 = bytesToBase64(input.rawBytes);
+    body.RawBytesBase64 = bytesToBase64(input.rawBytes);
   }
-  const res = await apiClient.post(SERVER_PATHS.patientDeviceReadings, body);
-  return readEnvelope<PatientDeviceReadingDto>(res.data);
+  if (input.childProfileExternalId) {
+    body.ChildProfileExternalId = input.childProfileExternalId;
+  }
+  if (input.appointmentExternalId) {
+    body.AppointmentExternalId = input.appointmentExternalId;
+  }
+  const res = await apiClient.post(`${SERVER_PATHS.patientDeviceReadings}/save`, body);
+  const data = readEnvelope<Record<string, unknown>>(res.data);
+  return parsePatientDeviceReading(data);
 }
 
 export async function listPatientDeviceReadings(
-  page = 0,
-  size = 20
+  options: ListPatientDeviceReadingsOptions = {}
 ): Promise<PatientDeviceReadingDto[]> {
-  const res = await apiClient.get(SERVER_PATHS.patientDeviceReadings, {
-    params: { page, size, sort: 'recordedAt,desc' }
-  });
-  const pageData = readEnvelope<{ content?: PatientDeviceReadingDto[] }>(res.data);
-  return Array.isArray(pageData?.content) ? pageData.content : [];
+  const page = options.page ?? 0;
+  const size = options.size ?? 20;
+  const query: Record<string, string> = {};
+  if (options.childProfileExternalId) {
+    query.ChildProfileExternalId = options.childProfileExternalId;
+  }
+  if (options.deviceType) {
+    query.DeviceType = options.deviceType;
+  }
+  const params: Record<string, unknown> = {
+    page,
+    size,
+    sort: 'recordedAt,desc'
+  };
+  if (Object.keys(query).length > 0) {
+    params.Query = JSON.stringify(query);
+  }
+  const res = await apiClient.get(SERVER_PATHS.patientDeviceReadings, { params });
+  const parsed = parsePagedEntityList(res.data, (row) =>
+    parsePatientDeviceReading(row as Record<string, unknown>)
+  );
+  return parsed.items;
 }

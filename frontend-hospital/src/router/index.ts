@@ -35,7 +35,11 @@ export const router = createRouter({
       redirect: (to) => `/${String(to.params.pageId ?? '')}`
     },
     {
-      path: '/_telemetry/session',
+      // Legacy patient dashboard — unified under /dashboard.
+      path: '/patient-dashboard',
+      redirect: '/dashboard'
+    },
+    {
       component: SessionTelemetryDebug
     },
     {

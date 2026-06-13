@@ -3,7 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import type { HomeVideoChip } from '@/features/home/homeContent';
 import { openYoutubeVideo, youtubeThumbnailUrl } from '@/features/home/openYoutubeVideo';
 import { colors } from '@/theme/colors';
-import { SCREEN_GUTTER, SURFACE_RADIUS } from '@/theme/layout';
+import { HOME_CAROUSEL_CARD_WIDTH, SCREEN_GUTTER, SECTION_GAP, SURFACE_RADIUS } from '@/theme/layout';
 
 type HomeVideoChipsProps = {
   title: string;
@@ -54,7 +54,7 @@ export function HomeVideoChips({ title, youtubeLabel, videos, onOpenYoutube }: H
 
 const styles = StyleSheet.create({
   wrap: {
-    marginBottom: 16
+    marginBottom: SECTION_GAP
   },
   header: {
     flexDirection: 'row',
@@ -73,19 +73,19 @@ const styles = StyleSheet.create({
     color: colors.primary
   },
   row: {
-    gap: 10,
+    gap: 12,
     paddingRight: SCREEN_GUTTER
   },
   chip: {
-    width: 220,
+    width: HOME_CAROUSEL_CARD_WIDTH,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: SURFACE_RADIUS,
-    padding: 10
+    borderRadius: SURFACE_RADIUS + 2,
+    padding: 12
   },
   thumb: {
     width: 56,

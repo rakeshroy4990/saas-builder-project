@@ -6,7 +6,9 @@ import type { PageConfig } from '../../core/types/PageConfig';
 import { useAppStore } from '../../store/useAppStore';
 import { pinia } from '../../store/pinia';
 import { useActionEngine } from '../../composables/useActionEngine';
+import { useToastStore } from '../../store/useToastStore';
 import { savePatientDeviceReading } from '../../services/http/patientDeviceReadingApi';
+import { saveGrowthRecord } from '../../services/http/growthApi';
 
 const props = defineProps<{
   pageConfig: PageConfig;
@@ -15,12 +17,19 @@ const props = defineProps<{
 }>();
 
 const appStore = useAppStore(pinia);
+const toastStore = useToastStore(pinia);
 const { execute } = useActionEngine(props.pageConfig);
 
 const authSession = computed(
   () => (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>
 );
 const patientId = computed(() => String(authSession.value.userId ?? '').trim());
+
+const selectedChildId = computed(() => {
+  void appStore.dataRevision;
+  const growthSession = (appStore.getData('hospital', 'GrowthSession') ?? {}) as Record<string, unknown>;
+  return String(growthSession.selectedChildId ?? '').trim();
+});
 
 const historyReadings = computed(() => {
   const node = (appStore.getData('hospital', 'PatientDeviceReadings') ?? {}) as {
@@ -30,14 +39,31 @@ const historyReadings = computed(() => {
 });
 
 async function onReading(reading: BluetoothReading): Promise<void> {
+  const childId = selectedChildId.value;
   try {
+    if (reading.deviceType === 'scale') {
+      const weight = reading.measurements.weight_kg;
+      if (childId && weight != null && Number.isFinite(weight)) {
+        await saveGrowthRecord({
+          childProfileExternalId: childId,
+          weightKg: weight,
+          source: 'ble_scale'
+        });
+        toastStore.show('Weight saved to growth chart', 'success');
+        await execute({ actionId: 'refresh-growth-chart' });
+      } else if (!childId) {
+        toastStore.show('Select a child in the Growth tab first', 'warning');
+      }
+    }
+
     await savePatientDeviceReading({
       deviceKey: reading.deviceKey,
       deviceName: reading.deviceName,
       deviceType: reading.deviceType,
       measurements: reading.measurements,
       recordedAt: reading.timestamp,
-      rawBytes: reading.rawBytes
+      rawBytes: reading.rawBytes,
+      childProfileExternalId: childId || undefined
     });
     await execute({ actionId: 'init-patient-device-readings' });
   } catch {

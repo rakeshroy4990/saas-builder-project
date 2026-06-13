@@ -324,6 +324,22 @@ export function registerStyleTemplates(): void {
   StyleTemplateRegistry.register('hosp.button.secondary', {
     utilityClasses: 'rounded-xl border border-emerald-600 text-emerald-700 font-semibold px-5 py-3 bg-white'
   });
+  /** Compact CTA aligned with `hosp.form.input` height (dashboard forms, growth workspace). */
+  StyleTemplateRegistry.register('hosp.button.inlineSecondary', {
+    utilityClasses:
+      'inline-flex shrink-0 items-center justify-center rounded-lg border border-emerald-600 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50'
+  });
+  StyleTemplateRegistry.register('hosp.button.inlinePrimary', {
+    utilityClasses:
+      'inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700'
+  });
+  /** Page form CTAs — same chrome as popup buttons (min-w-40 h-12); place in action rows, not full-width. */
+  StyleTemplateRegistry.register('hosp.page.button.primary', {
+    styleTemplates: ['hosp.popup.button.primary']
+  });
+  StyleTemplateRegistry.register('hosp.page.button.secondary', {
+    styleTemplates: ['hosp.popup.button.secondary']
+  });
   StyleTemplateRegistry.register('hosp.popup.button.primary', {
     utilityClasses:
       'inline-flex min-w-40 h-12 items-center justify-center rounded-xl bg-emerald-600 px-6 text-base font-semibold text-white hover:bg-emerald-700'
@@ -456,6 +472,156 @@ export function registerStyleTemplates(): void {
   });
   StyleTemplateRegistry.register('hosp.contact.block', {
     utilityClasses: 'block text-sm sm:text-base text-slate-700'
+  });
+
+  /**
+   * Dashboard workspace panels (growth, devices, vitals). Reuse in config-driven primitives
+   * instead of one-off Tailwind on each workspace screen.
+   */
+  StyleTemplateRegistry.register('hosp.workspace.root', {
+    utilityClasses: 'space-y-6'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.stack', {
+    utilityClasses: 'space-y-4'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.pageTitle', {
+    utilityClasses: 'text-2xl font-semibold text-slate-900'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.pageIntro', {
+    utilityClasses: 'mt-1 text-sm text-slate-600'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.disclaimer', {
+    utilityClasses: 'mt-2 text-xs text-slate-500 italic'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.toolbar', {
+    utilityClasses: 'flex flex-wrap items-end gap-3'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.fieldLabel', {
+    utilityClasses: 'mb-1 block text-sm font-medium text-slate-800'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.select', {
+    utilityClasses:
+      'min-w-48 rounded-lg border border-slate-300 px-3 py-2 text-sm leading-normal text-slate-800'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.panel', {
+    utilityClasses: 'rounded-xl border border-slate-200 bg-white p-4'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.panelMuted', {
+    utilityClasses: 'rounded-xl border border-slate-200 bg-slate-50 p-4'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.panelStack', {
+    utilityClasses: 'space-y-3'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.sectionTitle', {
+    utilityClasses: 'text-lg font-semibold text-slate-900'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.collapsible', {
+    utilityClasses: 'overflow-hidden rounded-xl border border-slate-200 bg-slate-50'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.collapsibleTrigger', {
+    utilityClasses:
+      'flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100/80'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.collapsibleBody', {
+    utilityClasses: 'border-t border-slate-200 px-4 py-3'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.collapsibleList', {
+    utilityClasses: 'space-y-2 text-sm text-slate-600'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.collapsibleListItem', {
+    utilityClasses: 'flex flex-col gap-0.5 rounded-md px-2 py-1.5 sm:flex-row sm:gap-2'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.collapsibleListItemActive', {
+    utilityClasses: 'bg-emerald-50 text-emerald-950'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.metricPill', {
+    utilityClasses: 'rounded-full px-4 py-1.5 text-sm font-medium'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.metricPillActive', {
+    utilityClasses: 'bg-emerald-600 text-white'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.metricPillInactive', {
+    utilityClasses: 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.chartCard', {
+    utilityClasses: 'rounded-xl border border-slate-200 bg-white p-3'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.chartSvg', {
+    utilityClasses: 'mx-auto block h-auto w-full max-w-md'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.chartLegend', {
+    utilityClasses: 'mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-slate-600'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.callout', {
+    utilityClasses:
+      'mt-3 space-y-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 text-xs text-slate-600'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.calloutTitle', {
+    utilityClasses: 'font-medium text-slate-800'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.calloutStrong', {
+    utilityClasses: 'font-medium text-slate-700'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.formGrid', {
+    utilityClasses: 'grid gap-3 sm:grid-cols-3'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.input', {
+    utilityClasses: 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.inputCompact', {
+    utilityClasses: 'w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.hint', {
+    utilityClasses: 'mt-1 text-xs text-slate-500'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.recordingCadence', {
+    utilityClasses:
+      'mt-3 rounded-xl border border-emerald-200 border-l-4 border-l-emerald-500 bg-emerald-50 px-4 py-3 shadow-sm'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.recordingCadenceTitle', {
+    utilityClasses: 'text-sm font-bold text-emerald-900'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.recordingCadenceBody', {
+    utilityClasses: 'mt-1.5 text-sm leading-relaxed text-emerald-950'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.loadingText', {
+    utilityClasses: 'text-sm text-slate-600'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.historyList', {
+    utilityClasses: 'mt-3 divide-y divide-slate-100'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.historyRow', {
+    utilityClasses: 'flex flex-wrap items-start justify-between gap-3 py-3 text-sm'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.historyDate', {
+    utilityClasses: 'font-medium text-slate-800'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.historyValues', {
+    utilityClasses: 'text-slate-600'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.percentileGroup', {
+    utilityClasses: 'shrink-0 space-y-1.5 text-right'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.percentileHeading', {
+    utilityClasses: 'text-[11px] font-medium uppercase tracking-wide text-slate-500'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.percentileBadges', {
+    utilityClasses: 'flex flex-wrap justify-end gap-1.5'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.percentileBadge', {
+    utilityClasses: 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.percentileBadgeLabel', {
+    utilityClasses: 'font-medium text-slate-600'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.guidePanel', {
+    utilityClasses: 'mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.guideTitle', {
+    utilityClasses: 'font-semibold text-slate-900'
+  });
+  StyleTemplateRegistry.register('hosp.workspace.emptyText', {
+    utilityClasses: 'text-sm text-slate-600'
   });
 
   /** Doctor education chat thread (DynDoctorEducationConversation). */

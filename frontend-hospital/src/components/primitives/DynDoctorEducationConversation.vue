@@ -745,9 +745,9 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 </script>
 
 <template>
-  <section :id="htmlId" class="rounded-3xl border border-slate-200 bg-white/95 shadow-sm">
-    <div class="px-4 py-4 sm:px-5">
-      <div class="flex min-h-[min(88dvh,calc(100dvh-6rem))] flex-col gap-0">
+  <section :id="htmlId" class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white/95 shadow-sm">
+    <div class="flex min-h-0 flex-1 flex-col px-4 pt-4 sm:px-5 sm:pt-5">
+      <div class="flex min-h-0 flex-1 flex-col gap-0">
         <div class="order-1 shrink-0 space-y-5">
         <div class="flex items-start justify-between gap-3 min-w-0">
           <div class="min-w-0 flex-1 space-y-1">
@@ -1007,17 +1007,12 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 
         <div
           v-if="isBooksTab"
-          class="order-2 flex min-h-0 flex-col border-slate-200"
-          :class="
-            messages.length > 0
-              ? 'min-h-[10rem] flex-1 border-t pt-4'
-              : 'max-h-0 flex-none overflow-hidden border-t-0 p-0'
-          "
+          class="order-2 flex min-h-0 flex-1 flex-col border-slate-200"
+          :class="messages.length > 0 ? 'min-h-[10rem] border-t pt-4' : ''"
         >
           <div
             ref="threadRef"
-            class="min-h-0 space-y-4 overflow-y-auto pb-6 pr-0.5"
-            :class="messages.length > 0 ? 'flex-1' : ''"
+            class="min-h-0 flex-1 space-y-4 overflow-y-auto pb-6 pr-0.5"
             role="log"
             aria-live="polite"
           >
@@ -1135,7 +1130,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
           </div>
         </div>
 
-        <div v-if="isBooksTab" class="order-3 shrink-0 space-y-3 bg-white/95 pt-4 pb-2">
+        <div v-if="isBooksTab" class="order-3 shrink-0 space-y-3 border-t border-slate-200 bg-white/95 pt-4 pb-4 sm:pb-5">
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2 min-w-0">
               <label for="doctor-education-conversation-draft" class="text-xs font-semibold uppercase tracking-wide text-slate-500 min-w-0">

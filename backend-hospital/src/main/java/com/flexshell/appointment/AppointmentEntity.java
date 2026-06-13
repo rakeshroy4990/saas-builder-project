@@ -87,6 +87,10 @@ public class AppointmentEntity {
     @Field("CallEndTime")
     private Instant callEndTime;
 
+    /** Stable UUID for FK links (postgres); may be null on legacy mongo rows. */
+    @Field("ExternalId")
+    private UUID externalId;
+
     public String getId() {
         return id;
     }
@@ -277,6 +281,14 @@ public class AppointmentEntity {
 
     public void setCallEndTime(Instant callEndTime) {
         this.callEndTime = callEndTime;
+    }
+
+    public UUID getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(UUID externalId) {
+        this.externalId = externalId;
     }
 
     public static class AppointmentFile {

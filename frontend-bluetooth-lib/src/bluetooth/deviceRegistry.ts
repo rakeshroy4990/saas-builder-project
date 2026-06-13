@@ -5,14 +5,16 @@ export type DeviceType =
   | 'pulse_oximeter'
   | 'bp_monitor'
   | 'glucometer'
-  | 'thermometer';
+  | 'thermometer'
+  | 'scale';
 
 export const DEVICE_TYPES: DeviceType[] = [
   'spirometer',
   'pulse_oximeter',
   'bp_monitor',
   'glucometer',
-  'thermometer'
+  'thermometer',
+  'scale'
 ];
 
 export interface BluetoothDeviceProfile {
@@ -219,6 +221,19 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
     },
     requiresUserAction:
       'Turn the thermometer on and enable pairing mode if required. In the browser list, select your thermometer by name — most devices do not advertise a standard health service until connected.'
+  },
+  XIAOMI_MI_SCALE: {
+    type: 'scale',
+    label: 'Smart Scale (Mi / body composition)',
+    icon: '⚖️',
+    serviceUUIDs: ['0000181b-0000-1000-8000-00805f9b34fb'],
+    characteristicUUID: '00002a9c-0000-1000-8000-00805f9b34fb',
+    measurementKeys: ['weight_kg'],
+    unit: 'kg',
+    acceptAllDevices: true,
+    namePrefixes: ['MI_SCALE', 'MIBCS', 'XMTZC', 'Mi Scale'],
+    optionalServiceUUIDs: ['0000181b-0000-1000-8000-00805f9b34fb'],
+    requiresUserAction: 'Step on the scale barefoot and wait until the reading stabilizes.'
   }
 };
 
@@ -227,7 +242,8 @@ export const DEVICE_TYPE_LABEL_I18N: Record<DeviceType, string> = {
   pulse_oximeter: 'devices.bluetooth.types.pulse_oximeter',
   bp_monitor: 'devices.bluetooth.types.bp_monitor',
   glucometer: 'devices.bluetooth.types.glucometer',
-  thermometer: 'devices.bluetooth.types.thermometer'
+  thermometer: 'devices.bluetooth.types.thermometer',
+  scale: 'devices.bluetooth.types.scale'
 };
 
 export const DEVICE_TYPE_LABELS: Record<DeviceType, string> = {
@@ -235,7 +251,8 @@ export const DEVICE_TYPE_LABELS: Record<DeviceType, string> = {
   pulse_oximeter: 'Pulse Oximeter',
   bp_monitor: 'Blood Pressure Monitor',
   glucometer: 'Glucometer',
-  thermometer: 'Thermometer'
+  thermometer: 'Thermometer',
+  scale: 'Smart Scale'
 };
 
 export const DEVICE_TYPE_ICONS: Record<DeviceType, string> = {
@@ -243,7 +260,8 @@ export const DEVICE_TYPE_ICONS: Record<DeviceType, string> = {
   pulse_oximeter: '❤️',
   bp_monitor: '🩺',
   glucometer: '🩸',
-  thermometer: '🌡️'
+  thermometer: '🌡️',
+  scale: '⚖️'
 };
 
 export function devicesForType(type: DeviceType): Array<{ key: string; profile: BluetoothDeviceProfile }> {

@@ -236,6 +236,8 @@ export function parseDeviceData(deviceKey: string, value: DataView): Record<stri
       return parseGlucometerData(value);
     case 'GENERIC_THERMOMETER':
       return parseThermometerData(value);
+    case 'XIAOMI_MI_SCALE':
+      return parseScaleData(value);
     default:
       return { raw: value.byteLength > 0 ? value.getUint8(0) : null };
   }
@@ -291,5 +293,22 @@ function parseThermometerData(value: DataView): Record<string, number | null> {
     return { temperature_celsius };
   } catch {
     return { temperature_celsius: null };
+  }
+}
+
+function parseScaleData(value: DataView): Record<string, number | null> {
+  try {
+    if (value.byteLength < 13) {
+      return { weight_kg: null };
+    }
+    const stabilized = (value.getUint8(1) & 0x04) !== 0;
+    if (!stabilized) {
+      return { weight_kg: null };
+    }
+    const raw = value.getUint16(11, true);
+    const weight_kg = raw / 100;
+    return { weight_kg };
+  } catch {
+    return { weight_kg: null };
   }
 }

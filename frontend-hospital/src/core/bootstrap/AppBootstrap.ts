@@ -21,13 +21,21 @@ import DynPrescriptionUpload from '../../components/primitives/DynPrescriptionUp
 import DynPrescriptionList from '../../components/primitives/DynPrescriptionList.vue';
 import DynLanguageSwitcher from '../../components/primitives/DynLanguageSwitcher.vue';
 import DynNotificationBell from '../../components/primitives/DynNotificationBell.vue';
+import DynTriageWizard from '../../components/primitives/DynTriageWizard.vue';
+import DynTriageResultBadge from '../../components/primitives/DynTriageResultBadge.vue';
 
 /** STOMP + chat UI — not needed for first paint. */
 const DynChat = defineAsyncComponent(() => import('@realtime/components/DynChat.vue'));
 /** Pulls `agora-rtc-sdk-ng` (~1.5MB) only when video call UI is first used. */
 const DynVideoCall = defineAsyncComponent(() => import('@realtime/components/DynVideoCall.vue'));
+const DynGrowthWorkspace = defineAsyncComponent(
+  () => import('../../components/primitives/DynGrowthWorkspace.vue')
+);
 const DynBluetoothDevicesHost = defineAsyncComponent(
   () => import('../../components/primitives/DynBluetoothDevicesHost.vue')
+);
+const DynAppointmentGrowthForm = defineAsyncComponent(
+  () => import('../../components/primitives/DynAppointmentGrowthForm.vue')
 );
 
 export function bootstrap(): void {
@@ -49,12 +57,16 @@ export function bootstrap(): void {
   ComponentRegistry.register('chat', DynChat);
   ComponentRegistry.register('video-call', DynVideoCall);
   ComponentRegistry.register('bluetooth-devices', DynBluetoothDevicesHost);
+  ComponentRegistry.register('growth-workspace', DynGrowthWorkspace);
+  ComponentRegistry.register('appointment-growth-form', DynAppointmentGrowthForm);
   ComponentRegistry.register('doctor-schedule-editor', DynDoctorScheduleEditor);
   ComponentRegistry.register('medicine-list-editor', DynMedicineListEditor);
   ComponentRegistry.register('doctor-education-workspace', DynDoctorEducationWorkspace);
   ComponentRegistry.register('education-attachment-sequence', DynEducationAttachmentSequence);
   ComponentRegistry.register('prescription-upload', DynPrescriptionUpload);
   ComponentRegistry.register('prescription-list', DynPrescriptionList);
+  ComponentRegistry.register('triage-wizard', DynTriageWizard);
+  ComponentRegistry.register('triage-result-badge', DynTriageResultBadge);
 
   registerHospitalModule();
 }

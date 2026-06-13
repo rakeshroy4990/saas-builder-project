@@ -16,4 +16,15 @@ public interface PatientDeviceReadingJpaRepository extends JpaRepository<Patient
     );
 
     Optional<PatientDeviceReadingJpaEntity> findByExternalIdAndDeletedFalse(UUID externalId);
+
+    Page<PatientDeviceReadingJpaEntity> findByChildProfileExternalIdAndDeletedFalse(
+            UUID childProfileExternalId,
+            Pageable pageable
+    );
+
+    Page<PatientDeviceReadingJpaEntity> findByPatientUserIdAndDeviceTypeAndDeletedFalse(
+            String patientUserId,
+            String deviceType,
+            Pageable pageable
+    );
 }

@@ -7,6 +7,7 @@ import { useSessionStore } from '@/auth/sessionStore';
 import { DoctorAvatar } from '@/components/DoctorAvatar';
 import { LoadingView } from '@/components/LoadingView';
 import { colors } from '@/theme/colors';
+import { TAB_SCROLL_BOTTOM_PADDING } from '@/theme/layout';
 import { sharedStyles } from '@/theme/styles';
 
 import { fetchDoctorsGroupedByDepartment, type DepartmentDoctorsSection } from './doctorsApi';
@@ -50,7 +51,7 @@ export function DoctorsListScreen() {
       return;
     }
     router.push({
-      pathname: '/(app)/appointments/book',
+      pathname: '/(app)/(tabs)/appointments/book',
       params: {
         department: section.departmentValue,
         doctorId
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 32
+    paddingBottom: TAB_SCROLL_BOTTOM_PADDING
   },
   subtitle: {
     ...sharedStyles.subtitle,

@@ -102,7 +102,7 @@ export default function AppointmentsDashboardScreen() {
               <View>
                 <Pressable
                   style={[sharedStyles.button, { marginBottom: 12 }]}
-                  onPress={() => router.push('/(app)/appointments/book' as never)}
+                  onPress={() => router.push('/(app)/(tabs)/appointments/book' as never)}
                 >
                   <Text style={sharedStyles.buttonText}>{t('appointment.book.cta')}</Text>
                 </Pressable>
@@ -126,7 +126,7 @@ export default function AppointmentsDashboardScreen() {
             renderItem={({ item }) => (
               <Pressable
                 style={[sharedStyles.card, { marginBottom: 10 }]}
-                onPress={() => router.push(`/(app)/appointments/${item.id}`)}
+                onPress={() => router.push(`/(app)/(tabs)/appointments/${item.id}`)}
               >
                 <Text style={{ fontSize: 16, fontWeight: '600', color: '#0f172a' }}>{item.patientName}</Text>
                 <Text style={sharedStyles.subtitle}>

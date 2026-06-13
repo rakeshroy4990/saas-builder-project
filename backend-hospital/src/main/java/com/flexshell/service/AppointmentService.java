@@ -68,6 +68,7 @@ public class AppointmentService {
     private final AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier;
     private final ExtensionHookInvoker extensionHookInvoker;
     private final ObjectMapper objectMapper;
+    private final ObjectProvider<TriageResultService> triageResultServiceProvider;
 
     public AppointmentService(
             ObjectProvider<AppointmentAccess> appointmentAccessProvider,
@@ -76,7 +77,8 @@ public class AppointmentService {
             @Qualifier("hospitalZoneId") ZoneId hospitalZoneId,
             AppointmentCreatedEmailNotifier appointmentCreatedEmailNotifier,
             ExtensionHookInvoker extensionHookInvoker,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ObjectProvider<TriageResultService> triageResultServiceProvider
     ) {
         this.appointmentAccessProvider = appointmentAccessProvider;
         this.userAccessProvider = userAccessProvider;
@@ -85,6 +87,7 @@ public class AppointmentService {
         this.appointmentCreatedEmailNotifier = appointmentCreatedEmailNotifier;
         this.extensionHookInvoker = extensionHookInvoker;
         this.objectMapper = objectMapper;
+        this.triageResultServiceProvider = triageResultServiceProvider;
     }
 
     public AppointmentResponse create(AppointmentRequest request, List<MultipartFile> prescriptionFiles, String actorUserId) {
@@ -138,8 +141,26 @@ public class AppointmentService {
                     "appointment_id", saved.getId()));
         }
         AppointmentResponse response = toResponse(saved);
+        maybeLinkTriageResult(effectiveRequest, actorUserId, saved);
         runAppointmentCreateAfterHooks(response, actorUserId);
         return response;
+    }
+
+    private void maybeLinkTriageResult(AppointmentRequest request, String actorUserId, AppointmentEntity saved) {
+        TriageResultService triageService = triageResultServiceProvider.getIfAvailable();
+        if (triageService == null || request == null || saved == null) {
+            return;
+        }
+        String triageIdRaw = normalize(request.getTriageResultExternalId());
+        if (triageIdRaw.isBlank()) {
+            return;
+        }
+        try {
+            UUID triageExternalId = UUID.fromString(triageIdRaw);
+            triageService.maybeLinkOnAppointmentCreate(actorUserId, triageExternalId, saved.getId());
+        } catch (IllegalArgumentException ex) {
+            log.warn("appointment_create_triage_link_invalid triageId={}", triageIdRaw);
+        }
     }
 
     private AppointmentRequest runAppointmentCreateBeforeHooks(AppointmentRequest request, String actorUserId) {
@@ -893,6 +914,7 @@ public class AppointmentService {
         List<AppointmentFileResponse> files = mapFileResponses(entity);
         return new AppointmentResponse(
                 entity.getId(),
+                entity.getExternalId() == null ? null : entity.getExternalId().toString(),
                 entity.getPatientName(),
                 entity.getEmail(),
                 entity.getPhoneNumber(),

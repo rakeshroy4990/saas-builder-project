@@ -45,6 +45,7 @@ public class AppointmentEntityMapper {
         e.setCallStatus(row.getCallStatus());
         e.setCallStartTime(row.getCallStartTime());
         e.setCallEndTime(row.getCallEndTime());
+        e.setExternalId(row.getExternalId());
         if (row.isDeleted()) {
             e.setStatus(STATUS_DELETED);
         }

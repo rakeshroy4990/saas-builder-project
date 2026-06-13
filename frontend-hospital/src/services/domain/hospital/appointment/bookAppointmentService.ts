@@ -99,7 +99,8 @@ export const bookAppointmentHospitalServices: ServiceDefinition[] = [
         DoctorId: pickString(form, ['doctor', 'DoctorId']),
         PreferredDate: pickString(form, ['preferredDate', 'PreferredDate']),
         PreferredTimeSlot: pickString(form, ['preferredTimeSlot', 'PreferredTimeSlot']),
-        AdditionalNotes: pickString(form, ['additionalNotes', 'AdditionalNotes'])
+        AdditionalNotes: pickString(form, ['additionalNotes', 'AdditionalNotes']),
+        TriageResultExternalId: pickString(form, ['triageResultExternalId', 'TriageResultExternalId'])
       };
 
       const requiredFields: Array<{ label: string; value: unknown }> = [

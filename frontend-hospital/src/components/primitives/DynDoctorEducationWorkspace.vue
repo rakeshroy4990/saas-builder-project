@@ -26,7 +26,7 @@ const uiMode = computed<'flashcards' | 'conversation'>(() => {
 </script>
 
 <template>
-  <div :id="htmlId">
+  <div :id="htmlId" class="flex min-h-0 flex-1 flex-col">
     <DynDoctorEducationFlashcards
       v-if="uiMode === 'flashcards'"
       :page-config="pageConfig"

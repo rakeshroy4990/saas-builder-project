@@ -28,7 +28,11 @@ export type ComponentType =
   | 'medicine-list-editor'
   | 'doctor-education-workspace'
   | 'education-attachment-sequence'
-  | 'bluetooth-devices';
+  | 'triage-wizard'
+  | 'triage-result-badge'
+  | 'bluetooth-devices'
+  | 'growth-workspace'
+  | 'appointment-growth-form';
 
 export interface LayoutConfig {
   type: 'flex' | 'grid';

@@ -21,10 +21,16 @@ export const deviceReadingHospitalServices: ServiceDefinition[] = [
         appStore.setData('hospital', 'PatientDeviceReadings', { list: [], loadError: '' });
         return ok();
       }
+      const growthSession = (appStore.getData('hospital', 'GrowthSession') ?? {}) as Record<string, unknown>;
+      const childProfileExternalId = String(growthSession.selectedChildId ?? '').trim() || undefined;
       try {
-        const dtos = await listPatientDeviceReadings(0, 20);
+        const dtos = await listPatientDeviceReadings({
+          page: 0,
+          size: 20,
+          childProfileExternalId
+        });
         const list = dtos.map(dtoToBluetoothReading);
-        appStore.setData('hospital', 'PatientDeviceReadings', { list: list, loadError: '' });
+        appStore.setData('hospital', 'PatientDeviceReadings', { list, loadError: '' });
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load device readings';
         appStore.setData('hospital', 'PatientDeviceReadings', { list: [], loadError: message });

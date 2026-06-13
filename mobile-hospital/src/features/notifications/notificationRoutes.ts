@@ -15,7 +15,7 @@ export const notificationRouteResolvers: Record<string, NotificationRouteResolve
 function resolveAppointmentRoute(notification: NotificationItem): string | null {
   const appointmentId = String(notification.entityRefId ?? notification.entityExternalId ?? '').trim();
   if (!appointmentId) return '/(app)/(tabs)/appointments';
-  return `/(app)/appointments/${encodeURIComponent(appointmentId)}`;
+  return `/(app)/(tabs)/appointments/${encodeURIComponent(appointmentId)}`;
 }
 
 export function resolveNotificationRoute(notification: NotificationItem): string | null {

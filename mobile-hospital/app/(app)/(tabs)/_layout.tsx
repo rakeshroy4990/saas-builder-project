@@ -26,6 +26,7 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: t('nav.home'),
+          headerShown: false,
           tabBarIcon: ({ focused }) => tabIcon(focused ? 'home' : 'home-outline', focused)
         }}
       />
@@ -33,6 +34,7 @@ export default function TabsLayout() {
         name="appointments"
         options={{
           title: t('nav.dashboard'),
+          headerShown: false,
           tabBarIcon: ({ focused }) => tabIcon(focused ? 'calendar' : 'calendar-outline', focused)
         }}
       />

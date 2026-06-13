@@ -6,6 +6,7 @@ import {
   Dimensions,
   FlatList,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -18,7 +19,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { KeyboardSafeView } from '@/components/KeyboardSafeView';
 import { useSessionStore } from '@/auth/sessionStore';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useKeyboardVisible } from '@/hooks/useKeyboardVisible';
@@ -924,6 +924,9 @@ export function DoctorEducationScreen() {
     );
   }
 
+  const composerBottomPad = keyboardInset > 0 ? 8 : Math.max(insets.bottom, 8);
+  const paneKeyboardPad = Platform.OS === 'android' && keyboardInset > 0 ? keyboardInset : 0;
+
   const typingFooter = sending ? (
     <View style={styles.typingRow}>
       <ActivityIndicator color={colors.primary} />
@@ -1104,7 +1107,13 @@ export function DoctorEducationScreen() {
             }
           ]}
         >
-          <KeyboardSafeView style={styles.flex}>
+          <KeyboardAvoidingView
+            style={[
+              styles.flex,
+              Platform.OS === 'android' && keyboardInset > 0 ? { paddingBottom: keyboardInset } : null
+            ]}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
             <View style={styles.fullScreenHeader}>
               <Pressable
                 style={styles.fullScreenExitBtn}
@@ -1117,8 +1126,8 @@ export function DoctorEducationScreen() {
               </Pressable>
             </View>
             {renderBooksMessageList()}
-            {renderBooksComposer(keyboardVisible ? 0 : Math.max(insets.bottom, 8))}
-          </KeyboardSafeView>
+            {renderBooksComposer(composerBottomPad)}
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     );
@@ -1130,13 +1139,15 @@ export function DoctorEducationScreen() {
 
   return (
     <View style={sharedStyles.screen}>
-      <KeyboardSafeView style={styles.flex} liftEnabled={!chatFullScreen}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        enabled={!chatFullScreen}
+      >
       {!chatFullScreen ? (
       <View style={styles.header}>
-        {tab === 'prescription' ? (
-          <Text style={sharedStyles.subtitle}>{t('education.subtitle')}</Text>
-        ) : null}
-        <View style={[styles.tabRow, tab === 'prescription' && styles.tabRowWithSubtitle]}>
+        <Text style={sharedStyles.subtitle}>{t('education.subtitle')}</Text>
+        <View style={styles.tabRow}>
           <TabButton
             label={t('education.tabs.books')}
             active={tab === 'books'}
@@ -1152,7 +1163,7 @@ export function DoctorEducationScreen() {
       ) : null}
 
       {tab === 'books' && !chatFullScreen ? (
-        <View style={styles.booksPane}>
+        <View style={[styles.booksPane, paneKeyboardPad > 0 ? { paddingBottom: paneKeyboardPad } : null]}>
           <View style={styles.booksMeta}>
             <EducationBookPicker
               books={books}
@@ -1215,10 +1226,10 @@ export function DoctorEducationScreen() {
             ) : null}
           </View>
 
-          {renderBooksComposer()}
+          {renderBooksComposer(composerBottomPad)}
         </View>
       ) : tab === 'prescription' ? (
-        <View style={styles.prescriptionPane}>
+        <View style={[styles.prescriptionPane, paneKeyboardPad > 0 ? { paddingBottom: paneKeyboardPad } : null]}>
           <ScrollView
             style={styles.prescriptionScroll}
             contentContainerStyle={styles.prescriptionScrollContent}
@@ -1236,10 +1247,10 @@ export function DoctorEducationScreen() {
               </View>
             ))}
           </ScrollView>
-          {renderPrescriptionComposer()}
+          {renderPrescriptionComposer(composerBottomPad)}
         </View>
       ) : null}
-      </KeyboardSafeView>
+      </KeyboardAvoidingView>
       {tab === 'books' ? renderBooksFullScreenModal() : null}
       <EducationAttachmentSequenceModal
         visible={sequenceModalVisible}
@@ -1272,9 +1283,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
-    gap: 8
-  },
-  tabRowWithSubtitle: {
+    gap: 8,
     marginTop: 10
   },
   fullScreenRoot: {

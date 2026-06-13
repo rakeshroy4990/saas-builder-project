@@ -25,6 +25,10 @@ public class PatientDeviceReadingSaveRequest {
     private java.time.Instant recordedAt;
     @JsonProperty("RawBytesBase64")
     private String rawBytesBase64;
+    @JsonProperty("ChildProfileExternalId")
+    private UUID childProfileExternalId;
+    @JsonProperty("AppointmentExternalId")
+    private UUID appointmentExternalId;
 
     public UUID getExternalId() {
         return externalId;
@@ -82,6 +86,22 @@ public class PatientDeviceReadingSaveRequest {
         this.rawBytesBase64 = rawBytesBase64;
     }
 
+    public UUID getChildProfileExternalId() {
+        return childProfileExternalId;
+    }
+
+    public void setChildProfileExternalId(UUID childProfileExternalId) {
+        this.childProfileExternalId = childProfileExternalId;
+    }
+
+    public UUID getAppointmentExternalId() {
+        return appointmentExternalId;
+    }
+
+    public void setAppointmentExternalId(UUID appointmentExternalId) {
+        this.appointmentExternalId = appointmentExternalId;
+    }
+
     public PatientDeviceReadingCreateRequest toCreateRequest() {
         return new PatientDeviceReadingCreateRequest(
                 deviceKey,
@@ -89,7 +109,9 @@ public class PatientDeviceReadingSaveRequest {
                 deviceType,
                 measurements,
                 recordedAt,
-                rawBytesBase64
+                rawBytesBase64,
+                childProfileExternalId,
+                appointmentExternalId
         );
     }
 }

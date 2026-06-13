@@ -1,11 +1,14 @@
 package com.flexshell.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.controller.dto.PatientDeviceReadingCreateRequest;
+import com.flexshell.controller.dto.PatientDeviceReadingQueryDto;
 import com.flexshell.controller.dto.PatientDeviceReadingResponse;
 import com.flexshell.controller.dto.PatientDeviceReadingSaveRequest;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.support.EntityListResponseSupport;
+import com.flexshell.controller.support.EntityQueryBinder;
 import com.flexshell.service.PatientDeviceReadingService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
@@ -18,30 +21,41 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/patient-device-readings")
 @ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PatientDeviceReadingController {
+    private static final Set<String> QUERY_KEYS = Set.of(
+            "ChildProfileExternalId",
+            "DeviceType",
+            "PatientUserId"
+    );
+
     private final LocalizedApiMessages messages;
-
-
     private final PatientDeviceReadingService patientDeviceReadingService;
+    private final ObjectMapper objectMapper;
 
-    public PatientDeviceReadingController(PatientDeviceReadingService patientDeviceReadingService,
-            LocalizedApiMessages messages) {
+    public PatientDeviceReadingController(
+            PatientDeviceReadingService patientDeviceReadingService,
+            LocalizedApiMessages messages,
+            ObjectMapper objectMapper
+    ) {
         this.messages = messages;
-
         this.patientDeviceReadingService = patientDeviceReadingService;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -68,6 +82,8 @@ public class PatientDeviceReadingController {
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<List<PatientDeviceReadingResponse>>> list(
             @PageableDefault(size = 20, sort = "recordedAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @ModelAttribute PatientDeviceReadingQueryDto query,
+            @RequestParam(value = "Query", required = false) String queryJson,
             Authentication authentication
     ) {
         String userId = actorId(authentication);
@@ -75,13 +91,17 @@ public class PatientDeviceReadingController {
             return unauthorized();
         }
         try {
-            Page<PatientDeviceReadingResponse> page = patientDeviceReadingService.listForActor(userId, pageable);
+            PatientDeviceReadingQueryDto bound = EntityQueryBinder.bind(query, queryJson, objectMapper, QUERY_KEYS);
+            Page<PatientDeviceReadingResponse> page = patientDeviceReadingService.listForActor(userId, pageable, bound);
             return EntityListResponseSupport.ok(
                     messages.success("success.patient.device.reading.list"),
                     page.getContent(),
                     page.getNumber(),
                     page.getSize(),
                     page.getTotalElements());
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(messages.resolveException(ex, ex.getMessage()), ex.getMessage()));
         } catch (SecurityException ex) {
             return forbidden(ex.getMessage());
         }

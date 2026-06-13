@@ -235,7 +235,7 @@ async function navigateForNotification(notification: NotificationItem) {
 
   if (mapping.actionId === 'open-notification-dashboard-appointments') {
     appStore.setData('hospital', 'DashboardNav', { activeItem: 'appointments' });
-    await router.push(role === 'PATIENT' ? '/patient-dashboard' : '/dashboard');
+    await router.push('/dashboard');
     return;
   }
 
@@ -249,7 +249,7 @@ async function navigateForNotification(notification: NotificationItem) {
     if (entityId) {
       appStore.setData('hospital', 'NotificationUiState', { highlightAppointmentId: entityId });
     }
-    await router.push(role === 'PATIENT' ? '/patient-dashboard' : '/dashboard');
+    await router.push('/dashboard');
   }
 }
 

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routes import education, ingest, query
+from api.routes import education, ingest, query, triage
 from cache.query_cache import ensure_cache_ttl_index
 from config.settings import (
     APP_LOG_LEVEL,
@@ -135,3 +135,4 @@ async def health():
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
 app.include_router(ingest.router, prefix="/api/v1", tags=["Ingest"])
 app.include_router(education.router, prefix="/api/v1", tags=["Education"])
+app.include_router(triage.router, prefix="/api/v1", tags=["Triage"])

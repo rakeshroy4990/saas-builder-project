@@ -33,7 +33,7 @@ function appointmentPreferredDateToInput(raw: unknown): string {
   return m ? m[1] : '';
 }
 
-const DASHBOARD_GUARD_TABS = new Set(['appointments', 'working-slots', 'admin', 'devices']);
+const DASHBOARD_GUARD_TABS = new Set(['appointments', 'working-slots', 'admin', 'devices', 'growth']);
 
 /** Mobile appointment filters use `dashboardFiltersOpen`; desktop grid ignores it (`lg:`). */
 function collapseDashboardFiltersPanel(): void {
@@ -129,6 +129,7 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const appStore = useAppStore(pinia);
       const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const userId = String(authSession.userId ?? '').trim();
+      const role = String(authSession.role ?? '').trim().toUpperCase();
       if (!userId) {
         openLoginRecoverDashboardSession(tab);
         return {
@@ -142,6 +143,27 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         return {
           responseCode: 'DASHBOARD_SESSION_REQUIRED',
           message: 'Session expired',
+          suppressPopupInlineError: true
+        };
+      }
+      if ((tab === 'growth' || tab === 'devices') && role !== 'PATIENT') {
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Forbidden dashboard tab',
+          suppressPopupInlineError: true
+        };
+      }
+      if (tab === 'working-slots' && role !== 'DOCTOR' && role !== 'ADMIN') {
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Forbidden dashboard tab',
+          suppressPopupInlineError: true
+        };
+      }
+      if (tab === 'admin' && role !== 'ADMIN') {
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Forbidden dashboard tab',
           suppressPopupInlineError: true
         };
       }
@@ -180,6 +202,12 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         await runHospitalService('set-dashboard-header-active');
         return ok();
       }
+      if (tab === 'growth') {
+        await runHospitalService('set-dashboard-nav-growth');
+        await runHospitalService('init-growth-workspace');
+        await runHospitalService('set-dashboard-header-active');
+        return ok();
+      }
       await runHospitalService('set-dashboard-nav-appointments');
       await runHospitalService('init-dashboard');
       await runHospitalService('set-dashboard-header-active');
@@ -198,14 +226,17 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const keepWorkingSlots = previousActiveItem === 'working-slots';
       const keepAdmin = previousActiveItem === 'admin';
       const keepDevices = previousActiveItem === 'devices';
+      const keepGrowth = previousActiveItem === 'growth';
       appStore.setData('hospital', 'DashboardNav', {
         activeItem: keepAdmin
           ? 'admin'
           : keepWorkingSlots
             ? 'working-slots'
-            : keepDevices
-              ? 'devices'
-              : 'appointments'
+            : keepGrowth && role === 'PATIENT'
+              ? 'growth'
+              : keepDevices && role === 'PATIENT'
+                ? 'devices'
+                : 'appointments'
       });
       await ensureMedicalDepartmentOptionsLoaded();
       const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
@@ -504,6 +535,10 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'open-appointment-video-call',
     execute: async (request) => {
+      const gate = await runHospitalService('triage-check-before-video-call', (request.data ?? {}) as Record<string, unknown>);
+      if ((gate as { blocked?: boolean })?.blocked) {
+        return gate;
+      }
       const appStore = useAppStore(pinia);
       const toastStore = useToastStore(pinia);
       const doctorId = String(request.data?.doctorId ?? request.data?.DoctorId ?? '').trim();

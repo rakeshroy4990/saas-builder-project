@@ -285,6 +285,13 @@ apiClient.interceptors.request.use(async (config) => {
     config.timeout = Math.max(config.timeout ?? 0, 180000);
   }
 
+  const isTriageAnalyze =
+    requestUrl.includes(URLRegistry.paths.triageResultsAnalyze) ||
+    requestUrl.includes(URLRegistry.paths.triageResultsAnalyzeStream);
+  if (isTriageAnalyze) {
+    config.timeout = Math.max(config.timeout ?? 0, 180000);
+  }
+
   const isEducationPrescriptionTranscribe = requestUrl.includes(
     URLRegistry.paths.hospitalEducationPrescriptionTranscribe
   );

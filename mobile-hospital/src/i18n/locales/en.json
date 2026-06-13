@@ -234,6 +234,53 @@
       "attachFailed": "Could not attach images."
     }
   },
+  "triage": {
+    "title": "Check symptoms",
+    "softBlockTitle": "Check symptoms before your visit?",
+    "softBlockMessage": "A quick symptom check helps your doctor prepare. You can still join the call without it.",
+    "checkSymptomsFirst": "Check symptoms first",
+    "continueWithoutTriage": "Continue without triage",
+    "disclaimer": "This tool offers decision support only — it does not replace a doctor. In an emergency, call 108 or go to the nearest hospital.",
+    "ageMonths": "Age (months)",
+    "symptomsLabel": "Symptoms",
+    "symptomPlaceholder": "e.g. fever, cough",
+    "analyze": "Analyze Symptoms",
+    "analyzing": "Analyzing symptoms…",
+    "streamPhase": {
+      "accepted": "Starting analysis…",
+      "retrieving": "Searching clinical references…",
+      "generating": "Assessing urgency…",
+      "processing": "Still working…"
+    },
+    "callEmergency": "Call 108",
+    "frequency": {
+      "label": "How often",
+      "placeholder": "Select frequency",
+      "notePrefix": "Symptom frequency",
+      "CONSTANT": "Almost constant / ongoing",
+      "FEW_TIMES_PER_DAY": "A few times a day",
+      "ONCE_PER_DAY": "About once a day",
+      "INTERMITTENT": "Comes and goes"
+    },
+    "duration": {
+      "label": "How long the symptom stays",
+      "amountPlaceholder": "e.g. 2",
+      "hours": "Hours",
+      "days": "Days"
+    },
+    "symptomBrief": {
+      "label": "Symptom (in few words)",
+      "optional": "(optional)",
+      "placeholder": "Briefly describe what you are seeing, e.g. dry cough at night",
+      "notePrefix": "Symptom detail"
+    },
+    "errors": {
+      "symptomRequired": "Enter at least one symptom.",
+      "ageRequired": "Child age is required.",
+      "frequencyRequired": "Select how often the symptoms occur.",
+      "durationRequired": "Enter how long symptoms have lasted (hours or days)."
+    },
+  },
   "video": {
     "startCall": "Video call",
     "notAvailable": "Video call is available for Open or Confirmed appointments during the scheduled slot (±10 minutes, hospital time).",
@@ -408,5 +455,81 @@
     "placeholder": "Type your message…",
     "send": "Send",
     "sendError": "Could not send your message. Please try again."
+  },
+  "growth": {
+    "title": "Growth tracking",
+    "intro": "Track your child's height, weight, and head circumference against WHO growth standards.",
+    "recordingCadenceTitle": "How often to record",
+    "recordingCadenceBody": "Log at well-baby and check-up visits — about monthly in the first year, every 2–3 months as a toddler, and every 6 months after age 2. Add home weigh-ins between visits when you can.",
+    "disclaimer": "For informational purposes only. Consult your doctor for clinical interpretation.",
+    "loading": "Loading growth data…",
+    "loadFailed": "Could not load child profiles.",
+    "chartFailed": "Could not load chart data.",
+    "entryRequired": "Enter at least one measurement.",
+    "invalidDate": "Enter the date as YYYY-MM-DD.",
+    "dateFuture": "Measurement date cannot be in the future.",
+    "dateBeforeDob": "Measurement date cannot be before the child's date of birth.",
+    "saveFailed": "Could not save reading.",
+    "noChildYet": "Add a child profile to start tracking growth.",
+    "manualEntry": "Add measurement",
+    "recordedDate": "Measurement date",
+    "recordedDateHint": "Pick the day the reading was taken — you can backfill older clinic or home visits.",
+    "heightCm": "Height (cm)",
+    "weightKg": "Weight (kg)",
+    "headCircCm": "Head circumference (cm)",
+    "saveReading": "Save reading",
+    "history": "Measurement history",
+    "historyPercentiles": "Percentiles",
+    "historyWeightPct": "W",
+    "historyHeightPct": "H",
+    "historyBmiPct": "BMI",
+    "bmiPercentileHiddenHint": "BMI % is hidden when below 40% — weight and height percentiles are more reliable for lean or tall children.",
+    "metric": {
+      "weight": "Weight",
+      "height": "Height",
+      "bmi": "BMI",
+      "headCirc": "Head circ."
+    },
+    "chart": {
+      "legendP50": "WHO median",
+      "legendP3": "3rd percentile",
+      "legendP97": "97th percentile",
+      "referenceLinesTitle": "Understanding the reference lines",
+      "p50Importance": "The middle of healthy growth for this age — a helpful benchmark to see whether your child is tracking near typical growth.",
+      "p3Importance": "A lower guide — readings often near or below this line are worth discussing with your doctor to check steady growth.",
+      "p97Importance": "An upper guide — readings often near or above this line help your doctor review whether growth is faster than expected.",
+      "bmiContextTitle": "Percentiles for this reading",
+      "bmiContextHint": "BMI % is hidden when below 40% because tall or lean children often score low on BMI alone. Use the weight and height percentiles above."
+    },
+    "metricGuide": {
+      "title": "Which chart should I use?",
+      "weight": "After a weigh-in (home scale or clinic) — see if your child is gaining weight steadily over time.",
+      "height": "When height is measured at check-ups — shows how tall your child is growing long term.",
+      "bmi": "When you have both height and weight — best from age 2 onward to check healthy proportions.",
+      "headCirc": "Mainly for babies and toddlers under 3 — often measured at infant and well-baby visits."
+    },
+    "percentileGuide": {
+      "title": "What does the % mean?",
+      "intro": "It compares your child to WHO reference children of the same age and sex — like a growth ruler, not a report card.",
+      "example": "50% means about half of children measured higher and half measured lower at that age.",
+      "positiveUse": "Log readings at home or clinic visits to watch your child's own trend over time — steady growth along their curve is what matters most.",
+      "doctorVisit": "Share this history at check-ups so your doctor can celebrate progress and plan next steps early.",
+      "bmiNote": "For BMI, we show — when below 40% because tall or lean children often look lower than they are — rely on weight and height percentiles together."
+    }
+  },
+  "devices": {
+    "ble": {
+      "connect": "Connect scale",
+      "title": "Bluetooth scale",
+      "scaleHint": "Requires a dev build with Bluetooth permissions. Step on the scale after connecting.",
+      "scanning": "Scanning…",
+      "selectChildFirst": "Select a child on the Growth screen first.",
+      "connectFailed": "Could not connect.",
+      "saved": "Reading saved.",
+      "saveFailed": "Could not save reading."
+    }
+  },
+  "vitals": {
+    "title": "Vitals trend"
   }
 }

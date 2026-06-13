@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -65,7 +66,28 @@ public class DomainEventAutoEmitFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/telemetry")
                 || path.startsWith("/api/v1/notifications")
                 || path.startsWith("/api/v1/admin/notification-rules")
-                || path.startsWith("/api/v1/admin/domain-action-events");
+                || path.startsWith("/api/v1/admin/domain-action-events")
+                || isNdjsonStreamRequest(request);
+    }
+
+    /**
+     * NDJSON streaming responses must not use {@link ContentCachingResponseWrapper}:
+     * per-line {@code flush()} commits the response and the cached body may not reach the client intact.
+     */
+    private static boolean isNdjsonStreamRequest(HttpServletRequest request) {
+        if (!MUTATING_METHODS.contains(request.getMethod().toUpperCase(Locale.ROOT))) {
+            return false;
+        }
+        String accept = Objects.toString(request.getHeader(HttpHeaders.ACCEPT), "").toLowerCase(Locale.ROOT);
+        if (!accept.contains("application/x-ndjson") && !accept.contains("application/ndjson")) {
+            return false;
+        }
+        String servletPath = Objects.toString(request.getServletPath(), "");
+        String uri = Objects.toString(request.getRequestURI(), "");
+        String path = servletPath.isBlank() ? uri : servletPath;
+        return path.contains("/triage-results/analyze")
+                || path.endsWith("/hospital/ai/chat")
+                || path.contains("/similarity-search/stream");
     }
 
     @Override
@@ -74,6 +96,10 @@ public class DomainEventAutoEmitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        if (isNdjsonStreamRequest(request)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
         try {
             filterChain.doFilter(request, wrappedResponse);

@@ -35,13 +35,18 @@ export function devicesPanelContentChildren(idPrefix: string): ComponentDefiniti
   ];
 }
 
-/** Main dashboard panel when `DashboardNav.activeItem === 'devices'`. */
+const patientRoleMappings = {
+  role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+} as const;
+
+/** Main dashboard panel when `DashboardNav.activeItem === 'devices'` (patients). */
 export const hospitalDashboardDevicesPanel: ComponentDefinition = {
   id: 'hospital-dashboard-panel-devices',
   type: 'container',
   condition: {
-    expression: "String(activeItem ?? '') === 'devices'",
+    expression: "String(role ?? '').toUpperCase() === 'PATIENT' && String(activeItem ?? '') === 'devices'",
     mappings: {
+      ...patientRoleMappings,
       activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
     }
   },
@@ -51,7 +56,7 @@ export const hospitalDashboardDevicesPanel: ComponentDefinition = {
   }
 };
 
-/** Left menu active/inactive pair for Devices tab. */
+/** Left menu active/inactive pair for Devices tab (patients only). */
 export function dashboardDevicesNavButtons(): ComponentDefinition[] {
   const activeClasses =
     'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm';
@@ -70,16 +75,19 @@ export function dashboardDevicesNavButtons(): ComponentDefinition[] {
     }
   };
 
+  const patientOnly = (activeItemExpr: string) => ({
+    expression: `String(role ?? '').toUpperCase() === 'PATIENT' && ${activeItemExpr}`,
+    mappings: {
+      ...patientRoleMappings,
+      activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+    }
+  });
+
   return [
     {
       id: 'hospital-dashboard-menu-devices-active',
       type: 'button',
-      condition: {
-        expression: "String(activeItem ?? '') === 'devices'",
-        mappings: {
-          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
-        }
-      },
+      condition: patientOnly("String(activeItem ?? '') === 'devices'"),
       config: {
         i18nKey: 'dashboard.nav.devices',
         styles: { utilityClasses: activeClasses },
@@ -89,12 +97,7 @@ export function dashboardDevicesNavButtons(): ComponentDefinition[] {
     {
       id: 'hospital-dashboard-menu-devices-inactive',
       type: 'button',
-      condition: {
-        expression: "String(activeItem ?? '') !== 'devices'",
-        mappings: {
-          activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
-        }
-      },
+      condition: patientOnly("String(activeItem ?? '') !== 'devices'"),
       config: {
         i18nKey: 'dashboard.nav.devices',
         styles: { utilityClasses: inactiveClasses },

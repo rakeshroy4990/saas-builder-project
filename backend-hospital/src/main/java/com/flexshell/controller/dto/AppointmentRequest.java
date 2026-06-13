@@ -24,6 +24,8 @@ public class AppointmentRequest {
     private String preferredTimeSlot;
     @JsonProperty("AdditionalNotes")
     private String additionalNotes;
+    @JsonProperty("TriageResultExternalId")
+    private String triageResultExternalId;
     @JsonProperty("PrescriptionFileNames")
     private List<String> prescriptionFileNames = new ArrayList<>();
 
@@ -97,6 +99,14 @@ public class AppointmentRequest {
 
     public void setAdditionalNotes(String additionalNotes) {
         this.additionalNotes = additionalNotes;
+    }
+
+    public String getTriageResultExternalId() {
+        return triageResultExternalId;
+    }
+
+    public void setTriageResultExternalId(String triageResultExternalId) {
+        this.triageResultExternalId = triageResultExternalId;
     }
 
     public List<String> getPrescriptionFileNames() {

@@ -30,9 +30,6 @@ export default function AppLayout() {
           name="ai-chat"
           options={{ headerShown: false, presentation: 'modal' }}
         />
-        <Stack.Screen name="appointments/book" options={{ headerShown: true }} />
-        <Stack.Screen name="doctors/index" options={{ headerShown: true }} />
-        <Stack.Screen name="appointments/[id]" options={{ headerShown: true }} />
         <Stack.Screen
           name="video-call"
           options={{ headerShown: false, presentation: 'fullScreenModal' }}
