@@ -27,6 +27,13 @@ export const SERVER_PATHS = {
   hospitalEducationBooks: '/api/hospital/education/books',
   hospitalEducationKeyTopics: '/api/hospital/education/key-topics',
   hospitalEducationPrescriptionTranscribe: '/api/hospital/education/prescription-transcribe',
+  hospitalEducationPrescriptionSafetyValidate: '/api/hospital/education/prescription-safety/validate',
+  hospitalEducationPrescriptionSafetyValidateUpload: '/api/hospital/education/prescription-safety/validate-upload',
+  hospitalEducationPrescriptionSafetyTranscribeUploadStream:
+    '/api/hospital/education/prescription-safety/transcribe-upload/stream',
+  hospitalEducationPrescriptionSafetyValidateUploadStream:
+    '/api/hospital/education/prescription-safety/validate-upload/stream',
+  hospitalEducationPrescriptionSafetyRecommendedDosage: '/api/hospital/education/prescription-safety/recommended-dosage',
   patientPrescriptionsSimilaritySearch: '/api/v1/patient-prescriptions/similarity-search',
   user: '/api/user',
   userProfile: '/api/user/profile',
@@ -56,7 +63,9 @@ export const SERVER_PATHS = {
   notificationsReadAll: '/api/v1/notifications/read-all',
   telemetrySessionEvent: '/api/telemetry/session-event',
   telemetrySessionEvents: '/api/telemetry/session-events',
-  telemetrySessionSnapshot: '/api/telemetry/session-snapshot'
+  telemetrySessionSnapshot: '/api/telemetry/session-snapshot',
+  adminSessionTelemetryCrashes: '/api/v1/admin/session-telemetry/crashes',
+  adminSessionTelemetryFlowErrors: '/api/v1/admin/session-telemetry/flow-errors'
 } as const;
 
 export function appointmentJoinCallPath(appointmentId: string): string {
@@ -330,6 +339,7 @@ export { toLogWire } from './logWire';
 export {
   USER_SKETCH_IMAGE_DATA_URL,
   resolveDoctorProfileImage,
+  localizedDepartmentDisplayName,
   parsePublicDoctorProfile,
   type PublicDoctorProfile
 } from './doctorProfileImage';

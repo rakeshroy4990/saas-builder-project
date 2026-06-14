@@ -234,7 +234,8 @@ const analyticsFlowByEvent: Record<AnalyticsEventName, AnalyticsFlowKey> = {
   profile_saved: 'profile',
   profile_save_failed: 'profile',
   profile_deactivated: 'profile',
-  profile_deactivate_failed: 'profile'
+  profile_deactivate_failed: 'profile',
+  growth_history_summary_failed: 'growth'
 }
 
 export type TrackEventOptions = {
@@ -255,6 +256,7 @@ export function trackEvent<TEventName extends AnalyticsEventName>(
     || flow === 'chat'
     || flow === 'video'
     || flow === 'profile'
+    || flow === 'growth'
     || eventName === 'login_success'
     || eventName === 'logout')
   ) {

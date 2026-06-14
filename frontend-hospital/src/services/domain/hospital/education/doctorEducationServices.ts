@@ -5,6 +5,7 @@ import { useAppStore } from '../../../../store/useAppStore';
 import { useToastStore } from '../../../../store/useToastStore';
 import { pinia } from '../../../../store/pinia';
 import { i18n } from '../../../../i18n';
+import { activeAppLocale } from '../../../../i18n/activeLocale';
 import { apiClient } from '../../../http/apiClient';
 import { resolveUserFacingErrorMessage } from '../../../http/httpUserFacingErrors';
 import { URLRegistry } from '../../../http/URLRegistry';
@@ -461,6 +462,7 @@ function hospitalAiChatPayload(
   if (bn) payload.BookName = bn;
   const rq = String(retrievalQuestion ?? '').trim();
   if (rq) payload.RetrievalQuestion = rq.slice(0, RETRIEVAL_QUESTION_MAX);
+  payload.ReplyLocale = activeAppLocale();
   return payload;
 }
 

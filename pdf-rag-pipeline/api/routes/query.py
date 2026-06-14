@@ -27,6 +27,8 @@ async def query(body: QueryRequest, user: TokenPayload = Depends(get_current_use
         book_name=body.book_name,
         include_outdated_books=body.include_outdated_books,
         retrieval_question=body.retrieval_question,
+        reply_locale=body.reply_locale,
+        preferred_locale=body.preferred_locale,
     )
     return QueryResponse.model_validate(result)
 
@@ -52,6 +54,8 @@ async def query_stream(body: QueryRequest, user: TokenPayload = Depends(get_curr
                 book_name=body.book_name,
                 include_outdated_books=body.include_outdated_books,
                 retrieval_question=body.retrieval_question,
+                reply_locale=body.reply_locale,
+                preferred_locale=body.preferred_locale,
                 stream_queue=queue,
             )
         except Exception as exc:

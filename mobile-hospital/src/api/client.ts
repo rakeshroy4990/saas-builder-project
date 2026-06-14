@@ -25,7 +25,7 @@ import { shouldSkipTelemetrySessionSummaryForUrl } from '@/analytics/telemetryUr
 import { isAccessTokenExpired, useSessionStore } from '@/auth/sessionStore';
 import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
 import { toUserFacingApiError } from '@/api/apiErrors';
-import { AUTH_API_TIMEOUT_MS, DEFAULT_API_TIMEOUT_MS } from '@/api/timeouts';
+import { AUTH_API_TIMEOUT_MS, DEFAULT_API_TIMEOUT_MS, GROWTH_SUMMARY_TIMEOUT_MS } from '@/api/timeouts';
 
 import { applyMultipartHeaders } from './multipart';
 import { getMobileApiBaseUrl } from './config';
@@ -207,6 +207,9 @@ apiClient.interceptors.request.use(async (config) => {
     await ensureFreshAccessToken();
   }
   const resolved = resolveApiPath(config);
+  if (resolved.includes('/growth-records/history-summary')) {
+    config.timeout = Math.max(config.timeout ?? 0, GROWTH_SUMMARY_TIMEOUT_MS);
+  }
   if (!shouldSkipTelemetrySessionSummaryForUrl(resolved)) {
     (config as TelemetryAxiosConfig).__telemetryT0 = Date.now();
   }

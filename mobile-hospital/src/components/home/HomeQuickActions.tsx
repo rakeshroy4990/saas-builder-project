@@ -15,15 +15,19 @@ export type HomeQuickAction = {
 
 type HomeQuickActionsProps = {
   actions: HomeQuickAction[];
+  /** Two-column grid for four doctor shortcuts; default is a single row. */
+  layout?: 'row' | 'grid';
 };
 
-export function HomeQuickActions({ actions }: HomeQuickActionsProps) {
+export function HomeQuickActions({ actions, layout = 'row' }: HomeQuickActionsProps) {
+  const isGrid = layout === 'grid';
+
   return (
-    <View style={styles.grid}>
+    <View style={[styles.grid, isGrid && styles.gridTwoCol]}>
       {actions.map((action) => (
         <Pressable
           key={action.id}
-          style={styles.item}
+          style={[styles.item, isGrid && styles.itemGrid]}
           onPress={action.onPress}
           accessibilityRole="button"
           accessibilityLabel={action.label}
@@ -47,10 +51,19 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: SECTION_GAP
   },
+  gridTwoCol: {
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start'
+  },
   item: {
     flex: 1,
     alignItems: 'center',
     minWidth: 0
+  },
+  itemGrid: {
+    flexGrow: 0,
+    flexBasis: '47%',
+    maxWidth: '47%'
   },
   iconWrap: {
     width: 52,

@@ -9,6 +9,8 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import i18n from 'i18next';
 
+import { useSessionStore } from '@/auth/sessionStore';
+
 export { LOCALE_CONFIG, SUPPORTED_LOCALES, type LocaleCode };
 
 const LOCALE_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
@@ -61,6 +63,8 @@ export async function setMobileLocale(code: LocaleCode): Promise<void> {
 
 export function activeMobileLocale(): LocaleCode {
   const lng = i18n.language?.split('-')[0]?.toLowerCase();
-  if (lng === 'hi' || lng === 'kn' || lng === 'en') return lng;
+  const preferred = useSessionStore.getState().user?.preferredLocale;
+  if (lng && isSupportedLocale(lng)) return lng;
+  if (preferred && isSupportedLocale(preferred)) return preferred;
   return 'en';
 }

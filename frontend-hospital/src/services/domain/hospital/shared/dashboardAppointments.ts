@@ -9,6 +9,18 @@ import { pickString } from './strings';
 const tr = (key: string, params?: Record<string, unknown>): string =>
   String((i18n.global as { t: (k: string, p?: Record<string, unknown>) => string }).t(key, params ?? {}));
 
+function formatTotalLabel(count: number): string {
+  return tr('dashboard.appointments.totalLabel', { count });
+}
+
+function formatPageLabel(page: number, totalPages?: number): string {
+  const pageNumber = page + 1;
+  if (totalPages != null && totalPages > 0) {
+    return tr('dashboard.appointments.pageLabelOf', { page: pageNumber, total: totalPages });
+  }
+  return tr('dashboard.appointments.pageLabel', { page: pageNumber });
+}
+
 function parseTimeToMinutes(raw: string): number | null {
   const text = String(raw ?? '').trim();
   if (!text) return null;
@@ -299,8 +311,8 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
     error: '',
     page,
     size,
-    pageLabel: `Page ${page + 1}`,
-    totalLabel: `Total Appointments: ${Number(current.totalElements ?? 0)}`
+    pageLabel: formatPageLabel(page),
+    totalLabel: formatTotalLabel(Number(current.totalElements ?? 0))
   });
   try {
     const listUrl =
@@ -381,8 +393,8 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
       totalPages,
       totalElements,
       hasNext,
-      pageLabel: `Page ${page + 1} of ${totalPages}`,
-      totalLabel: `Total Appointments: ${totalElements}`
+      pageLabel: formatPageLabel(page, totalPages),
+      totalLabel: formatTotalLabel(totalElements)
     });
   } catch (error) {
     const message = isAxiosError(error)
@@ -399,8 +411,8 @@ export async function loadDashboardAppointmentsPage(requestedPage?: number): Pro
       totalPages: 1,
       totalElements: 0,
       hasNext: false,
-      pageLabel: 'Page 1 of 1',
-      totalLabel: 'Total Appointments: 0'
+      pageLabel: formatPageLabel(0, 1),
+      totalLabel: formatTotalLabel(0)
     });
   }
 }

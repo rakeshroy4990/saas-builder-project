@@ -1,5 +1,6 @@
 import {
   loadDoctorsAcrossDepartments,
+  localizedDepartmentDisplayName,
   parsePublicDoctorProfile,
   SERVER_PATHS,
   unwrapEnvelope,
@@ -20,20 +21,26 @@ function buildCardLine(doctor: PublicDoctorProfile): string {
   return [doctor.speciality, doctor.qualifications, doctor.experienceSummary].filter(Boolean).join(' · ');
 }
 
-function parseDoctorRow(item: unknown, index: number): DoctorListEntry | null {
+function parseDoctorRow(item: unknown, index: number, departmentLabel = '', departmentValue = ''): DoctorListEntry | null {
   const profile = parsePublicDoctorProfile(item, index, CLOUDINARY_IMAGE_BASE_URL);
   if (!profile) return null;
-  return { ...profile, cardLine: buildCardLine(profile) };
+  const localizedSpeciality =
+    localizedDepartmentDisplayName(departmentLabel, departmentValue) || profile.speciality;
+  const row: PublicDoctorProfile = { ...profile, speciality: localizedSpeciality };
+  return { ...row, cardLine: buildCardLine(row) };
 }
 
-async function fetchDoctorsForDepartment(departmentValue: string): Promise<DoctorListEntry[]> {
+async function fetchDoctorsForDepartment(
+  departmentValue: string,
+  departmentLabel = ''
+): Promise<DoctorListEntry[]> {
   const response = await apiClient.get(SERVER_PATHS.doctorGet, {
     params: { department: departmentValue, page: 0, size: 100 }
   });
   const dataNode = unwrapEnvelope<unknown>(response.data);
   if (!Array.isArray(dataNode)) return [];
   return dataNode
-    .map((item, index) => parseDoctorRow(item, index))
+    .map((item, index) => parseDoctorRow(item, index, departmentLabel, departmentValue))
     .filter((row): row is DoctorListEntry => row !== null);
 }
 
@@ -71,7 +78,7 @@ export async function fetchDoctorsGroupedByDepartment(): Promise<DepartmentDocto
 
   const sections = await Promise.all(
     departments.map(async (department: SelectOption) => {
-      const doctors = await fetchDoctorsForDepartment(department.value);
+      const doctors = await fetchDoctorsForDepartment(department.value, department.label);
       return {
         departmentId: department.id,
         departmentLabel: department.label,

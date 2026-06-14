@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import DynBluetoothDevices from '@bluetooth/vue/components/DynBluetoothDevices.vue';
 import type { BluetoothReading } from '@bluetooth/bluetooth/types';
 import type { PageConfig } from '../../core/types/PageConfig';
@@ -82,10 +82,6 @@ function onTypeSelect(type: string | null): void {
 function onDeviceKeySelect(key: string | null): void {
   appStore.setProperty('hospital', 'BluetoothDeviceUiState', 'selectedDeviceKey', key ?? '');
 }
-
-onMounted(() => {
-  void execute({ actionId: 'init-patient-device-readings' });
-});
 </script>
 
 <template>

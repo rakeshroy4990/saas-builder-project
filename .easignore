@@ -15,9 +15,9 @@ frontend-realtime-lib/
 backend-social/
 backend-ecommerce/
 frontend-bluetooth-lib/
-docs/
+/docs/
 /scripts/
-images/
+/images/
 infra/
 ops/
 render/

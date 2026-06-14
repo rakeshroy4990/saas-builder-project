@@ -36,7 +36,7 @@
     "dashboard": "Dashboard",
     "appointments": "Appointments",
     "prescriptions": "Prescriptions",
-    "prescriptionsShort": "Rx",
+    "prescriptionsShort": "Prescriptions",
     "blog": "Blog",
     "aiDiagnosis": "AI Diagnosis",
     "chat": "Chat AI",
@@ -74,6 +74,12 @@
         "videoCall": "Video call",
         "prescriptions": "Prescriptions",
         "aiChat": "AI chat"
+      },
+      "doctorQuickActions": {
+        "presValidate": "Pres. Validate",
+        "recomDosage": "Recom. Dosage",
+        "growthTracking": "Growth Tracking",
+        "aiDiagnosis": "AI Diagnosis"
       },
       "doctorsTitle": "Our doctors",
       "doctorsSeeAll": "See all",
@@ -181,6 +187,54 @@
       "statusOptionCompleted": "Completed",
       "statusOptionCancelled": "Cancelled",
       "statusOptionRemovedAdmin": "Removed (admin)"
+    },
+    "validatePrescription": {
+      "title": "Validate Prescription",
+      "intro": "Upload a prescription image or PDF. We transcribe it into an editable summary — review and correct medicines, then tap Validate prescription to check interactions and dosage.",
+      "reading": "Reading prescription…",
+      "validating": "Validating…",
+      "action": "Validate prescription",
+      "summaryTitle": "Prescription summary",
+      "editSummary": "Edit",
+      "doneEditing": "Done",
+      "transcribeFailed": "Could not read this prescription.",
+      "summaryRequired": "Add or keep at least one medicine in the summary before validating.",
+      "phase": {
+        "transcribing": "Reading prescription image…",
+        "parsing": "Extracting medicines and vitals…",
+        "extracting_vitals": "Reading weight and temperature from prescription…",
+        "validating": "Checking drug interactions and dosage…"
+      },
+      "failed": "Could not validate this prescription.",
+      "attachFile": "Attach file",
+      "attachCamera": "Take photo",
+      "attachedFile": "Attached: {{name}}",
+      "removeFile": "Remove",
+      "medicinesFound": "Medicines found",
+      "noWeightHint": "Child weight was not found on the prescription — dosage range checks may be limited.",
+      "vitalsFound": "Vitals from prescription",
+      "weightLabel": "Weight: {{value}} kg",
+      "temperatureLabel": "Temperature: {{value}} °F",
+      "ageLabel": "Age: {{value}} months"
+    },
+    "recommendedDosage": {
+      "title": "Recommended pediatric dosage",
+      "intro": "Enter the child's age, weight, and medicine name to look up expected pediatric dose ranges.",
+      "action": "Get recommendation",
+      "loading": "Looking up…",
+      "failed": "Could not look up dosage.",
+      "needsAllFields": "Enter age (months), weight (kg), and medicine name.",
+      "childAgeMonths": "Child age (months)",
+      "childAgePlaceholder": "e.g. 18",
+      "childWeightKg": "Child weight (kg)",
+      "childWeightPlaceholder": "e.g. 10.5",
+      "drugName": "Medicine name",
+      "drugNamePlaceholder": "e.g. paracetamol, amoxicillin",
+      "expectedDose": "Expected single dose",
+      "dosePerKg": "Dose per kg",
+      "maxDaily": "Max daily dose",
+      "frequency": "Frequency",
+      "source": "Source: {{source}}"
     }
   },
   "appointment": {
@@ -362,6 +416,23 @@
       "successMessage": "Prescription uploaded successfully"
     }
   },
+  "prescriptionSafety": {
+    "patientRoutine": "Your doctor has been notified of some details to review. No action is needed unless your doctor contacts you.",
+    "patientCritical": "Please contact your doctor or clinic to confirm this prescription before starting the medication.",
+    "risk": {
+      "none": "No safety concerns identified",
+      "low": "Minor items to note",
+      "moderate": "Review recommended",
+      "high": "Action recommended before dispensing",
+      "critical": "Immediate review required"
+    },
+    "interactions": "Drug interactions",
+    "dosage": "Dosage checks",
+    "unrecognized": "Could not verify: {{drugs}}. Please confirm manually.",
+    "markReviewed": "Mark as reviewed",
+    "revalidated": "Safety check updated",
+    "revalidateFailed": "Could not re-run safety check"
+  },
   "blog": {
     "comingSoon": "Blog articles will be available in a future update.",
     "empty": "No articles available right now.",
@@ -453,11 +524,21 @@
   "chat": {
     "welcome": "Hi — tell me your symptoms and I will guide you with what to do next.",
     "placeholder": "Type your message…",
+    "placeholderHi": "अपना सवाल यहाँ लिखें…",
+    "placeholderKn": "ನಿಮ್ಮ ಪ್ರಶ್ನೆ ಇಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ…",
     "send": "Send",
-    "sendError": "Could not send your message. Please try again."
+    "sendError": "Could not send your message. Please try again.",
+    "languageLabel": "Chat language",
+    "seeInEnglish": "See in English",
+    "call108": "Call 108",
+    "translating": "Agastya is thinking…",
+    "translatingQuestion": "Translating your question…",
+    "scriptDetectToast": "We noticed you typed in {{language}}. Change your app language in Profile for better responses."
   },
   "growth": {
-    "title": "Growth tracking",
+    "title": "Growth Tracking",
+    "trackerLabel": "Growth Tracker",
+    "patientOnly": "Growth tracking is available for patient accounts.",
     "intro": "Track your child's height, weight, and head circumference against WHO growth standards.",
     "recordingCadenceTitle": "How often to record",
     "recordingCadenceBody": "Log at well-baby and check-up visits — about monthly in the first year, every 2–3 months as a toddler, and every 6 months after age 2. Add home weigh-ins between visits when you can.",
@@ -471,6 +552,37 @@
     "dateBeforeDob": "Measurement date cannot be before the child's date of birth.",
     "saveFailed": "Could not save reading.",
     "noChildYet": "Add a child profile to start tracking growth.",
+    "addChild": "Add child",
+    "editChild": "Edit child",
+    "addChildTitle": "New child profile",
+    "motherHeightCm": "Mother height (cm)",
+    "fatherHeightCm": "Father height (cm)",
+    "parentHeightHint": "Optional — used to estimate genetic target height (mid-parental height). Enter standing heights in cm.",
+    "parentHeightInvalid": "Parent height must be between 100 and 250 cm.",
+    "historySummaryLoading": "Generating summary…",
+    "midParentalHeight": {
+      "title": "Genetic height target (mid-parental height)",
+      "incomplete": "Add both parents' heights in Edit child to see a genetic target for adult height and the ideal height line on the chart.",
+      "targetAdult": "Predicted adult height: about {{height}} cm (typical range {{low}}–{{high}} cm).",
+      "expectedAtAge": "Ideal height for current age (~{{months}} months): about {{height}} cm on the genetic target line.",
+      "latestAboveGenetic": "Latest height reading is above the genetic target for this age — many healthy children run above their genetic line.",
+      "latestBelowGenetic": "Latest height reading is below the genetic target for this age — track the trend over time; many healthy children run below their genetic line.",
+      "latestOnGenetic": "Latest height reading is close to the genetic target for this age.",
+      "note": "The teal dashed line on the Height chart shows expected height by age if your child follows this genetic target. Many healthy children sit above or below it — track the trend over time.",
+      "viewHeightChart": "Open the Height chart tab to see the genetic target line on the graph."
+    },
+    "editChildTitle": "Edit child profile",
+    "childName": "Child's name",
+    "childDob": "Date of birth",
+    "childSex": "Sex",
+    "saveChild": "Save child",
+    "updateChild": "Update child",
+    "childInvalid": "Enter the child's name and date of birth.",
+    "childSaveFailed": "Could not save child profile.",
+    "sex": {
+      "male": "Male",
+      "female": "Female"
+    },
     "manualEntry": "Add measurement",
     "recordedDate": "Measurement date",
     "recordedDateHint": "Pick the day the reading was taken — you can backfill older clinic or home visits.",
@@ -478,12 +590,34 @@
     "weightKg": "Weight (kg)",
     "headCircCm": "Head circumference (cm)",
     "saveReading": "Save reading",
+    "updateReading": "Update reading",
+    "editReading": "Edit measurement",
+    "editLabel": "Edit",
+    "editReadingAria": "Edit this measurement",
+    "cancelEdit": "Cancel",
     "history": "Measurement history",
+    "historyAge": "{{years}} years, {{months}} months, {{days}} days",
     "historyPercentiles": "Percentiles",
     "historyWeightPct": "W",
     "historyHeightPct": "H",
     "historyBmiPct": "BMI",
-    "bmiPercentileHiddenHint": "BMI % is hidden when below 40% — weight and height percentiles are more reliable for lean or tall children.",
+    "historyBmiUnit": "kg/m²",
+    "bmiTallLeanHint": "BMI is lower on the BMI chart because your child is tall for their age while weight is in a typical range ({{weightPct}}%). Weight and height percentiles together are the best guide here.",
+    "profilePhrase": "{{phrase}}",
+    "characteristic": {
+      "lean": "Lean",
+      "tall": "Tall",
+      "short": "Short",
+      "stocky": "Stocky",
+      "slender": "Slender",
+      "normal_weight": "Normal weight",
+      "underweight": "Underweight",
+      "overweight": "Overweight",
+      "large_head": "Large head",
+      "boy": "Boy",
+      "girl": "Girl",
+      "child": "Child"
+    },
     "metric": {
       "weight": "Weight",
       "height": "Height",
@@ -491,6 +625,14 @@
       "headCirc": "Head circ."
     },
     "chart": {
+      "ageMonths": "Age (months)",
+      "valueKg": "Weight (kg)",
+      "valueCm": "Height (cm)",
+      "valueBmi": "BMI (kg/m²)",
+      "valueHeadCm": "Head circ. (cm)",
+      "legendChild": "Your child",
+      "legendGeneticTarget": "Genetic target",
+      "bmiValueLine": "BMI for this reading: {{bmi}} kg/m²",
       "legendP50": "WHO median",
       "legendP3": "3rd percentile",
       "legendP97": "97th percentile",
@@ -499,7 +641,7 @@
       "p3Importance": "A lower guide — readings often near or below this line are worth discussing with your doctor to check steady growth.",
       "p97Importance": "An upper guide — readings often near or above this line help your doctor review whether growth is faster than expected.",
       "bmiContextTitle": "Percentiles for this reading",
-      "bmiContextHint": "BMI % is hidden when below 40% because tall or lean children often score low on BMI alone. Use the weight and height percentiles above."
+      "bmiContextHint": "BMI-for-age can look low for tall, lean children. Weight at {{weightPct}}% is often the better signal for healthy weight — check weight and height percentiles together."
     },
     "metricGuide": {
       "title": "Which chart should I use?",
@@ -514,7 +656,7 @@
       "example": "50% means about half of children measured higher and half measured lower at that age.",
       "positiveUse": "Log readings at home or clinic visits to watch your child's own trend over time — steady growth along their curve is what matters most.",
       "doctorVisit": "Share this history at check-ups so your doctor can celebrate progress and plan next steps early.",
-      "bmiNote": "For BMI, we show — when below 40% because tall or lean children often look lower than they are — rely on weight and height percentiles together."
+      "bmiNote": "BMI-for-age can be low for tall children even when weight is healthy — always read BMI together with weight and height percentiles."
     }
   },
   "devices": {

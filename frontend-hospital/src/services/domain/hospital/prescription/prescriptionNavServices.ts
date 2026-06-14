@@ -3,28 +3,10 @@ import { useAppStore } from '../../../../store/useAppStore';
 import { usePopupStore } from '../../../../store/usePopupStore';
 import { pinia } from '../../../../store/pinia';
 import { isAuthTokenExpired } from '../../../auth/authToken';
+import { pingServerSession } from '../../../auth/serverSessionPing';
 import { ok } from '../shared/response';
-import { getOrCreateTraceId } from '../../../logging/traceContext';
-import { URLRegistry } from '../../../http/URLRegistry';
 
 const PRESCRIPTION_GUARD_TABS = new Set(['upload', 'view']);
-
-async function serverSessionPing(userId: string): Promise<boolean> {
-  try {
-    const url = `${URLRegistry.getBaseUrl()}/api/user?userId=${encodeURIComponent(userId)}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'X-Trace-Id': getOrCreateTraceId()
-      }
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
 
 function openLoginForPrescriptions(): void {
   const appStore = useAppStore(pinia);
@@ -74,7 +56,7 @@ export const prescriptionNavHospitalServices: ServiceDefinition[] = [
           suppressPopupInlineError: true
         };
       }
-      const alive = await serverSessionPing(userId);
+      const alive = await pingServerSession(userId);
       if (!alive) {
         openLoginForPrescriptions();
         return {

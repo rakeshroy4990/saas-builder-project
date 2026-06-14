@@ -9,7 +9,6 @@ import com.flexshell.controller.dto.UpdateDomainActionEventRequest;
 import com.flexshell.controller.support.EntityQuerySupport;
 import com.flexshell.persistence.postgres.model.DomainActionEventJpaEntity;
 import com.flexshell.persistence.postgres.repository.DomainActionEventJpaRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +19,6 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class DomainActionEventAdminService {
 
     private static final Set<String> ALLOWED_PROFILES = Set.of("APPOINTMENT", "USER", "GENERIC");

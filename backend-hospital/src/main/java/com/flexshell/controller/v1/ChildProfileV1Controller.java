@@ -11,7 +11,6 @@ import com.flexshell.controller.support.EntityListResponseSupport;
 import com.flexshell.controller.support.EntityQueryBinder;
 import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.service.ChildProfileService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,7 +33,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/child-profiles")
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class ChildProfileV1Controller {
 
     private static final Set<String> QUERY_KEYS = Set.of("DisplayName", "PatientUserId");
@@ -88,8 +87,12 @@ public class ChildProfileV1Controller {
     public ResponseEntity<StandardApiResponse<GrowthChartContextResponse>> chartContext(
             @PathVariable UUID externalId,
             @RequestParam(defaultValue = "wfa") String metric,
+            @RequestParam(name = "Metric", required = false) String metricAlias,
             @RequestParam(defaultValue = "0") int fromMonths,
+            @RequestParam(name = "FromMonths", required = false) Integer fromMonthsAlias,
             @RequestParam(defaultValue = "60") int toMonths,
+            @RequestParam(name = "ToMonths", required = false) Integer toMonthsAlias,
+            @RequestHeader(value = "Accept-Language", required = false) String acceptLanguage,
             Authentication authentication
     ) {
         String userId = actorId(authentication);
@@ -98,12 +101,16 @@ public class ChildProfileV1Controller {
                     .body(StandardApiResponse.error(messages.forErrorCode("AUTH_REQUIRED"), "AUTH_REQUIRED"));
         }
         try {
+            String resolvedMetric = metricAlias != null && !metricAlias.isBlank() ? metricAlias : metric;
+            int resolvedFrom = fromMonthsAlias != null ? fromMonthsAlias : fromMonths;
+            int resolvedTo = toMonthsAlias != null ? toMonthsAlias : toMonths;
             GrowthChartContextResponse data = childProfileService.chartContext(
                     userId,
                     externalId,
-                    metric,
-                    fromMonths,
-                    toMonths
+                    resolvedMetric,
+                    resolvedFrom,
+                    resolvedTo,
+                    normalizeLocale(acceptLanguage)
             );
             return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.growth.chart.context"), data));
         } catch (IllegalArgumentException ex) {
@@ -164,5 +171,18 @@ public class ChildProfileV1Controller {
             return "";
         }
         return Objects.toString(authentication.getName(), "").trim();
+    }
+
+    private static String normalizeLocale(String acceptLanguage) {
+        String raw = Objects.toString(acceptLanguage, "en").trim().toLowerCase();
+        if (raw.isBlank()) {
+            return "en";
+        }
+        int comma = raw.indexOf(',');
+        if (comma > 0) {
+            raw = raw.substring(0, comma).trim();
+        }
+        int dash = raw.indexOf('-');
+        return dash > 0 ? raw.substring(0, dash) : raw;
     }
 }

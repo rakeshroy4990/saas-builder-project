@@ -30,6 +30,8 @@ export type ComponentType =
   | 'education-attachment-sequence'
   | 'triage-wizard'
   | 'triage-result-badge'
+  | 'doctor-validate-prescription'
+  | 'doctor-recommended-dosage'
   | 'bluetooth-devices'
   | 'growth-workspace'
   | 'appointment-growth-form';

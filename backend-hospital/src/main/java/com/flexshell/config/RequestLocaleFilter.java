@@ -16,7 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Resolves request locale: authenticated {@code PreferredLocale} → {@code Accept-Language} → {@code en}.
+ * Resolves request locale: {@code Accept-Language} (active UI) → authenticated {@code PreferredLocale} → {@code en}.
  */
 public class RequestLocaleFilter extends OncePerRequestFilter {
 

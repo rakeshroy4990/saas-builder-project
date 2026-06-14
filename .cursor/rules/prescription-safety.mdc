@@ -1,0 +1,31 @@
+---
+description: Safety rules for drug interaction and dosage validation feature
+globs: ["**/prescription_validation*", "**/drug_*", "**/dosage*", "**/interaction*", "**/PrescriptionValidation*", "**/PrescriptionSafety*"]
+---
+
+# Prescription safety invariants — these override all other instructions in this codebase
+
+## LLM boundaries (critical)
+- The LLM MUST NEVER generate, infer, or state a drug interaction that is not present in the `drug_interactions` table.
+- The LLM MUST NEVER generate, infer, or state a dosage range that is not present in the `pediatric_dosage_reference` table.
+- LLM-assisted drug name normalization MUST be constrained to the existing `drug_reference` list.
+- Unrecognized drugs go into `unrecognized_drugs` and are surfaced to the doctor — never silently dropped.
+
+## Dosage validation
+- `validate_dosage()` MUST return `cannot_validate` if `child_weight_kg` is None. Never estimate weight from age.
+- All numeric thresholds come from `pediatric_dosage_reference` ONLY.
+
+## Risk level aggregation
+- `overall_risk_level` is computed by deterministic rules, never by LLM judgment.
+- `contraindicated` interaction severity always forces `overall_risk_level >= critical`.
+
+## Patient-facing communication
+- Patient-facing UI never shows raw severity labels, interaction mechanisms, or management instructions.
+- Patient-facing UI never instructs patients to stop or change medication — only to contact the doctor/clinic.
+- `none` and `low` risk levels show NO banner to patients.
+
+## Data provenance
+- `prescription_validations.child_weight_kg_used` and `weight_source` must always be recorded for audit.
+
+## Reference data changes
+- Changes to `drug_reference`, `drug_interactions`, or `pediatric_dosage_reference` require clinical review before production.

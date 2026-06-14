@@ -1,4 +1,4 @@
-import { apiClient } from '@/services/api/client';
+import { apiClient } from '@/api/client';
 import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
 
 export type DeviceReadingRow = {

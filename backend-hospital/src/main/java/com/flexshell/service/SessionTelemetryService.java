@@ -3,7 +3,9 @@ package com.flexshell.service;
 import com.flexshell.controller.dto.SessionSummaryEntryDto;
 import com.flexshell.controller.dto.SessionTelemetryEventRequest;
 import com.flexshell.telemetry.SessionSummaryEntryDocument;
+import com.flexshell.persistence.api.CrashSessionPage;
 import com.flexshell.persistence.api.SessionTelemetryAccess;
+import com.flexshell.telemetry.SessionFlowDeriver;
 import com.flexshell.telemetry.SessionTelemetryEntity;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -53,6 +55,8 @@ public class SessionTelemetryService {
             entity.setEventCounts(new HashMap<>());
             entity.setFlowCounts(new HashMap<>());
             entity.setSessionSummary(new ArrayList<>());
+            entity.setSessionFlow(new ArrayList<>());
+            entity.setFlowErrorCount(0);
         }
 
         entity.setUpdatedAt(now);
@@ -97,6 +101,44 @@ public class SessionTelemetryService {
                 .orElseGet(() -> emptySnapshotMap(normalized));
     }
 
+    /**
+     * Admin/support: paginated crash session snapshots for {@code GET …/crashes}.
+     */
+    public CrashSnapshotPage listCrashSnapshots(int page, int size) {
+        CrashSessionPage paged = listCrashSessions(page, size);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (SessionTelemetryEntity entity : paged.items()) {
+            rows.add(toSnapshotMap(entity));
+        }
+        return new CrashSnapshotPage(rows, paged.page(), paged.size(), paged.totalElements());
+    }
+
+    /**
+     * Admin/support: paginated sessions whose {@code sessionFlow} includes at least one error step.
+     */
+    public CrashSnapshotPage listFlowErrorSnapshots(int page, int size) {
+        CrashSessionPage paged = listFlowErrorSessions(page, size);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (SessionTelemetryEntity entity : paged.items()) {
+            rows.add(toSnapshotMap(entity));
+        }
+        return new CrashSnapshotPage(rows, paged.page(), paged.size(), paged.totalElements());
+    }
+
+    public CrashSessionPage listCrashSessions(int page, int size) {
+        SessionTelemetryAccess repository = requireSessionTelemetryAccess();
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safePage = Math.max(page, 0);
+        return repository.findCrashSessions(safePage, safeSize);
+    }
+
+    public CrashSessionPage listFlowErrorSessions(int page, int size) {
+        SessionTelemetryAccess repository = requireSessionTelemetryAccess();
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        int safePage = Math.max(page, 0);
+        return repository.findFlowErrorSessions(safePage, safeSize);
+    }
+
     private Map<String, Object> emptySnapshotMap(String traceId) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("sessionKey", null);
@@ -107,6 +149,8 @@ public class SessionTelemetryService {
         row.put("totalEvents", 0);
         row.put("sessionSummary", new ArrayList<>());
         row.put("sessionSummarySize", 0);
+        row.put("sessionFlow", new ArrayList<>());
+        row.put("flowErrorCount", 0);
         row.put("lastEventName", null);
         row.put("lastFlow", null);
         row.put("lastStatus", null);
@@ -124,6 +168,9 @@ public class SessionTelemetryService {
         List<SessionSummaryEntryDocument> summary = entity.getSessionSummary();
         row.put("sessionSummary", summary != null ? summary : new ArrayList<>());
         row.put("sessionSummarySize", summary == null ? 0 : summary.size());
+        SessionFlowDeriver.FlowDerivation flow = resolveSessionFlow(entity);
+        row.put("sessionFlow", flow.steps());
+        row.put("flowErrorCount", flow.errorCount());
         row.put("lastEventName", entity.getLastEventName());
         row.put("lastFlow", entity.getLastFlow());
         row.put("lastStatus", entity.getLastStatus());
@@ -170,6 +217,21 @@ public class SessionTelemetryService {
             list.remove(0);
         }
         entity.setSessionSummary(list);
+        recomputeSessionFlow(entity);
+    }
+
+    private static void recomputeSessionFlow(SessionTelemetryEntity entity) {
+        SessionFlowDeriver.FlowDerivation derived = SessionFlowDeriver.derive(entity.getSessionSummary());
+        entity.setSessionFlow(new ArrayList<>(derived.steps()));
+        entity.setFlowErrorCount(derived.errorCount());
+    }
+
+    private static SessionFlowDeriver.FlowDerivation resolveSessionFlow(SessionTelemetryEntity entity) {
+        List<String> stored = entity.getSessionFlow();
+        if (stored != null && !stored.isEmpty()) {
+            return new SessionFlowDeriver.FlowDerivation(stored, entity.getFlowErrorCount());
+        }
+        return SessionFlowDeriver.derive(entity.getSessionSummary());
     }
 
     private static SessionSummaryEntryDocument mapToDocument(SessionSummaryEntryDto dto, Instant fallbackNow) {
@@ -233,5 +295,13 @@ public class SessionTelemetryService {
             throw new IllegalStateException("Session telemetry persistence is unavailable");
         }
         return access;
+    }
+
+    public record CrashSnapshotPage(
+            List<Map<String, Object>> items,
+            int page,
+            int size,
+            long totalElements
+    ) {
     }
 }

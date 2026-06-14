@@ -11,6 +11,10 @@ final class WhoNormalDistribution {
         return Math.max(0.01, Math.min(99.99, percentile));
     }
 
+    static double valueForZ(double z, WhoLmsRow lms) {
+        return measurementFromZ(z, lms);
+    }
+
     static double valueForPercentile(double percentile, WhoLmsRow lms) {
         double z = normalQuantile(percentile / 100.0);
         return measurementFromZ(z, lms);

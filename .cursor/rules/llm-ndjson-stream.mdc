@@ -1,0 +1,56 @@
+---
+description: LLM endpoints must stream NDJSON — never block on full model response
+globs: ["**/*triage*", "**/*growth*", "**/*chat*", "**/*education*", "**/pdf-rag-pipeline/**", "**/ai-service/**"]
+alwaysApply: true
+---
+
+# LLM queries — NDJSON streaming (required)
+
+Whenever a feature calls an LLM (OpenAI, proxy to pdf-rag, hospital AI chat, triage analyze, growth summary, education Q&A, etc.), **do not wait for the entire model response** before sending bytes to the client.
+
+## Contract
+
+| Layer | Requirement |
+|-------|-------------|
+| **pdf-rag / ai-service** | Expose `POST …/stream` (or stream-only path) returning `Content-Type: application/x-ndjson`. Emit `ready` → optional `status` → `delta` (token chunks) → terminal `complete` or `error`. |
+| **Spring proxy** | Mirror triage/growth: `StreamingResponseBody`, `NdjsonStreamWriter.writeReady`, proxy rag lines, disable buffering (`X-Accel-Buffering: no`, small servlet buffer). |
+| **Vue / mobile clients** | Use `fetch` + `ReadableStream` reader (not axios for the stream body). Parse line-by-line; update UI on each `delta`. |
+
+## NDJSON event shapes
+
+```json
+{"type":"ready","data":{}}
+{"type":"status","data":{"phase":"retrieving"}}
+{"type":"delta","text":"token chunk"}
+{"type":"complete","data":{"Summary":"…"}}
+{"type":"error","data":{"message":"…","errorCode":"…"}}
+```
+
+- `delta` uses top-level `text` (see `NdjsonStreamWriter.writeTextDelta`).
+- `complete.data` holds PascalCase domain fields (`Summary`, triage row, chat `Reply`, etc.).
+- Clients must handle both `type`/`data` and legacy PascalCase keys defensively.
+
+## Implementation checklist (new LLM feature)
+
+1. **pdf-rag**: `stream=True` on OpenAI client; `on_token` callback → yield `delta` lines; separate `/stream` route.
+2. **backend-hospital**: `…/stream` controller + adapter `stream*Ndjson` line consumer; keep sync JSON path only for tests/fallback.
+3. **DomainEventAutoEmitFilter**: register path in `isNdjsonStreamRequest` (or ensure `path.contains("/stream")`) — **required** or clients get `*_stream_incomplete`.
+4. **frontend-hospital**: dedicated `*Stream.ts` module (reference: `triageAnalyzeStream.ts`, `growthHistorySummaryStream.ts`).
+5. **mobile-hospital**: same pattern (reference: `triageApi.ts`, `growthHistorySummaryStream.ts`).
+6. **Silent background enrichment** (optional AI copy): add path to `apiClient` silent list; failures → session telemetry only, no toast.
+7. **Timeouts**: stream-specific timeout (60–180s); use `AbortSignal.timeout` + optional caller `AbortSignal`.
+
+See project skill: `.cursor/skills/ndjson-llm-stream/SKILL.md` for full step-by-step (controller, service, filter, client).
+
+## Forbidden
+
+- Blocking `POST` that waits for full LLM completion when the UI benefits from progressive text (summaries, chat, triage reasoning).
+- Buffering the full LLM output server-side before flushing any line.
+- Using axios `responseType: 'json'` for LLM generation endpoints.
+- Logging prompt text, symptoms, or child PII in stream handlers.
+
+## Reference implementations
+
+- Triage: `pdf-rag-pipeline/api/routes/triage.py`, `TriageResultV1Controller`, `triageAnalyzeStream.ts`
+- Growth history summary: `pdf-rag-pipeline/api/routes/growth.py`, `GrowthRecordV1Controller` `/history-summary/stream`, `growthHistorySummaryStream.ts`
+- Hospital AI chat: `hospitalAiChatStream.ts` (web + mobile)

@@ -5,14 +5,12 @@ import com.flexshell.persistence.postgres.model.NotificationEventRuleJpaEntity;
 import com.flexshell.persistence.postgres.model.NotificationEventRuleMessageJpaEntity;
 import com.flexshell.persistence.postgres.repository.NotificationEventRuleJpaRepository;
 import com.flexshell.persistence.postgres.repository.NotificationEventRuleMessageJpaRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class NotificationRuleCatalog {
 
     private static final String DEFAULT_LOCALE = SupportedLocale.DEFAULT;

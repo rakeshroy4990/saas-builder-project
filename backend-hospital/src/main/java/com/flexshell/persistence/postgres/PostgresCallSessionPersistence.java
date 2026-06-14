@@ -5,14 +5,12 @@ import com.flexshell.persistence.postgres.repository.CallSessionJpaRepository;
 import com.flexshell.realtime.webrtc.CallSessionEntity;
 import com.flexshell.realtime.webrtc.CallSessionPersistence;
 import com.flexshell.realtime.webrtc.CallSessionStatus;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresCallSessionPersistence implements CallSessionPersistence {
 
     private final CallSessionJpaRepository jpaRepository;

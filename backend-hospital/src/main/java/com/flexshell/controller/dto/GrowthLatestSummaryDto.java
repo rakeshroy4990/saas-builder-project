@@ -21,6 +21,9 @@ public class GrowthLatestSummaryDto {
     @JsonProperty("InterpretationBand")
     private String interpretationBand;
 
+    @JsonProperty("Characteristics")
+    private GrowthCharacteristicsDto characteristics;
+
     public BigDecimal getWeightPercentile() {
         return weightPercentile;
     }
@@ -59,5 +62,13 @@ public class GrowthLatestSummaryDto {
 
     public void setInterpretationBand(String interpretationBand) {
         this.interpretationBand = interpretationBand;
+    }
+
+    public GrowthCharacteristicsDto getCharacteristics() {
+        return characteristics;
+    }
+
+    public void setCharacteristics(GrowthCharacteristicsDto characteristics) {
+        this.characteristics = characteristics;
     }
 }

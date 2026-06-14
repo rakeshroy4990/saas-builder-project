@@ -16,13 +16,18 @@ import { openMainTab } from '@/navigation/openTab';
 import { colors } from '@/theme/colors';
 import { SCREEN_GUTTER, TAB_SCROLL_BOTTOM_PADDING } from '@/theme/layout';
 
+function isDoctorRole(role: string): boolean {
+  const normalized = role.trim().toUpperCase();
+  return normalized === 'DOCTOR' || normalized === 'ADMIN';
+}
+
 export default function HomeTab() {
   const { t } = useTranslation();
   const router = useRouter();
   const accessToken = useSessionStore((s) => s.accessToken);
   const role = String(useSessionStore((s) => s.user?.role ?? '')).toUpperCase();
   const isLoggedIn = Boolean(accessToken);
-  const isDoctor = isLoggedIn && role === 'DOCTOR';
+  const isDoctor = isLoggedIn && isDoctorRole(role);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [doctors, setDoctors] = useState<DoctorListEntry[]>([]);
 
@@ -35,6 +40,7 @@ export default function HomeTab() {
   }, [t, isDoctor, videoId]);
 
   useEffect(() => {
+    if (isDoctor) return;
     (async () => {
       try {
         const id = await fetchPublicHeroVideoId();
@@ -43,9 +49,10 @@ export default function HomeTab() {
         setVideoId(null);
       }
     })();
-  }, []);
+  }, [isDoctor]);
 
   useEffect(() => {
+    if (isDoctor) return;
     (async () => {
       try {
         const rows = await fetchAllDoctors();
@@ -54,7 +61,7 @@ export default function HomeTab() {
         setDoctors([]);
       }
     })();
-  }, []);
+  }, [isDoctor]);
 
   function requireAuth(onAuthed: () => void) {
     if (!isLoggedIn) {
@@ -88,62 +95,71 @@ export default function HomeTab() {
     requireAuth(() => router.push('/(app)/(tabs)/home/doctors' as never));
   }
 
-  const quickActions: HomeQuickAction[] = [
-    {
-      id: 'schedule',
-      label: t('home.launcher.quickActions.schedule'),
-      icon: 'calendar-outline',
-      tint: colors.primaryDark,
-      background: '#ecfdf5',
-      onPress: () => {
-        if (isDoctor) {
-          openMainTab('ai-diagnosis');
-          return;
+  const quickActions: HomeQuickAction[] = useMemo(() => {
+    if (isDoctor) {
+      return [
+        {
+          id: 'pres-validate',
+          label: t('home.launcher.doctorQuickActions.presValidate'),
+          icon: 'shield-checkmark-outline',
+          tint: '#047857',
+          background: '#ecfdf5',
+          onPress: () => router.push('/(app)/prescription-validate' as never)
+        },
+        {
+          id: 'recom-dosage',
+          label: t('home.launcher.doctorQuickActions.recomDosage'),
+          icon: 'medical-outline',
+          tint: '#1d4ed8',
+          background: '#eff6ff',
+          onPress: () => router.push('/(app)/recommended-dosage' as never)
+        },
+        {
+          id: 'growth',
+          label: t('home.launcher.doctorQuickActions.growthTracking'),
+          icon: 'analytics-outline',
+          tint: '#7c3aed',
+          background: '#f5f3ff',
+          onPress: () => router.push('/(app)/growth' as never)
+        },
+        {
+          id: 'ai-diagnosis',
+          label: t('home.launcher.doctorQuickActions.aiDiagnosis'),
+          icon: 'medkit-outline',
+          tint: colors.primaryDark,
+          background: '#ecfdf5',
+          onPress: () => openMainTab('ai-diagnosis')
         }
-        requireAuth(() => router.push('/(app)/(tabs)/appointments/book' as never));
-      }
-    },
-    {
-      id: 'video',
-      label: t('home.launcher.quickActions.videoCall'),
-      icon: 'videocam-outline',
-      tint: '#1d4ed8',
-      background: '#eff6ff',
-      onPress: () => requireAuth(() => openMainTab('appointments'))
-    },
-    {
-      id: 'rx',
-      label: t('home.launcher.quickActions.prescriptions'),
-      icon: 'document-text-outline',
-      tint: '#b45309',
-      background: '#fff7ed',
-      onPress: () => requireAuth(() => openMainTab('prescriptions'))
-    },
-    {
-      id: 'triage',
-      label: t('triage.title', 'Check symptoms'),
-      icon: 'medkit-outline',
-      tint: '#0f766e',
-      background: '#ecfdf5',
-      onPress: () => requireAuth(() => router.push('/(app)/triage' as never))
-    },
-    {
-      id: 'growth',
-      label: t('growth.title', 'Growth'),
-      icon: 'analytics-outline',
-      tint: '#7c3aed',
-      background: '#f5f3ff',
-      onPress: () => requireAuth(() => router.push('/(app)/growth' as never))
-    },
-    {
-      id: 'ai',
-      label: t('home.launcher.quickActions.aiChat'),
-      icon: 'chatbubbles-outline',
-      tint: '#6d28d9',
-      background: '#f5f3ff',
-      onPress: () => requireAuth(() => router.push('/(app)/ai-chat' as never))
+      ];
     }
-  ];
+
+    return [
+      {
+        id: 'schedule',
+        label: t('home.launcher.quickActions.schedule'),
+        icon: 'calendar-outline',
+        tint: colors.primaryDark,
+        background: '#ecfdf5',
+        onPress: () => requireAuth(() => router.push('/(app)/(tabs)/appointments/book' as never))
+      },
+      {
+        id: 'video',
+        label: t('home.launcher.quickActions.videoCall'),
+        icon: 'videocam-outline',
+        tint: '#1d4ed8',
+        background: '#eff6ff',
+        onPress: () => requireAuth(() => openMainTab('appointments'))
+      },
+      {
+        id: 'growth',
+        label: t('growth.trackerLabel', 'Growth Tracker'),
+        icon: 'analytics-outline',
+        tint: '#7c3aed',
+        background: '#f5f3ff',
+        onPress: () => requireAuth(() => router.push('/(app)/growth' as never))
+      }
+    ];
+  }, [isDoctor, router, t]);
 
   return (
     <ScrollView
@@ -154,23 +170,27 @@ export default function HomeTab() {
       <View style={styles.page}>
         <HomeHeroBanner onCta={onHeroCta} ctaLabel={content.heroCta} />
 
-        <HomeQuickActions actions={quickActions} />
+        <HomeQuickActions actions={quickActions} layout={isDoctor ? 'grid' : 'row'} />
 
-        <HomeDoctorsCarousel
-          title={t('home.launcher.doctorsTitle')}
-          seeAllLabel={t('home.launcher.doctorsSeeAll')}
-          bookLabel={t('home.launcher.bookDoctor')}
-          doctors={doctors}
-          onSeeAll={onSeeAllDoctors}
-          onBook={(doctor) => onBookDoctor(doctor)}
-        />
+        {!isDoctor ? (
+          <>
+            <HomeDoctorsCarousel
+              title={t('home.launcher.doctorsTitle')}
+              seeAllLabel={t('home.launcher.doctorsSeeAll')}
+              bookLabel={t('home.launcher.bookDoctor')}
+              doctors={doctors}
+              onSeeAll={onSeeAllDoctors}
+              onBook={(doctor) => onBookDoctor(doctor)}
+            />
 
-        <HomeVideoChips
-          title={t('home.launcher.videosTitle')}
-          youtubeLabel={t('home.launcher.videosYoutube')}
-          videos={content.videoChips}
-          onOpenYoutube={() => void openYoutubeVideo(videoId)}
-        />
+            <HomeVideoChips
+              title={t('home.launcher.videosTitle')}
+              youtubeLabel={t('home.launcher.videosYoutube')}
+              videos={content.videoChips}
+              onOpenYoutube={() => void openYoutubeVideo(videoId)}
+            />
+          </>
+        ) : null}
       </View>
     </ScrollView>
   );

@@ -7,7 +7,6 @@ import com.flexshell.controller.dto.NotificationRuleSaveRequest;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.dto.UpdateNotificationRuleRequest;
 import com.flexshell.notification.NotificationRuleAdminService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +24,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin/notification-rules")
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class AdminNotificationRuleController {
     private final LocalizedApiMessages messages;
 

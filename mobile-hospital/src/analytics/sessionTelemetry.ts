@@ -8,6 +8,15 @@ import { getClientContext } from '@/analytics/clientContext';
 import { useSessionStore } from '@/auth/sessionStore';
 
 let traceId: string | null = null;
+let lastKnownRoutePath = '';
+
+export function setLastKnownRoutePath(path: string): void {
+  lastKnownRoutePath = String(path ?? '').trim();
+}
+
+export function readLastKnownRoutePath(): string {
+  return lastKnownRoutePath;
+}
 
 export function getOrCreateTraceId(): string {
   if (traceId?.trim()) return traceId;
@@ -192,6 +201,70 @@ export type AuthLoginTelemetryMeta = {
   api_path?: string;
   http_method?: string;
 };
+
+export type AppCrashTelemetryMeta = {
+  reason_code: string;
+  error_message: string;
+  error_name?: string;
+  component_stack?: string;
+  route_path?: string;
+  attributes?: Record<string, unknown>;
+};
+
+/**
+ * Records a client crash in session_telemetry:
+ * - event {@code app_crash} with {@code flow=crash} (searchable counters / last_flow)
+ * - summary row {@code kind=crash} with {@code attributes.category=crash} when logged in
+ */
+export function recordAppCrashTelemetry(meta: AppCrashTelemetryMeta): void {
+  void (async () => {
+    try {
+      const trace = getOrCreateTraceId();
+      const message = String(meta.error_message ?? 'Unknown error').slice(0, 500);
+      const routePath = (meta.route_path ?? readLastKnownRoutePath()).trim();
+      const email = readUserEmail();
+
+      await ingestSessionTelemetry({
+        event_name: 'app_crash',
+        flow: 'crash',
+        status: 'fail',
+        reason_code: meta.reason_code,
+        trace_id: trace
+      });
+
+      if (readUserId()) {
+        await ingestSessionTelemetry({
+          event_name: 'session_summary_row',
+          flow: 'session',
+          status: 'fail',
+          reason_code: meta.reason_code,
+          trace_id: trace,
+          session_summary_entry: {
+            entry_id: newSessionSummaryEntryId(),
+            occurred_at: new Date().toISOString(),
+            kind: 'crash',
+            reason_code: meta.reason_code,
+            error_message: message,
+            ...(routePath ? { route_path: routePath } : {}),
+            ...(email ? { user_email: email } : {}),
+            attributes: {
+              category: 'crash',
+              ...(meta.error_name ? { error_name: meta.error_name } : {}),
+              ...(meta.component_stack
+                ? { component_stack: meta.component_stack.slice(0, 2000) }
+                : {}),
+              ...(meta.attributes ?? {})
+            }
+          }
+        });
+      }
+
+      await flushSessionTelemetryQueue();
+    } catch {
+      // Non-blocking
+    }
+  })();
+}
 
 export type AiChatStreamTelemetryMeta = {
   api_path: string;

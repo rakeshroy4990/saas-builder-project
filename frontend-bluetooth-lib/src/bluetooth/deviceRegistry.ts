@@ -225,6 +225,8 @@ export const DEVICE_REGISTRY: Record<string, BluetoothDeviceProfile> = {
   XIAOMI_MI_SCALE: {
     type: 'scale',
     label: 'Smart Scale (Mi / body composition)',
+    labelI18nKey: 'devices.bluetooth.profiles.XIAOMI_MI_SCALE.label',
+    requiresUserActionI18nKey: 'devices.bluetooth.profiles.XIAOMI_MI_SCALE.action',
     icon: '⚖️',
     serviceUUIDs: ['0000181b-0000-1000-8000-00805f9b34fb'],
     characteristicUUID: '00002a9c-0000-1000-8000-00805f9b34fb',

@@ -7,7 +7,6 @@ import com.flexshell.controller.dto.DomainActionEventSaveRequest;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.dto.UpdateDomainActionEventRequest;
 import com.flexshell.domainevent.DomainActionEventAdminService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +24,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin/domain-action-events")
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class AdminDomainActionEventController {
     private final LocalizedApiMessages messages;
 

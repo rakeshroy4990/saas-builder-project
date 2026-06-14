@@ -1,4 +1,5 @@
 import {
+  localizedDepartmentDisplayName,
   parsePublicDoctorProfile,
   SERVER_PATHS,
   unwrapEnvelope,
@@ -33,13 +34,16 @@ export type HomeDoctorDepartmentSection = {
 
 export function mapPublicDoctorToHomeCard(
   doctor: PublicDoctorProfile,
-  departmentValue = ''
+  departmentValue = '',
+  departmentLabel = ''
 ): HomeDoctorCard {
   const resolvedDepartmentValue = departmentValue.trim() || doctor.department.trim();
+  const localizedSpeciality =
+    localizedDepartmentDisplayName(departmentLabel, resolvedDepartmentValue) || doctor.speciality;
   return {
     id: doctor.id,
     name: doctor.name,
-    speciality: doctor.speciality,
+    speciality: localizedSpeciality,
     degree: doctor.qualifications,
     experience: doctor.experienceSummary,
     image: doctor.imageUrl,
@@ -56,11 +60,15 @@ async function fetchDoctorsForDepartment(department: string): Promise<unknown[]>
   return Array.isArray(dataNode) ? dataNode : [];
 }
 
-function parseDoctorRows(rows: unknown[], departmentValue: string): HomeDoctorCard[] {
+function parseDoctorRows(
+  rows: unknown[],
+  departmentValue: string,
+  departmentLabel: string
+): HomeDoctorCard[] {
   return rows
     .map((item, index) => {
       const profile = parsePublicDoctorProfile(item, index, CLOUDINARY_IMAGE_BASE_URL);
-      return profile ? mapPublicDoctorToHomeCard(profile, departmentValue) : null;
+      return profile ? mapPublicDoctorToHomeCard(profile, departmentValue, departmentLabel) : null;
     })
     .filter((row): row is HomeDoctorCard => row !== null);
 }
@@ -84,7 +92,7 @@ export async function fetchDoctorsGroupedForHome(
         departmentId: department.id,
         departmentLabel: department.label,
         departmentValue: department.value,
-        doctors: parseDoctorRows(rows, department.value)
+        doctors: parseDoctorRows(rows, department.value, department.label)
       };
     })
   );

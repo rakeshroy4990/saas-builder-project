@@ -1,4 +1,4 @@
-export type TelemetryDomain = 'auth' | 'appointment' | 'video' | 'chat' | 'profile';
+export type TelemetryDomain = 'auth' | 'appointment' | 'video' | 'chat' | 'profile' | 'growth';
 export type TelemetryStatus = 'success' | 'fail' | 'drop';
 
 type DomainReasonMap = Record<string, string>;
@@ -61,6 +61,10 @@ export const telemetryReasonCodes = {
     saveFailed: 'save_failed',
     deactivateSuccess: 'deactivate_success',
     deactivateFailed: 'deactivate_failed'
+  }),
+  growth: defineDomainReasons({
+    historySummaryFailed: 'history_summary_failed',
+    historySummarySucceeded: 'history_summary_succeeded'
   })
 } as const;
 
@@ -69,7 +73,8 @@ export type TelemetryReasonCode =
   | (typeof telemetryReasonCodes.appointment)[keyof typeof telemetryReasonCodes.appointment]
   | (typeof telemetryReasonCodes.video)[keyof typeof telemetryReasonCodes.video]
   | (typeof telemetryReasonCodes.chat)[keyof typeof telemetryReasonCodes.chat]
-  | (typeof telemetryReasonCodes.profile)[keyof typeof telemetryReasonCodes.profile];
+  | (typeof telemetryReasonCodes.profile)[keyof typeof telemetryReasonCodes.profile]
+  | (typeof telemetryReasonCodes.growth)[keyof typeof telemetryReasonCodes.growth];
 
 export type TelemetryEventBase = {
   domain: TelemetryDomain;

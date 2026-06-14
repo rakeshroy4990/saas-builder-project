@@ -2,7 +2,6 @@ package com.flexshell.domainevent;
 
 import com.flexshell.persistence.postgres.model.DomainActionEventJpaEntity;
 import com.flexshell.persistence.postgres.repository.DomainActionEventJpaRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +11,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class DomainActionEventCatalog {
 
     private final DomainActionEventJpaRepository repository;

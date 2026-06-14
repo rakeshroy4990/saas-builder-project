@@ -57,4 +57,20 @@ export function refreshHospitalLocalizedUi(composer: Composer): void {
       })
     });
   }
+
+  const appointments = (appStore.getData('hospital', 'DashboardAppointments') ?? {}) as Record<string, unknown>;
+  const page = Number(appointments.page ?? 0);
+  const totalPages = Number(appointments.totalPages ?? 1);
+  const totalElements = Number(appointments.totalElements ?? 0);
+  if (Object.keys(appointments).length > 0) {
+    const pageNumber = page + 1;
+    appStore.setData('hospital', 'DashboardAppointments', {
+      ...appointments,
+      totalLabel: composer.t('dashboard.appointments.totalLabel', { count: totalElements }),
+      pageLabel:
+        totalPages > 0
+          ? composer.t('dashboard.appointments.pageLabelOf', { page: pageNumber, total: totalPages })
+          : composer.t('dashboard.appointments.pageLabel', { page: pageNumber })
+    });
+  }
 }

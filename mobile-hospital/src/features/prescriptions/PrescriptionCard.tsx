@@ -5,6 +5,7 @@ import { colors } from '@/theme/colors';
 import { sharedStyles } from '@/theme/styles';
 
 import { buildPrescriptionCardFields, prescriptionStatusLabel } from './prescriptionDisplay';
+import { PrescriptionSafetyNote } from './PrescriptionSafetyNote';
 import type { PrescriptionItem } from './types';
 
 type Props = {
@@ -58,6 +59,8 @@ export function PrescriptionCard({ item }: Props) {
         <Text style={styles.metaLabel}>{t('prescriptions.fields.medicines')}: </Text>
         {fields.medicinesLine}
       </Text>
+
+      {item.status === 'verified' ? <PrescriptionSafetyNote prescriptionId={item.id} /> : null}
     </View>
   );
 }

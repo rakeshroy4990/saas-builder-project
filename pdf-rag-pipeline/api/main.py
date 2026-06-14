@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routes import education, ingest, query, triage
+from api.routes import education, growth, ingest, prescription_validation, query, triage
 from cache.query_cache import ensure_cache_ttl_index
 from config.settings import (
     APP_LOG_LEVEL,
@@ -136,3 +136,5 @@ app.include_router(query.router, prefix="/api/v1", tags=["Query"])
 app.include_router(ingest.router, prefix="/api/v1", tags=["Ingest"])
 app.include_router(education.router, prefix="/api/v1", tags=["Education"])
 app.include_router(triage.router, prefix="/api/v1", tags=["Triage"])
+app.include_router(growth.router, prefix="/api/v1", tags=["Growth"])
+app.include_router(prescription_validation.router, prefix="/api/v1", tags=["PrescriptionValidation"])

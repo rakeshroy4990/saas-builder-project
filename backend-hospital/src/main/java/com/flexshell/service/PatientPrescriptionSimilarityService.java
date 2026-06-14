@@ -14,7 +14,6 @@ import com.flexshell.prescription.PatientPrescriptionExtractedJsonReader;
 import com.flexshell.prescription.PatientPrescriptionSectionSimilarity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +34,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PatientPrescriptionSimilarityService {
 
     private static final Logger LOG = LoggerFactory.getLogger(PatientPrescriptionSimilarityService.class);

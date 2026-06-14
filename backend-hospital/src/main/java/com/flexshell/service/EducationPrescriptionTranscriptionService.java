@@ -10,6 +10,8 @@ import com.flexshell.ai.SmartAiQuotaService;
 import com.flexshell.controller.dto.EducationPrescriptionTranscribeData;
 import com.flexshell.prescription.MedicalTermsGlossary;
 import com.flexshell.prescription.MedicalTermsGlossaryNormalizer;
+import com.flexshell.prescription.PrescriptionClinicalLineClassifier;
+import com.flexshell.prescription.PrescriptionVitalsExtractor;
 import com.flexshell.prescription.OpdPrintedFieldExtractor;
 import com.flexshell.prescription.PrescriptionTranscribeTiming;
 import org.apache.pdfbox.Loader;
@@ -286,7 +288,10 @@ public class EducationPrescriptionTranscriptionService {
             EducationPrescriptionTranscribeData data,
             PrescriptionTranscribeTiming timing
     ) {
-        return timing.record("medical_glossary", () -> MedicalTermsGlossaryNormalizer.normalize(data, medicalTermsGlossary));
+        return timing.record("medical_glossary", () ->
+                PrescriptionClinicalLineClassifier.reclassify(
+                        PrescriptionVitalsExtractor.enrich(
+                                MedicalTermsGlossaryNormalizer.normalize(data, medicalTermsGlossary))));
     }
 
     private EducationPrescriptionTranscribeData finishTranscribe(EducationPrescriptionTranscribeData data) {
@@ -294,7 +299,8 @@ public class EducationPrescriptionTranscriptionService {
         if (timing != null) {
             return finishTranscribe(data, timing);
         }
-        return MedicalTermsGlossaryNormalizer.normalize(data, medicalTermsGlossary);
+        return PrescriptionClinicalLineClassifier.reclassify(
+                PrescriptionVitalsExtractor.enrich(MedicalTermsGlossaryNormalizer.normalize(data, medicalTermsGlossary)));
     }
 
     private EducationPrescriptionTranscribeData structurePlainTextWithLlm(String text, PrescriptionTranscribeTiming timing) {
@@ -341,12 +347,12 @@ public class EducationPrescriptionTranscriptionService {
         }
         String cleaned = stripJsonFences(trimmed);
         try {
-            return buildTranscribeDataFromJson(objectMapper.readTree(cleaned));
+            return buildTranscribeDataFromJson(objectMapper.readTree(cleaned), cleaned);
         } catch (JsonProcessingException ex) {
             String sliced = sliceFirstBalancedJsonObject(cleaned);
             if (!sliced.equals(cleaned)) {
                 try {
-                    return buildTranscribeDataFromJson(objectMapper.readTree(sliced));
+                    return buildTranscribeDataFromJson(objectMapper.readTree(sliced), sliced);
                 } catch (JsonProcessingException ignored) {
                     // fall through to warn + client error
                 }
@@ -360,8 +366,25 @@ public class EducationPrescriptionTranscriptionService {
     }
 
     private EducationPrescriptionTranscribeData buildTranscribeDataFromJson(JsonNode n) {
+        return buildTranscribeDataFromJson(n, null);
+    }
+
+    private EducationPrescriptionTranscribeData buildTranscribeDataFromJson(JsonNode n, String rawJsonFallback) {
         EducationPrescriptionTranscribeData parsed =
                 OpdPrintedFieldExtractor.splitAgeGenderIfNeeded(PrescriptionExtractionJsonParser.fromJson(n));
+        if (parsed.weightKg() == null || parsed.temperatureF() == null) {
+            PrescriptionVitalsExtractor.PrescriptionVitals fallback =
+                    PrescriptionVitalsExtractor.fromAnyText(
+                            rawJsonFallback,
+                            PrescriptionVitalsExtractor.flattenJsonText(n)
+                    );
+            if (parsed.weightKg() == null && fallback.weightKg() != null) {
+                parsed = copyWithVitals(parsed, fallback.weightKg(), parsed.temperatureF());
+            }
+            if (parsed.temperatureF() == null && fallback.temperatureF() != null) {
+                parsed = copyWithVitals(parsed, parsed.weightKg(), fallback.temperatureF());
+            }
+        }
         String diagnosis = parsed.diagnosis().isBlank() ? "Not stated" : parsed.diagnosis();
         String medications = parsed.medications();
         if (medications.isBlank() && parsed.medicines().isEmpty()) {
@@ -389,9 +412,46 @@ public class EducationPrescriptionTranscriptionService {
                 parsed.medicines(),
                 parsed.dosage(),
                 parsed.advice(),
+                parsed.investigations(),
                 parsed.doctorName(),
                 parsed.prescriptionDate(),
-                parsed.notes()
+                parsed.notes(),
+                parsed.weightKg(),
+                parsed.temperatureF()
+        );
+    }
+
+    private static EducationPrescriptionTranscribeData copyWithVitals(
+            EducationPrescriptionTranscribeData data,
+            Double weightKg,
+            Double temperatureF
+    ) {
+        return new EducationPrescriptionTranscribeData(
+                data.hospitalName(),
+                data.documentType(),
+                data.registrationNumber(),
+                data.receiptNumber(),
+                data.appointmentDate(),
+                data.patientName(),
+                data.patientAge(),
+                data.patientGender(),
+                data.ageGender(),
+                data.department(),
+                data.consultant(),
+                data.address(),
+                data.mobileNumber(),
+                data.referredBy(),
+                data.diagnosis(),
+                data.medications(),
+                data.medicines(),
+                data.dosage(),
+                data.advice(),
+                data.investigations(),
+                data.doctorName(),
+                data.prescriptionDate(),
+                data.notes(),
+                weightKg,
+                temperatureF
         );
     }
 
@@ -505,9 +565,12 @@ public class EducationPrescriptionTranscriptionService {
                 medicineLines,
                 List.of(),
                 List.of(),
+                List.of(),
                 "",
                 "",
-                ""
+                "",
+                null,
+                null
         );
     }
 
@@ -635,5 +698,79 @@ public class EducationPrescriptionTranscriptionService {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(img, "png", baos);
         return baos.toByteArray();
+    }
+
+    /**
+     * Focused vision pass for Wt/Temp when the full transcription JSON omitted vitals.
+     * Best-effort — returns empty vitals on failure (does not throw).
+     */
+    public PrescriptionVitalsExtractor.PrescriptionVitals supplementVitalsFromImage(String userId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return new PrescriptionVitalsExtractor.PrescriptionVitals(null, null, null);
+        }
+        try {
+            if (file.getSize() > MAX_BYTES) {
+                return new PrescriptionVitalsExtractor.PrescriptionVitals(null, null, null);
+            }
+            byte[] bytes = file.getBytes();
+            if (bytes.length == 0) {
+                return new PrescriptionVitalsExtractor.PrescriptionVitals(null, null, null);
+            }
+            String sniffed = sniffMime(bytes);
+            String declared = Objects.toString(file.getContentType(), "").trim().toLowerCase(Locale.ROOT);
+            String effectiveMime = !sniffed.isBlank() ? sniffed : declared;
+            byte[] jpegBytes = preprocessUploadToJpeg(bytes, effectiveMime);
+            if (jpegBytes == null || jpegBytes.length == 0) {
+                return new PrescriptionVitalsExtractor.PrescriptionVitals(null, null, null);
+            }
+            String rawJson = visionVitalsTranscribe("image/jpeg", jpegBytes);
+            LOG.info("education_prescription_vitals_supplement_ok userId={} jsonLen={}", userId, rawJson.length());
+            return PrescriptionVitalsExtractor.fromVitalsModelJson(rawJson, objectMapper);
+        } catch (Exception ex) {
+            LOG.warn(
+                    "education_prescription_vitals_supplement_failed userId={} type={}",
+                    userId,
+                    ex.getClass().getSimpleName()
+            );
+            return new PrescriptionVitalsExtractor.PrescriptionVitals(null, null, null);
+        }
+    }
+
+    private byte[] preprocessUploadToJpeg(byte[] bytes, String effectiveMime) throws IOException {
+        if ("application/pdf".equals(effectiveMime)) {
+            try (PDDocument doc = Loader.loadPDF(bytes)) {
+                if (doc.getNumberOfPages() <= 0) {
+                    return null;
+                }
+                PDFRenderer renderer = new PDFRenderer(doc);
+                BufferedImage rendered = renderer.renderImageWithDPI(0, pdfRenderDpi, ImageType.RGB);
+                BufferedImage scaled = constrainMaxEdge(rendered, maxImageEdgePx);
+                return toJpegBytes(scaled, 0.88f);
+            }
+        }
+        if (!effectiveMime.startsWith("image/")) {
+            return null;
+        }
+        validateRasterMime(effectiveMime);
+        BufferedImage probe = ImageIO.read(new ByteArrayInputStream(bytes));
+        if (probe == null) {
+            return null;
+        }
+        BufferedImage rgb = toRgb(probe);
+        BufferedImage scaled = constrainMaxEdge(rgb, maxImageEdgePx);
+        return toJpegBytes(scaled, 0.88f);
+    }
+
+    private String visionVitalsTranscribe(String mime, byte[] imageBytes) {
+        String b64 = Base64.getEncoder().encodeToString(imageBytes);
+        String dataUrl = "data:" + mime + ";base64," + b64;
+        try {
+            return openAiChatAdapter.extractPrescriptionVitalsFromImageDataUrl(dataUrl);
+        } catch (AiProviderException ex) {
+            if (ex.kind() != AiProviderException.Kind.CONFIG_MISSING) {
+                throw ex;
+            }
+        }
+        return geminiChatAdapter.extractPrescriptionVitalsFromInlineImage(mime, b64);
     }
 }

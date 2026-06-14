@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { LOCALE_CONFIG } from '@saas-builder/i18n-contract';
 import type { ActionConfig } from '@/core/types/ActionConfig';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveStyle } from '@/core/engine/StyleResolver';
@@ -106,6 +107,43 @@ const smartAiQuickPrompts = computed(() => {
     t('chat.widget.quickPrompts.stomachPain'),
     t('chat.widget.quickPrompts.childCough')
   ];
+});
+
+const messageFontStyle = (m: Record<string, unknown>): Record<string, string> => {
+  const lang = String(m?.detectedLocale ?? '').trim().toLowerCase();
+  if (lang === 'kn') return { fontFamily: "'Noto Sans Kannada', sans-serif" };
+  if (lang === 'hi') return { fontFamily: "'Noto Sans Devanagari', sans-serif" };
+  return {};
+};
+
+const localeBadgeLabel = (m: Record<string, unknown>): string => {
+  const lang = String(m?.detectedLocale ?? '').trim().toLowerCase();
+  if (lang === 'kn') return LOCALE_CONFIG.kn.label;
+  if (lang === 'hi') return LOCALE_CONFIG.hi.label;
+  return '';
+};
+
+const toggleEnglishTranslation = (m: Record<string, unknown>) => {
+  const key = messageKey(m);
+  const rid = activeRoomId.value || 'smart-ai';
+  const byRoom = { ...(messagesByRoomId.value ?? {}) } as Record<string, unknown>;
+  const rows = Array.isArray(byRoom[rid]) ? [...(byRoom[rid] as unknown[])] : [];
+  const next = rows.map((raw) => {
+    const row = (raw ?? {}) as Record<string, unknown>;
+    if (messageKey(row) !== key) return raw;
+    return { ...row, showEnglishTranslation: !Boolean(row.showEnglishTranslation) };
+  });
+  appStore.setData(packageName.value, storeKey.value, {
+    ...chat.value,
+    messagesByRoomId: { ...byRoom, [rid]: next }
+  });
+};
+
+const composerFontStyle = computed((): Record<string, string> => {
+  const code = String(locale.value ?? 'en').trim().toLowerCase();
+  if (code === 'kn') return { fontFamily: "'Noto Sans Kannada', sans-serif" };
+  if (code === 'hi') return { fontFamily: "'Noto Sans Devanagari', sans-serif" };
+  return {};
 });
 
 const looksLikeMongoId = (value: string): boolean => /^[a-f0-9]{24}$/i.test(value);
@@ -480,7 +518,7 @@ const sendInlineEdit = async () => {
         v-if="smartAiEnabled"
         class="sticky top-0 z-20 shrink-0 border-b border-slate-200 bg-white/95 px-4 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-white/85"
       >
-        <div class="flex items-center justify-center sm:justify-end">
+        <div class="flex flex-col items-center justify-center gap-2 sm:flex-row sm:justify-center">
           <div
             class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 p-1"
             role="tablist"
@@ -725,9 +763,36 @@ const sendInlineEdit = async () => {
                     @keydown.enter.prevent="sendInlineEdit"
                     @keydown.escape.prevent="cancelInlineEdit"
                   />
-                  <div v-else class="whitespace-pre-wrap break-words leading-relaxed">
-                    {{ parseAiMessageBody(m?.body).text || m?.body }}
+                  <div v-else class="whitespace-pre-wrap break-words leading-relaxed" :style="messageFontStyle(m)">
+                    <span
+                      v-if="localeBadgeLabel(m)"
+                      class="mb-1 inline-block rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-800"
+                    >
+                      {{ localeBadgeLabel(m) }}
+                    </span>
+                    <div>
+                      {{
+                        m?.showEnglishTranslation && m?.answerEnglish
+                          ? m.answerEnglish
+                          : parseAiMessageBody(m?.body).text || m?.body
+                      }}
+                    </div>
                   </div>
+                  <button
+                    v-if="m?.showTranslationToggle && m?.answerEnglish"
+                    type="button"
+                    class="mt-1 text-left text-xs font-semibold text-slate-600 underline"
+                    @click="toggleEnglishTranslation(m)"
+                  >
+                    {{ t('chat.widget.seeInEnglish') }}
+                  </button>
+                  <a
+                    v-if="m?.emergencyCall108"
+                    href="tel:108"
+                    class="mt-2 inline-flex rounded-full bg-red-600 px-3 py-1.5 text-xs font-semibold text-white"
+                  >
+                    {{ t('chat.widget.call108') }}
+                  </a>
                   <div
                     v-if="smartAiMode && !isMine(m) && parseAiMessageBody(m?.body).options.length > 0"
                     class="mt-2 flex flex-wrap gap-2"
@@ -787,6 +852,7 @@ const sendInlineEdit = async () => {
           <input
             v-model="composerText"
             class="flex-1 rounded-full border border-slate-300 bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+            :style="composerFontStyle"
             type="text"
             :disabled="!canSendNow"
             :placeholder="

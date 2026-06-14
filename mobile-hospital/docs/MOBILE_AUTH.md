@@ -105,7 +105,7 @@ In `eas.json` (all profiles that build APKs):
 `EXPO_PUBLIC_*` values are **baked in at build time**. After any change:
 
 ```bash
-eas build --profile preview --platform android
+npm run eas:build:preview:android
 ```
 
 Uninstall the old APK before installing the new one.

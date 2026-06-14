@@ -162,9 +162,9 @@ onUnmounted(() => {
 
     <template v-else>
       <div v-if="showTypeList" class="space-y-3">
-        <h2 class="text-lg font-semibold text-slate-900">Choose device type</h2>
+        <h2 class="text-lg font-semibold text-slate-900">{{ t('devices.bluetooth.chooseTypeTitle') }}</h2>
         <p class="text-sm text-slate-600">
-          Select the type of medical device you want to connect via Bluetooth.
+          {{ t('devices.bluetooth.chooseTypeHint') }}
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
@@ -187,10 +187,10 @@ onUnmounted(() => {
           class="text-sm text-emerald-700 hover:underline"
           @click="backToTypes"
         >
-          ← Back to device types
+          {{ t('devices.bluetooth.backToTypes') }}
         </button>
         <h2 class="text-lg font-semibold text-slate-900">
-          {{ typeLabel(selectedType!) }} models
+          {{ t('devices.bluetooth.modelsTitle', { type: typeLabel(selectedType!) }) }}
         </h2>
         <div class="grid grid-cols-1 gap-2">
           <button
@@ -215,7 +215,7 @@ onUnmounted(() => {
           class="text-sm text-emerald-700 hover:underline"
           @click="backToModels"
         >
-          ← Back to models
+          {{ t('devices.bluetooth.backToModels') }}
         </button>
 
         <div v-if="selectedProfile" class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
@@ -224,7 +224,7 @@ onUnmounted(() => {
             {{ profileLabel(selectedProfile) }}
           </p>
           <p class="text-sm text-slate-700">{{ profileAction(selectedProfile) }}</p>
-          <p class="text-xs text-slate-500">Unit: {{ selectedProfile.unit }}</p>
+          <p class="text-xs text-slate-500">{{ t('devices.bluetooth.unitLabel', { unit: selectedProfile.unit }) }}</p>
         </div>
 
         <div

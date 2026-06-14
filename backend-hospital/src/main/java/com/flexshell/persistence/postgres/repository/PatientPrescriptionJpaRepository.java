@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -62,6 +63,25 @@ public interface PatientPrescriptionJpaRepository extends JpaRepository<PatientP
     Page<PatientPrescriptionJpaEntity> findVisibleToDoctor(@Param("doctorId") String doctorId, Pageable pageable);
 
     Page<PatientPrescriptionJpaEntity> findByDeletedFalse(Pageable pageable);
+
+    @Query(
+            value = """
+                    SELECT p.*
+                    FROM patient_prescriptions p
+                    WHERE p.deleted = false
+                      AND p.patient_user_id = :patientUserId
+                      AND p.status = 'verified'
+                      AND p.created_at >= now() - make_interval(days => :lookbackDays)
+                      AND p.external_id <> :excludeExternalId
+                    ORDER BY p.created_at DESC
+                    """,
+            nativeQuery = true
+    )
+    List<PatientPrescriptionJpaEntity> findRecentVerifiedForPatient(
+            @Param("patientUserId") String patientUserId,
+            @Param("lookbackDays") int lookbackDays,
+            @Param("excludeExternalId") UUID excludeExternalId
+    );
 
     @Modifying
     @Query(value = """

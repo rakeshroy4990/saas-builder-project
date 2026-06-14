@@ -41,6 +41,18 @@ export function resolveDoctorProfileImage(
   return `${normalizedBase}/${trimmed.replace(/^\/+/, '')}`;
 }
 
+/** Strip a trailing department code suffix from a localized label, e.g. `General Pediatrics (PEDS)` → `General Pediatrics`. */
+export function localizedDepartmentDisplayName(label: string, code?: string): string {
+  const trimmed = String(label ?? '').trim();
+  const normalizedCode = String(code ?? '').trim();
+  if (!normalizedCode) return trimmed;
+  const suffix = `(${normalizedCode})`;
+  if (trimmed.endsWith(suffix)) {
+    return trimmed.slice(0, trimmed.length - suffix.length).trim();
+  }
+  return trimmed;
+}
+
 export type PublicDoctorProfile = {
   id: string;
   name: string;

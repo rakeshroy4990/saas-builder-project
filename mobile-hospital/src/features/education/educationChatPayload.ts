@@ -1,6 +1,5 @@
 export type EducationChatTurn = { role: 'user' | 'assistant'; content: string };
 
-/** Build hospital AI chat body with optional multi-book RAG scope (matches web education conversation). */
 export function buildEducationChatPayload(
   question: string,
   bookNames: string[],

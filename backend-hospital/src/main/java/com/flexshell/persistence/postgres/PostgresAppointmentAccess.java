@@ -5,7 +5,6 @@ import com.flexshell.persistence.api.AppointmentAccess;
 import com.flexshell.persistence.postgres.model.AppointmentJpaEntity;
 import com.flexshell.persistence.postgres.repository.AppointmentJpaRepository;
 import org.bson.types.ObjectId;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +16,6 @@ import java.util.stream.Collectors;
 
 @Service
 @Primary
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresAppointmentAccess implements AppointmentAccess {
 
     private final AppointmentJpaRepository jpaRepository;

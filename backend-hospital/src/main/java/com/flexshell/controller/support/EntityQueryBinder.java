@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Merges URL-encoded {@code Query} JSON into a query DTO ({@code @ModelAttribute} fields take precedence).
@@ -69,6 +70,13 @@ public final class EntityQueryBinder {
         }
         if (type == Long.class || type == long.class) {
             return Long.parseLong(rawValue);
+        }
+        if (type == UUID.class) {
+            String trimmed = rawValue.trim();
+            if (trimmed.isEmpty()) {
+                return null;
+            }
+            return UUID.fromString(trimmed);
         }
         return rawValue;
     }

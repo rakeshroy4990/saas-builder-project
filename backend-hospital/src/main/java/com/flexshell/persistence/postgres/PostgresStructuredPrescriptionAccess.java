@@ -5,7 +5,6 @@ import com.flexshell.persistence.postgres.model.StructuredPrescriptionJpaEntity;
 import com.flexshell.persistence.postgres.repository.StructuredPrescriptionJpaRepository;
 import com.flexshell.prescription.StructuredPrescriptionEntity;
 import org.bson.types.ObjectId;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +13,6 @@ import java.util.Optional;
 
 @Service
 @Primary
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresStructuredPrescriptionAccess implements StructuredPrescriptionAccess {
 
     private final StructuredPrescriptionJpaRepository jpaRepository;

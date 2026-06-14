@@ -21,6 +21,9 @@ public class GrowthChartContextResponse {
     @JsonProperty("LatestSummary")
     private GrowthLatestSummaryDto latestSummary;
 
+    @JsonProperty("MidParentalHeight")
+    private MidParentalHeightDto midParentalHeight;
+
     public ChildProfileResponse getChildProfile() {
         return childProfile;
     }
@@ -59,5 +62,13 @@ public class GrowthChartContextResponse {
 
     public void setLatestSummary(GrowthLatestSummaryDto latestSummary) {
         this.latestSummary = latestSummary;
+    }
+
+    public MidParentalHeightDto getMidParentalHeight() {
+        return midParentalHeight;
+    }
+
+    public void setMidParentalHeight(MidParentalHeightDto midParentalHeight) {
+        this.midParentalHeight = midParentalHeight;
     }
 }

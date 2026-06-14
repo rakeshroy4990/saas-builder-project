@@ -7,7 +7,6 @@ import com.flexshell.persistence.postgres.model.AppointmentJpaEntity;
 import com.flexshell.persistence.postgres.repository.AppointmentJpaRepository;
 import com.flexshell.notification.NotificationTriggerSupport;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -17,7 +16,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Component
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class DomainEventContextBuilder {
 
     private final ObjectProvider<AppointmentJpaRepository> appointmentRepositoryProvider;

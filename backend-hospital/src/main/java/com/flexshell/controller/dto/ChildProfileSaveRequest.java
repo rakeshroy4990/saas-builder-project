@@ -2,6 +2,7 @@ package com.flexshell.controller.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -21,6 +22,12 @@ public class ChildProfileSaveRequest {
 
     @JsonProperty("BloodGroup")
     private String bloodGroup;
+
+    @JsonProperty("MotherHeightCm")
+    private BigDecimal motherHeightCm;
+
+    @JsonProperty("FatherHeightCm")
+    private BigDecimal fatherHeightCm;
 
     public UUID getExternalId() {
         return externalId;
@@ -60,5 +67,21 @@ public class ChildProfileSaveRequest {
 
     public void setBloodGroup(String bloodGroup) {
         this.bloodGroup = bloodGroup;
+    }
+
+    public BigDecimal getMotherHeightCm() {
+        return motherHeightCm;
+    }
+
+    public void setMotherHeightCm(BigDecimal motherHeightCm) {
+        this.motherHeightCm = motherHeightCm;
+    }
+
+    public BigDecimal getFatherHeightCm() {
+        return fatherHeightCm;
+    }
+
+    public void setFatherHeightCm(BigDecimal fatherHeightCm) {
+        this.fatherHeightCm = fatherHeightCm;
     }
 }

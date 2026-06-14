@@ -90,7 +90,7 @@ npm install -g eas-cli   # once
 cd mobile-hospital
 eas login
 eas build:configure      # first time only — links Expo project
-eas build --profile preview --platform android
+npm run eas:build:preview:android
 ```
 
 Wait for the build on [expo.dev](https://expo.dev) → your project → **Builds**. When it finishes, open the build and tap **Download** (APK).
@@ -145,7 +145,7 @@ Prefer **EAS `preview` APK** unless you need fully offline builds.
 
 | Stage | Where | Command / action |
 |-------|--------|------------------|
-| Internal QA | **Google Play Console** → Testing → **Internal testing** | `eas build --profile preview --platform android` → upload AAB or let EAS submit |
+| Internal QA | **Google Play Console** → Testing → **Internal testing** | `npm run eas:build:preview:android` → upload AAB or let EAS submit |
 | Production | **Google Play** → Production | `eas build --profile production --platform android` |
 
 - **Package name:** `com.agastya.healthcare` ([`app.json`](../app.json))  
@@ -154,7 +154,7 @@ Prefer **EAS `preview` APK** unless you need fully offline builds.
 ```bash
 cd mobile-hospital
 npx eas-cli login
-eas build --profile preview --platform android
+npm run eas:build:preview:android
 # Install APK from EAS page, or connect Play Console for internal track
 ```
 
@@ -259,7 +259,7 @@ cd mobile-hospital
 python3 scripts/generate-brand-icons.py
 ```
 
-Then rebuild the APK (`eas build --profile preview --platform android`). OTA/JS updates cannot change the home-screen icon.
+Then rebuild the APK (`npm run eas:build:preview:android`). OTA/JS updates cannot change the home-screen icon.
 
 ### Why is the APK ~300MB+?
 
@@ -282,7 +282,7 @@ Video uses **Agora Web SDK in a WebView** (`AgoraWebRoom.tsx`) and **STOMP** sig
 
 ```bash
 cd mobile-hospital
-eas build --profile preview --platform android
+npm run eas:build:preview:android
 ```
 
 Or local dev client: `npx expo run:android` then `npx expo start --dev-client`.

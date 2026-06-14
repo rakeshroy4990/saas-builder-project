@@ -1,7 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { getOrCreateTraceId, ingestSessionTelemetry } from '@/analytics/sessionTelemetry';
+import { recordAppCrashTelemetry } from '@/analytics/sessionTelemetry';
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -14,13 +14,13 @@ export class AppErrorBoundary extends Component<Props, State> {
     return { error };
   }
 
-  componentDidCatch(_error: Error, _info: ErrorInfo): void {
-    void ingestSessionTelemetry({
-      event_name: 'ui_render_error',
-      flow: 'app',
-      status: 'fail',
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    void recordAppCrashTelemetry({
       reason_code: 'react_error_boundary',
-      trace_id: getOrCreateTraceId()
+      error_message: error.message ?? String(error),
+      error_name: error.name,
+      component_stack: info.componentStack ?? undefined,
+      attributes: { category: 'crash' }
     });
   }
 

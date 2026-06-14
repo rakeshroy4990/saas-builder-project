@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
@@ -31,7 +30,6 @@ import java.util.Set;
 
 @Component
 @Order(Ordered.LOWEST_PRECEDENCE - 20)
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class DomainEventAutoEmitFilter extends OncePerRequestFilter {
 
     private static final Logger LOG = LoggerFactory.getLogger(DomainEventAutoEmitFilter.class);
@@ -67,27 +65,27 @@ public class DomainEventAutoEmitFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/v1/notifications")
                 || path.startsWith("/api/v1/admin/notification-rules")
                 || path.startsWith("/api/v1/admin/domain-action-events")
-                || isNdjsonStreamRequest(request);
+                || shouldBypassResponseCaching(request);
     }
 
     /**
      * NDJSON streaming responses must not use {@link ContentCachingResponseWrapper}:
      * per-line {@code flush()} commits the response and the cached body may not reach the client intact.
      */
-    private static boolean isNdjsonStreamRequest(HttpServletRequest request) {
+    private static boolean shouldBypassResponseCaching(HttpServletRequest request) {
         if (!MUTATING_METHODS.contains(request.getMethod().toUpperCase(Locale.ROOT))) {
-            return false;
-        }
-        String accept = Objects.toString(request.getHeader(HttpHeaders.ACCEPT), "").toLowerCase(Locale.ROOT);
-        if (!accept.contains("application/x-ndjson") && !accept.contains("application/ndjson")) {
             return false;
         }
         String servletPath = Objects.toString(request.getServletPath(), "");
         String uri = Objects.toString(request.getRequestURI(), "");
         String path = servletPath.isBlank() ? uri : servletPath;
-        return path.contains("/triage-results/analyze")
-                || path.endsWith("/hospital/ai/chat")
-                || path.contains("/similarity-search/stream");
+        if (path.contains("/stream")
+                || path.contains("/triage-results/analyze")
+                || path.endsWith("/hospital/ai/chat")) {
+            return true;
+        }
+        String accept = Objects.toString(request.getHeader(HttpHeaders.ACCEPT), "").toLowerCase(Locale.ROOT);
+        return accept.contains("application/x-ndjson") || accept.contains("application/ndjson");
     }
 
     @Override
@@ -96,7 +94,7 @@ public class DomainEventAutoEmitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        if (isNdjsonStreamRequest(request)) {
+        if (shouldBypassResponseCaching(request)) {
             filterChain.doFilter(request, response);
             return;
         }

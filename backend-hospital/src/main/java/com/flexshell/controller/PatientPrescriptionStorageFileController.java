@@ -6,7 +6,6 @@ import com.flexshell.persistence.postgres.repository.UserJpaRepository;
 import com.flexshell.storage.LocalPrescriptionFileStorage;
 import com.flexshell.storage.PrescriptionStorageKeys;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -28,7 +27,6 @@ import java.util.Objects;
  */
 @RestController
 @RequestMapping("/api/v1/patient-prescriptions")
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 @ConditionalOnBean(LocalPrescriptionFileStorage.class)
 public class PatientPrescriptionStorageFileController {
 

@@ -23,6 +23,7 @@ import {
   rowStatus,
   type PrescriptionDisplayRow
 } from '../../utils/patientPrescriptionGroups';
+import PrescriptionValidationPanel from './PrescriptionValidationPanel.vue';
 
 const props = defineProps<{
   pageConfig: PageConfig;
@@ -52,6 +53,7 @@ const linkDiagnosisNewText = ref('');
 const linkDiagnosisUseNew = ref(true);
 const diagnosisGroups = ref<PatientPrescriptionDiagnosisGroupSummary[]>([]);
 const linking = ref(false);
+const expandedSafetyId = ref<string | null>(null);
 const loading = computed(() => Boolean(state.value.loading));
 const error = computed(() => String(state.value.error ?? '').trim());
 
@@ -334,6 +336,20 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                 >
                   {{ t('prescriptions.view.download') }}
                 </button>
+                <button
+                  v-if="rowStatus(row) === 'verified'"
+                  type="button"
+                  class="ml-3 text-sm font-semibold text-violet-700 hover:text-violet-900"
+                  @click="expandedSafetyId = expandedSafetyId === row.item.externalId ? null : row.item.externalId"
+                >
+                  {{ t('prescriptionSafety.viewSafety') }}
+                </button>
+                <div v-if="expandedSafetyId === row.item.externalId" class="mt-3">
+                  <PrescriptionValidationPanel
+                    :prescription-external-id="row.item.externalId"
+                    :doctor-view="false"
+                  />
+                </div>
                 <div
                   v-if="linkDiagnosisPrescriptionId === row.item.externalId"
                   class="mt-2 space-y-2 rounded-lg border border-violet-100 bg-violet-50/50 p-2"

@@ -33,6 +33,7 @@ import {
 } from './aiSafety';
 import { processChatGuidedFlow } from './chatGuidedFlow';
 import { i18n } from '../../../../i18n';
+import { activeAppLocale } from '../../../../i18n/activeLocale';
 import type { Composer } from 'vue-i18n';
 import { isSupportedLocale, type LocaleCode } from '@saas-builder/i18n-contract';
 
@@ -46,18 +47,31 @@ function smartAiWelcomeMessage(): string {
   return chatTr()('chat.widget.welcomeMessage');
 }
 
-function resolveHospitalChatLocale(): LocaleCode {
-  const appStore = useAppStore(pinia);
-  const session = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
-  const fromSession = String(session.preferredLocale ?? '').trim().toLowerCase();
-  if (isSupportedLocale(fromSession)) return fromSession;
-  const globalLocale = String((i18n.global as Composer).locale.value ?? '').trim().toLowerCase();
-  return isSupportedLocale(globalLocale) ? globalLocale : 'en';
+function detectScriptLocale(text: string): LocaleCode | null {
+  if (/[\u0C80-\u0CFF]/.test(text)) return 'kn';
+  if (/[\u0900-\u097F]/.test(text)) return 'hi';
+  return null;
 }
 
-function withLocaleReplyInstruction(message: string, locale: LocaleCode): string {
-  if (locale !== 'hi') return message;
-  return `कृपया हिंदी (देवनागरी) में उत्तर दें।\n\n${message}`;
+type AiMessageMetadata = {
+  detectedLocale?: string;
+  answerEnglish?: string;
+  showTranslationToggle?: boolean;
+  emergencyCall108?: boolean;
+  showEnglishTranslation?: boolean;
+};
+
+function pickAiMetadata(data: Record<string, unknown>): AiMessageMetadata {
+  const detected = String(data.DetectedLocale ?? data.detectedLocale ?? '').trim().toLowerCase();
+  const answerEnglish = String(data.AnswerEnglish ?? data.answerEnglish ?? '').trim();
+  const showTranslationToggle = Boolean(data.ShowTranslationToggle ?? data.showTranslationToggle);
+  const emergencyCall108 = Boolean(data.EmergencyCall108 ?? data.emergencyCall108);
+  return {
+    detectedLocale: isSupportedLocale(detected) ? detected : undefined,
+    answerEnglish: answerEnglish || undefined,
+    showTranslationToggle,
+    emergencyCall108
+  };
 }
 
 function isSmartAiWelcomeMessage(row: Record<string, unknown>): boolean {
@@ -867,7 +881,23 @@ export const chatHospitalServices: ServiceDefinition[] = [
       }
 
       try {
-        const patchStreamingAiBody = (text: string, streaming: boolean) => {
+        const chatLocale = activeAppLocale();
+        const scriptLocale = detectScriptLocale(body);
+        if (scriptLocale && chatLocale === 'en' && !sessionStorage.getItem('chat.scriptLocaleToastShown')) {
+          sessionStorage.setItem('chat.scriptLocaleToastShown', '1');
+          const toastStore = useToastStore(pinia);
+          const label = scriptLocale === 'kn' ? 'ಕನ್ನಡ' : 'हिंदी';
+          toastStore.show(
+            chatTr()('chat.widget.scriptDetectToast', { language: label }),
+            'info'
+          );
+        }
+
+        const patchStreamingAiBody = (
+          text: string,
+          streaming: boolean,
+          meta: AiMessageMetadata = {}
+        ) => {
           const latestChat = getChatStore(appStore);
           const latestByRoom = (latestChat.messagesByRoomId ?? {}) as Record<string, unknown>;
           const roomMsgs = Array.isArray(latestByRoom[roomId]) ? [...(latestByRoom[roomId] as unknown[])] : [];
@@ -880,7 +910,8 @@ export const chatHospitalServices: ServiceDefinition[] = [
             if (i !== idx) return raw;
             const row = raw as Record<string, unknown>;
             const { aiStreaming: _a, ...rest } = row;
-            return streaming ? { ...rest, body: text, aiStreaming: true } : { ...rest, body: text };
+            const merged = { ...rest, body: text, ...meta };
+            return streaming ? { ...merged, aiStreaming: true } : merged;
           });
           appStore.setData('hospital', 'Chat', {
             ...latestChat,
@@ -889,10 +920,14 @@ export const chatHospitalServices: ServiceDefinition[] = [
         };
 
         let acc = '';
-        const chatLocale = resolveHospitalChatLocale();
         await postHospitalAiChatNdjson(
-          { message: withLocaleReplyInstruction(body, chatLocale), history },
+          { message: body, history },
           {
+            onStatus: (phase) => {
+              if (chatLocale !== 'en' && (phase === 'translating' || phase === 'generating')) {
+                patchStreamingAiBody(chatTr()('chat.widget.translatingStatus'), true);
+              }
+            },
             onDelta: (chunk) => {
               acc += chunk;
               patchStreamingAiBody(acc, true);
@@ -912,7 +947,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
                 conversationHistory
               );
               const reply = composeReplyWithFollowUps(baseReply, data);
-              patchStreamingAiBody(reply, false);
+              patchStreamingAiBody(reply, false, pickAiMetadata(data));
             }
           },
           typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'

@@ -85,6 +85,22 @@ public class AiSafetyPolicy {
             "high\\s+fever|39\\.4|103",
             Pattern.CASE_INSENSITIVE
     );
+
+    private static final String HINDI_EMERGENCY_RESPONSE =
+            "यह चिकित्सा आपातकाल है। तुरंत 108 पर कॉल करें। प्रतीक्षा न करें।\n\n"
+                    + "मैं डॉक्टर नहीं हूँ और यह चिकित्सा सलाह नहीं है।";
+    private static final String KANNADA_EMERGENCY_RESPONSE =
+            "ಇದು ತುರ್ತು ವೈದ್ಯಕೀಯ ಪರಿಸ್ಥಿತಿ. ತಕ್ಷಣ 108 ಗೆ ಕರೆ ಮಾಡಿ. ಕಾಯಬೇಡಿ.\n\n"
+                    + "ನಾನು ವೈದ್ಯರಲ್ಲ ಮತ್ತು ಇದು ವೈದ್ಯಕೀಯ ಸಲಹೆಯಲ್ಲ.";
+
+    private static final Set<String> HINDI_EMERGENCY_KEYWORDS = Set.of(
+            "सांस नहीं", "बेहोश", "दौरा", "खून", "होश नहीं", "तुरंत", "आपातकाल",
+            "saans nahi", "behosh", "daura", "khoon", "hosh nahi"
+    );
+    private static final Set<String> KANNADA_EMERGENCY_KEYWORDS = Set.of(
+            "ಉಸಿರಾಟ", "ಮೂರ್ಛೆ", "ರಕ್ತಸ್ರಾವ", "ಎಚ್ಚರ ಇಲ್ಲ", "ತುರ್ತು",
+            "ushiratu", "moorche", "ecchara illa", "turtu"
+    );
     public enum EscalationType {
         OVERDOSE_POISONING,
         CARDIAC_RESPIRATORY,
@@ -108,7 +124,31 @@ public class AiSafetyPolicy {
         if (normalized.isBlank()) {
             return false;
         }
-        return CRITICAL_KEYWORDS.stream().anyMatch(normalized::contains) || detectEscalationType(normalized).isPresent();
+        return detectMultilingualEmergencyResponse(input).isPresent()
+                || CRITICAL_KEYWORDS.stream().anyMatch(normalized::contains)
+                || detectEscalationType(normalized).isPresent();
+    }
+
+    /**
+     * Hardcoded emergency copy for Hindi/Kannada keywords — must include 108 and bypass RAG.
+     */
+    public Optional<String> detectMultilingualEmergencyResponse(String input) {
+        String raw = String.valueOf(input == null ? "" : input);
+        if (raw.isBlank()) {
+            return Optional.empty();
+        }
+        String lowered = raw.toLowerCase(Locale.ROOT);
+        for (String kw : KANNADA_EMERGENCY_KEYWORDS) {
+            if (raw.contains(kw) || lowered.contains(kw.toLowerCase(Locale.ROOT))) {
+                return Optional.of(KANNADA_EMERGENCY_RESPONSE);
+            }
+        }
+        for (String kw : HINDI_EMERGENCY_KEYWORDS) {
+            if (raw.contains(kw) || lowered.contains(kw.toLowerCase(Locale.ROOT))) {
+                return Optional.of(HINDI_EMERGENCY_RESPONSE);
+            }
+        }
+        return Optional.empty();
     }
 
     public Optional<EscalationType> detectEscalationType(String input) {

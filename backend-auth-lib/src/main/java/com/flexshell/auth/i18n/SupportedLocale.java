@@ -40,13 +40,16 @@ public final class SupportedLocale {
     }
 
     /**
-     * Precedence: authenticated profile {@code PreferredLocale} → {@code Accept-Language} → {@code en}.
+     * Precedence: {@code Accept-Language} (active UI / header selector) → profile {@code PreferredLocale} → {@code en}.
      */
     public static String resolveRequestLocale(String preferredLocaleFromProfile, String acceptLanguageHeader) {
+        if (acceptLanguageHeader != null && !acceptLanguageHeader.isBlank()) {
+            return parseAcceptLanguage(acceptLanguageHeader);
+        }
         if (preferredLocaleFromProfile != null && !preferredLocaleFromProfile.isBlank()) {
             return normalize(preferredLocaleFromProfile);
         }
-        return parseAcceptLanguage(acceptLanguageHeader);
+        return DEFAULT;
     }
 
     public static Locale toJavaLocale(String localeCode) {

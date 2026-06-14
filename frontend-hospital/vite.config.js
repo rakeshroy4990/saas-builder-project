@@ -100,12 +100,16 @@ export default defineConfig({
     }
   },
   resolve: {
+    preserveSymlinks: true,
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@realtime': fileURLToPath(new URL('../frontend-realtime-lib/src', import.meta.url)),
       '@bluetooth': fileURLToPath(new URL('../frontend-bluetooth-lib/src', import.meta.url)),
       '@saas-builder/hospital-api-client': fileURLToPath(
         new URL('../packages/hospital-api-client/src/index.ts', import.meta.url)
+      ),
+      '@saas-builder/i18n-contract': fileURLToPath(
+        new URL('../packages/i18n-contract/src/index.ts', import.meta.url)
       ),
       'vue-i18n': fileURLToPath(new URL('./node_modules/vue-i18n/dist/vue-i18n.esm-bundler.js', import.meta.url)),
       '@stomp/stompjs': fileURLToPath(

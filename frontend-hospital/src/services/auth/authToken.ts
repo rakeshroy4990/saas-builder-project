@@ -1,4 +1,5 @@
 import { clearEphemeralRefreshToken } from './refreshTokenEphemeral';
+import { invalidateServerSessionPingCache } from './serverSessionPing';
 
 /**
  * Auth tokens are issued as **httpOnly, Secure cookies** by the backend (`Set-Cookie` on login/refresh).
@@ -100,6 +101,7 @@ export function setAuthTokens(_accessToken: string, _refreshToken: string): void
 export function clearAuthToken(): void {
   accessExpiryApproxMs = null;
   clearEphemeralRefreshToken();
+  invalidateServerSessionPingCache();
   notify();
 }
 

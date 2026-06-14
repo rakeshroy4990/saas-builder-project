@@ -39,6 +39,12 @@ public class ChildProfileJpaEntity {
     @Column(name = "blood_group", length = 8)
     private String bloodGroup;
 
+    @Column(name = "mother_height_cm", precision = 5, scale = 2)
+    private java.math.BigDecimal motherHeightCm;
+
+    @Column(name = "father_height_cm", precision = 5, scale = 2)
+    private java.math.BigDecimal fatherHeightCm;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -113,6 +119,22 @@ public class ChildProfileJpaEntity {
 
     public void setBloodGroup(String bloodGroup) {
         this.bloodGroup = bloodGroup;
+    }
+
+    public java.math.BigDecimal getMotherHeightCm() {
+        return motherHeightCm;
+    }
+
+    public void setMotherHeightCm(java.math.BigDecimal motherHeightCm) {
+        this.motherHeightCm = motherHeightCm;
+    }
+
+    public java.math.BigDecimal getFatherHeightCm() {
+        return fatherHeightCm;
+    }
+
+    public void setFatherHeightCm(java.math.BigDecimal fatherHeightCm) {
+        this.fatherHeightCm = fatherHeightCm;
     }
 
     public Instant getCreatedAt() {

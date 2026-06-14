@@ -4,14 +4,18 @@ import com.flexshell.auth.UserRole;
 import com.flexshell.controller.dto.ChildProfileQueryDto;
 import com.flexshell.controller.dto.ChildProfileResponse;
 import com.flexshell.controller.dto.ChildProfileSaveRequest;
+import com.flexshell.controller.dto.GrowthCharacteristicsDto;
 import com.flexshell.controller.dto.GrowthChartContextResponse;
 import com.flexshell.controller.dto.GrowthLatestSummaryDto;
 import com.flexshell.controller.dto.GrowthRecordResponse;
 import com.flexshell.controller.dto.PagedChildProfileListDto;
 import com.flexshell.controller.dto.WhoPercentileCurvesDto;
+import com.flexshell.growth.MidParentalHeightService;
+import com.flexshell.growth.MidParentalHeightSupport;
+import com.flexshell.growth.GrowthCharacteristicSupport;
 import com.flexshell.growth.WhoGrowthMetric;
 import com.flexshell.growth.WhoPercentileService;
-import com.flexshell.persistence.postgres.model.AppointmentJpaEntity;
+import com.flexshell.i18n.HospitalMessageResolver;
 import com.flexshell.persistence.postgres.model.ChildProfileJpaEntity;
 import com.flexshell.persistence.postgres.model.GrowthRecordJpaEntity;
 import com.flexshell.persistence.postgres.model.UserJpaEntity;
@@ -19,7 +23,6 @@ import com.flexshell.persistence.postgres.repository.AppointmentJpaRepository;
 import com.flexshell.persistence.postgres.repository.ChildProfileJpaRepository;
 import com.flexshell.persistence.postgres.repository.GrowthRecordJpaRepository;
 import com.flexshell.persistence.postgres.repository.UserJpaRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,7 +42,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class ChildProfileService {
 
     private static final Set<String> VALID_SEX = Set.of("male", "female");
@@ -49,19 +51,25 @@ public class ChildProfileService {
     private final AppointmentJpaRepository appointmentRepository;
     private final UserJpaRepository userRepository;
     private final WhoPercentileService whoPercentileService;
+    private final HospitalMessageResolver hospitalMessageResolver;
+    private final MidParentalHeightService midParentalHeightService;
 
     public ChildProfileService(
             ChildProfileJpaRepository childProfileRepository,
             GrowthRecordJpaRepository growthRecordRepository,
             AppointmentJpaRepository appointmentRepository,
             UserJpaRepository userRepository,
-            WhoPercentileService whoPercentileService
+            WhoPercentileService whoPercentileService,
+            HospitalMessageResolver hospitalMessageResolver,
+            MidParentalHeightService midParentalHeightService
     ) {
         this.childProfileRepository = childProfileRepository;
         this.growthRecordRepository = growthRecordRepository;
         this.appointmentRepository = appointmentRepository;
         this.userRepository = userRepository;
         this.whoPercentileService = whoPercentileService;
+        this.hospitalMessageResolver = hospitalMessageResolver;
+        this.midParentalHeightService = midParentalHeightService;
     }
 
     @Transactional(readOnly = true)
@@ -122,7 +130,8 @@ public class ChildProfileService {
             UUID childExternalId,
             String metricWire,
             int fromMonths,
-            int toMonths
+            int toMonths,
+            String localeCode
     ) {
         ChildProfileJpaEntity child = childProfileRepository.findByExternalIdAndDeletedFalse(childExternalId)
                 .orElseThrow(() -> new IllegalArgumentException("CHILD_PROFILE_NOT_FOUND"));
@@ -147,7 +156,17 @@ public class ChildProfileService {
         response.setMetric(metric.wireKey());
         response.setRecords(records);
         response.setPercentileCurves(curves);
-        response.setLatestSummary(buildLatestSummary(records));
+        response.setLatestSummary(buildLatestSummary(child, records, localeCode));
+
+        Double latestAgeMonths = records.isEmpty()
+                ? null
+                : records.get(records.size() - 1).getAgeMonthsAtRecording().doubleValue();
+        response.setMidParentalHeight(midParentalHeightService.compute(
+                child.getSex(),
+                child.getMotherHeightCm(),
+                child.getFatherHeightCm(),
+                latestAgeMonths
+        ));
         return response;
     }
 
@@ -192,6 +211,15 @@ public class ChildProfileService {
 
         if (request.getBloodGroup() != null) {
             row.setBloodGroup(trimToNull(request.getBloodGroup()));
+        }
+
+        if (request.getMotherHeightCm() != null) {
+            validateParentHeight(request.getMotherHeightCm(), "CHILD_PROFILE_MOTHER_HEIGHT_INVALID");
+            row.setMotherHeightCm(request.getMotherHeightCm());
+        }
+        if (request.getFatherHeightCm() != null) {
+            validateParentHeight(request.getFatherHeightCm(), "CHILD_PROFILE_FATHER_HEIGHT_INVALID");
+            row.setFatherHeightCm(request.getFatherHeightCm());
         }
 
         return toResponse(childProfileRepository.save(row));
@@ -289,6 +317,8 @@ public class ChildProfileService {
         response.setDateOfBirth(row.getDateOfBirth());
         response.setSex(row.getSex());
         response.setBloodGroup(row.getBloodGroup());
+        response.setMotherHeightCm(row.getMotherHeightCm());
+        response.setFatherHeightCm(row.getFatherHeightCm());
         response.setCreatedAt(row.getCreatedAt());
         response.setUpdatedAt(row.getUpdatedAt());
         return response;
@@ -317,7 +347,11 @@ public class ChildProfileService {
         return response;
     }
 
-    private GrowthLatestSummaryDto buildLatestSummary(List<GrowthRecordResponse> records) {
+    private GrowthLatestSummaryDto buildLatestSummary(
+            ChildProfileJpaEntity child,
+            List<GrowthRecordResponse> records,
+            String localeCode
+    ) {
         if (records.isEmpty()) {
             return null;
         }
@@ -328,7 +362,33 @@ public class ChildProfileService {
         summary.setBmiPercentile(latest.getBmiPercentile());
         summary.setHcPercentile(latest.getHcPercentile());
         summary.setInterpretationBand(interpretBand(latest.getWeightPercentile()));
+        String locale = normalizeLocaleCode(localeCode);
+        GrowthCharacteristicsDto characteristics = GrowthCharacteristicSupport.derive(
+                hospitalMessageResolver,
+                locale,
+                child.getSex(),
+                latest.getWeightPercentile(),
+                latest.getHeightPercentile(),
+                latest.getBmiPercentile(),
+                latest.getHcPercentile()
+        );
+        summary.setCharacteristics(characteristics);
         return summary;
+    }
+
+    private static String normalizeLocaleCode(String localeCode) {
+        String raw = Objects.toString(localeCode, "en").trim().toLowerCase(Locale.ROOT);
+        if (raw.isBlank()) {
+            return "en";
+        }
+        int dash = raw.indexOf('-');
+        return dash > 0 ? raw.substring(0, dash) : raw;
+    }
+
+    private static void validateParentHeight(BigDecimal heightCm, String errorCode) {
+        if (heightCm == null || !MidParentalHeightSupport.isValidParentHeight(heightCm.doubleValue())) {
+            throw new IllegalArgumentException(errorCode);
+        }
     }
 
     static String interpretBand(BigDecimal percentile) {

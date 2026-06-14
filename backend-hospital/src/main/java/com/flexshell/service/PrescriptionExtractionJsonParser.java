@@ -2,6 +2,8 @@ package com.flexshell.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.flexshell.controller.dto.EducationPrescriptionTranscribeData;
+import com.flexshell.prescription.PrescriptionClinicalLineClassifier;
+import com.flexshell.prescription.PrescriptionVitalsExtractor;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -42,6 +44,7 @@ final class PrescriptionExtractionJsonParser {
         List<String> medicines = pickStringArrayField(root, "medicines");
         List<String> dosage = pickStringArrayField(root, "dosage");
         List<String> advice = pickStringArrayField(root, "advice");
+        List<String> investigations = pickStringArrayField(root, "investigations", "labs", "lab_tests", "labTests");
         String doctorName = firstNonBlank(
                 pickStringField(root, "doctor_name", "doctorName"),
                 consultant
@@ -52,6 +55,20 @@ final class PrescriptionExtractionJsonParser {
         );
         String notes = pickStringField(root, "notes");
         String textBlob = pickStringField(root, "text");
+        Double weightKg = pickDoubleField(root, "weight_kg", "weightKg", "WeightKg");
+        Double temperatureF = pickDoubleField(root, "temperature_f", "temperatureF", "TemperatureF", "temp_f");
+
+        diagnosis = mergeClinicalText(
+                diagnosis,
+                pickStringField(root, "symptoms", "chief_complaint", "history", "history_of_present_illness"),
+                pickStringField(root, "examination", "examination_findings", "physical_examination", "physical_exam"),
+                pickStringField(root, "vitals", "vital_signs")
+        );
+        notes = mergeClinicalText(
+                notes,
+                pickStringField(root, "vitals", "vital_signs"),
+                pickStringField(root, "examination", "examination_findings")
+        );
 
         if (diagnosis.isBlank() && medicationsBlob.isBlank() && medicines.isEmpty() && !textBlob.isBlank()) {
             EducationPrescriptionTranscribeData fromText =
@@ -79,7 +96,28 @@ final class PrescriptionExtractionJsonParser {
             medications = String.join("\n", medicines);
         }
 
-        return new EducationPrescriptionTranscribeData(
+        weightKg = firstNonNullDouble(weightKg, pickVitalsObjectDouble(root, "weight_kg", "weightKg", "weight", "wt"));
+        temperatureF = firstNonNullDouble(
+                temperatureF,
+                pickVitalsObjectDouble(root, "temperature_f", "temperatureF", "temperature", "temp", "t")
+        );
+
+        String flattenedJson = PrescriptionVitalsExtractor.flattenJsonText(root);
+        PrescriptionVitalsExtractor.PrescriptionVitals fromJsonText =
+                PrescriptionVitalsExtractor.fromAnyText(flattenedJson, diagnosis, notes, textBlob);
+        weightKg = firstNonNullDouble(weightKg, fromJsonText.weightKg());
+        temperatureF = firstNonNullDouble(temperatureF, fromJsonText.temperatureF());
+
+        if (weightKg != null && PrescriptionVitalsExtractor.fromAnyText(diagnosis).weightKg() == null) {
+            diagnosis = diagnosis.isBlank()
+                    ? "wt - " + weightKg + " kg"
+                    : diagnosis + "\nwt - " + weightKg + " kg";
+        }
+        if (temperatureF != null && PrescriptionVitalsExtractor.fromAnyText(diagnosis).temperatureF() == null) {
+            diagnosis = diagnosis + "\nT - " + temperatureF + " F";
+        }
+
+        return PrescriptionClinicalLineClassifier.reclassify(new EducationPrescriptionTranscribeData(
                 hospitalName,
                 documentType,
                 registrationNumber,
@@ -99,10 +137,96 @@ final class PrescriptionExtractionJsonParser {
                 medicines,
                 dosage,
                 advice,
+                investigations,
                 doctorName,
                 prescriptionDate,
-                notes
+                notes,
+                weightKg,
+                temperatureF
+        ));
+    }
+
+    private static String mergeClinicalText(String... parts) {
+        List<String> lines = new ArrayList<>();
+        for (String part : parts) {
+            String trimmed = Objects.toString(part, "").trim();
+            if (!trimmed.isBlank()) {
+                lines.add(trimmed);
+            }
+        }
+        return String.join("\n", lines);
+    }
+
+    private static Double firstNonNullDouble(Double primary, Double fallback) {
+        return primary != null ? primary : fallback;
+    }
+
+    private static Double pickVitalsObjectDouble(JsonNode root, String... keys) {
+        boolean weightField = java.util.Arrays.stream(keys).anyMatch(
+                k -> k.toLowerCase().contains("weight") || "wt".equalsIgnoreCase(k)
         );
+        for (String containerKey : List.of("vitals", "vital_signs", "examination", "examination_findings")) {
+            JsonNode container = findChildIgnoreCase(root, containerKey);
+            if (container == null || !container.isObject()) {
+                continue;
+            }
+            Double value = pickDoubleField(container, keys);
+            if (value != null) {
+                return value;
+            }
+            String text = pickStringField(container, keys);
+            if (!text.isBlank()) {
+                PrescriptionVitalsExtractor.PrescriptionVitals fromText = PrescriptionVitalsExtractor.fromAnyText(text);
+                Double parsed = weightField ? fromText.weightKg() : fromText.temperatureF();
+                if (parsed != null) {
+                    return parsed;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static JsonNode findChildIgnoreCase(JsonNode object, String key) {
+        if (object == null || !object.isObject()) {
+            return null;
+        }
+        Iterator<Map.Entry<String, JsonNode>> it = object.fields();
+        while (it.hasNext()) {
+            Map.Entry<String, JsonNode> entry = it.next();
+            if (entry.getKey().equalsIgnoreCase(key)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private static Double pickDoubleField(JsonNode object, String... keys) {
+        for (String key : keys) {
+            Iterator<Map.Entry<String, JsonNode>> it = object.fields();
+            while (it.hasNext()) {
+                Map.Entry<String, JsonNode> e = it.next();
+                if (!e.getKey().equalsIgnoreCase(key)) {
+                    continue;
+                }
+                JsonNode v = e.getValue();
+                if (v == null || v.isNull()) {
+                    return null;
+                }
+                if (v.isNumber()) {
+                    return v.doubleValue();
+                }
+                String s = v.asText("").trim();
+                if (s.isBlank()) {
+                    return null;
+                }
+                try {
+                    return Double.parseDouble(s.replaceAll("[^\\d.]", ""));
+                } catch (NumberFormatException ignored) {
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     private static String firstNonBlank(String... values) {

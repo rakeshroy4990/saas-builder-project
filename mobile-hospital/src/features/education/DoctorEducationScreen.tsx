@@ -924,8 +924,10 @@ export function DoctorEducationScreen() {
     );
   }
 
-  const composerBottomPad = keyboardInset > 0 ? 8 : Math.max(insets.bottom, 8);
-  const paneKeyboardPad = Platform.OS === 'android' && keyboardInset > 0 ? keyboardInset : 0;
+  const composerBottomPad = keyboardInset > 0 ? 8 : 4;
+  /** Tab screens on Android often ignore windowSoftInputMode resize — lift composer manually. */
+  const keyboardLift = Platform.OS === 'android' && keyboardInset > 0 ? keyboardInset : 0;
+  const headerKeyboardOffset = insets.top + 56;
 
   const typingFooter = sending ? (
     <View style={styles.typingRow}>
@@ -946,12 +948,13 @@ export function DoctorEducationScreen() {
   );
 
   function renderBooksMessageList() {
+    const listFlex = messages.length > 0 || sending;
     return (
       <FlatList
         ref={listRef}
         data={messages}
         keyExtractor={(item) => item.id}
-        style={styles.messageList}
+        style={listFlex ? styles.messageList : undefined}
         contentContainerStyle={[
           styles.messageListContent,
           messages.length === 0 && styles.messageListContentEmpty
@@ -974,6 +977,7 @@ export function DoctorEducationScreen() {
   }
 
   function onQuestionFocus() {
+    setEducationExpanded(true);
     scrollChatToEnd();
     setTimeout(scrollChatToEnd, 120);
     setTimeout(scrollChatToEnd, 320);
@@ -1108,10 +1112,7 @@ export function DoctorEducationScreen() {
           ]}
         >
           <KeyboardAvoidingView
-            style={[
-              styles.flex,
-              Platform.OS === 'android' && keyboardInset > 0 ? { paddingBottom: keyboardInset } : null
-            ]}
+            style={[styles.flex, keyboardLift > 0 ? { paddingBottom: keyboardLift } : null]}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.fullScreenHeader}>
@@ -1142,9 +1143,10 @@ export function DoctorEducationScreen() {
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? headerKeyboardOffset : 0}
         enabled={!chatFullScreen}
       >
-      {!chatFullScreen ? (
+      {!chatFullScreen && !keyboardVisible ? (
       <View style={styles.header}>
         <Text style={sharedStyles.subtitle}>{t('education.subtitle')}</Text>
         <View style={styles.tabRow}>
@@ -1163,80 +1165,93 @@ export function DoctorEducationScreen() {
       ) : null}
 
       {tab === 'books' && !chatFullScreen ? (
-        <View style={[styles.booksPane, paneKeyboardPad > 0 ? { paddingBottom: paneKeyboardPad } : null]}>
-          <View style={styles.booksMeta}>
-            <EducationBookPicker
-              books={books}
-              selectedBooks={selectedBooks}
-              loading={loadingBooks}
-              unavailable={booksLoadFailed}
-              onChange={setSelectedBooks}
-              onRetry={() => void loadBooks()}
-            />
-            {topics.length > 0 && !keyboardVisible ? (
-              <>
-                <Text style={sharedStyles.label}>{t('education.quickStarts')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
-                  {topics.map((topic) => (
-                    <Pressable
-                      key={topic}
-                      onPress={() => {
-                        setQuestion(topic);
-                        focusQuestionInput();
-                      }}
-                      style={styles.topicChip}
-                    >
-                      <Text style={styles.topicChipText} numberOfLines={2}>
-                        {topic}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </>
-            ) : null}
-          </View>
+        <View style={styles.booksPane}>
+          {!keyboardVisible ? (
+            <View style={styles.booksMeta}>
+              <EducationBookPicker
+                books={books}
+                selectedBooks={selectedBooks}
+                loading={loadingBooks}
+                unavailable={booksLoadFailed}
+                onChange={setSelectedBooks}
+                onRetry={() => void loadBooks()}
+              />
+              {topics.length > 0 ? (
+                <>
+                  <Text style={sharedStyles.label}>{t('education.quickStarts')}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
+                    {topics.map((topic) => (
+                      <Pressable
+                        key={topic}
+                        onPress={() => {
+                          setQuestion(topic);
+                          focusQuestionInput();
+                        }}
+                        style={styles.topicChip}
+                      >
+                        <Text style={styles.topicChipText} numberOfLines={2}>
+                          {topic}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </>
+              ) : null}
+            </View>
+          ) : null}
 
-          <View style={[styles.educationPanel, educationExpanded ? styles.educationPanelExpanded : styles.educationPanelCollapsed]}>
-            <CollapsiblePanelHeader
-              title={t('education.assistantLabel')}
-              subtitle={
-                messages.length > 0
-                  ? t('education.messageCount', { count: messages.length })
-                  : t('education.noMessagesYet')
-              }
-              expanded={educationExpanded}
-              onToggle={() => setEducationExpanded((prev) => !prev)}
-              expandLabel={t('education.expandEducationAi')}
-              collapseLabel={t('education.collapseEducationAi')}
-              action={chatFullScreenAction}
-            />
-            {educationExpanded ? (
-              renderBooksMessageList()
-            ) : lastAssistantMessage ? (
-              <Pressable
-                style={styles.collapsedPreview}
-                onPress={() => setEducationExpanded(true)}
-                accessibilityRole="button"
-                accessibilityLabel={t('education.expandEducationAi')}
-              >
-                <Text style={styles.collapsedPreviewText} numberOfLines={3}>
-                  {assistantDisplayBody(lastAssistantMessage.content ?? '')}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
+          <View style={[styles.chatBottomStack, keyboardLift > 0 ? { marginBottom: keyboardLift } : null]}>
+            <View
+              style={[
+                styles.educationPanel,
+                educationExpanded && (messages.length > 0 || sending)
+                  ? styles.educationPanelExpanded
+                  : styles.educationPanelCollapsed
+              ]}
+            >
+              <CollapsiblePanelHeader
+                title={t('education.assistantLabel')}
+                subtitle={
+                  messages.length > 0
+                    ? t('education.messageCount', { count: messages.length })
+                    : t('education.noMessagesYet')
+                }
+                expanded={educationExpanded}
+                onToggle={() => setEducationExpanded((prev) => !prev)}
+                expandLabel={t('education.expandEducationAi')}
+                collapseLabel={t('education.collapseEducationAi')}
+                action={chatFullScreenAction}
+              />
+              {educationExpanded ? (
+                renderBooksMessageList()
+              ) : lastAssistantMessage ? (
+                <Pressable
+                  style={styles.collapsedPreview}
+                  onPress={() => setEducationExpanded(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('education.expandEducationAi')}
+                >
+                  <Text style={styles.collapsedPreviewText} numberOfLines={3}>
+                    {assistantDisplayBody(lastAssistantMessage.content ?? '')}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
 
-          {renderBooksComposer(composerBottomPad)}
+            {renderBooksComposer(composerBottomPad)}
+          </View>
         </View>
       ) : tab === 'prescription' ? (
-        <View style={[styles.prescriptionPane, paneKeyboardPad > 0 ? { paddingBottom: paneKeyboardPad } : null]}>
+        <View style={styles.prescriptionPane}>
           <ScrollView
             style={styles.prescriptionScroll}
             contentContainerStyle={styles.prescriptionScrollContent}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           >
-            <Text style={sharedStyles.subtitle}>{t('education.prescriptionBanner')}</Text>
+            {!keyboardVisible ? (
+              <Text style={sharedStyles.subtitle}>{t('education.prescriptionBanner')}</Text>
+            ) : null}
             {prescriptionResults.map((hit) => (
               <View key={hit.externalId || hit.searchText} style={sharedStyles.card}>
                 <Text style={sharedStyles.cardTitle}>
@@ -1247,7 +1262,9 @@ export function DoctorEducationScreen() {
               </View>
             ))}
           </ScrollView>
-          {renderPrescriptionComposer(composerBottomPad)}
+          <View style={keyboardLift > 0 ? { marginBottom: keyboardLift } : null}>
+            {renderPrescriptionComposer(composerBottomPad)}
+          </View>
         </View>
       ) : null}
       </KeyboardAvoidingView>
@@ -1313,6 +1330,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0
   },
+  chatBottomStack: {
+    flex: 1,
+    minHeight: 0,
+    justifyContent: 'flex-end'
+  },
   prescriptionPane: {
     flex: 1,
     minHeight: 0
@@ -1356,8 +1378,8 @@ const styles = StyleSheet.create({
     paddingBottom: 8
   },
   messageListContentEmpty: {
-    flexGrow: 1,
-    justifyContent: 'center'
+    paddingTop: 8,
+    paddingBottom: 8
   },
   emptyChatHint: {
     color: colors.textMuted,
@@ -1368,13 +1390,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16
   },
   educationPanel: {
-    flex: 1,
     minHeight: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
     backgroundColor: colors.background
   },
-  educationPanelExpanded: {},
+  educationPanelExpanded: {
+    flex: 1,
+    minHeight: 0
+  },
   educationPanelCollapsed: {},
   panelHeader: {
     flexDirection: 'row',
@@ -1533,7 +1557,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingTop: 0,
     paddingBottom: 0,
-    marginTop: 'auto',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     backgroundColor: colors.surface,

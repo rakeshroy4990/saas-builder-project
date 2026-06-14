@@ -2,7 +2,6 @@ package com.flexshell.persistence.postgres;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +11,6 @@ import java.time.Instant;
  * Atomic increment for Smart AI daily usage counters on PostgreSQL (replaces Mongo {@code findAndModify} upsert).
  */
 @Repository
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class SmartAiDailyUsagePgRepository {
 
     @PersistenceContext

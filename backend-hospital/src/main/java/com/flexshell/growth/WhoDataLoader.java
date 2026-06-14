@@ -1,6 +1,5 @@
 package com.flexshell.growth;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +14,6 @@ import java.util.Locale;
 import java.util.Map;
 
 @Component
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class WhoDataLoader {
 
     private final Map<String, WhoLmsTable> tables = new LinkedHashMap<>();

@@ -8,7 +8,6 @@ import com.flexshell.persistence.api.UserAccess;
 import com.flexshell.persistence.postgres.model.UserJpaEntity;
 import com.flexshell.persistence.postgres.repository.UserJpaRepository;
 import org.bson.types.ObjectId;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +18,6 @@ import java.util.Optional;
 
 @Service
 @Primary
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresUserAccess implements UserAccess {
 
     private final UserJpaRepository userJpaRepository;

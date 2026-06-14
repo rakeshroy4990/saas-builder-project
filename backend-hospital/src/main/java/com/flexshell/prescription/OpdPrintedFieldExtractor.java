@@ -45,7 +45,58 @@ public final class OpdPrintedFieldExtractor {
         EducationPrescriptionTranscribeData withText = text.isBlank()
                 ? data
                 : mergeFromPlainText(data, text);
-        return splitAgeGenderIfNeeded(withText);
+        EducationPrescriptionTranscribeData split = splitAgeGenderIfNeeded(withText);
+        if (text.isBlank()) {
+            return split;
+        }
+        return PrescriptionVitalsExtractor.enrich(appendVitalsFromRawText(split, text));
+    }
+
+    private static EducationPrescriptionTranscribeData appendVitalsFromRawText(
+            EducationPrescriptionTranscribeData data,
+            String rawDocumentText
+    ) {
+        PrescriptionVitalsExtractor.PrescriptionVitals fromRaw =
+                PrescriptionVitalsExtractor.fromAnyText(rawDocumentText, data.diagnosis(), data.notes());
+        if (fromRaw.weightKg() == null && fromRaw.temperatureF() == null) {
+            return data;
+        }
+        String diagnosis = data.diagnosis();
+        if (fromRaw.weightKg() != null && PrescriptionVitalsExtractor.fromAnyText(diagnosis).weightKg() == null) {
+            diagnosis = diagnosis.isBlank()
+                    ? "wt - " + fromRaw.weightKg() + " kg"
+                    : diagnosis + "\nwt - " + fromRaw.weightKg() + " kg";
+        }
+        if (fromRaw.temperatureF() != null && PrescriptionVitalsExtractor.fromAnyText(diagnosis).temperatureF() == null) {
+            diagnosis = diagnosis + "\nT - " + fromRaw.temperatureF() + " F";
+        }
+        return new EducationPrescriptionTranscribeData(
+                data.hospitalName(),
+                data.documentType(),
+                data.registrationNumber(),
+                data.receiptNumber(),
+                data.appointmentDate(),
+                data.patientName(),
+                data.patientAge(),
+                data.patientGender(),
+                data.ageGender(),
+                data.department(),
+                data.consultant(),
+                data.address(),
+                data.mobileNumber(),
+                data.referredBy(),
+                diagnosis,
+                data.medications(),
+                data.medicines(),
+                data.dosage(),
+                data.advice(),
+                data.investigations(),
+                data.doctorName(),
+                data.prescriptionDate(),
+                data.notes(),
+                data.weightKg(),
+                data.temperatureF()
+        );
     }
 
     private static EducationPrescriptionTranscribeData mergeFromPlainText(
@@ -72,9 +123,12 @@ public final class OpdPrintedFieldExtractor {
                 data.medicines(),
                 data.dosage(),
                 data.advice(),
+                data.investigations(),
                 data.doctorName(),
                 data.prescriptionDate(),
-                data.notes()
+                data.notes(),
+                data.weightKg(),
+                data.temperatureF()
         );
     }
 
@@ -119,9 +173,12 @@ public final class OpdPrintedFieldExtractor {
                 data.medicines(),
                 data.dosage(),
                 data.advice(),
+                data.investigations(),
                 data.doctorName(),
                 data.prescriptionDate(),
-                data.notes()
+                data.notes(),
+                data.weightKg(),
+                data.temperatureF()
         );
     }
 

@@ -1,7 +1,6 @@
 package com.flexshell.storage;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -17,7 +16,6 @@ import java.util.Objects;
  * {@code GET /api/v1/patient-prescriptions/storage-file} (authenticated).
  */
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class LocalPrescriptionFileStorage implements PrescriptionFileStorage {
 
     private final Path baseDir;

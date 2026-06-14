@@ -112,3 +112,8 @@ packages/email-notify/dist/
 
 # ── Bluetooth lib (frontend, not deployed to Cloud Run) ──
 frontend-bluetooth-lib/
+# ── pdf-rag-pipeline venv (hidden dir — explicit glob needed) ──
+pdf-rag-pipeline/.venv/**
+.venv/
+**/.venv/
+**/.venv/**

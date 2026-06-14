@@ -26,12 +26,14 @@ public final class MedicalTermsGlossaryNormalizer {
         List<String> medicines = normalizeList(glossary, data.medicines());
         List<String> dosage = normalizeList(glossary, data.dosage());
         List<String> advice = normalizeList(glossary, data.advice());
+        List<String> investigations = normalizeList(glossary, data.investigations());
         String notes = normalizeField(glossary, data.notes());
         if (diagnosis.equals(data.diagnosis())
                 && medications.equals(data.medications())
                 && medicines.equals(data.medicines())
                 && dosage.equals(data.dosage())
                 && advice.equals(data.advice())
+                && investigations.equals(data.investigations())
                 && notes.equals(data.notes())) {
             return data;
         }
@@ -55,9 +57,12 @@ public final class MedicalTermsGlossaryNormalizer {
                 medicines,
                 dosage,
                 advice,
+                investigations,
                 data.doctorName(),
                 data.prescriptionDate(),
-                notes
+                notes,
+                data.weightKg(),
+                data.temperatureF()
         );
     }
 

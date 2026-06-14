@@ -60,6 +60,16 @@ public class SessionTelemetryEntity {
     @Field("SessionSummary")
     private List<SessionSummaryEntryDocument> sessionSummary = new ArrayList<>();
 
+    /**
+     * Human-readable ordered steps derived from {@link #sessionSummary} (pages, server calls, button clicks).
+     */
+    @Field("SessionFlow")
+    private List<String> sessionFlow = new ArrayList<>();
+
+    /** Count of error steps in {@link #sessionFlow} (HTTP 4xx/5xx, api_error, crash). */
+    @Field("FlowErrorCount")
+    private int flowErrorCount;
+
     @Field("Os")
     private String os;
 
@@ -187,6 +197,22 @@ public class SessionTelemetryEntity {
 
     public void setSessionSummary(List<SessionSummaryEntryDocument> sessionSummary) {
         this.sessionSummary = sessionSummary;
+    }
+
+    public List<String> getSessionFlow() {
+        return sessionFlow;
+    }
+
+    public void setSessionFlow(List<String> sessionFlow) {
+        this.sessionFlow = sessionFlow;
+    }
+
+    public int getFlowErrorCount() {
+        return flowErrorCount;
+    }
+
+    public void setFlowErrorCount(int flowErrorCount) {
+        this.flowErrorCount = flowErrorCount;
     }
 
     public String getOs() {

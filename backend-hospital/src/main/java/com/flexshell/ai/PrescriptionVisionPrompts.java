@@ -30,19 +30,32 @@ final class PrescriptionVisionPrompts {
             - "referred_by" (string): referrer if shown
             
             Clinical:
-            - "diagnosis" (string): diagnosis, impression, or problem list from handwritten or printed notes.
+            - "diagnosis" (string): diagnosis, impression, problem list, symptoms, and examination findings from handwritten or printed notes.
+              MUST include any visible vitals shorthand on the page (e.g. "Wt - 21.7 kg", "wt - 12.2 kg", "Temp - 98.7 F", "T - 101.4 F")
+              when they appear anywhere on the form — especially the vertical vitals block on the RIGHT margin of Indian OPD cards.
               Use standard medical abbreviations exactly as written when legible (e.g. WALRI not WALFI or WALPH; LRTI/URTI not LRT1/URT1).
               Short uppercase tokens are often abbreviations — do not confuse R with F, P, or H; I with 1; or O with 0.
               Phrases like "Full WALRI chest" refer to wheezing on chest exam — transcribe WALRI with an R, not P or F.
-            - "medicines" (array of strings): each drug or product with its instructions — include strength and how to use \
-            (e.g. "NIZRAL 2% Shampoo: mix 3ml with 3ml water, apply, wait 3 min, wash; twice a week for 1 month").
-            - "dosage" (array of strings): frequency/duration-only lines if listed separately from drug names; else [].
-            - "advice" (array of strings): non-drug advice, application steps, or follow-up instructions as separate lines.
+            - "medicines" (array of strings): ONLY dispensed drugs and formulations — include syrups (Syp./Syr./Syrp.), tablets (Tab.), \
+            capsules (Cap.), suspensions, drops, injections (Inj./Inj), vaccines given in clinic, ORS/rehydration sachets, etc. \
+            Preserve numbered list prefixes in the text (e.g. "1) Inj Hapibev (Inactivated HepB)", "2) Inj Influvac Tetra", \
+            "-> Syrp Calpol 250 3ml SOS if T > 99.5"). Each entry is one drug with strength and how to use. \
+            NEVER put lab tests, cultures, swabs, imaging, or investigations here.
+            - "investigations" (array of strings): lab tests, cultures, swabs, imaging, and diagnostic orders ONLY \
+            (e.g. "Throat swab QS", "Stool R/E & culture", "CBC", "CBIL/LP/ESR", "USG abdomen"). \
+            Do NOT put syrups (Syp./Syrp.), injections (Inj.), tablets, or other medicines in this list.
+            - "dosage" (array of strings): frequency/duration-only lines if listed separately from drug names \
+            (e.g. "if T > 99.5" on the line below an SOS syrup); else [].
+            - "advice" (array of strings): non-drug advice, diet, rest, follow-up visit timing, or application steps.
             - "doctor_name" (string): prescribing doctor (same as consultant if only one name visible).
             - "prescription_date" (string): date of prescription; use appointment_date if that is the only date.
             - "notes" (string): footer notes, follow-up policy, allergies, or other text not captured above.
             
-            Do not fabricate. Use [illegible] inside strings where unreadable. Do not add other keys.
+            - "vitals" (string): weight and temperature lines exactly as written (e.g. "wt - 12.2 kg", "T - 101.4 F"); also duplicate these lines inside "diagnosis" when present.
+            - "examination" (string): on-examination / physical exam shorthand (O/E …); include wt/T here if written in the exam block.
+            - "weight_kg" (number): numeric body weight in kilograms when visible (e.g. 12.2 for "wt - 12.2 kg"); use null or omit when not shown.
+            - "temperature_f" (number): numeric temperature in Fahrenheit when visible (e.g. 101.4 for "T - 101.4 F"); use null or omit when not shown.
+            Do not fabricate. Use [illegible] inside strings where unreadable.
             """;
 
     static final String VISION_JSON_SYSTEM = """

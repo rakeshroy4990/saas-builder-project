@@ -146,7 +146,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                   styleTemplate: 'hosp.header.menuButton',
                   utilityClasses: 'bg-emerald-100 text-emerald-700'
                 },
-                click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+                click: { actionId: 'open-dashboard-home' }
               }
             },
             {
@@ -161,10 +161,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               config: {
                 i18nKey: 'nav.dashboard',
                 styles: { styleTemplate: 'hosp.header.menuButton' },
-                click: {
-                  actionId: 'set-dashboard-header-active',
-                  onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
-                }
+                click: { actionId: 'open-dashboard-home' }
               }
             },
             {
@@ -578,7 +575,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
         config: {
           i18nKey: 'nav.dashboard',
           styles: { styleTemplate: 'hosp.header.menuButtonActive' },
-          click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
+          click: { actionId: 'open-dashboard-home' }
         }
       },
       {
@@ -593,10 +590,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
         config: {
           i18nKey: 'nav.dashboard',
           styles: { styleTemplate: 'hosp.header.menuButton' },
-          click: {
-            actionId: 'set-dashboard-header-active',
-            onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }
-          }
+          click: { actionId: 'open-dashboard-home' }
         }
       },
       {

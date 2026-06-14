@@ -55,10 +55,10 @@ Backend bearer support: `HospitalBearerTokenAuthenticator` in `backend-hospital`
 ```bash
 cd mobile-hospital
 eas login
-eas build --profile preview --platform android
+npm run eas:build:preview:android
 ```
 
-Download the `.apk` from [expo.dev](https://expo.dev) → Builds. Steps: [docs/TESTING.md](docs/TESTING.md#install-an-apk-on-your-android-phone-sideload).
+Runs local preflight checks (archive, `npm ci`, prebuild) then uploads to EAS. Download the `.apk` from [expo.dev](https://expo.dev) → Builds. Steps: [docs/TESTING.md](docs/TESTING.md#install-an-apk-on-your-android-phone-sideload).
 
 ## EAS builds
 
@@ -69,6 +69,18 @@ npx eas build --profile production --platform all
 ```
 
 Profiles are defined in [eas.json](./eas.json).
+
+Before a cloud build, preflight runs automatically via:
+
+```bash
+npm run eas:build:preview:android
+```
+
+To run checks only (no upload):
+
+```bash
+npm run eas:preflight
+```
 
 ## Maestro smoke (optional)
 

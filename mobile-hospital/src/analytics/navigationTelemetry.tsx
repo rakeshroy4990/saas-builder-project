@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
 
-import { emitLoggedInSessionSummary } from '@/analytics/sessionTelemetry';
+import { emitLoggedInSessionSummary, setLastKnownRoutePath } from '@/analytics/sessionTelemetry';
 
 /** Records screen navigations into session_summary when the user is logged in. */
 export function SessionNavigationTelemetry() {
@@ -12,6 +12,7 @@ export function SessionNavigationTelemetry() {
     const path = String(pathname ?? '').trim();
     if (!path || path === lastRef.current) return;
     lastRef.current = path;
+    setLastKnownRoutePath(path);
     void emitLoggedInSessionSummary({
       kind: 'navigate',
       package_name: 'mobile-hospital',

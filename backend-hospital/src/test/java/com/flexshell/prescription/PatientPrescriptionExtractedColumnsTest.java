@@ -32,9 +32,12 @@ class PatientPrescriptionExtractedColumnsTest {
                 List.of("Inj Hapibev (HepB)"),
                 List.of(),
                 List.of(),
+                List.of(),
                 "DR. SWATI PANDEY",
                 "18/02/2026 7:15PM",
-                "Weight = 9.6 kg"
+                "Weight = 9.6 kg",
+                null,
+                null
         );
 
         PatientPrescriptionExtractedColumns.Values cols = PatientPrescriptionExtractedColumns.from(data);
@@ -49,7 +52,7 @@ class PatientPrescriptionExtractedColumnsTest {
     void blankFieldsBecomeNull() {
         EducationPrescriptionTranscribeData data = new EducationPrescriptionTranscribeData(
                 "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", List.of(),
-                List.of(), List.of(), "", "", ""
+                List.of(), List.of(), List.of(), "", "", "", null, null
         );
         PatientPrescriptionExtractedColumns.Values cols = PatientPrescriptionExtractedColumns.from(data);
         assertNull(cols.doctorName());

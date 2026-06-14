@@ -10,5 +10,11 @@ export const SESSION_RESTORE_TIMEOUT_MS = 30_000;
 /** Large multipart uploads and AI streams that legitimately run longer. */
 export const UPLOAD_API_TIMEOUT_MS = 180_000;
 
+/** Growth history RAG summary (HyDE + embeddings + LLM). */
+export const GROWTH_SUMMARY_TIMEOUT_MS = 120_000;
+
+/** Doctor prescription validate-upload NDJSON (vision + safety checks). */
+export const PRESCRIPTION_VALIDATE_STREAM_TIMEOUT_MS = 300_000;
+
 /** Batched telemetry flush (non-blocking background). */
 export const TELEMETRY_BATCH_TIMEOUT_MS = 30_000;

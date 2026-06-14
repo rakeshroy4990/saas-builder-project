@@ -5,6 +5,7 @@ import { useAppStore } from '../../../../store/useAppStore';
 import { useToastStore } from '../../../../store/useToastStore';
 import { pinia } from '../../../../store/pinia';
 import { i18n } from '../../../../i18n';
+import { activeAppLocale } from '../../../../i18n/activeLocale';
 import { apiClient } from '../../../http/apiClient';
 import { postHospitalAiChatNdjson } from '../../../http/hospitalAiChatStream';
 import { isRecoverableStreamError, resolveUserFacingErrorMessage } from '../../../http/httpUserFacingErrors';
@@ -429,6 +430,7 @@ function educationConversationPayload(
     payload.BookNames = normalized;
     if (normalized.length === 1) payload.BookName = normalized[0];
   }
+  payload.ReplyLocale = activeAppLocale();
   return payload;
 }
 

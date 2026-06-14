@@ -41,9 +41,12 @@ class OpdPrintedFieldExtractorTest {
                 java.util.List.of("NIZRAL shampoo"),
                 java.util.List.of(),
                 java.util.List.of(),
+                java.util.List.of(),
                 "",
                 "",
-                ""
+                "",
+                null,
+                null
         );
 
         EducationPrescriptionTranscribeData enriched = OpdPrintedFieldExtractor.enrich(sparse, pdfText);
@@ -62,7 +65,7 @@ class OpdPrintedFieldExtractorTest {
         EducationPrescriptionTranscribeData data = new EducationPrescriptionTranscribeData(
                 "", "", "", "", "", "", "", "", "1Y 0M 17D / MALE",
                 "", "", "", "", "", "Fever", "", java.util.List.of(), java.util.List.of(),
-                java.util.List.of(), "", "", ""
+                java.util.List.of(), java.util.List.of(), "", "", "", null, null
         );
 
         EducationPrescriptionTranscribeData split = OpdPrintedFieldExtractor.splitAgeGenderIfNeeded(data);

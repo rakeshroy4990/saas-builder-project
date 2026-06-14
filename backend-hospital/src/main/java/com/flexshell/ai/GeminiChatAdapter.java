@@ -73,6 +73,32 @@ public class GeminiChatAdapter {
      * Multimodal transcription: raw base64 image bytes (no data-URL prefix), MIME e.g. image/png.
      */
     public String transcribePrescriptionFromInlineImage(String mimeType, String base64Image) {
+        return visionJsonFromInlineImage(
+                mimeType,
+                base64Image,
+                PrescriptionVisionPrompts.VISION_JSON_SYSTEM.trim(),
+                PrescriptionVisionPrompts.VISION_JSON_USER.trim(),
+                prescriptionVisionMaxOutputTokens
+        );
+    }
+
+    public String extractPrescriptionVitalsFromInlineImage(String mimeType, String base64Image) {
+        return visionJsonFromInlineImage(
+                mimeType,
+                base64Image,
+                PrescriptionVitalsVisionPrompts.VISION_JSON_SYSTEM.trim(),
+                PrescriptionVitalsVisionPrompts.VISION_JSON_USER,
+                Math.min(512, prescriptionVisionMaxOutputTokens)
+        );
+    }
+
+    private String visionJsonFromInlineImage(
+            String mimeType,
+            String base64Image,
+            String systemPrompt,
+            String userPrompt,
+            int maxOutputTokens
+    ) {
         if (apiKey.isBlank()) {
             throw new AiProviderException(
                     AiProviderException.Kind.CONFIG_MISSING,
@@ -93,7 +119,7 @@ public class GeminiChatAdapter {
             inline.put("data", b64);
 
             List<Map<String, Object>> parts = new ArrayList<>();
-            parts.add(Map.of("text", PrescriptionVisionPrompts.VISION_JSON_USER.trim()));
+            parts.add(Map.of("text", userPrompt.trim()));
             parts.add(Map.of("inline_data", inline));
 
             List<Map<String, Object>> contents = List.of(Map.of(
@@ -102,11 +128,11 @@ public class GeminiChatAdapter {
             ));
 
             Map<String, Object> payload = new HashMap<>();
-            payload.put("systemInstruction", Map.of("parts", List.of(Map.of("text", PrescriptionVisionPrompts.VISION_JSON_SYSTEM.trim()))));
+            payload.put("systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))));
             payload.put("contents", contents);
             payload.put("generationConfig", Map.of(
                     "temperature", 0.1,
-                    "maxOutputTokens", prescriptionVisionMaxOutputTokens
+                    "maxOutputTokens", maxOutputTokens
             ));
 
             String requestBody = objectMapper.writeValueAsString(payload);

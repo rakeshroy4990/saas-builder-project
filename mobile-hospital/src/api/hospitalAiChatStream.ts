@@ -1,10 +1,12 @@
 import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
+import { acceptLanguageHeaderValue } from '@saas-builder/i18n-contract';
 
 import {
   getOrCreateTraceId,
   recordAiChatStreamTelemetry,
   type AiChatStreamTelemetryMeta
 } from '@/analytics/sessionTelemetry';
+import { activeMobileLocale } from '@/i18n/locale';
 import { useSessionStore } from '@/auth/sessionStore';
 import { getMobileApiBaseUrl } from '@/api/config';
 import { fetchWithAuthRetry } from '@/api/client';
@@ -37,6 +39,12 @@ type StreamTiming = {
   firstStatusMs?: number;
   firstDeltaMs?: number;
 };
+
+function withAppReplyLocale(body: Record<string, unknown>): Record<string, unknown> {
+  const existing = body.ReplyLocale ?? body.replyLocale;
+  if (existing != null && String(existing).trim() !== '') return body;
+  return { ...body, ReplyLocale: activeMobileLocale() };
+}
 
 export function pickReplyFromChatPayload(data: Record<string, unknown>): string {
   return String(data.reply ?? data.Reply ?? data.message ?? data.Message ?? '').trim();
@@ -168,6 +176,7 @@ export async function postHospitalAiChatNdjson(
     const headers: Record<string, string> = {
       Accept: 'application/x-ndjson',
       'Content-Type': 'application/json',
+      'Accept-Language': acceptLanguageHeaderValue(activeMobileLocale()),
       'X-Trace-Id': getOrCreateTraceId()
     };
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -177,7 +186,7 @@ export async function postHospitalAiChatNdjson(
       {
         method: 'POST',
         headers,
-        body: JSON.stringify(body),
+        body: JSON.stringify(withAppReplyLocale(body)),
         signal: options?.signal
       },
       UPLOAD_API_TIMEOUT_MS

@@ -3,13 +3,13 @@
  * Requires APP_PERSISTENCE_PROVIDER=postgres and authenticated patient session in CI mocks.
  */
 describe('Symptom triage flow', () => {
-  it('opens triage page from home hero', () => {
+  it('opens growth tracker from home hero', () => {
     cy.visit('/');
-    cy.get('#hospital-home-hero-triage-cta, button')
-      .contains(/check symptoms/i)
+    cy.get('#hospital-home-hero-growth-cta, button')
+      .contains(/growth tracker/i)
       .first()
       .click({ force: true });
-    cy.url().should('include', '/triage');
-    cy.contains(/age \(months\)|symptoms/i).should('exist');
+    cy.url().should('include', '/dashboard');
+    cy.contains(/growth tracking/i).should('exist');
   });
 });

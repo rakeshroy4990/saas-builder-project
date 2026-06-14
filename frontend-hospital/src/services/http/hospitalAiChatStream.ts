@@ -2,6 +2,8 @@ import { recordPerf } from '@/composables/usePerf';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { ensureAccessTokenFreshForFetch, refreshHospitalAccessCookies, triggerHospitalReLoginFromFetch } from './apiClient';
 import { getApiBaseUrl, URLRegistry } from './URLRegistry';
+import { acceptLanguageHeaderValue } from '@saas-builder/i18n-contract';
+import { activeAppLocale } from '../../i18n/activeLocale';
 
 const VITE_PERF_ENABLED = import.meta.env.VITE_PERF_ENABLED === 'true';
 
@@ -11,6 +13,12 @@ export type HospitalAiChatStreamHandlers = {
   onDelta?: (chunk: string) => void;
   onComplete?: (data: Record<string, unknown>) => void;
 };
+
+function withAppReplyLocale(body: Record<string, unknown>): Record<string, unknown> {
+  const existing = body.ReplyLocale ?? body.replyLocale;
+  if (existing != null && String(existing).trim() !== '') return body;
+  return { ...body, ReplyLocale: activeAppLocale() };
+}
 
 async function readHttpErrorDetail(res: Response): Promise<string> {
   const text = await res.text().catch(() => '');
@@ -120,15 +128,17 @@ export async function postHospitalAiChatNdjson(
 
   try {
     await ensureAccessTokenFreshForFetch();
+    const activeLocale = activeAppLocale();
     const opts: RequestInit = {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/x-ndjson',
+        'Accept-Language': acceptLanguageHeaderValue(activeLocale),
         'X-Trace-Id': getOrCreateTraceId()
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(withAppReplyLocale(body)),
       signal
     };
     let res = await fetch(url, opts);

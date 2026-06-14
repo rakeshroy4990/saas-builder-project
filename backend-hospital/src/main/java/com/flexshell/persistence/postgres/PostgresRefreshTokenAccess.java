@@ -5,7 +5,6 @@ import com.flexshell.persistence.RefreshTokenEntityMapper;
 import com.flexshell.persistence.api.RefreshTokenAccess;
 import com.flexshell.persistence.postgres.model.RefreshTokenJpaEntity;
 import com.flexshell.persistence.postgres.repository.RefreshTokenJpaRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +13,6 @@ import java.util.UUID;
 
 @Service
 @Primary
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresRefreshTokenAccess implements RefreshTokenAccess {
 
     private final RefreshTokenJpaRepository repository;

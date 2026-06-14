@@ -10,7 +10,6 @@ import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.support.EntityListResponseSupport;
 import com.flexshell.controller.support.EntityQueryBinder;
 import com.flexshell.service.PatientDeviceReadingService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -36,7 +35,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/patient-device-readings")
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PatientDeviceReadingController {
     private static final Set<String> QUERY_KEYS = Set.of(
             "ChildProfileExternalId",

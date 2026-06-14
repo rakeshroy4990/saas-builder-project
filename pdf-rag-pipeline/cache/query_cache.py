@@ -17,6 +17,7 @@ def _cache_key(
     conversation_id: str = "",
     history_fingerprint: str = "",
     retrieval_question: str = "",
+    reply_locale: str = "en",
 ) -> str:
     normalized = query.lower().strip()
     scope = str(audience or "").strip().lower()
@@ -26,14 +27,17 @@ def _cache_key(
     conv = str(conversation_id or "").strip().lower()
     hist = str(history_fingerprint or "").strip().lower()
     rq = str(retrieval_question or "").strip().lower()
+    locale = str(reply_locale or "en").strip().lower() or "en"
     if scope and actor:
-        payload = f"{scope}::{actor}::{book}::{outdated_flag}::{conv}::{hist}::{rq}::{normalized}"
+        payload = (
+            f"{scope}::{actor}::{book}::{outdated_flag}::{conv}::{hist}::{rq}::{locale}::{normalized}"
+        )
     elif scope:
-        payload = f"{scope}::{book}::{outdated_flag}::{conv}::{hist}::{rq}::{normalized}"
+        payload = f"{scope}::{book}::{outdated_flag}::{conv}::{hist}::{rq}::{locale}::{normalized}"
     elif actor:
-        payload = f"{actor}::{book}::{outdated_flag}::{conv}::{hist}::{rq}::{normalized}"
+        payload = f"{actor}::{book}::{outdated_flag}::{conv}::{hist}::{rq}::{locale}::{normalized}"
     else:
-        payload = f"{book}::{outdated_flag}::{conv}::{hist}::{rq}::{normalized}"
+        payload = f"{book}::{outdated_flag}::{conv}::{hist}::{rq}::{locale}::{normalized}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -52,6 +56,7 @@ def get_cached(
     conversation_id: str = "",
     history_fingerprint: str = "",
     retrieval_question: str = "",
+    reply_locale: str = "en",
 ) -> Optional[CachedQueryResult]:
     key = _cache_key(
         query,
@@ -62,6 +67,7 @@ def get_cached(
         conversation_id=conversation_id,
         history_fingerprint=history_fingerprint,
         retrieval_question=retrieval_question,
+        reply_locale=reply_locale,
     )
     if is_postgres_persistence():
         from db import postgres_backend as pg
@@ -103,6 +109,7 @@ def set_cache(
     conversation_id: str = "",
     history_fingerprint: str = "",
     retrieval_question: str = "",
+    reply_locale: str = "en",
 ) -> None:
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=CACHE_TTL_HOURS)
@@ -117,6 +124,7 @@ def set_cache(
         conversation_id=conversation_id,
         history_fingerprint=history_fingerprint,
         retrieval_question=retrieval_question,
+        reply_locale=reply_locale,
     )
 
     if is_postgres_persistence():

@@ -70,9 +70,9 @@ frontend-realtime-lib/
 backend-social/
 backend-ecommerce/
 frontend-bluetooth-lib/
-docs/
+/docs/
 /scripts/
-images/
+/images/
 infra/
 ops/
 render/
@@ -216,5 +216,5 @@ fi
 echo "================================================"
 echo ""
 echo "✅ Done. Run your build:"
-echo "   cd mobile-hospital && eas build --profile preview --platform android"
+echo "   cd mobile-hospital && npm run eas:build:preview:android"
 echo ""

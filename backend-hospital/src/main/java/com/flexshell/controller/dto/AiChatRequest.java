@@ -25,6 +25,12 @@ public record AiChatRequest(
          */
         @JsonProperty("RetrievalQuestion")
         @JsonAlias({"retrievalQuestion", "retrieval_question"})
-        @Size(max = 8000) String retrievalQuestion
+        @Size(max = 8000) String retrievalQuestion,
+        /**
+         * Target reply locale ({@code en}, {@code hi}, {@code kn}); forwarded to pdf-rag {@code ReplyLocale}.
+         */
+        @JsonProperty("ReplyLocale")
+        @JsonAlias({"replyLocale", "reply_locale"})
+        @Size(max = 8) String replyLocale
 ) {
 }

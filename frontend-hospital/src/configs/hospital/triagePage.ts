@@ -7,7 +7,7 @@ export const hospitalTriagePage: PageConfig = {
   pageId: 'triage',
   title: 'Check symptoms',
   titleKey: 'page.triage.title',
-  initializeActions: [{ actionId: 'set-home-header-active' }, { actionId: 'init-triage-page' }],
+  initializeActions: [{ actionId: 'redirect-triage-to-dashboard' }],
   container: {
     layoutTemplate: 'hosp.page.root',
     children: [

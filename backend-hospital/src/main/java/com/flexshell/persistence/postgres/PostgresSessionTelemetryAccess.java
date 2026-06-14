@@ -1,12 +1,12 @@
 package com.flexshell.persistence.postgres;
 
+import com.flexshell.persistence.api.CrashSessionPage;
 import com.flexshell.persistence.api.SessionTelemetryAccess;
 import com.flexshell.persistence.postgres.model.SessionTelemetryJpaEntity;
 import com.flexshell.persistence.postgres.repository.SessionTelemetryJpaRepository;
 import com.flexshell.telemetry.SessionSummaryEntryDocument;
 import com.flexshell.telemetry.SessionTelemetryEntity;
 import org.bson.types.ObjectId;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +17,6 @@ import java.util.Optional;
 
 @Service
 @Primary
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresSessionTelemetryAccess implements SessionTelemetryAccess {
 
     private final SessionTelemetryJpaRepository jpaRepository;
@@ -34,6 +33,28 @@ public class PostgresSessionTelemetryAccess implements SessionTelemetryAccess {
     @Override
     public Optional<SessionTelemetryEntity> findTopByTraceIdOrderByUpdatedAtDesc(String traceId) {
         return jpaRepository.findFirstByTraceIdAndDeletedFalseOrderByUpdatedAtDesc(traceId).map(this::toDomain);
+    }
+
+    @Override
+    public CrashSessionPage findCrashSessions(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        long total = jpaRepository.countCrashSessions();
+        List<SessionTelemetryJpaEntity> rows =
+                jpaRepository.findCrashSessions(safeSize, safePage * safeSize);
+        List<SessionTelemetryEntity> items = rows.stream().map(this::toDomain).toList();
+        return new CrashSessionPage(items, total, safePage, safeSize);
+    }
+
+    @Override
+    public CrashSessionPage findFlowErrorSessions(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        long total = jpaRepository.countFlowErrorSessions();
+        List<SessionTelemetryJpaEntity> rows =
+                jpaRepository.findFlowErrorSessions(safeSize, safePage * safeSize);
+        List<SessionTelemetryEntity> items = rows.stream().map(this::toDomain).toList();
+        return new CrashSessionPage(items, total, safePage, safeSize);
     }
 
     @Override
@@ -65,6 +86,8 @@ public class PostgresSessionTelemetryAccess implements SessionTelemetryAccess {
         e.setLastHttpStatus(j.getLastHttpStatus());
         e.setSessionSummary(
                 j.getSessionSummary() == null ? new ArrayList<>() : new ArrayList<>(j.getSessionSummary()));
+        e.setSessionFlow(j.getSessionFlow() == null ? new ArrayList<>() : new ArrayList<>(j.getSessionFlow()));
+        e.setFlowErrorCount(j.getFlowErrorCount());
         e.setOs(j.getOs());
         e.setDeviceId(j.getDeviceId());
         e.setBrowserOrApp(j.getBrowserOrApp());
@@ -95,6 +118,9 @@ public class PostgresSessionTelemetryAccess implements SessionTelemetryAccess {
         row.setLastHttpStatus(d.getLastHttpStatus());
         List<SessionSummaryEntryDocument> summary = d.getSessionSummary();
         row.setSessionSummary(summary == null ? new ArrayList<>() : new ArrayList<>(summary));
+        List<String> flow = d.getSessionFlow();
+        row.setSessionFlow(flow == null ? new ArrayList<>() : new ArrayList<>(flow));
+        row.setFlowErrorCount(d.getFlowErrorCount());
         row.setOs(d.getOs());
         row.setDeviceId(d.getDeviceId());
         row.setBrowserOrApp(d.getBrowserOrApp());

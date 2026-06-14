@@ -1,12 +1,10 @@
 package com.flexshell.notification;
 
 import com.flexshell.controller.dto.NotificationResponse;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class NotificationWsPublisher {
 
     private final SimpMessagingTemplate messagingTemplate;

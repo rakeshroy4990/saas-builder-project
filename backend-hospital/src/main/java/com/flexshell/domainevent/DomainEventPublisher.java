@@ -1,13 +1,11 @@
 package com.flexshell.domainevent;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
 @Component
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class DomainEventPublisher {
 
     private final ApplicationEventPublisher applicationEventPublisher;

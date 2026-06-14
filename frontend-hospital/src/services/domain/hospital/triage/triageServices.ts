@@ -40,7 +40,12 @@ async function openTriagePage(requestData?: Record<string, unknown>): Promise<vo
 
   const appointmentId = String(requestData?.appointmentId ?? '').trim();
   sessionStore().set({ ...defaultSession(), appointmentId, step: 'form' });
-  await router.push('/triage');
+  await runHospitalService('set-dashboard-nav-triage', { preserveOnInit: true });
+  await runHospitalService('set-dashboard-header-active');
+  const currentPath = String(router.currentRoute.value.path ?? '').trim();
+  if (currentPath !== '/dashboard') {
+    await router.push('/dashboard');
+  }
 }
 
 async function runHospitalService(serviceId: string, data: Record<string, unknown> = {}): Promise<unknown> {
@@ -247,7 +252,26 @@ export const triageHospitalServices: ServiceDefinition[] = [
     execute: async () => {
       const s = sessionStore().get();
       sessionStore().set({ ...defaultSession(), appointmentId: s.appointmentId, step: 'form' });
-      await router.push('/triage');
+      await runHospitalService('set-dashboard-nav-triage');
+      await runHospitalService('set-dashboard-header-active');
+      const currentPath = String(router.currentRoute.value.path ?? '').trim();
+      if (currentPath !== '/dashboard') {
+        await router.push('/dashboard');
+      }
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'redirect-triage-to-dashboard',
+    execute: async () => {
+      await runHospitalService('set-dashboard-nav-triage', { preserveOnInit: true });
+      await runHospitalService('init-triage-page');
+      await runHospitalService('set-dashboard-header-active');
+      const currentPath = String(router.currentRoute.value.path ?? '').trim();
+      if (currentPath !== '/dashboard') {
+        await router.replace('/dashboard');
+      }
       return ok();
     }
   },

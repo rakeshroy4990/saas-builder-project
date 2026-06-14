@@ -8,7 +8,6 @@ import com.flexshell.i18n.LocalizedApiMessages;
 import com.flexshell.service.TriageResultService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +24,6 @@ import java.util.Objects;
  */
 @RestController
 @RequestMapping("/api/triage")
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class TriageLegacyController {
 
     private final TriageResultService triageResultService;

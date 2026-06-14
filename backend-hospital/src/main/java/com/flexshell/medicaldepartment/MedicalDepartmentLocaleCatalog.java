@@ -4,7 +4,6 @@ import com.flexshell.auth.i18n.SupportedLocale;
 import com.flexshell.controller.dto.MedicalDepartmentMessageRequest;
 import com.flexshell.persistence.postgres.model.MedicalDepartmentMessageJpaEntity;
 import com.flexshell.persistence.postgres.repository.MedicalDepartmentMessageJpaRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class MedicalDepartmentLocaleCatalog {
 
     private final MedicalDepartmentMessageJpaRepository messageRepository;

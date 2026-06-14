@@ -2,7 +2,6 @@ package com.flexshell.growth;
 
 import com.flexshell.controller.dto.WhoCurvePointDto;
 import com.flexshell.controller.dto.WhoPercentileCurvesDto;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -12,7 +11,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class WhoPercentileService {
 
     private static final double[] CURVE_PERCENTILES = {3.0, 15.0, 50.0, 85.0, 97.0};
@@ -31,6 +29,14 @@ public class WhoPercentileService {
         WhoLmsRow lms = table.interpolate(clampedAge);
         double z = WhoNormalDistribution.zFromMeasurement(measurement, lms);
         return WhoNormalDistribution.percentileFromZ(z);
+    }
+
+    /** WHO LMS height (or other metric) for a fixed z-score at a given age in months. */
+    public double valueForZScore(WhoGrowthMetric metric, String sex, double ageMonths, double z) {
+        WhoLmsTable table = dataLoader.table(metric, sex);
+        double clampedAge = clampAge(ageMonths, table);
+        WhoLmsRow lms = table.interpolate(clampedAge);
+        return round2(WhoNormalDistribution.valueForZ(z, lms));
     }
 
     public WhoPercentileCurvesDto getPercentileCurves(

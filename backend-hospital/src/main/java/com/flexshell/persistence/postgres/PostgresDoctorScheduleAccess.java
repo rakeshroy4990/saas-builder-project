@@ -7,7 +7,6 @@ import com.flexshell.persistence.postgres.repository.DoctorScheduleJpaRepository
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +15,6 @@ import java.util.Optional;
 
 @Service
 @Primary
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresDoctorScheduleAccess implements DoctorScheduleAccess {
 
     private final DoctorScheduleJpaRepository jpaRepository;

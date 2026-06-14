@@ -6,7 +6,6 @@ import com.flexshell.controller.dto.NotificationUnreadCountResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.support.EntityListResponseSupport;
 import com.flexshell.notification.NotificationService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -28,7 +27,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class NotificationController {
     private final LocalizedApiMessages messages;
 

@@ -564,6 +564,29 @@ class QueryRequest(BaseModel):
         s = str(v).strip()
         return s or None
 
+    reply_locale: Optional[str] = Field(
+        default=None,
+        max_length=8,
+        validation_alias=AliasChoices("ReplyLocale", "reply_locale"),
+        serialization_alias="ReplyLocale",
+        description="Target reply language: en, hi, or kn.",
+    )
+    preferred_locale: Optional[str] = Field(
+        default=None,
+        max_length=8,
+        validation_alias=AliasChoices("PreferredLocale", "preferred_locale"),
+        serialization_alias="PreferredLocale",
+        description="User profile locale hint when ReplyLocale is omitted.",
+    )
+
+    @field_validator("reply_locale", "preferred_locale", mode="before")
+    @classmethod
+    def _normalize_locale_field(cls, v: object) -> Optional[str]:
+        if v is None:
+            return None
+        s = str(v).strip().lower()
+        return s or None
+
 
 class ChatHistoryItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -612,6 +635,26 @@ class QueryResponse(BaseModel):
         validation_alias=AliasChoices("Perf", "perf"),
         serialization_alias="Perf",
         description="Layer timings when PERF_ENABLED is true.",
+    )
+    detected_locale: str = Field(
+        default="en",
+        validation_alias=AliasChoices("DetectedLocale", "detected_locale"),
+        serialization_alias="DetectedLocale",
+    )
+    answer_english: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("AnswerEnglish", "answer_english"),
+        serialization_alias="AnswerEnglish",
+    )
+    show_translation_toggle: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("ShowTranslationToggle", "show_translation_toggle"),
+        serialization_alias="ShowTranslationToggle",
+    )
+    emergency_call_108: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("EmergencyCall108", "emergency_call_108"),
+        serialization_alias="EmergencyCall108",
     )
 
 

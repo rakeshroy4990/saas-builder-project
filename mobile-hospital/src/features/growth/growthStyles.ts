@@ -117,16 +117,74 @@ export const growthStyles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text
   },
+  childActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4
+  },
+  childActionButton: {
+    flex: 1
+  },
+  formActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12
+  },
   historyRow: {
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
     gap: 8
   },
+  historyRowEditing: {
+    backgroundColor: '#e0f2fe',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginHorizontal: -8,
+    borderWidth: 1,
+    borderColor: '#7dd3fc'
+  },
+  historyRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#7dd3fc',
+    backgroundColor: '#e0f2fe'
+  },
+  editButtonActive: {
+    borderColor: '#0284c7',
+    backgroundColor: '#bae6fd'
+  },
+  editButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0369a1'
+  },
   historyDate: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text
+  },
+  historyAge: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2
+  },
+  historySummary: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#0c4a6e',
+    marginBottom: 4
   },
   historyValues: {
     fontSize: 13,
@@ -202,6 +260,41 @@ export const growthStyles = StyleSheet.create({
   guidePanelText: {
     fontSize: 13,
     color: '#475569',
+    lineHeight: 18
+  },
+  geneticPanel: {
+    borderColor: '#14b8a6',
+    borderWidth: 2,
+    backgroundColor: '#f0fdfa'
+  },
+  geneticPanelTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#134e4a',
+    marginBottom: 8
+  },
+  geneticPanelHighlight: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#042f2e',
+    lineHeight: 22
+  },
+  geneticPanelExpected: {
+    marginTop: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#115e59',
+    overflow: 'hidden'
+  },
+  geneticPanelCompare: {
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0f766e',
     lineHeight: 18
   },
   actionRow: {

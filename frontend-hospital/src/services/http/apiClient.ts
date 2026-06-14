@@ -292,12 +292,18 @@ apiClient.interceptors.request.use(async (config) => {
     config.timeout = Math.max(config.timeout ?? 0, 180000);
   }
 
-  const isEducationPrescriptionTranscribe = requestUrl.includes(
+    const isEducationPrescriptionTranscribe = requestUrl.includes(
     URLRegistry.paths.hospitalEducationPrescriptionTranscribe
   );
   if (isEducationPrescriptionTranscribe) {
     // Vision OCR + model can exceed ~15s; keep parity with multipart max and AI chat ceiling.
     config.timeout = Math.max(config.timeout ?? 0, 180000);
+  }
+
+  const isGrowthHistorySummary = requestUrl.includes('/growth-records/history-summary');
+  if (isGrowthHistorySummary) {
+    // HyDE + embeddings + LLM via pdf-rag often exceed the default 15s axios timeout.
+    config.timeout = Math.max(config.timeout ?? 0, 120000);
   }
 
   // Access + refresh tokens are httpOnly cookies — no Authorization header. Refresh cookies when our TTL hint says we're close.
@@ -413,6 +419,9 @@ apiClient.interceptors.response.use(
     const isHospitalEducationCatalogRequest =
       requestUrl.includes(URLRegistry.paths.hospitalEducationBooks) ||
       requestUrl.includes(URLRegistry.paths.hospitalEducationKeyTopics);
+    /** Optional background enrichment — failures must not toast, popup, or force re-login. */
+    const isGrowthHistorySummaryRequest = requestUrl.includes('/growth-records/history-summary');
+    const isSilentBackgroundRequest = isHospitalEducationCatalogRequest || isGrowthHistorySummaryRequest;
     const authPayload = readUnauthorizedPayload(error.response?.data);
     const payloadMsgErr = resolvePayloadMessage(error.response?.data);
 
@@ -429,7 +438,7 @@ apiClient.interceptors.response.use(
       (isLogsBatchRequest ||
         isTelemetryIngestRequest ||
         isHeroYoutubeRequest ||
-        isHospitalEducationCatalogRequest)
+        isSilentBackgroundRequest)
     ) {
       return Promise.reject(error);
     }
@@ -483,7 +492,7 @@ apiClient.interceptors.response.use(
         isMultipartUpload ||
         isSmartAiRequest ||
         isChatSupportOpenRequest ||
-        isHospitalEducationCatalogRequest
+        isSilentBackgroundRequest
       ) {
         if (isSmartAiRequest) {
           toastStore.show(tr('toast.healthAssistantUnavailable'), 'error');
@@ -515,7 +524,7 @@ apiClient.interceptors.response.use(
         toastStore.show(tr('toast.healthAssistantUnavailable'), 'error');
         return Promise.reject(error);
       }
-      if (isHospitalEducationCatalogRequest) {
+      if (isSilentBackgroundRequest) {
         return Promise.reject(error);
       }
       popupStore.openError(new Error('Server error. Please try again later.'));
@@ -535,7 +544,7 @@ apiClient.interceptors.response.use(
         );
         return Promise.reject(error);
       }
-      if (isHospitalEducationCatalogRequest) {
+      if (isSilentBackgroundRequest) {
         return Promise.reject(error);
       }
       toastStore.show(rawToastMsg || normalizedToast, 'error');

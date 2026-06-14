@@ -2,12 +2,10 @@ package com.flexshell.domainevent;
 
 import com.flexshell.notification.NotificationService;
 import com.flexshell.notification.NotificationTriggerSupport;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class DomainEventNotificationBridge {
 
     private final NotificationService notificationService;

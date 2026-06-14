@@ -9,7 +9,6 @@ import com.flexshell.persistence.postgres.repository.UserJpaRepository;
 import com.flexshell.controller.dto.NotificationResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,7 +22,6 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class NotificationService {
 
     private static final Logger LOG = LoggerFactory.getLogger(NotificationService.class);

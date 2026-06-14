@@ -28,6 +28,11 @@ from query.llm_service import (
     _build_stream_plain_prompt,
 )
 from query import llm_service
+from query.i18n.detector import LanguageDetector
+from query.i18n.emergency import check_emergency
+from query.i18n.registry import get_locale_config, resolve_reply_locale
+from query.i18n.response import answer_multilingual_with_context
+from query.i18n.translator import translate_to_english
 from query.rag_timing import bind_query_wall_clock, log_timing
 from query.retriever import retrieve as retrieve_hyde_chunks, retrieve_top_chunks
 from query.safety_layer import check_safety
@@ -143,8 +148,33 @@ def _build_image_context_for_llm(images: list[dict]) -> str:
 
 # ── Existing helpers (unchanged) ──────────────────────────────────────────────
 
-def _insufficient_message_for_audience(audience: str) -> str:
-    return INSUFFICIENT_EXPERT_MESSAGE if audience == "expert" else INSUFFICIENT_LAYMAN_MESSAGE
+def _insufficient_message_for_audience(audience: str, reply_locale: str = "en") -> str:
+    if audience == "expert":
+        return INSUFFICIENT_EXPERT_MESSAGE
+    if str(reply_locale or "en").strip().lower() not in {"", "en"}:
+        return get_locale_config(reply_locale).insufficient_message
+    return INSUFFICIENT_LAYMAN_MESSAGE
+
+
+def _attach_i18n_metadata(
+    payload: dict,
+    *,
+    reply_locale: str,
+    detected_locale: str,
+    answer_english: str | None = None,
+) -> dict:
+    locale = str(reply_locale or detected_locale or "en").strip().lower() or "en"
+    out = dict(payload)
+    out["detected_locale"] = str(detected_locale or locale).strip().lower() or "en"
+    if answer_english is not None:
+        out["answer_english"] = answer_english
+    elif "answer_english" not in out:
+        out["answer_english"] = None
+    if "show_translation_toggle" not in out:
+        out["show_translation_toggle"] = locale != "en" and bool(str(out.get("answer") or "").strip())
+    if "emergency_call_108" not in out:
+        out["emergency_call_108"] = False
+    return out
 
 
 def _images_from_vector_api(api_images: list[dict]) -> list[dict]:
@@ -510,19 +540,54 @@ async def handle_query(
         book_name: Optional[str] = None,
         include_outdated_books: bool = False,
         retrieval_question: Optional[str] = None,
+        reply_locale: Optional[str] = None,
+        preferred_locale: Optional[str] = None,
         stream_queue: Optional[asyncio.Queue] = None,
 ) -> dict:
     book_scope = str(book_name or "").strip()
+    audience = infer_user_audience(user_roles or [])
+    detection = LanguageDetector.detect(user_query)
+    resolved_reply_locale = resolve_reply_locale(
+        detected_locale=detection.locale,
+        detected_confidence=detection.confidence,
+        reply_locale_hint=reply_locale,
+        preferred_locale=preferred_locale,
+        audience=audience,
+    )
+
+    emergency = check_emergency(user_query, resolved_reply_locale)
+    if emergency.is_emergency and emergency.immediate_response:
+        emergency_payload = _attach_i18n_metadata(
+            {
+                "answer": emergency.immediate_response,
+                "follow_up_questions": [],
+                "images": [],
+                "source": "emergency",
+                "reference": [],
+                "emergency_call_108": True,
+            },
+            reply_locale=emergency.locale,
+            detected_locale=emergency.locale,
+            answer_english=None,
+        )
+        emergency_payload["show_translation_toggle"] = emergency.locale != "en"
+        return await _return_with_stream(stream_queue, emergency_payload)
+
     LOG.info(
-        "[RAG][QUERY] user_id=%s conversation_id=%s book_name=%s include_outdated=%s question=%s",
+        "[RAG][QUERY] user_id=%s conversation_id=%s book_name=%s include_outdated=%s question=%s reply_locale=%s detected=%s",
         user_id or "",
         conversation_id or "default",
         book_scope or "",
         include_outdated_books,
         user_query,
+        resolved_reply_locale,
+        detection.locale,
     )
-    audience = infer_user_audience(user_roles or [])
     rq = str(retrieval_question or "").strip()
+    if resolved_reply_locale != "en" and not rq:
+        if stream_queue is not None:
+            await stream_queue.put(("status", {"phase": "translating"}))
+        rq = await asyncio.to_thread(translate_to_english, user_query, resolved_reply_locale)
     retrieval_seed = rq if rq else user_query
     effective_question = _build_effective_question(retrieval_seed, history)
     cache_query_key = _build_cache_query_key(user_query)
@@ -544,26 +609,32 @@ async def handle_query(
         conversation_id=conv_key,
         history_fingerprint=hist_fp,
         retrieval_question=rq,
+        reply_locale=resolved_reply_locale,
     )
     if cached:
         LOG.info(
-            "[RAG][CACHE] hit conversation_id=%s audience=%s question_len=%s",
+            "[RAG][CACHE] hit conversation_id=%s audience=%s question_len=%s reply_locale=%s",
             conv_key or "default",
             audience,
             len(user_query or ""),
+            resolved_reply_locale,
         )
         return await _return_with_stream(
             stream_queue,
             _apply_perf(
                 trace,
                 wall_start,
-                {
-                    "answer":              str(cached.get("answer", "")).strip(),
-                    "follow_up_questions": cached.get("follow_up_questions", []),
-                    "images":              [],
-                    "source":              "cache",
-                    "reference":           [],
-                },
+                _attach_i18n_metadata(
+                    {
+                        "answer":              str(cached.get("answer", "")).strip(),
+                        "follow_up_questions": cached.get("follow_up_questions", []),
+                        "images":              [],
+                        "source":              "cache",
+                        "reference":           [],
+                    },
+                    reply_locale=resolved_reply_locale,
+                    detected_locale=detection.locale,
+                ),
             ),
         )
     LOG.info("[RAG][CACHE] miss question=%s audience=%s", user_query, audience)
@@ -760,7 +831,7 @@ async def handle_query(
                 trace,
                 wall_start,
                 {
-                    "answer":              _insufficient_message_for_audience(audience),
+                    "answer":              _insufficient_message_for_audience(audience, resolved_reply_locale),
                     "follow_up_questions": [],
                     "images":              [],
                     "source":              "insufficient_chunks",
@@ -790,7 +861,7 @@ async def handle_query(
             return await _return_with_stream(
                 stream_queue,
                 {
-                    "answer":              _insufficient_message_for_audience(audience),
+                    "answer":              _insufficient_message_for_audience(audience, resolved_reply_locale),
                     "follow_up_questions": [],
                     "images":              [],
                     "source":              "insufficient_chunks",
@@ -802,6 +873,7 @@ async def handle_query(
             stream_queue is not None
             and LLM_PROVIDER == "openai"
             and not llm_service._is_flashcard_generation_task(user_query)
+            and resolved_reply_locale == "en"
         )
         all_response_images: list[dict] = []
         fig_summary_chunk: Optional[dict] = None
@@ -959,12 +1031,25 @@ async def handle_query(
     with _perf_span(trace, "llm"):
         if not want_token_stream:
             print(f"LLM_CALL_START={time.perf_counter() - query_t0:.3f}s")
-            llm_result = answer_with_context(
-                user_query, focused_selected, audience=audience
-            )
+            if stream_queue is not None and resolved_reply_locale != "en":
+                await stream_queue.put(("status", {"phase": "generating"}))
+            if resolved_reply_locale != "en":
+                llm_result = await asyncio.to_thread(
+                    answer_multilingual_with_context,
+                    user_query,
+                    focused_selected,
+                    resolved_reply_locale,
+                )
+            else:
+                llm_result = answer_with_context(
+                    user_query, focused_selected, audience=audience
+                )
 
     with _perf_span(trace, "response_format"):
         answer             = str(llm_result.get("answer", "")).strip()
+        answer_english     = llm_result.get("answer_english")
+        if answer_english is not None:
+            answer_english = str(answer_english).strip() or None
         follow_up_questions = llm_result.get("follow_up_questions")
         if not isinstance(follow_up_questions, list):
             follow_up_questions = []
@@ -982,6 +1067,7 @@ async def handle_query(
                 conversation_id=conv_key,
                 history_fingerprint=hist_fp,
                 retrieval_question=rq,
+                reply_locale=resolved_reply_locale,
             )
             LOG.info(
                 "[RAG][CACHE] stored conversation_id=%s audience=%s question_len=%s",
@@ -992,18 +1078,23 @@ async def handle_query(
         else:
             LOG.info("[RAG][CACHE] skipped question=%s", user_query)
 
-        result = {
-            "answer":              answer,
-            "follow_up_questions": follow_up_questions,
-            # ↓ every image from every selected chunk, deduped, ready for the UI
-            "images":              all_response_images,
-            "source":              "rag",
-            "chunks_used":         len(selected),
-            "context_tokens":      context_token_count,
-            "max_chunks":          context_limit,
-            "user_id":             user_id,
-            "reference":           _build_query_references(selected, book_scope),
-        }
+        result = _attach_i18n_metadata(
+            {
+                "answer":              answer,
+                "follow_up_questions": follow_up_questions,
+                # ↓ every image from every selected chunk, deduped, ready for the UI
+                "images":              all_response_images,
+                "source":              "rag",
+                "chunks_used":         len(selected),
+                "context_tokens":      context_token_count,
+                "max_chunks":          context_limit,
+                "user_id":             user_id,
+                "reference":           _build_query_references(selected, book_scope),
+            },
+            reply_locale=resolved_reply_locale,
+            detected_locale=detection.locale,
+            answer_english=answer_english,
+        )
     result = _apply_perf(trace, wall_start, result)
     if stream_queue is not None:
         if want_token_stream:

@@ -10,7 +10,6 @@ import com.flexshell.realtime.chat.ChatAckEntity;
 import com.flexshell.realtime.chat.ChatMessageEntity;
 import com.flexshell.realtime.chat.ChatPersistence;
 import com.flexshell.realtime.chat.ChatRoomEntity;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +20,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresChatPersistence implements ChatPersistence {
 
     private final ChatRoomJpaRepository roomRepository;

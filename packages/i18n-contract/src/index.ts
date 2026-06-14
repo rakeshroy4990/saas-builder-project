@@ -65,3 +65,18 @@ export function normalizeLocaleTag(tag: string | undefined | null): LocaleCode {
 export function acceptLanguageHeaderValue(locale: string | undefined | null): LocaleCode {
   return normalizeLocaleTag(locale);
 }
+
+/**
+ * First supported locale among candidates (e.g. active `i18n.language`, then profile `PreferredLocale`).
+ * Used for AI/RAG `ReplyLocale` — should match the language the user sees in the app chrome.
+ */
+export function resolveActiveLocale(
+  ...candidates: Array<string | null | undefined>
+): LocaleCode {
+  for (const candidate of candidates) {
+    if (candidate == null || String(candidate).trim() === '') continue;
+    const primary = String(candidate).trim().split(/[-_]/)[0]?.toLowerCase();
+    if (primary && isSupportedLocale(primary)) return primary;
+  }
+  return 'en';
+}

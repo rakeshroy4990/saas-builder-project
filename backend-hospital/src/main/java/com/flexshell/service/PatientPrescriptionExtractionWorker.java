@@ -7,7 +7,6 @@ import com.flexshell.prescription.PatientPrescriptionExtractedColumns;
 import com.flexshell.persistence.postgres.repository.PatientPrescriptionJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PatientPrescriptionExtractionWorker {
 
     private static final Logger LOG = LoggerFactory.getLogger(PatientPrescriptionExtractionWorker.class);
@@ -26,17 +24,20 @@ public class PatientPrescriptionExtractionWorker {
     private final EducationPrescriptionTranscriptionService transcriptionService;
     private final OpenAiEmbeddingAdapter embeddingAdapter;
     private final ObjectMapper objectMapper;
+    private final PrescriptionValidationService prescriptionValidationService;
 
     public PatientPrescriptionExtractionWorker(
             PatientPrescriptionJpaRepository prescriptionRepository,
             EducationPrescriptionTranscriptionService transcriptionService,
             OpenAiEmbeddingAdapter embeddingAdapter,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            PrescriptionValidationService prescriptionValidationService
     ) {
         this.prescriptionRepository = prescriptionRepository;
         this.transcriptionService = transcriptionService;
         this.embeddingAdapter = embeddingAdapter;
         this.objectMapper = objectMapper;
+        this.prescriptionValidationService = prescriptionValidationService;
     }
 
     @Async("patientPrescriptionExecutor")
@@ -98,6 +99,7 @@ public class PatientPrescriptionExtractionWorker {
                     row.setPatientGender(columns.patientGender());
                     row.setStatus(status);
                     prescriptionRepository.save(row);
+                    prescriptionValidationService.validatePatientPrescriptionAsync(row.getExternalId());
                 });
             } else {
                 LOG.info(
@@ -105,6 +107,9 @@ public class PatientPrescriptionExtractionWorker {
                         prescriptionId,
                         searchText.length(),
                         vectorLiteral != null
+                );
+                prescriptionRepository.findById(prescriptionId).ifPresent(row ->
+                        prescriptionValidationService.validatePatientPrescriptionAsync(row.getExternalId())
                 );
             }
         } catch (Exception ex) {

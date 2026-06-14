@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -219,7 +220,8 @@ public class PdfRagQueryAdapter {
             List<AiChatMessageDto> history,
             String actorUserId,
             String bookName,
-            String retrievalQuestion
+            String retrievalQuestion,
+            String replyLocale
     ) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("Question", message);
@@ -234,6 +236,11 @@ public class PdfRagQueryAdapter {
         if (!rq.isEmpty()) {
             body.put("RetrievalQuestion", rq);
         }
+        String locale = replyLocale == null ? "" : replyLocale.trim().toLowerCase(Locale.ROOT);
+        if (!locale.isEmpty()) {
+            body.put("ReplyLocale", locale);
+            body.put("PreferredLocale", locale);
+        }
         return body;
     }
 
@@ -245,7 +252,8 @@ public class PdfRagQueryAdapter {
             String authorizationHeader,
             List<String> userRoles,
             String bookName,
-            String retrievalQuestion
+            String retrievalQuestion,
+            String replyLocale
     ) {
         if (!enabled) {
             throw new AiProviderException(AiProviderException.Kind.CONFIG_MISSING, "RAG adapter is disabled.");
@@ -271,32 +279,11 @@ public class PdfRagQueryAdapter {
                             h.set("X-User-Audience", audience);
                         })
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(buildRagQueryPayload(message, conversationId, history, actorUserId, bookName, retrievalQuestion))
+                        .body(buildRagQueryPayload(message, conversationId, history, actorUserId, bookName, retrievalQuestion, replyLocale))
                         .retrieve()
                         .body(Map.class);
 
-                String answer = response == null ? "" : String.valueOf(response.getOrDefault("Answer", "")).trim();
-                if (answer.isEmpty()) {
-                    answer = response == null ? "" : String.valueOf(response.getOrDefault("answer", "")).trim();
-                }
-                String source = response == null ? "" : String.valueOf(response.getOrDefault("Source", "")).trim();
-                if (source.isEmpty()) {
-                    source = response == null ? "" : String.valueOf(response.getOrDefault("source", "")).trim();
-                }
-                List<String> followUpQuestions = parseFollowUpQuestions(response);
-                Integer chunksUsed = parseIntegerField(response, "ChunksUsed", "chunks_used");
-                List<AiChatFigureDto> images = parseImages(response);
-                List<AiChatReferenceDto> reference = parseReferences(response);
-                if (answer.isEmpty()) {
-                    throw new AiProviderException(
-                            AiProviderException.Kind.PROVIDER_FAILED,
-                            "RAG response did not include an answer.",
-                            "pdf-rag",
-                            null,
-                            "EMPTY_ANSWER"
-                    );
-                }
-                return new RagQueryResult(answer, source, followUpQuestions, chunksUsed, images, reference);
+                return toRagQueryResult(response);
             } catch (RestClientResponseException ex) {
                 int statusCode = ex.getStatusCode().value();
                 boolean retryable = statusCode == 429 || statusCode == 503;
@@ -353,6 +340,7 @@ public class PdfRagQueryAdapter {
             List<String> userRoles,
             String bookName,
             String retrievalQuestion,
+            String replyLocale,
             java.util.function.Consumer<String> onLine
     ) {
         if (!enabled) {
@@ -368,7 +356,7 @@ public class PdfRagQueryAdapter {
         final String json;
         try {
             json = objectMapper.writeValueAsString(
-                    buildRagQueryPayload(message, conversationId, history, actorUserId, bookName, retrievalQuestion)
+                    buildRagQueryPayload(message, conversationId, history, actorUserId, bookName, retrievalQuestion, replyLocale)
             );
         } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
             throw new AiProviderException(
@@ -528,7 +516,22 @@ public class PdfRagQueryAdapter {
                     "EMPTY_ANSWER"
             );
         }
-        return new RagQueryResult(answer, source, followUpQuestions, chunksUsed, images, reference);
+        String detectedLocale = parseStringField(response, "DetectedLocale", "detected_locale");
+        if (detectedLocale.isBlank()) {
+            detectedLocale = "en";
+        }
+        return new RagQueryResult(
+                answer,
+                source,
+                followUpQuestions,
+                chunksUsed,
+                images,
+                reference,
+                detectedLocale,
+                parseOptionalStringField(response, "AnswerEnglish", "answer_english"),
+                parseBooleanField(response, "ShowTranslationToggle", "show_translation_toggle"),
+                parseBooleanField(response, "EmergencyCall108", "emergency_call_108")
+        );
     }
 
     public record RagQueryResult(
@@ -537,7 +540,11 @@ public class PdfRagQueryAdapter {
             List<String> followUpQuestions,
             Integer chunksUsed,
             List<AiChatFigureDto> images,
-            List<AiChatReferenceDto> reference
+            List<AiChatReferenceDto> reference,
+            String detectedLocale,
+            String answerEnglish,
+            boolean showTranslationToggle,
+            boolean emergencyCall108
     ) {
     }
 
@@ -651,6 +658,34 @@ public class PdfRagQueryAdapter {
             }
         }
         return "";
+    }
+
+    private static String parseOptionalStringField(Map<String, Object> response, String... keys) {
+        String value = parseStringField(response, keys);
+        return value.isBlank() ? null : value;
+    }
+
+    private static boolean parseBooleanField(Map<String, Object> response, String... keys) {
+        if (response == null || keys == null) {
+            return false;
+        }
+        for (String key : keys) {
+            Object raw = response.get(key);
+            if (raw == null) {
+                continue;
+            }
+            if (raw instanceof Boolean b) {
+                return b;
+            }
+            String text = String.valueOf(raw).trim().toLowerCase(Locale.ROOT);
+            if ("true".equals(text) || "1".equals(text) || "yes".equals(text)) {
+                return true;
+            }
+            if ("false".equals(text) || "0".equals(text) || "no".equals(text)) {
+                return false;
+            }
+        }
+        return false;
     }
 
     private static Integer parseIntegerField(Map<String, Object> response, String... keys) {

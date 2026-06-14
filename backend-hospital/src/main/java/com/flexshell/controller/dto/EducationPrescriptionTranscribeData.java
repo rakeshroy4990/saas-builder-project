@@ -33,9 +33,13 @@ public record EducationPrescriptionTranscribeData(
         @JsonProperty("Medicines") List<String> medicines,
         @JsonProperty("Dosage") List<String> dosage,
         @JsonProperty("Advice") List<String> advice,
+        /** Lab / imaging / culture orders — not medicines. */
+        @JsonProperty("Investigations") List<String> investigations,
         @JsonProperty("DoctorName") String doctorName,
         @JsonProperty("PrescriptionDate") String prescriptionDate,
-        @JsonProperty("Notes") String notes
+        @JsonProperty("Notes") String notes,
+        @JsonProperty("WeightKg") Double weightKg,
+        @JsonProperty("TemperatureF") Double temperatureF
 ) {
     public EducationPrescriptionTranscribeData {
         hospitalName = trim(hospitalName);
@@ -57,6 +61,7 @@ public record EducationPrescriptionTranscribeData(
         medicines = medicines == null ? List.of() : List.copyOf(medicines);
         dosage = dosage == null ? List.of() : List.copyOf(dosage);
         advice = advice == null ? List.of() : List.copyOf(advice);
+        investigations = investigations == null ? List.of() : List.copyOf(investigations);
         doctorName = trim(doctorName);
         prescriptionDate = trim(prescriptionDate);
         notes = trim(notes);
@@ -87,9 +92,16 @@ public record EducationPrescriptionTranscribeData(
         map.put("medicines", new ArrayList<>(medicines));
         map.put("dosage", new ArrayList<>(dosage));
         map.put("advice", new ArrayList<>(advice));
+        map.put("investigations", new ArrayList<>(investigations));
         map.put("doctor_name", resolvedDoctorName());
         map.put("prescription_date", resolvedPrescriptionDate());
         map.put("notes", notes);
+        if (weightKg != null) {
+            map.put("weight_kg", weightKg);
+        }
+        if (temperatureF != null) {
+            map.put("temperature_f", temperatureF);
+        }
         return map;
     }
 
@@ -113,6 +125,72 @@ public record EducationPrescriptionTranscribeData(
      */
     public String toSearchText() {
         return PatientPrescriptionSearchTextBuilder.build(this);
+    }
+
+    public EducationPrescriptionTranscribeData withVitals(Double weightKg, Double temperatureF) {
+        return new EducationPrescriptionTranscribeData(
+                hospitalName,
+                documentType,
+                registrationNumber,
+                receiptNumber,
+                appointmentDate,
+                patientName,
+                patientAge,
+                patientGender,
+                ageGender,
+                department,
+                consultant,
+                address,
+                mobileNumber,
+                referredBy,
+                diagnosis,
+                medications,
+                medicines,
+                dosage,
+                advice,
+                investigations,
+                doctorName,
+                prescriptionDate,
+                notes,
+                weightKg != null ? weightKg : this.weightKg,
+                temperatureF != null ? temperatureF : this.temperatureF
+        );
+    }
+
+    public EducationPrescriptionTranscribeData withClinicalLines(
+            List<String> medicines,
+            List<String> dosage,
+            List<String> advice,
+            List<String> investigations,
+            String medications
+    ) {
+        return new EducationPrescriptionTranscribeData(
+                hospitalName,
+                documentType,
+                registrationNumber,
+                receiptNumber,
+                appointmentDate,
+                patientName,
+                patientAge,
+                patientGender,
+                ageGender,
+                department,
+                consultant,
+                address,
+                mobileNumber,
+                referredBy,
+                diagnosis,
+                medications,
+                medicines == null ? List.of() : medicines,
+                dosage == null ? List.of() : dosage,
+                advice == null ? List.of() : advice,
+                investigations == null ? List.of() : investigations,
+                doctorName,
+                prescriptionDate,
+                notes,
+                weightKg,
+                temperatureF
+        );
     }
 
     /** @deprecated Use {@link #toSearchText()} — embeddings must not include demographics or admin fields. */

@@ -11,7 +11,7 @@ alwaysApply: true
 
 ## Locale resolution (server)
 
-Precedence: authenticated **`PreferredLocale`** (JWT/profile) → **`Accept-Language`** header → **`en`**.
+Precedence: **`Accept-Language`** (active app/header locale) → authenticated **`PreferredLocale`** (JWT/profile) → **`en`**.
 
 Reference: `NotificationRuleCatalog.normalizeLocale` in `backend-hospital`.
 

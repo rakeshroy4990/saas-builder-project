@@ -1,13 +1,19 @@
 package com.flexshell.service;
 
+import com.flexshell.ai.PdfRagGrowthAdapter;
 import com.flexshell.auth.UserRole;
+import com.flexshell.controller.dto.GrowthCharacteristicsDto;
+import com.flexshell.controller.dto.GrowthHistorySummaryRequest;
+import com.flexshell.controller.dto.GrowthHistorySummaryResponse;
 import com.flexshell.controller.dto.GrowthRecordQueryDto;
 import com.flexshell.controller.dto.GrowthRecordResponse;
 import com.flexshell.controller.dto.GrowthRecordSaveRequest;
 import com.flexshell.controller.dto.PagedGrowthRecordListDto;
+import com.flexshell.growth.GrowthCharacteristicSupport;
 import com.flexshell.growth.GrowthMeasurementValidator;
 import com.flexshell.growth.WhoGrowthMetric;
 import com.flexshell.growth.WhoPercentileService;
+import com.flexshell.i18n.HospitalMessageResolver;
 import com.flexshell.persistence.postgres.model.AppointmentJpaEntity;
 import com.flexshell.persistence.postgres.model.ChildProfileJpaEntity;
 import com.flexshell.persistence.postgres.model.GrowthRecordJpaEntity;
@@ -15,25 +21,30 @@ import com.flexshell.persistence.postgres.model.UserJpaEntity;
 import com.flexshell.persistence.postgres.repository.AppointmentJpaRepository;
 import com.flexshell.persistence.postgres.repository.GrowthRecordJpaRepository;
 import com.flexshell.persistence.postgres.repository.UserJpaRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flexshell.http.NdjsonStreamWriter;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class GrowthRecordService {
 
     private static final Set<String> VALID_SOURCES = Set.of("manual", "ble_scale", "ble_imported", "clinic");
@@ -43,19 +54,28 @@ public class GrowthRecordService {
     private final AppointmentJpaRepository appointmentRepository;
     private final UserJpaRepository userRepository;
     private final WhoPercentileService whoPercentileService;
+    private final PdfRagGrowthAdapter pdfRagGrowthAdapter;
+    private final ObjectMapper objectMapper;
+    private final HospitalMessageResolver hospitalMessageResolver;
 
     public GrowthRecordService(
             GrowthRecordJpaRepository growthRecordRepository,
             ChildProfileService childProfileService,
             AppointmentJpaRepository appointmentRepository,
             UserJpaRepository userRepository,
-            WhoPercentileService whoPercentileService
+            WhoPercentileService whoPercentileService,
+            PdfRagGrowthAdapter pdfRagGrowthAdapter,
+            ObjectMapper objectMapper,
+            HospitalMessageResolver hospitalMessageResolver
     ) {
         this.growthRecordRepository = growthRecordRepository;
         this.childProfileService = childProfileService;
         this.appointmentRepository = appointmentRepository;
         this.userRepository = userRepository;
         this.whoPercentileService = whoPercentileService;
+        this.pdfRagGrowthAdapter = pdfRagGrowthAdapter;
+        this.objectMapper = objectMapper;
+        this.hospitalMessageResolver = hospitalMessageResolver;
     }
 
     @Transactional(readOnly = true)
@@ -175,6 +195,238 @@ public class GrowthRecordService {
         childProfileService.requireReadableChild(actorUserId, row.getChildProfileExternalId());
         row.setDeleted(true);
         growthRecordRepository.save(row);
+    }
+
+    public GrowthHistorySummaryResponse summarizeHistory(
+            String actorUserId,
+            GrowthHistorySummaryRequest request,
+            String authorizationHeader
+    ) {
+        if (request == null) {
+            throw new IllegalArgumentException("GROWTH_SUMMARY_REQUEST_REQUIRED");
+        }
+        UUID childId = request.getChildProfileExternalId();
+        if (childId == null) {
+            throw new IllegalArgumentException("GROWTH_CHILD_PROFILE_REQUIRED");
+        }
+        if (request.getAgeMonthsAtRecording() == null) {
+            throw new IllegalArgumentException("GROWTH_SUMMARY_AGE_REQUIRED");
+        }
+        boolean hasMeasurement = request.getWeightKg() != null
+                || request.getHeightCm() != null
+                || request.getHeadCircumferenceCm() != null;
+        if (!hasMeasurement) {
+            throw new IllegalArgumentException("GROWTH_SUMMARY_MEASUREMENT_REQUIRED");
+        }
+        ChildProfileJpaEntity child = childProfileService.requireReadableChild(actorUserId, childId);
+        ensureSummarySex(request, child);
+        GrowthHistorySummaryResponse response = pdfRagGrowthAdapter.summarize(request, authorizationHeader);
+        enrichSummaryCharacteristics(response, request);
+        return response;
+    }
+
+    public StreamingResponseBody streamSummarizeHistory(
+            String actorUserId,
+            GrowthHistorySummaryRequest request,
+            String authorizationHeader
+    ) {
+        if (request == null) {
+            throw new IllegalArgumentException("GROWTH_SUMMARY_REQUEST_REQUIRED");
+        }
+        UUID childId = request.getChildProfileExternalId();
+        if (childId == null) {
+            throw new IllegalArgumentException("GROWTH_CHILD_PROFILE_REQUIRED");
+        }
+        childProfileService.requireReadableChild(actorUserId, childId);
+        if (request.getAgeMonthsAtRecording() == null) {
+            throw new IllegalArgumentException("GROWTH_SUMMARY_AGE_REQUIRED");
+        }
+        boolean hasMeasurement = request.getWeightKg() != null
+                || request.getHeightCm() != null
+                || request.getHeadCircumferenceCm() != null;
+        if (!hasMeasurement) {
+            throw new IllegalArgumentException("GROWTH_SUMMARY_MEASUREMENT_REQUIRED");
+        }
+        ChildProfileJpaEntity child = childProfileService.requireReadableChild(actorUserId, childId);
+        ensureSummarySex(request, child);
+
+        return outputStream -> {
+            AtomicBoolean terminalSent = new AtomicBoolean(false);
+            try {
+                NdjsonStreamWriter.writeReady(outputStream, objectMapper);
+                pdfRagGrowthAdapter.streamSummarizeNdjson(request, authorizationHeader, line -> {
+                    try {
+                        String outLine = line;
+                        if (isTerminalNdjsonLine(line)) {
+                            terminalSent.set(true);
+                            outLine = enrichCompleteNdjsonLine(line, request);
+                        }
+                        byte[] bytes = (outLine + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        outputStream.write(bytes);
+                        outputStream.flush();
+                    } catch (IOException ex) {
+                        throw new UncheckedIOException(ex);
+                    }
+                });
+                if (!terminalSent.get()) {
+                    GrowthHistorySummaryResponse fallback = pdfRagGrowthAdapter.summarize(request, authorizationHeader);
+                    enrichSummaryCharacteristics(fallback, request);
+                    NdjsonStreamWriter.writeLine(outputStream, objectMapper, "complete", buildSummaryPayload(fallback));
+                }
+            } catch (UncheckedIOException ex) {
+                throw ex.getCause();
+            } catch (Exception ex) {
+                if (!terminalSent.get()) {
+                    NdjsonStreamWriter.writeError(
+                            outputStream,
+                            objectMapper,
+                            "Growth summary is temporarily unavailable.",
+                            "GROWTH_SUMMARY_UNAVAILABLE"
+                    );
+                }
+            }
+        };
+    }
+
+    private boolean isTerminalNdjsonLine(String line) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(line);
+            String type = root.path("type").asText("").trim().toLowerCase(java.util.Locale.ROOT);
+            return "complete".equals(type) || "error".equals(type);
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private Map<String, Object> buildSummaryPayload(GrowthHistorySummaryResponse response) {
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("Summary", response.getSummary());
+        payload.put("ModelUsed", response.getModelUsed());
+        payload.put("ReplyLocale", response.getReplyLocale());
+        if (response.getCharacteristics() != null) {
+            GrowthCharacteristicsDto characteristics = response.getCharacteristics();
+            Map<String, Object> characteristicsPayload = new java.util.LinkedHashMap<>();
+            characteristicsPayload.put("Phrase", characteristics.getPhrase());
+            characteristicsPayload.put("Labels", characteristics.getLabels());
+            characteristicsPayload.put("TraitCodes", characteristics.getTraitCodes());
+            payload.put("Characteristics", characteristicsPayload);
+        }
+        return payload;
+    }
+
+    private void ensureSummarySex(GrowthHistorySummaryRequest request, ChildProfileJpaEntity child) {
+        if (request.getSex() == null || request.getSex().isBlank()) {
+            request.setSex(child.getSex());
+        }
+    }
+
+    private void enrichSummaryCharacteristics(GrowthHistorySummaryResponse response, GrowthHistorySummaryRequest request) {
+        if (response == null || request == null) {
+            return;
+        }
+        String locale = normalizeSummaryLocale(request.getReplyLocale());
+        String priorPhrase = response.getCharacteristics() != null
+                ? Objects.toString(response.getCharacteristics().getPhrase(), "").trim()
+                : "";
+        GrowthCharacteristicsDto characteristics = GrowthCharacteristicSupport.derive(
+                hospitalMessageResolver,
+                locale,
+                request.getSex(),
+                request.getWeightPercentile(),
+                request.getHeightPercentile(),
+                request.getBmiPercentile(),
+                request.getHcPercentile()
+        );
+        response.setCharacteristics(characteristics);
+        response.setReplyLocale(locale);
+        replaceEmbeddedProfilePhrase(response, priorPhrase, characteristics.getPhrase());
+    }
+
+    private static void replaceEmbeddedProfilePhrase(
+            GrowthHistorySummaryResponse response,
+            String priorPhrase,
+            String localizedPhrase
+    ) {
+        if (response == null || priorPhrase == null || priorPhrase.isBlank()) {
+            return;
+        }
+        String summary = response.getSummary();
+        if (summary == null || summary.isBlank()) {
+            return;
+        }
+        String nextPhrase = Objects.toString(localizedPhrase, "").trim();
+        if (nextPhrase.isBlank() || priorPhrase.equals(nextPhrase)) {
+            return;
+        }
+        if (summary.contains(priorPhrase)) {
+            response.setSummary(summary.replace(priorPhrase, nextPhrase));
+        }
+    }
+
+    private String enrichCompleteNdjsonLine(String line, GrowthHistorySummaryRequest request) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(line);
+            String type = root.path("type").asText("").trim().toLowerCase(java.util.Locale.ROOT);
+            if (!"complete".equals(type)) {
+                return line;
+            }
+            com.fasterxml.jackson.databind.JsonNode dataNode = root.has("data") ? root.get("data") : root.get("Data");
+            if (dataNode == null || !dataNode.isObject()) {
+                return line;
+            }
+            GrowthHistorySummaryResponse response = new GrowthHistorySummaryResponse();
+            response.setSummary(dataNode.path("Summary").asText("").trim());
+            response.setModelUsed(dataNode.path("ModelUsed").asText("").trim());
+            response.setReplyLocale(dataNode.path("ReplyLocale").asText("").trim());
+            com.fasterxml.jackson.databind.JsonNode characteristicsNode = dataNode.has("Characteristics")
+                    ? dataNode.get("Characteristics")
+                    : dataNode.get("characteristics");
+            if (characteristicsNode != null && characteristicsNode.isObject()) {
+                GrowthCharacteristicsDto characteristics = new GrowthCharacteristicsDto();
+                characteristics.setPhrase(characteristicsNode.path("Phrase").asText("").trim());
+                if (characteristics.getPhrase().isBlank()) {
+                    characteristics.setPhrase(characteristicsNode.path("phrase").asText("").trim());
+                }
+                characteristics.setLabels(parseStringList(characteristicsNode.get("Labels"), characteristicsNode.get("labels")));
+                characteristics.setTraitCodes(parseStringList(characteristicsNode.get("TraitCodes"), characteristicsNode.get("traitCodes")));
+                response.setCharacteristics(characteristics);
+            }
+            enrichSummaryCharacteristics(response, request);
+            return objectMapper.writeValueAsString(
+                    java.util.Map.of("type", "complete", "data", buildSummaryPayload(response))
+            );
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(GrowthRecordService.class)
+                    .warn("growth_summary_complete_enrich_failed: {}", ex.toString());
+            return line;
+        }
+    }
+
+    private static java.util.List<String> parseStringList(
+            com.fasterxml.jackson.databind.JsonNode primary,
+            com.fasterxml.jackson.databind.JsonNode fallback
+    ) {
+        com.fasterxml.jackson.databind.JsonNode node = primary != null && primary.isArray() ? primary : fallback;
+        if (node == null || !node.isArray()) {
+            return java.util.List.of();
+        }
+        java.util.List<String> values = new java.util.ArrayList<>();
+        node.forEach(item -> {
+            String text = item.asText("").trim();
+            if (!text.isBlank()) {
+                values.add(text);
+            }
+        });
+        return values;
+    }
+
+    private static String normalizeSummaryLocale(String locale) {
+        String raw = Objects.toString(locale, "en").trim().toLowerCase();
+        if (raw.isBlank()) {
+            return "en";
+        }
+        int dash = raw.indexOf('-');
+        return dash > 0 ? raw.substring(0, dash) : raw;
     }
 
     private void validateAppointmentLink(

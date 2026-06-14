@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public class ChildProfileResponse {
@@ -22,6 +23,12 @@ public class ChildProfileResponse {
 
     @JsonProperty("BloodGroup")
     private String bloodGroup;
+
+    @JsonProperty("MotherHeightCm")
+    private BigDecimal motherHeightCm;
+
+    @JsonProperty("FatherHeightCm")
+    private BigDecimal fatherHeightCm;
 
     @JsonProperty("CreatedAt")
     private Instant createdAt;
@@ -67,6 +74,22 @@ public class ChildProfileResponse {
 
     public void setBloodGroup(String bloodGroup) {
         this.bloodGroup = bloodGroup;
+    }
+
+    public BigDecimal getMotherHeightCm() {
+        return motherHeightCm;
+    }
+
+    public void setMotherHeightCm(BigDecimal motherHeightCm) {
+        this.motherHeightCm = motherHeightCm;
+    }
+
+    public BigDecimal getFatherHeightCm() {
+        return fatherHeightCm;
+    }
+
+    public void setFatherHeightCm(BigDecimal fatherHeightCm) {
+        this.fatherHeightCm = fatherHeightCm;
     }
 
     public Instant getCreatedAt() {

@@ -5,7 +5,6 @@ import com.flexshell.controller.dto.WhoPercentileCurvesDto;
 import com.flexshell.growth.WhoGrowthMetric;
 import com.flexshell.growth.WhoPercentileService;
 import com.flexshell.i18n.LocalizedApiMessages;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/v1/who")
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class WhoPercentileV1Controller {
 
     private final WhoPercentileService whoPercentileService;
@@ -33,16 +31,24 @@ public class WhoPercentileV1Controller {
     @GetMapping(value = "/percentile-curves", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<WhoPercentileCurvesDto>> percentileCurves(
             @RequestParam(defaultValue = "wfa") String metric,
+            @RequestParam(name = "Metric", required = false) String metricAlias,
             @RequestParam(defaultValue = "male") String sex,
+            @RequestParam(name = "Sex", required = false) String sexAlias,
             @RequestParam(defaultValue = "0") int fromMonths,
-            @RequestParam(defaultValue = "60") int toMonths
+            @RequestParam(name = "FromMonths", required = false) Integer fromMonthsAlias,
+            @RequestParam(defaultValue = "60") int toMonths,
+            @RequestParam(name = "ToMonths", required = false) Integer toMonthsAlias
     ) {
         try {
+            String resolvedMetric = metricAlias != null && !metricAlias.isBlank() ? metricAlias : metric;
+            String resolvedSex = sexAlias != null && !sexAlias.isBlank() ? sexAlias : sex;
+            int resolvedFrom = fromMonthsAlias != null ? fromMonthsAlias : fromMonths;
+            int resolvedTo = toMonthsAlias != null ? toMonthsAlias : toMonths;
             WhoPercentileCurvesDto data = whoPercentileService.getPercentileCurves(
-                    WhoGrowthMetric.fromWire(metric),
-                    sex,
-                    fromMonths,
-                    toMonths
+                    WhoGrowthMetric.fromWire(resolvedMetric),
+                    resolvedSex,
+                    resolvedFrom,
+                    resolvedTo
             );
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic())

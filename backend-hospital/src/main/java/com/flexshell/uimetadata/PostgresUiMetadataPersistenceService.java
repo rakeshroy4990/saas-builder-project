@@ -10,7 +10,6 @@ import com.flexshell.persistence.postgres.model.UiMetadataJpaEntity;
 import com.flexshell.persistence.postgres.repository.UiMetadataJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +18,6 @@ import java.util.Optional;
 
 @Service
 @Primary
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresUiMetadataPersistenceService implements UiMetadataPersistencePort {
     private static final Logger LOG = LoggerFactory.getLogger(PostgresUiMetadataPersistenceService.class);
     private static final CommonLogger COMMON_LOGGER = new CommonLogger(LOG);

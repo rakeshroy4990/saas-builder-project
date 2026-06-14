@@ -77,9 +77,12 @@ class MedicalTermsGlossaryTest {
                 List.of(medications),
                 List.of(),
                 List.of(),
+                List.of(),
                 "",
                 "",
-                ""
+                "",
+                null,
+                null
         );
     }
 }

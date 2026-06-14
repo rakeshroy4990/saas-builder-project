@@ -3,10 +3,7 @@
 # Sensitive values: use Secret Manager + --set-secrets (see ../cloudbuild.yaml); do not commit secrets here.
 # Same pattern as pdf-rag-pipeline/cloudrun-env.yaml: DB URIs and passwords never appear here—only in secrets.
 
-# --- app.persistence.provider + JDBC (postgres mode) ---
-# mongo = default (MongoDB Atlas; see spring.data.mongodb.* secrets below).
-# postgres = Flyway + JPA to PostgreSQL (e.g. Supabase); requires JDBC secrets from Secret Manager.
-# Local: export APP_PERSISTENCE_PROVIDER=postgres or use -Dapp.persistence.provider=postgres (FlexShellApplication).
+# --- PostgreSQL (Flyway + JPA; MongoDB is not supported) ---
 APP_PERSISTENCE_PROVIDER: postgres
 # Pool tuning only (non-secret). JDBC URL and password belong in secrets, e.g.:
 #   --set-secrets=SPRING_DATASOURCE_URL=backend-hospital-spring-datasource-url:latest

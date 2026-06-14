@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Enforces Smart AI limits: estimated input tokens per request and billable requests per user per UTC day.
- * Uses {@link MongoTemplate} when Mongo is enabled; otherwise an in-process counter (suitable for local dev only).
+ * Uses PostgreSQL daily counters when available; otherwise an in-process counter (local dev/tests only).
  */
 @Service
 public class SmartAiQuotaService {
@@ -63,10 +63,10 @@ public class SmartAiQuotaService {
         }
         String utcDay = LocalDate.now(ZoneOffset.UTC).toString();
         String compositeId = actor + "|" + utcDay;
-        if (this.mongoTemplate != null) {
-            consumeDailyMongo(compositeId, actor, utcDay);
-        } else if (this.pgDailyUsage != null) {
+        if (this.pgDailyUsage != null) {
             consumeDailyPostgres(compositeId, actor, utcDay);
+        } else if (this.mongoTemplate != null) {
+            consumeDailyMongo(compositeId, actor, utcDay);
         } else {
             consumeDailyMemory(compositeId);
         }

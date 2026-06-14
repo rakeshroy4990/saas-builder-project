@@ -7,6 +7,13 @@ import { hospitalEducationAttachmentSequencePopupPage } from './educationAttachm
 import { hospitalProfilePage } from './profilePage';
 import { dashboardDevicesNavButtons, hospitalDashboardDevicesPanel } from './devicesDashboardPanel';
 import { dashboardGrowthNavButtons, hospitalDashboardGrowthPanel } from './growthDashboardPanel';
+import { dashboardTriageNavButtons, hospitalDashboardTriagePanel } from './triageDashboardPanel';
+import {
+  dashboardRecommendedDosageNavButtons,
+  dashboardValidatePrescriptionNavButtons,
+  hospitalDashboardRecommendedDosagePanel,
+  hospitalDashboardValidatePrescriptionPanel
+} from './prescriptionSafetyDashboardPanel';
 import { hospitalTermsPage } from './termsPage';
 import { hospitalPrivacyPage } from './privacyPage';
 import {
@@ -102,13 +109,13 @@ export const hospitalPages: PageConfig[] = [
                             }
                           },
                           {
-                            id: 'hospital-home-hero-triage-cta',
+                            id: 'hospital-home-hero-growth-cta',
                             type: 'button',
                             condition: visibleWhenNotLoggedInAsDoctor,
                             config: {
-                              i18nKey: 'triage.title',
+                              i18nKey: 'home.hero.ctaGrowthTracker',
                               styles: { styleTemplate: 'hosp.button.secondary' },
-                              click: { actionId: 'open-triage-page' }
+                              click: { actionId: 'open-growth-page' }
                             }
                           },
                           {
@@ -484,7 +491,6 @@ export const hospitalPages: PageConfig[] = [
     initializeActions: [
       { actionId: 'set-dashboard-header-active' },
       { actionId: 'load-home-content' },
-      { actionId: 'load-doctors' },
       { actionId: 'init-dashboard' }
     ],
     container: {
@@ -685,8 +691,11 @@ export const hospitalPages: PageConfig[] = [
                         }
                       }
                     },
+                    ...dashboardTriageNavButtons(),
                     ...dashboardGrowthNavButtons(),
-                    ...dashboardDevicesNavButtons()
+                    ...dashboardDevicesNavButtons(),
+                    ...dashboardValidatePrescriptionNavButtons(),
+                    ...dashboardRecommendedDosageNavButtons()
                   ]
                 }
               },
@@ -1698,8 +1707,11 @@ export const hospitalPages: PageConfig[] = [
                         ]
                       }
                     },
+                    hospitalDashboardTriagePanel,
                     hospitalDashboardGrowthPanel,
-                    hospitalDashboardDevicesPanel
+                    hospitalDashboardDevicesPanel,
+                    hospitalDashboardValidatePrescriptionPanel,
+                    hospitalDashboardRecommendedDosagePanel
                   ]
                 }
               },
@@ -4388,7 +4400,7 @@ export const hospitalPages: PageConfig[] = [
     title: 'Set working time slots',
     titleKey: 'dashboard.workingSlots.title',
     initializeActions: [
-      { actionId: 'set-dashboard-nav-working-slots' },
+      { actionId: 'set-dashboard-nav-working-slots', data: { preserveOnInit: true } },
       { actionId: 'set-dashboard-header-active' },
       { actionId: 'init-doctor-working-slots' },
       { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'dashboard' } }

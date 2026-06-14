@@ -78,6 +78,18 @@ export const SERVER_PATHS = {
   hospitalEducationKeyTopics: '/api/hospital/education/key-topics',
   /** POST multipart `file` — doctor-only prescription image/PDF transcription for education chat. */
   hospitalEducationPrescriptionTranscribe: '/api/hospital/education/prescription-transcribe',
+  /** Doctor prescription safety: JSON validate from edited summary. */
+  hospitalEducationPrescriptionSafetyValidate: '/api/hospital/education/prescription-safety/validate',
+  /** Doctor prescription safety: upload + validate dosage (multipart). */
+  hospitalEducationPrescriptionSafetyValidateUpload: '/api/hospital/education/prescription-safety/validate-upload',
+  /** Doctor prescription safety: NDJSON stream for upload + transcribe only. */
+  hospitalEducationPrescriptionSafetyTranscribeUploadStream:
+    '/api/hospital/education/prescription-safety/transcribe-upload/stream',
+  /** Doctor prescription safety: NDJSON stream for upload + validate. */
+  hospitalEducationPrescriptionSafetyValidateUploadStream:
+    '/api/hospital/education/prescription-safety/validate-upload/stream',
+  /** Doctor prescription safety: recommended pediatric dosage from age/weight. */
+  hospitalEducationPrescriptionSafetyRecommendedDosage: '/api/hospital/education/prescription-safety/recommended-dosage',
   /** Patient-uploaded prescription documents (storage + extraction). */
   patientPrescriptions: '/api/v1/patient-prescriptions',
   patientPrescriptionsUpload: '/api/v1/patient-prescriptions/upload',

@@ -58,7 +58,7 @@ export function getGoogleSignInSetupLines(errorMessage = ''): string[] {
   ];
 
   if (isExpoGoClient()) {
-    lines.unshift('You are on Expo Go — build with: eas build --profile preview --platform android');
+    lines.unshift('You are on Expo Go — build with: npm run eas:build:preview:android');
   }
 
   if (Platform.OS === 'ios') {

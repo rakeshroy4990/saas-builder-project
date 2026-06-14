@@ -21,6 +21,8 @@ import DynPrescriptionUpload from '../../components/primitives/DynPrescriptionUp
 import DynPrescriptionList from '../../components/primitives/DynPrescriptionList.vue';
 import DynLanguageSwitcher from '../../components/primitives/DynLanguageSwitcher.vue';
 import DynNotificationBell from '../../components/primitives/DynNotificationBell.vue';
+import DynDoctorValidatePrescriptionPanel from '../../components/primitives/DynDoctorValidatePrescriptionPanel.vue';
+import DynDoctorRecommendedDosagePanel from '../../components/primitives/DynDoctorRecommendedDosagePanel.vue';
 import DynTriageWizard from '../../components/primitives/DynTriageWizard.vue';
 import DynTriageResultBadge from '../../components/primitives/DynTriageResultBadge.vue';
 
@@ -67,6 +69,8 @@ export function bootstrap(): void {
   ComponentRegistry.register('prescription-list', DynPrescriptionList);
   ComponentRegistry.register('triage-wizard', DynTriageWizard);
   ComponentRegistry.register('triage-result-badge', DynTriageResultBadge);
+  ComponentRegistry.register('doctor-validate-prescription', DynDoctorValidatePrescriptionPanel);
+  ComponentRegistry.register('doctor-recommended-dosage', DynDoctorRecommendedDosagePanel);
 
   registerHospitalModule();
 }

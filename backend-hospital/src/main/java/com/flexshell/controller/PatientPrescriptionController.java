@@ -16,7 +16,6 @@ import com.flexshell.service.PatientPrescriptionService;
 import com.flexshell.service.PatientPrescriptionSimilarityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -48,7 +47,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/patient-prescriptions")
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PatientPrescriptionController {
     private final LocalizedApiMessages messages;
 

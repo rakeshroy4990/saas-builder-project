@@ -21,4 +21,8 @@ public interface GrowthRecordJpaRepository extends JpaRepository<GrowthRecordJpa
     List<GrowthRecordJpaEntity> findByChildProfileExternalIdAndDeletedFalseOrderByRecordedAtAsc(
             UUID childProfileExternalId
     );
+
+    Optional<GrowthRecordJpaEntity> findFirstByChildProfileExternalIdAndDeletedFalseAndWeightKgIsNotNullOrderByRecordedAtDesc(
+            UUID childProfileExternalId
+    );
 }

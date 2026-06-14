@@ -5,7 +5,6 @@ import com.flexshell.persistence.postgres.repository.SupportChatRequestJpaReposi
 import com.flexshell.realtime.chat.support.SupportChatPersistence;
 import com.flexshell.realtime.chat.support.SupportRequestEntity;
 import com.flexshell.realtime.chat.support.SupportRequestStatus;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +14,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class PostgresSupportChatPersistence implements SupportChatPersistence {
 
     private final SupportChatRequestJpaRepository repository;

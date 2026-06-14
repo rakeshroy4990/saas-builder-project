@@ -293,7 +293,7 @@ function sectionBarTone(percent: number): string {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col gap-4">
+  <div class="flex min-h-0 flex-1 flex-col gap-4 pb-4 sm:pb-5">
     <p class="rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-3 text-sm leading-6 text-sky-900">
       {{ t('education.prescriptionSimilarity.banner') }}
     </p>
@@ -377,26 +377,26 @@ function sectionBarTone(percent: number): string {
         :value="draft"
         rows="8"
         class="w-full min-h-[min(32vh,14rem)] max-h-[min(48vh,24rem)] resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:opacity-60"
-        :disabled="searching || readingFile || summarizingFile"
+        :disabled="searching || summarizingFile"
         :placeholder="t('education.prescriptionSimilarity.inputPlaceholder')"
         @input="onDraftInput"
         @keydown="onComposerKeydown"
       />
-    </div>
 
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p class="text-xs leading-5 text-slate-500">
-        <span v-if="summarizingFile" class="font-medium text-sky-700">{{ t('education.prescriptionSimilarity.creatingSummary') }}</span>
-        <span v-else>{{ t('education.prescriptionSimilarity.submitHint') }}</span>
-      </p>
-      <button
-        type="button"
-        class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-        :disabled="!canSearch"
-        @click="submitSearch"
-      >
-        {{ searching ? t('education.prescriptionSimilarity.searching') : t('education.prescriptionSimilarity.search') }}
-      </button>
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <p class="text-xs leading-5 text-slate-500">
+          <span v-if="summarizingFile" class="font-medium text-sky-700">{{ t('education.prescriptionSimilarity.creatingSummary') }}</span>
+          <span v-else>{{ t('education.prescriptionSimilarity.submitHint') }}</span>
+        </p>
+        <button
+          type="button"
+          class="inline-flex shrink-0 items-center justify-center self-end rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 lg:self-auto"
+          :disabled="!canSearch"
+          @click="submitSearch"
+        >
+          {{ searching ? t('education.prescriptionSimilarity.searching') : t('education.prescriptionSimilarity.search') }}
+        </button>
+      </div>
     </div>
 
     <section

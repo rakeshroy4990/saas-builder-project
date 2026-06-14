@@ -98,6 +98,30 @@ public class OpenAiChatAdapter {
      * Vision transcription for prescription-style images (data URL, e.g. {@code data:image/png;base64,...}).
      */
     public String transcribePrescriptionFromImageDataUrl(String dataUrl) {
+        return visionJsonFromImageDataUrl(
+                dataUrl,
+                PrescriptionVisionPrompts.VISION_JSON_SYSTEM.trim(),
+                PrescriptionVisionPrompts.VISION_JSON_USER,
+                prescriptionVisionMaxOutputTokens
+        );
+    }
+
+    /** Second-pass vitals-only vision read when full transcription omits Wt/Temp. */
+    public String extractPrescriptionVitalsFromImageDataUrl(String dataUrl) {
+        return visionJsonFromImageDataUrl(
+                dataUrl,
+                PrescriptionVitalsVisionPrompts.VISION_JSON_SYSTEM.trim(),
+                PrescriptionVitalsVisionPrompts.VISION_JSON_USER,
+                Math.min(512, prescriptionVisionMaxOutputTokens)
+        );
+    }
+
+    private String visionJsonFromImageDataUrl(
+            String dataUrl,
+            String systemPrompt,
+            String userPrompt,
+            int maxOutputTokens
+    ) {
         if (apiKey.isBlank()) {
             throw new AiProviderException(
                     AiProviderException.Kind.CONFIG_MISSING,
@@ -110,7 +134,7 @@ public class OpenAiChatAdapter {
         }
         try {
             List<Map<String, Object>> userParts = new ArrayList<>();
-            userParts.add(Map.of("type", "text", "text", PrescriptionVisionPrompts.VISION_JSON_USER));
+            userParts.add(Map.of("type", "text", "text", userPrompt));
             Map<String, Object> imageUrl = new LinkedHashMap<>();
             imageUrl.put("url", url);
             if ("low".equals(prescriptionVisionOpenAiImageDetail)
@@ -124,13 +148,13 @@ public class OpenAiChatAdapter {
             userParts.add(imagePart);
 
             List<Map<String, Object>> messages = new ArrayList<>();
-            messages.add(Map.of("role", "system", "content", PrescriptionVisionPrompts.VISION_JSON_SYSTEM.trim()));
+            messages.add(Map.of("role", "system", "content", systemPrompt));
             messages.add(Map.of("role", "user", "content", userParts));
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("model", model);
             payload.put("messages", messages);
-            payload.put("max_tokens", prescriptionVisionMaxOutputTokens);
+            payload.put("max_tokens", maxOutputTokens);
             payload.put("temperature", 0.1);
             String requestBody = objectMapper.writeValueAsString(payload);
 

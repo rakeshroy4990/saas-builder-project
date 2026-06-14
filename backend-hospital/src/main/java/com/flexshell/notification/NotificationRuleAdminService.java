@@ -13,7 +13,6 @@ import com.flexshell.persistence.postgres.model.NotificationEventRuleJpaEntity;
 import com.flexshell.persistence.postgres.model.NotificationEventRuleMessageJpaEntity;
 import com.flexshell.persistence.postgres.repository.NotificationEventRuleJpaRepository;
 import com.flexshell.persistence.postgres.repository.NotificationEventRuleMessageJpaRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +25,6 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-@ConditionalOnProperty(name = "app.persistence.provider", havingValue = "postgres")
 public class NotificationRuleAdminService {
 
     private static final Set<String> ALLOWED_ROLES = Set.of("DOCTOR", "PATIENT", "ADMIN");

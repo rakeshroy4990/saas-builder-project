@@ -5,9 +5,8 @@ import { usePopupStore } from '../../../../store/usePopupStore';
 import { pinia } from '../../../../store/pinia';
 import { i18n } from '../../../../i18n';
 import { isAuthTokenExpired } from '../../../auth/authToken';
+import { pingServerSession } from '../../../auth/serverSessionPing';
 import { openHospitalLoginPopup } from '../../../auth/hospitalLoginGate';
-import { getOrCreateTraceId } from '../../../logging/traceContext';
-import { URLRegistry } from '../../../http/URLRegistry';
 import { ok } from '../shared/response';
 import { clearAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
 import { ensureMedicalDepartmentOptionsLoaded, syncAppointmentDepartmentsFromMedicalStore } from '../shared/medicalDepartments';
@@ -116,23 +115,6 @@ function queueAppointmentPopupPreparation(department: string, doctorId: string):
   })();
 }
 
-async function serverSessionPing(userId: string): Promise<boolean> {
-  try {
-    const url = `${URLRegistry.getBaseUrl()}/api/user?userId=${encodeURIComponent(userId)}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'X-Trace-Id': getOrCreateTraceId()
-      }
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
 function clearLoginFormFields(): void {
   const appStore = useAppStore(pinia);
   appStore.setProperty('hospital', 'AuthForm', 'identity', '');
@@ -207,7 +189,7 @@ export const openAppointmentPopupHospitalServices: ServiceDefinition[] = [
         openLoginBeforeAppointment(preselection, tr('appointment.sessionExpired'));
         return ok();
       }
-      const alive = await serverSessionPing(userId);
+      const alive = await pingServerSession(userId);
       if (!alive) {
         openLoginBeforeAppointment(preselection, tr('appointment.sessionExpired'));
         return ok();

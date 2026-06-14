@@ -8,6 +8,7 @@ import { ServiceRegistry } from '../../../../core/registry/ServiceRegistry';
 import { apiClient } from '../../../http/apiClient';
 import { URLRegistry } from '../../../http/URLRegistry';
 import { isAuthTokenExpired } from '../../../auth/authToken';
+import { pingServerSession } from '../../../auth/serverSessionPing';
 import { setDeferredPostLoginAction } from '../auth/postLoginAction';
 import { ok } from '../shared/response';
 import { pickString } from '../shared/strings';
@@ -20,11 +21,27 @@ import { ensureDoctorOptionsLoadedByDepartment } from '../shared/doctorCatalog';
 import { clearAppointmentPrescriptionFiles } from '../shared/appointmentPrescriptionFiles';
 import { refreshAppointmentTimeSlotOptionsFromForm } from '../shared/refreshAppointmentTimeSlots';
 import { trackEvent } from '../../../analytics/firebaseAnalytics';
-import { getOrCreateTraceId } from '../../../logging/traceContext';
 import { telemetryReasonCodes } from '../../../observability/telemetrySchema';
 import { i18n } from '../../../../i18n';
+import { router } from '../../../../router';
 
 const tr = (key: string): string => String((i18n.global as any).t(key));
+
+const PATIENT_DASHBOARD_TABS = new Set(['triage', 'growth', 'devices']);
+const DOCTOR_DASHBOARD_TABS = new Set(['validate-prescription', 'recommended-dosage']);
+
+function resolvePreservedDashboardTab(role: string, tab: string): string {
+  const normalizedRole = String(role ?? '').trim().toUpperCase();
+  const normalizedTab = String(tab ?? '').trim().toLowerCase();
+  if (normalizedTab === 'admin' && normalizedRole === 'ADMIN') return 'admin';
+  if (normalizedTab === 'working-slots' && (normalizedRole === 'ADMIN' || normalizedRole === 'DOCTOR')) {
+    return 'working-slots';
+  }
+  if (DOCTOR_DASHBOARD_TABS.has(normalizedTab) && normalizedRole === 'DOCTOR') return normalizedTab;
+  if (PATIENT_DASHBOARD_TABS.has(normalizedTab) && normalizedRole === 'PATIENT') return normalizedTab;
+  if (normalizedTab === 'appointments') return 'appointments';
+  return 'appointments';
+}
 
 function appointmentPreferredDateToInput(raw: unknown): string {
   const s = String(raw ?? '').trim();
@@ -33,7 +50,16 @@ function appointmentPreferredDateToInput(raw: unknown): string {
   return m ? m[1] : '';
 }
 
-const DASHBOARD_GUARD_TABS = new Set(['appointments', 'working-slots', 'admin', 'devices', 'growth']);
+const DASHBOARD_GUARD_TABS = new Set([
+  'appointments',
+  'working-slots',
+  'admin',
+  'devices',
+  'growth',
+  'triage',
+  'validate-prescription',
+  'recommended-dosage'
+]);
 
 /** Mobile appointment filters use `dashboardFiltersOpen`; desktop grid ignores it (`lg:`). */
 function collapseDashboardFiltersPanel(): void {
@@ -62,29 +88,12 @@ function openLoginRecoverDashboardSession(tab: string): void {
   usePopupStore(pinia).open({ packageName: 'hospital', pageId: 'login-popup', title: 'login' });
 }
 
-async function serverSessionPing(userId: string): Promise<boolean> {
-  try {
-    const url = `${URLRegistry.getBaseUrl()}/api/user?userId=${encodeURIComponent(userId)}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'X-Trace-Id': getOrCreateTraceId()
-      }
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function runHospitalService(serviceId: string): Promise<void> {
+async function runHospitalService(serviceId: string, data: Record<string, unknown> = {}): Promise<void> {
   const svc = ServiceRegistry.getInstance().get('hospital', serviceId);
   if (!svc) {
     throw new Error(`Service not registered: hospital::${serviceId}`);
   }
-  await svc.execute({ data: {} });
+  await svc.execute({ data });
 }
 
 async function loadActiveDoctorFilterOptions(userRole: string): Promise<Array<{ id: string; value: string; label: string }>> {
@@ -113,6 +122,22 @@ async function loadActiveDoctorFilterOptions(userRole: string): Promise<Array<{ 
 }
 
 export const dashboardHospitalServices: ServiceDefinition[] = [
+  {
+    packageName: 'hospital',
+    serviceId: 'open-dashboard-home',
+    execute: async () => {
+      const appStore = useAppStore(pinia);
+      appStore.setData('hospital', 'DashboardNav', { activeItem: 'appointments', preserveOnInit: false });
+      await runHospitalService('set-dashboard-header-active');
+      const currentPath = String(router.currentRoute.value.path ?? '').trim();
+      if (currentPath === '/dashboard') {
+        await runHospitalService('init-dashboard');
+        return ok();
+      }
+      await router.push('/dashboard');
+      return ok();
+    }
+  },
   {
     packageName: 'hospital',
     serviceId: 'require-hospital-dashboard-session',
@@ -167,7 +192,14 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
           suppressPopupInlineError: true
         };
       }
-      const alive = await serverSessionPing(userId);
+      if ((tab === 'validate-prescription' || tab === 'recommended-dosage') && role !== 'DOCTOR') {
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Forbidden dashboard tab',
+          suppressPopupInlineError: true
+        };
+      }
+      const alive = await pingServerSession(userId);
       if (!alive) {
         openLoginRecoverDashboardSession(tab);
         return {
@@ -185,26 +217,32 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
     execute: async (request) => {
       const tab = String(request.data.tab ?? 'appointments').trim().toLowerCase();
       if (tab === 'admin') {
-        await runHospitalService('set-dashboard-nav-admin');
+        await runHospitalService('set-dashboard-nav-admin', { preserveOnInit: true });
         await runHospitalService('init-admin-dashboard');
         await runHospitalService('set-dashboard-header-active');
         return ok();
       }
       if (tab === 'working-slots') {
-        await runHospitalService('set-dashboard-nav-working-slots');
+        await runHospitalService('set-dashboard-nav-working-slots', { preserveOnInit: true });
         await runHospitalService('set-dashboard-header-active');
         await runHospitalService('init-doctor-working-slots');
         return ok();
       }
       if (tab === 'devices') {
-        await runHospitalService('set-dashboard-nav-devices');
+        await runHospitalService('set-dashboard-nav-devices', { preserveOnInit: true });
         await runHospitalService('init-patient-device-readings');
         await runHospitalService('set-dashboard-header-active');
         return ok();
       }
       if (tab === 'growth') {
-        await runHospitalService('set-dashboard-nav-growth');
+        await runHospitalService('set-dashboard-nav-growth', { preserveOnInit: true });
         await runHospitalService('init-growth-workspace');
+        await runHospitalService('set-dashboard-header-active');
+        return ok();
+      }
+      if (tab === 'triage') {
+        await runHospitalService('set-dashboard-nav-triage', { preserveOnInit: true });
+        await runHospitalService('init-triage-page');
         await runHospitalService('set-dashboard-header-active');
         return ok();
       }
@@ -221,23 +259,15 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
       const appStore = useAppStore(pinia);
       const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const role = String(authSession.role ?? '').trim().toUpperCase();
-      const prevNav = (appStore.getData('hospital', 'DashboardNav') ?? {}) as { activeItem?: string };
-      const previousActiveItem = String(prevNav.activeItem ?? '').trim();
-      const keepWorkingSlots = previousActiveItem === 'working-slots';
-      const keepAdmin = previousActiveItem === 'admin';
-      const keepDevices = previousActiveItem === 'devices';
-      const keepGrowth = previousActiveItem === 'growth';
-      appStore.setData('hospital', 'DashboardNav', {
-        activeItem: keepAdmin
-          ? 'admin'
-          : keepWorkingSlots
-            ? 'working-slots'
-            : keepGrowth && role === 'PATIENT'
-              ? 'growth'
-              : keepDevices && role === 'PATIENT'
-                ? 'devices'
-                : 'appointments'
-      });
+      const prevNav = (appStore.getData('hospital', 'DashboardNav') ?? {}) as {
+        activeItem?: string;
+        preserveOnInit?: boolean;
+      };
+      const preserveOnInit = prevNav.preserveOnInit === true;
+      const activeItem = preserveOnInit
+        ? resolvePreservedDashboardTab(role, String(prevNav.activeItem ?? ''))
+        : 'appointments';
+      appStore.setData('hospital', 'DashboardNav', { activeItem, preserveOnInit: false });
       await ensureMedicalDepartmentOptionsLoaded();
       const departmentsNode = (appStore.getData('hospital', 'MedicalDepartments') ?? {}) as Record<string, unknown>;
       const departmentList = Array.isArray(departmentsNode.list) ? (departmentsNode.list as unknown[]) : [];
@@ -315,8 +345,8 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         totalPages: 1,
         totalElements: 0,
         hasNext: false,
-        pageLabel: 'Page 1 of 1',
-        totalLabel: 'Total Appointments: 0'
+        pageLabel: String((i18n.global as { t: (k: string, p?: Record<string, unknown>) => string }).t('dashboard.appointments.pageLabelOf', { page: 1, total: 1 })),
+        totalLabel: String((i18n.global as { t: (k: string, p?: Record<string, unknown>) => string }).t('dashboard.appointments.totalLabel', { count: 0 }))
       });
       appStore.setData('hospital', 'AdminDoctorRegisterForm', {
         emailId: '',

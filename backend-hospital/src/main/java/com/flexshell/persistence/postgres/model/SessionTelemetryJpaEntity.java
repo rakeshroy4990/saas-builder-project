@@ -72,6 +72,13 @@ public class SessionTelemetryJpaEntity {
     @Column(name = "session_summary", nullable = false, columnDefinition = "jsonb")
     private List<SessionSummaryEntryDocument> sessionSummary = new ArrayList<>();
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "session_flow", nullable = false, columnDefinition = "jsonb")
+    private List<String> sessionFlow = new ArrayList<>();
+
+    @Column(name = "flow_error_count", nullable = false)
+    private int flowErrorCount;
+
     @Column(nullable = false)
     private boolean deleted = false;
 
@@ -97,6 +104,9 @@ public class SessionTelemetryJpaEntity {
         }
         if (sessionSummary == null) {
             sessionSummary = new ArrayList<>();
+        }
+        if (sessionFlow == null) {
+            sessionFlow = new ArrayList<>();
         }
     }
 
@@ -226,6 +236,22 @@ public class SessionTelemetryJpaEntity {
 
     public void setSessionSummary(List<SessionSummaryEntryDocument> sessionSummary) {
         this.sessionSummary = sessionSummary;
+    }
+
+    public List<String> getSessionFlow() {
+        return sessionFlow;
+    }
+
+    public void setSessionFlow(List<String> sessionFlow) {
+        this.sessionFlow = sessionFlow;
+    }
+
+    public int getFlowErrorCount() {
+        return flowErrorCount;
+    }
+
+    public void setFlowErrorCount(int flowErrorCount) {
+        this.flowErrorCount = flowErrorCount;
     }
 
     public boolean isDeleted() {
