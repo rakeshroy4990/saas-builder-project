@@ -16,7 +16,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SessionNavigationTelemetry } from '@/analytics/navigationTelemetry';
 import { SessionTelemetrySync } from '@/analytics/SessionTelemetrySync';
 import { initCertificatePinningIfConfigured } from '@/api/certificatePinning';
-import { registerGlobalCrashTelemetry } from '@/analytics/crashTelemetry';
+import { flushSessionTelemetryQueue } from '@/analytics/sessionTelemetry';
 import { QueryProvider } from '@/api/QueryProvider';
 import { SessionTokenKeeper } from '@/api/sessionTokenKeeper';
 import { AuthProvider } from '@/auth/AuthProvider';
@@ -37,7 +37,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     void initCertificatePinningIfConfigured();
-    registerGlobalCrashTelemetry();
+    void flushSessionTelemetryQueue();
   }, []);
 
   useEffect(() => {

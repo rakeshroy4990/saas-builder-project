@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import {
+  flushSessionTelemetryQueue,
   scheduleFlushSessionTelemetry,
   startSessionTelemetrySyncScheduler,
   stopSessionTelemetrySyncScheduler
@@ -13,6 +15,20 @@ import { useSessionStore } from '@/auth/sessionStore';
  */
 export function SessionTelemetrySync() {
   const accessToken = useSessionStore((s) => s.accessToken);
+
+  useEffect(() => {
+    void flushSessionTelemetryQueue();
+
+    const onAppStateChange = (state: AppStateStatus) => {
+      if (state === 'background' || state === 'inactive') {
+        void flushSessionTelemetryQueue();
+      }
+    };
+    const sub = AppState.addEventListener('change', onAppStateChange);
+    return () => {
+      sub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!accessToken) {

@@ -83,11 +83,6 @@ export async function installHospitalApiMocks(page: Page): Promise<void> {
       return;
     }
 
-    if (url.includes('/api/uiMetdata')) {
-      await fulfillJson(200, { Success: true, Data: {}, data: {} });
-      return;
-    }
-
     if (url.includes('/api/logs/batch') || url.includes('/api/logs/level')) {
       await fulfillJson(200, { Success: true, Data: null, data: null });
       return;

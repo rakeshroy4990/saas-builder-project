@@ -9,7 +9,7 @@ export function attachServerI18nBundles(i18n: I18n): void {
   i18nInstance = i18n;
 }
 
-/** CMS / tenant copy from {@code GET /api/uiMetdata} → {@code i18nBundles}. */
+/** Optional CMS / tenant copy merged into vue-i18n at runtime. */
 export type ServerI18nBundles = Record<string, Record<string, unknown>>;
 
 let cachedBundles: ServerI18nBundles | null = null;
@@ -81,7 +81,7 @@ export function getCachedServerI18nBundles(): ServerI18nBundles | null {
   return cachedBundles;
 }
 
-/** Clear CMS bundles (e.g. after {@code DELETE /api/uiMetdata/default}). */
+/** Clear CMS bundles from vue-i18n. */
 export function clearServerI18nBundles(): void {
   cachedBundles = null;
 }

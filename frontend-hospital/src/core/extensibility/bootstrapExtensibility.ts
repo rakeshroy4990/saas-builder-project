@@ -10,7 +10,7 @@ import { StyleTemplateRegistry } from '../engine/StyleTemplateRegistry';
 import type { DynamicConfig } from '@saas-builder/extensibility-contract';
 import type { Pinia } from 'pinia';
 
-/** L1/L2 bundled defaults only; server overrides come from {@code GET /api/uiMetdata}. */
+/** L1/L2 bundled defaults (no server fetch at boot). */
 export async function bootstrapExtensibility(pinia: Pinia): Promise<void> {
   const staticStore = useStaticConfigStore(pinia);
   staticStore.setConfig(bundledStatic as StaticConfig);

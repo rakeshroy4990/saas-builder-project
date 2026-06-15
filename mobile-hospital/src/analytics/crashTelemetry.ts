@@ -27,3 +27,6 @@ export function registerGlobalCrashTelemetry(): void {
     prior?.(error, isFatal);
   });
 }
+
+// Register before the root tree mounts so early JS errors are captured.
+registerGlobalCrashTelemetry();

@@ -1,10 +1,15 @@
 import { SERVER_PATHS, toTelemetryWire } from '@saas-builder/hospital-api-client';
 import axios from 'axios';
 
-import { ensureFreshAccessToken, refreshAccessToken } from '@/api/client';
+import { refreshAccessToken } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api/config';
 import { DEFAULT_API_TIMEOUT_MS, TELEMETRY_BATCH_TIMEOUT_MS } from '@/api/timeouts';
 import { getClientContext } from '@/analytics/clientContext';
+import {
+  enqueueTelemetryBody,
+  readOutboxBodies,
+  removeOutboxBodies
+} from '@/analytics/sessionTelemetryOutbox';
 import { useSessionStore } from '@/auth/sessionStore';
 
 let traceId: string | null = null;
@@ -108,7 +113,9 @@ async function buildBody(payload: SessionTelemetryPayload): Promise<string> {
 
 export async function ingestSessionTelemetry(payload: SessionTelemetryPayload): Promise<void> {
   try {
-    queue.push(await buildBody(payload));
+    const body = await buildBody(payload);
+    queue.push(body);
+    await enqueueTelemetryBody(body);
   } catch {
     // Non-blocking
   }
@@ -141,7 +148,7 @@ async function postBodiesOnce(bodies: string[]): Promise<void> {
 
 async function postBodies(bodies: string[]): Promise<void> {
   if (bodies.length === 0) return;
-  await ensureFreshAccessToken();
+  // Telemetry ingest is permitAll — avoid blocking on token refresh (especially pre-login crashes).
   try {
     await postBodiesOnce(bodies);
   } catch (error) {
@@ -149,21 +156,35 @@ async function postBodies(bodies: string[]): Promise<void> {
       throw error;
     }
     const refreshed = await refreshAccessToken();
-    if (!refreshed) throw error;
+    if (refreshed) {
+      await postBodiesOnce(bodies);
+      return;
+    }
     await postBodiesOnce(bodies);
   }
 }
 
 export function flushSessionTelemetryQueue(): Promise<void> {
   if (flushInFlight) return flushInFlight;
-  if (queue.length === 0) return Promise.resolve();
 
   flushInFlight = (async () => {
-    const batch = queue.splice(0, queue.length);
+    const memoryBatch = queue.splice(0, queue.length);
+    let diskBodies: string[] = [];
+    try {
+      diskBodies = await readOutboxBodies();
+    } catch {
+      diskBodies = [];
+    }
+    const batch = [...memoryBatch, ...diskBodies];
+    if (batch.length === 0) return;
+
     try {
       await postBodies(batch);
+      if (diskBodies.length > 0) {
+        await removeOutboxBodies(diskBodies.length);
+      }
     } catch {
-      queue.unshift(...batch);
+      queue.unshift(...memoryBatch);
     } finally {
       flushInFlight = null;
     }
@@ -224,16 +245,18 @@ export function recordAppCrashTelemetry(meta: AppCrashTelemetryMeta): void {
       const routePath = (meta.route_path ?? readLastKnownRoutePath()).trim();
       const email = readUserEmail();
 
-      await ingestSessionTelemetry({
+      const crashBody = await buildBody({
         event_name: 'app_crash',
         flow: 'crash',
         status: 'fail',
         reason_code: meta.reason_code,
         trace_id: trace
       });
+      queue.push(crashBody);
+      await enqueueTelemetryBody(crashBody);
 
       if (readUserId()) {
-        await ingestSessionTelemetry({
+        const summaryBody = await buildBody({
           event_name: 'session_summary_row',
           flow: 'session',
           status: 'fail',
@@ -257,6 +280,8 @@ export function recordAppCrashTelemetry(meta: AppCrashTelemetryMeta): void {
             }
           }
         });
+        queue.push(summaryBody);
+        await enqueueTelemetryBody(summaryBody);
       }
 
       await flushSessionTelemetryQueue();

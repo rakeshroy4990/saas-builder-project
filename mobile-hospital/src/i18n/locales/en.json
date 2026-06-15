@@ -333,7 +333,7 @@
       "ageRequired": "Child age is required.",
       "frequencyRequired": "Select how often the symptoms occur.",
       "durationRequired": "Enter how long symptoms have lasted (hours or days)."
-    },
+    }
   },
   "video": {
     "startCall": "Video call",
