@@ -83,7 +83,7 @@ export async function signInWithGoogle(): Promise<GoogleSignInCredential> {
     try {
       return await signInWithGoogleNative();
     } catch (err) {
-      throw mapNativeGoogleSignInError(err);
+      throw await mapNativeGoogleSignInError(err);
     }
   }
   throw new Error('Google sign-in is only supported on Android and iOS in the mobile app');

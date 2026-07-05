@@ -1,7 +1,7 @@
 import { SERVER_PATHS, toTelemetryWire } from '@saas-builder/hospital-api-client';
 import axios from 'axios';
 
-import { refreshAccessToken } from '@/api/client';
+import { refreshAccessToken } from '@/api/tokenRefresh';
 import { getMobileApiBaseUrl } from '@/api/config';
 import { DEFAULT_API_TIMEOUT_MS, TELEMETRY_BATCH_TIMEOUT_MS } from '@/api/timeouts';
 import { getClientContext } from '@/analytics/clientContext';

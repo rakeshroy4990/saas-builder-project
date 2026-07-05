@@ -1,11 +1,11 @@
-import { isErrorWithCode, statusCodes } from '@react-native-google-signin/google-signin';
-
 import { isGoogleDeveloperConfigError } from './googleDeveloperError';
 
 const DEVELOPER_ERROR_HEADLINE =
   'DEVELOPER_ERROR: Google Cloud Console SHA-1 / package mismatch.';
 
-export function mapNativeGoogleSignInError(err: unknown): Error {
+export async function mapNativeGoogleSignInError(err: unknown): Promise<Error> {
+  const { isErrorWithCode, statusCodes } = await import('@react-native-google-signin/google-signin');
+
   if (isErrorWithCode(err)) {
     const code = String(err.code ?? '');
     const message = String(err.message ?? '').trim();
@@ -34,7 +34,9 @@ export function mapNativeGoogleSignInError(err: unknown): Error {
 }
 
 /** True when the native Google SDK failed before we called the backend. */
-export function isGoogleNativeSdkError(error: unknown): boolean {
+export async function isGoogleNativeSdkError(error: unknown): Promise<boolean> {
+  const { isErrorWithCode, statusCodes } = await import('@react-native-google-signin/google-signin');
+
   if (isErrorWithCode(error)) {
     const code = String(error.code ?? '');
     if (code === '10' || isGoogleDeveloperConfigError(String(error.message ?? ''))) {

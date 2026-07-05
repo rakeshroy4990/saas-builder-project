@@ -9,7 +9,7 @@ import {
 
 export function useAnalyticsOverview(from: string, to: string, doctorId?: string) {
   const role = String(useSessionStore((s) => s.user?.role ?? '')).toUpperCase();
-  const userId = String(useSessionStore((s) => s.user?.id ?? '')).trim();
+  const userId = String(useSessionStore((s) => s.user?.userId ?? '')).trim();
   const scopedDoctorId = role === 'DOCTOR' ? userId : doctorId;
 
   return useQuery({

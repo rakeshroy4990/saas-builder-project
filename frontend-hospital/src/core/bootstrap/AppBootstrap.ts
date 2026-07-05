@@ -37,6 +37,9 @@ const DynGrowthWorkspace = defineAsyncComponent(
 const DynBluetoothDevicesHost = defineAsyncComponent(
   () => import('../../components/primitives/DynBluetoothDevicesHost.vue')
 );
+const DynSmartWatchIntegration = defineAsyncComponent(
+  () => import('../../components/primitives/DynSmartWatchIntegration.vue')
+);
 const DynAppointmentGrowthForm = defineAsyncComponent(
   () => import('../../components/primitives/DynAppointmentGrowthForm.vue')
 );
@@ -60,6 +63,7 @@ export function bootstrap(): void {
   ComponentRegistry.register('chat', DynChat);
   ComponentRegistry.register('video-call', DynVideoCall);
   ComponentRegistry.register('bluetooth-devices', DynBluetoothDevicesHost);
+  ComponentRegistry.register('smart-watch-integration', DynSmartWatchIntegration);
   ComponentRegistry.register('growth-workspace', DynGrowthWorkspace);
   ComponentRegistry.register('analytics-workspace', DynAnalyticsWorkspace);
   ComponentRegistry.register('appointment-growth-form', DynAppointmentGrowthForm);

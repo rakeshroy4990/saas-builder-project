@@ -773,6 +773,17 @@ export function GrowthScreen() {
             >
               <Text style={sharedStyles.buttonSecondaryText}>{t('vitals.title')}</Text>
             </Pressable>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/(app)/smart-watch-connect',
+                  params: { childId: selectedChildId }
+                } as never)
+              }
+              style={[sharedStyles.buttonSecondary, { flexGrow: 1, minWidth: 140 }]}
+            >
+              <Text style={sharedStyles.buttonSecondaryText}>{t('devices.smartWatch.connectShort')}</Text>
+            </Pressable>
           </View>
 
           <CollapsiblePanel

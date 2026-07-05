@@ -51,6 +51,7 @@ export const SERVER_PATHS = {
   hospitalVideoSession: '/api/hospital/video/session',
   chatRooms: '/api/chat/rooms',
   patientDeviceReadings: '/api/v1/patient-device-readings',
+  patientDeviceReadingsSyncSmartWatch: '/api/v1/patient-device-readings/sync-smart-watch',
   childProfiles: '/api/v1/child-profiles',
   growthRecords: '/api/v1/growth-records',
   whoPercentileCurves: '/api/v1/who/percentile-curves',

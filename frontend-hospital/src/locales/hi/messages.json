@@ -1212,6 +1212,88 @@
         "GENERIC_THERMOMETER": { "label": "थर्मामीटर", "action": "थर्मामीटर चालू करें और यदि आवश्यक हो तो पेयरिंग मोड सक्षम करें। ब्राउज़र सूची में अपने थर्मामीटर का नाम चुनें — अधिकांश डिवाइस कनेक्ट होने तक मानक स्वास्थ्य सेवा का विज्ञापन नहीं करते।" },
         "XIAOMI_MI_SCALE": { "label": "स्मार्ट स्केल (Mi / शरीर संरचना)", "action": "नंगे पैरों से तराजू पर खड़े हों और रीडिंग स्थिर होने तक प्रतीक्षा करें।" }
       }
+    },
+    "smartWatch": {
+      "title": "स्मार्ट वॉच",
+      "intro": "Apple Health या Google Health Connect के माध्यम से अपनी स्मार्ट वॉच से हृदय गति, कदम और अन्य wellness रीडिंग सिंक करें।",
+      "choosePlatformHint": "अपनी वॉच ब्रांड या health ऐप चुनें। यह केवल आपकी पसंद सहेजता है — वॉच अभी कनेक्ट नहीं होती।",
+      "backToPlatforms": "← वॉच विकल्पों पर वापस",
+      "setupIntro": "रीडिंग सिंक करने के लिए अपने फ़ोन पर ये चरण पूरे करें:",
+      "syncTitle": "हम कौन-सी रीडिंग सिंक कर सकते हैं (Health एक्सेस के बाद)",
+      "syncItems": [
+        "हृदय गति और विश्राम नाड़ी",
+        "दैनिक कदम गिनती",
+        "नींद की अवधि",
+        "रक्त ऑक्सीजन (SpO₂) जब आपकी वॉच इसे रिकॉर्ड करे"
+      ],
+      "saveWatchType": "मेरी वॉच प्रकार सहेजें",
+      "saving": "सहेजा जा रहा है…",
+      "savedTitle": "वॉच प्रकार सहेजा गया",
+      "statusNotSyncing": "अभी सिंक नहीं हो रहा — आपकी वॉच Agastya से कनेक्ट नहीं है।",
+      "savedSince": "{date} को सहेजा गया",
+      "pendingSyncHint": "अभी कोई रीडिंग आयात नहीं हो रही। Agastya मोबाइल ऐप में नीचे दिए चरण पूरे करें और Health या Health Connect की अनुमति दें।",
+      "savedToast": "वॉच प्रकार सहेजा गया। अभी सिंक नहीं हो रहा — मोबाइल ऐप में सेटअप पूरा करें।",
+      "clearedToast": "सहेजा गया वॉच प्रकार हटाया गया।",
+      "clearSaved": "सहेजा गया वॉच प्रकार हटाएँ",
+      "changeWatchType": "← वॉच प्रकार बदलें",
+      "webOnlyTitle": "फ़ोन पर कनेक्ट करें — इस ब्राउज़र में नहीं",
+      "webOnlyBody": "वेबसाइटें स्मार्ट वॉच से जोड़ या Apple Health / Health Connect नहीं पढ़ सकतीं। अपने फ़ोन पर Agastya मोबाइल ऐप इंस्टॉल करें, फिर वहाँ Connect Health data टैप करें।",
+      "webConnectTitle": "अपनी वॉच कैसे कनेक्ट करें",
+      "webConnectSteps": "Android फ़ोन पर ये चरण अपनाएँ:",
+      "webConnectStep1": "Agastya Healthcare ऐप इंस्टॉल या खोलें।",
+      "webConnectStep2": "Growth → Smart watch पर जाएँ, अपनी वॉच ब्रांड (जैसे Fire-Boltt) चुनें, फिर Connect Health data टैप करें।",
+      "webConnectStep3": "Health Connect एक्सेस की अनुमति दें। पहले सुनिश्चित करें कि Fire-Boltt ऐप Health Connect में डेटा साझा कर रहा है।",
+      "openMobileApp": "Agastya मोबाइल ऐप प्राप्त करें",
+      "notConnectedYetNote": "यहाँ सहेजने से वॉच पेयर या कनेक्ट नहीं होती। असली सिंक Agastya मोबाइल ऐप में Health या Health Connect की अनुमति देने के बाद शुरू होता है।",
+      "nextStepsTitle": "सिंक शुरू करने के लिए सेटअप पूरा करें",
+      "mobileAppNote": "वेब ब्राउज़र Apple Health या Health Connect सीधे नहीं पढ़ सकते। सिंक पूरा करने के लिए Agastya मोबाइल ऐप इंस्टॉल करें।",
+      "platforms": {
+        "fire_boltt": {
+          "label": "Fire-Boltt",
+          "steps": [
+            "Fire-Boltt ऐप इंस्टॉल करें और वॉच पेयर है तथा कदम/हृदय गति सिंक हो रही है यह पुष्टि करें।",
+            "Android पर Google Health Connect इंस्टॉल करें। Fire-Boltt सेटिंग्स में Health Connect या Google Fit सिंक सक्षम करें (यदि उपलब्ध हो)।",
+            "उसी फ़ोन पर Agastya Healthcare ऐप इंस्टॉल करें।",
+            "Agastya मोबाइल में Smart watch खोलें और Health Connect एक्सेस की अनुमति दें।"
+          ]
+        },
+        "apple_watch": {
+          "label": "Apple Watch",
+          "steps": [
+            "iPhone पर Watch ऐप खोलें और Apple Watch पेयर है यह पुष्टि करें।",
+            "Settings → Health → Data Access & Devices खोलें और वॉच Apple Health के साथ डेटा साझा करती है यह सुनिश्चित करें।",
+            "उसी iPhone पर Agastya Healthcare ऐप इंस्टॉल करें।",
+            "Agastya मोबाइल में Smart watch खोलें और Apple Health एक्सेस की अनुमति दें।"
+          ]
+        },
+        "wear_os": {
+          "label": "Wear OS / Pixel Watch",
+          "steps": [
+            "Android फ़ोन पर Wear OS या Pixel Watch ऐप में वॉच कनेक्टेड है यह पुष्टि करें।",
+            "Play Store से Google Health Connect इंस्टॉल करें (यदि नहीं है)।",
+            "Health Connect में वॉच या companion ऐप को हृदय गति, कदम और नींद डेटा लिखने की अनुमति दें।",
+            "Agastya Healthcare ऐप इंस्टॉल करें, Smart watch खोलें और Health Connect एक्सेस की अनुमति दें।"
+          ]
+        },
+        "samsung_galaxy": {
+          "label": "Samsung Galaxy Watch",
+          "steps": [
+            "Samsung Health खोलें और Galaxy Watch कनेक्टेड है यह पुष्टि करें।",
+            "Samsung Health सेटिंग्स में Health Connect (Android) या Apple Health (iPhone) सिंक सक्षम करें।",
+            "Agastya Healthcare ऐप इंस्टॉल करें।",
+            "Agastya मोबाइल में Smart watch खोलें और Health Connect या Apple Health एक्सेस की अनुमति दें।"
+          ]
+        },
+        "fitbit": {
+          "label": "Fitbit",
+          "steps": [
+            "Fitbit ऐप खोलें और वॉच सिंक हो रही है यह पुष्टि करें।",
+            "Android पर Fitbit को Health Connect से लिंक करें। iPhone पर Apple Health साझा करना सक्षम करें (यदि उपलब्ध)।",
+            "Agastya Healthcare ऐप इंस्टॉल करें।",
+            "Agastya मोबाइल में Smart watch खोलें और Health Connect या Apple Health एक्सेस की अनुमति दें।"
+          ]
+        }
+      }
     }
   },
   "legal": {

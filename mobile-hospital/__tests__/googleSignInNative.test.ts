@@ -20,8 +20,8 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
 }));
 
 describe('mapNativeGoogleSignInError', () => {
-  it('maps cancelled sign-in', () => {
-    const err = mapNativeGoogleSignInError({ code: statusCodes.SIGN_IN_CANCELLED });
+  it('maps cancelled sign-in', async () => {
+    const err = await mapNativeGoogleSignInError({ code: statusCodes.SIGN_IN_CANCELLED });
     expect(err.message).toContain('cancelled');
   });
 });

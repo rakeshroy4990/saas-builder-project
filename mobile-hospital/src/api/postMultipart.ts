@@ -1,5 +1,5 @@
 import { resolveSpringApiUrl } from '@saas-builder/hospital-api-client';
-import { File, UploadType, type UploadResult } from 'expo-file-system';
+import type { UploadResult } from 'expo-file-system';
 
 import { getOrCreateTraceId } from '@/analytics/sessionTelemetry';
 import { useSessionStore } from '@/auth/sessionStore';
@@ -10,6 +10,11 @@ import { UPLOAD_API_TIMEOUT_MS } from '@/api/timeouts';
 import { ensureUploadableFileUri } from '@/api/ensureUploadableUri';
 import { normalizeUploadMimeType } from '@/api/multipart';
 import { mapMultipartFetchError } from '@/api/multipartErrors';
+
+async function loadExpoUploadFile(readableUri: string) {
+  const { File } = await import('expo-file-system');
+  return new File(readableUri);
+}
 
 export type MultipartFetchOptions = {
   timeoutMs?: number;
@@ -63,10 +68,11 @@ export async function postMultipartLocalFile(
   const name = fileName.trim() || `upload-${Date.now()}.jpg`;
   const type = normalizeUploadMimeType(name, mimeType);
   const readableUri = await ensureUploadableFileUri(fileUri, name);
-  const file = new File(readableUri);
+  const file = await loadExpoUploadFile(readableUri);
   const url = resolveSpringApiUrl(getMobileApiBaseUrl(), path);
 
   const runUpload = async (): Promise<UploadResult> => {
+    const { UploadType } = await import('expo-file-system');
     const token = useSessionStore.getState().accessToken;
     const headers: Record<string, string> = {
       Accept: 'application/json',

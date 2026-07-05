@@ -630,6 +630,104 @@
       "connectFailed": "ಸಂಪರ್ಕಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
       "saved": "ಮಾಪನ ಉಳಿಸಲಾಗಿದೆ.",
       "saveFailed": "ಮಾಪನ ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ."
+    },
+    "smartWatch": {
+      "title": "ಸ್ಮಾರ್ಟ್ ವಾಚ್",
+      "intro": "Apple Health ಅಥವಾ Google Health Connect ಮೂಲಕ ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್ ವಾಚ್‌ನಿಂದ ಹೃದಯ ಬಡಿತ, ಹೆಜ್ಜೆಗಳು ಮತ್ತು wellness ರೀಡಿಂಗ್‌ಗಳನ್ನು ಸಿಂಕ್ ಮಾಡಿ.",
+      "choosePlatformHint": "ನಿಮ್ಮ ವಾಚ್ ಬ್ರಾಂಡ್ ಅಥವಾ health ಆ್ಯಪ್ ಆಯ್ಕೆಮಾಡಿ. ಇದು ನಿಮ್ಮ ಆಯ್ಕೆಯನ್ನು ಮಾತ್ರ ಉಳಿಸುತ್ತದೆ — ವಾಚ್ ಇನ್ನೂ ಸಂಪರ್ಕಗೊಳ್ಳುವುದಿಲ್ಲ.",
+      "backToPlatforms": "← ವಾಚ್ ಆಯ್ಕೆಗಳಿಗೆ ಹಿಂತಿರುಗಿ",
+      "setupIntro": "ರೀಡಿಂಗ್‌ಗಳನ್ನು ಸಿಂಕ್ ಮಾಡಲು ನಿಮ್ಮ ಫೋನ್‌ನಲ್ಲಿ ಈ ಹಂತಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ:",
+      "syncTitle": "ನಾವು ಸಿಂಕ್ ಮಾಡಬಹುದಾದ ರೀಡಿಂಗ್‌ಗಳು (Health ಪ್ರವೇಶದ ನಂತರ)",
+      "syncItems": [
+        "ಹೃದಯ ಬಡಿತ ಮತ್ತು ವಿಶ್ರಾಂತಿ ನಾಡಿ",
+        "ದೈನಂದಿನ ಹೆಜ್ಜೆ ಎಣಿಕೆ",
+        "ನಿದ್ರೆಯ ಅವಧಿ",
+        "ರಕ್ತ ಆಮ್ಲಜನಕ (SpO₂) ನಿಮ್ಮ ವಾಚ್ ದಾಖಲಿಸಿದಾಗ"
+      ],
+      "saveWatchType": "ನನ್ನ ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಿ",
+      "connectShort": "ಸ್ಮಾರ್ಟ್ ವಾಚ್",
+      "saving": "ಉಳಿಸಲಾಗುತ್ತಿದೆ…",
+      "savedTitle": "ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಲಾಗಿದೆ",
+      "statusNotSyncing": "ಇನ್ನೂ ಸಿಂಕ್ ಆಗುತ್ತಿಲ್ಲ — ನಿಮ್ಮ ವಾಚ್ Agastyaಗೆ ಸಂಪರ್ಕಗೊಂಡಿಲ್ಲ.",
+      "savedSince": "{{date}} ರಂದು ಉಳಿಸಲಾಗಿದೆ",
+      "pendingSyncHint": "ಇನ್ನೂ ಯಾವುದೇ ರೀಡಿಂಗ್‌ಗಳು ಆಮದಾಗುತ್ತಿಲ್ಲ. ಕೆಳಗಿನ ಹಂತಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ ಮತ್ತು Health ಅಥವಾ Health Connect ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ.",
+      "savedToast": "ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಲಾಗಿದೆ. ಇನ್ನೂ ಸಿಂಕ್ ಆಗುತ್ತಿಲ್ಲ — ಸೆಟಪ್ ಪೂರ್ಣಗೊಳಿಸಿ.",
+      "clearedToast": "ಉಳಿಸಿದ ವಾಚ್ ಪ್ರಕಾರ ತೆರವುಗೊಳಿಸಲಾಗಿದೆ.",
+      "clearSaved": "ಉಳಿಸಿದ ವಾಚ್ ಪ್ರಕಾರ ತೆರವುಗೊಳಿಸಿ",
+      "changeWatchType": "← ವಾಚ್ ಪ್ರಕಾರ ಬದಲಿಸಿ",
+      "connectHealthData": "Health data ಸಂಪರ್ಕಿಸಿ",
+      "connectHealthPrompt": "Google Health Connect ಮೂಲಕ ವಾಚ್ ಲಿಂಕ್ ಮಾಡಲು Connect Health data ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      "connectingHealth": "ಸಂಪರ್ಕಿಸಲಾಗುತ್ತಿದೆ…",
+      "syncNow": "ಈಗ ರೀಡಿಂಗ್‌ಗಳನ್ನು ಸಿಂಕ್ ಮಾಡಿ",
+      "syncingNow": "ಸಿಂಕ್ ಆಗುತ್ತಿದೆ…",
+      "healthConnect": {
+        "connectedTitle": "Health Connect ಲಿಂಕ್ ಆಗಿದೆ",
+        "connectedHint": "ಇಂದಿನ ಹೆಜ್ಜೆ, ಹೃದಯ ಬಡಿತ, ನಿದ್ರೆ ಮತ್ತು SpO₂ ಆಮದು ಮಾಡಲು Sync readings now ಟ್ಯಾಪ್ ಮಾಡಿ.",
+        "connected": "Health Connect ಪ್ರವೇಶ ದೊರೆತಿದೆ. ಈಗ ರೀಡಿಂಗ್‌ಗಳನ್ನು ಸಿಂಕ್ ಮಾಡಬಹುದು.",
+        "permissionDenied": "Health Connect ಅನುಮತಿ ದೊರೆತಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಮತ್ತು ಎಲ್ಲಾ ಡೇಟಾ ಪ್ರಕಾರಗಳನ್ನು ಅನುಮತಿಸಿ.",
+        "noDataYet": "Health Connect ನಲ್ಲಿ ಇನ್ನೂ ವಾಚ್ ಡೇಟಾ ಇಲ್ಲ. ಮೊದಲು ವಾಚ್ ಆ್ಯಪ್ Health Connect ಗೆ ಸಿಂಕ್ ಮಾಡುವುದನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+        "syncSuccess": "ಇತ್ತೀಚಿನ ರೀಡಿಂಗ್‌ಗಳು ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ಗೆ ಆಮದು ಆಗಿವೆ.",
+        "syncFailed": "ರೀಡಿಂಗ್‌ಗಳನ್ನು ಆಮದು ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+        "syncSuccessCount": "{{count}} ದಿನಗಳ ವಾಚ್ ಡೇಟಾ ಪ್ರೊಫೈಲ್‌ಗೆ ಆಮದು ಆಗಿದೆ.",
+        "importedCount": "{{count}} ದಿನಗಳು ಉಳಿಸಲಾಗಿದೆ",
+        "previewTitle": "Health Connect ನಿಂದ ಇತ್ತೀಚಿನ ಡೇಟಾ",
+        "managePermissions": "Health Connect ಅನುಮತಿಗಳನ್ನು ನಿರ್ವಹಿಸಿ",
+        "lastSync": "ಕೊನೆಯ ಸಿಂಕ್: {{date}}",
+        "devBuildRequired": "Health Connect ಗೆ Agastya dev/preview ಬಿಲ್ಡ್ ಅಗತ್ಯ — Expo Go ನಲ್ಲಿ ಕೆಲಸ ಮಾಡುವುದಿಲ್ಲ.",
+        "notInstalled": "Play Store ನಿಂದ Google Health Connect ಸ್ಥಾಪಿಸಿ.",
+        "updateRequired": "Play Store ನಿಂದ Google Health Connect ಅಪ್‌ಡೇಟ್ ಮಾಡಿ.",
+        "openStore": "Play Store ನಲ್ಲಿ Health Connect ತೆರೆಯಿರಿ",
+        "iosOnly": "iPhone ನಲ್ಲಿ Apple Health ಲಿಂಕಿಂಗ್ ಶೀಘ್ರದಲ್ಲೇ ಬರಲಿದೆ."
+      },
+      "notConnectedYetNote": "ಇಲ್ಲಿ ಉಳಿಸುವುದರಿಂದ ವಾಚ್ ಜೋಡಣೆ ಅಥವಾ ಸಂಪರ್ಕ ಆಗುವುದಿಲ್ಲ. Health ಅಥವಾ Health Connect ಅನುಮತಿಸಿದ ನಂತರ ಸಿಂಕ್ ಪ್ರಾರಂಭವಾಗುತ್ತದೆ.",
+      "nextStepsTitle": "ಸಿಂಕ್ ಪ್ರಾರಂಭಿಸಲು ಸೆಟಪ್ ಪೂರ್ಣಗೊಳಿಸಿ",
+      "platforms": {
+        "fire_boltt": {
+          "label": "Fire-Boltt",
+          "steps": [
+            "Fire-Boltt ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ ಮತ್ತು ವಾಚ್ ಜೋಡಣೆಯಾಗಿದೆ ಮತ್ತು ಹೆಜ್ಜೆ/ಹೃದಯ ಬಡಿತ ಸಿಂಕ್ ಆಗುತ್ತಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Android ನಲ್ಲಿ Google Health Connect ಸ್ಥಾಪಿಸಿ. Fire-Boltt ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ Health Connect ಅಥವಾ Google Fit ಸಿಂಕ್ ಸಕ್ರಿಯಗೊಳಿಸಿ.",
+            "Agastyaಗೆ ಹಿಂತಿರುಗಿ ನನ್ನ ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಿ ಟ್ಯಾಪ್ ಮಾಡಿ.",
+            "Health Connect ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        },
+        "apple_watch": {
+          "label": "Apple Watch",
+          "steps": [
+            "iPhone Watch ಆ್ಯಪ್‌ನಲ್ಲಿ Apple Watch ಜೋಡಣೆಯಾಗಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Settings → Health → Data Access & Devices ತೆರೆಯಿರಿ ಮತ್ತು ವಾಚ್ Apple Health ಜೊತೆ ಡೇಟಾ ಹಂಚಿಕೊಳ್ಳುತ್ತದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Agastyaಗೆ ಹಿಂತಿರುಗಿ ನನ್ನ ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಿ ಟ್ಯಾಪ್ ಮಾಡಿ.",
+            "Apple Health ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        },
+        "wear_os": {
+          "label": "Wear OS / Pixel Watch",
+          "steps": [
+            "Wear OS ಅಥವಾ Pixel Watch ಆ್ಯಪ್‌ನಲ್ಲಿ ವಾಚ್ ಸಂಪರ್ಕಗೊಂಡಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Google Health Connect ಸ್ಥಾಪಿಸಿ (ಅಗತ್ಯವಿದ್ದರೆ).",
+            "Health Connect ನಲ್ಲಿ ವಾಚ್ ಆ್ಯಪ್‌ಗೆ ಹೃದಯ ಬಡಿತ, ಹೆಜ್ಜೆಗಳು ಮತ್ತು ನಿದ್ರೆ ಡೇಟಾ ಬರೆಯಲು ಅನುಮತಿ ನೀಡಿ.",
+            "Agastyaಗೆ ಹಿಂತಿರುಗಿ Health Connect ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        },
+        "samsung_galaxy": {
+          "label": "Samsung Galaxy Watch",
+          "steps": [
+            "Samsung Health ನಲ್ಲಿ Galaxy Watch ಸಂಪರ್ಕಗೊಂಡಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Samsung Health ನಲ್ಲಿ Health Connect ಅಥವಾ Apple Health ಸಿಂಕ್ ಸಕ್ರಿಯಗೊಳಿಸಿ.",
+            "Agastyaಗೆ ಹಿಂತಿರುಗಿ ನನ್ನ ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಿ ಟ್ಯಾಪ್ ಮಾಡಿ.",
+            "Health Connect ಅಥವಾ Apple Health ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        },
+        "fitbit": {
+          "label": "Fitbit",
+          "steps": [
+            "Fitbit ಆ್ಯಪ್‌ನಲ್ಲಿ ವಾಚ್ ಸಿಂಕ್ ಆಗುತ್ತಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Android ನಲ್ಲಿ Fitbit ಅನ್ನು Health Connect ಗೆ ಲಿಂಕ್ ಮಾಡಿ.",
+            "Agastyaಗೆ ಹಿಂತಿರುಗಿ ನನ್ನ ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಿ ಟ್ಯಾಪ್ ಮಾಡಿ.",
+            "Health Connect ಅಥವಾ Apple Health ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        }
+      }
     }
   },
   "vitals": {

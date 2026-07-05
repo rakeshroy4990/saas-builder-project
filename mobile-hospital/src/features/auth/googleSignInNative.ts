@@ -1,4 +1,3 @@
-import { GoogleSignin, isSuccessResponse, type SignInSilentlyResponse } from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -14,6 +13,12 @@ export type GoogleNativeCredential = {
   accessToken: string;
 };
 
+type GoogleSignInModule = typeof import('@react-native-google-signin/google-signin');
+
+async function loadGoogleSignIn(): Promise<GoogleSignInModule> {
+  return import('@react-native-google-signin/google-signin');
+}
+
 export function isNativeGoogleSignInAvailable(): boolean {
   return Platform.OS === 'android' || Platform.OS === 'ios';
 }
@@ -23,7 +28,7 @@ export function isExpoGoClient(): boolean {
   return Constants.appOwnership === 'expo';
 }
 
-export function ensureGoogleSignInConfigured(): void {
+export async function ensureGoogleSignInConfigured(): Promise<void> {
   if (configured || !isNativeGoogleSignInAvailable()) return;
 
   const ids = getGoogleOAuthClientIds();
@@ -36,6 +41,7 @@ export function ensureGoogleSignInConfigured(): void {
     );
   }
 
+  const { GoogleSignin } = await loadGoogleSignIn();
   GoogleSignin.configure({
     webClientId: ids.webClientId,
     iosClientId: ids.iosClientId,
@@ -68,7 +74,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 export async function warmGoogleSignInNative(): Promise<void> {
   if (!isNativeGoogleSignInAvailable() || isExpoGoClient()) return;
   try {
-    ensureGoogleSignInConfigured();
+    await ensureGoogleSignInConfigured();
+    const { GoogleSignin } = await loadGoogleSignIn();
     if (Platform.OS === 'android') {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: false });
     }
@@ -78,7 +85,10 @@ export async function warmGoogleSignInNative(): Promise<void> {
   }
 }
 
-async function readCredentialAfterSignIn(idTokenFromResponse?: string | null): Promise<GoogleNativeCredential> {
+async function readCredentialAfterSignIn(
+  GoogleSignin: GoogleSignInModule['GoogleSignin'],
+  idTokenFromResponse?: string | null
+): Promise<GoogleNativeCredential> {
   const tokens = await GoogleSignin.getTokens();
   const accessToken = tokens.accessToken?.trim();
   if (!accessToken) {
@@ -89,16 +99,14 @@ async function readCredentialAfterSignIn(idTokenFromResponse?: string | null): P
 }
 
 async function trySilentGoogleCredential(): Promise<GoogleNativeCredential | null> {
+  const { GoogleSignin } = await loadGoogleSignIn();
   if (!GoogleSignin.hasPreviousSignIn()) return null;
   try {
-    const silent: SignInSilentlyResponse = await withTimeout(
-      GoogleSignin.signInSilently(),
-      SILENT_SIGN_IN_TIMEOUT_MS
-    );
+    const silent = await withTimeout(GoogleSignin.signInSilently(), SILENT_SIGN_IN_TIMEOUT_MS);
     if (silent.type !== 'success') return null;
     const idTokenFromResponse =
       typeof silent.data?.idToken === 'string' ? silent.data.idToken.trim() : null;
-    return await readCredentialAfterSignIn(idTokenFromResponse);
+    return await readCredentialAfterSignIn(GoogleSignin, idTokenFromResponse);
   } catch {
     return null;
   }
@@ -111,7 +119,8 @@ export async function signInWithGoogleNative(): Promise<GoogleNativeCredential> 
     );
   }
 
-  ensureGoogleSignInConfigured();
+  await ensureGoogleSignInConfigured();
+  const { GoogleSignin, isSuccessResponse } = await loadGoogleSignIn();
 
   const silentCredential = await trySilentGoogleCredential();
   if (silentCredential) return silentCredential;
@@ -123,5 +132,5 @@ export async function signInWithGoogleNative(): Promise<GoogleNativeCredential> 
 
   const idTokenFromResponse =
     typeof response.data?.idToken === 'string' ? response.data.idToken.trim() : null;
-  return readCredentialAfterSignIn(idTokenFromResponse);
+  return readCredentialAfterSignIn(GoogleSignin, idTokenFromResponse);
 }

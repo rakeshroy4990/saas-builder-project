@@ -670,6 +670,105 @@
       "connectFailed": "Could not connect.",
       "saved": "Reading saved.",
       "saveFailed": "Could not save reading."
+    },
+    "smartWatch": {
+      "title": "Smart watch",
+      "intro": "Sync heart rate, steps, and other wellness readings from your smart watch through Apple Health or Google Health Connect.",
+      "choosePlatformHint": "Choose your watch brand or health app. This only saves your choice — it does not connect your watch yet.",
+      "backToPlatforms": "← Back to watch options",
+      "setupIntro": "Complete these steps on your phone to sync readings:",
+      "syncTitle": "Readings we can sync (once Health access is enabled)",
+      "syncItems": [
+        "Steps and distance",
+        "Heart rate (avg, min, max) and resting pulse",
+        "Sleep duration",
+        "Blood oxygen (SpO₂)",
+        "Active and total calories",
+        "Floors climbed"
+      ],
+      "saveWatchType": "Save my watch type",
+      "connectShort": "Smart watch",
+      "saving": "Saving…",
+      "savedTitle": "Watch type saved",
+      "statusNotSyncing": "Not syncing yet — your watch is not connected to Agastya.",
+      "savedSince": "Saved on {{date}}",
+      "pendingSyncHint": "No readings are being imported yet. Finish the steps below and allow Health or Health Connect access.",
+      "savedToast": "Watch type saved. Your watch is not syncing yet — complete setup below.",
+      "clearedToast": "Saved watch type cleared.",
+      "clearSaved": "Clear saved watch type",
+      "changeWatchType": "← Change watch type",
+      "connectHealthData": "Connect Health data",
+      "connectHealthPrompt": "Tap Connect Health data to link your watch through Google Health Connect.",
+      "connectingHealth": "Connecting…",
+      "syncNow": "Sync readings now",
+      "syncingNow": "Syncing…",
+      "healthConnect": {
+        "connectedTitle": "Health Connect linked",
+        "connectedHint": "Tap Sync readings now to import today's steps, heart rate, sleep, and SpO₂.",
+        "connected": "Health Connect access granted. You can sync readings now.",
+        "permissionDenied": "Health Connect permission was not granted. Try again and allow all requested data types.",
+        "noDataYet": "No watch data in Health Connect yet. Ensure your watch app syncs to Health Connect first.",
+        "syncSuccessCount": "Imported {{count}} days of watch data to your profile.",
+        "importedCount": "{{count}} days saved",
+        "previewTitle": "Latest data from Health Connect",
+        "managePermissions": "Manage Health Connect permissions",
+        "syncFailed": "Could not import readings. Try again in a moment.",
+        "lastSync": "Last sync: {{date}}",
+        "devBuildRequired": "Health Connect requires an Agastya dev or preview build — not Expo Go.",
+        "notInstalled": "Install Google Health Connect from the Play Store, then try again.",
+        "updateRequired": "Update Google Health Connect from the Play Store, then try again.",
+        "openStore": "Open Health Connect in Play Store",
+        "iosOnly": "Apple Health linking is coming soon on iPhone."
+      },
+      "notConnectedYetNote": "Saving here does not pair or connect your watch. Real sync starts only after you allow Health or Health Connect access.",
+      "nextStepsTitle": "Finish setup to start syncing",
+      "platforms": {
+        "fire_boltt": {
+          "label": "Fire-Boltt",
+          "steps": [
+            "Install the Fire-Boltt app and confirm your watch is paired and syncing steps or heart rate.",
+            "On Android, install Google Health Connect. In Fire-Boltt settings, enable sync to Health Connect or Google Fit if available.",
+            "Return to Agastya and tap Save my watch type.",
+            "Allow Health Connect access when Agastya prompts you."
+          ]
+        },
+        "apple_watch": {
+          "label": "Apple Watch",
+          "steps": [
+            "Confirm your Apple Watch is paired in the Watch app on iPhone.",
+            "Open Settings → Health → Data Access & Devices and ensure your watch shares data with Apple Health.",
+            "Return to Agastya and tap Save my watch type.",
+            "Allow Apple Health access when Agastya prompts you."
+          ]
+        },
+        "wear_os": {
+          "label": "Wear OS / Pixel Watch",
+          "steps": [
+            "Confirm your watch is connected in the Wear OS or Pixel Watch app.",
+            "Install Google Health Connect from the Play Store if needed.",
+            "In Health Connect, allow your watch app to write heart rate, steps, and sleep data.",
+            "Return to Agastya and allow Health Connect access when prompted."
+          ]
+        },
+        "samsung_galaxy": {
+          "label": "Samsung Galaxy Watch",
+          "steps": [
+            "Open Samsung Health and confirm your Galaxy Watch is connected.",
+            "Enable sync to Health Connect (Android) or Apple Health (iPhone) in Samsung Health settings.",
+            "Return to Agastya and tap Save my watch type.",
+            "Allow Health Connect or Apple Health access when prompted."
+          ]
+        },
+        "fitbit": {
+          "label": "Fitbit",
+          "steps": [
+            "Open the Fitbit app and confirm your watch is syncing.",
+            "On Android, link Fitbit to Health Connect. On iPhone, enable Apple Health sharing if available.",
+            "Return to Agastya and tap Save my watch type.",
+            "Allow Health Connect or Apple Health access when prompted."
+          ]
+        }
+      }
     }
   },
   "vitals": {

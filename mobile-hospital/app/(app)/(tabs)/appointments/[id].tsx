@@ -117,7 +117,7 @@ export default function AppointmentDetailScreen() {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ marginBottom: 10 }}>
-      <Text style={{ color: colors.muted, fontSize: 12 }}>{label}</Text>
+      <Text style={{ color: colors.textMuted, fontSize: 12 }}>{label}</Text>
       <Text style={{ color: colors.text, fontSize: 15, marginTop: 2 }}>{value}</Text>
     </View>
   );

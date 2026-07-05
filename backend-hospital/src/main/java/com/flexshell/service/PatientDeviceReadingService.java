@@ -5,6 +5,9 @@ import com.flexshell.controller.dto.PatientDeviceReadingCreateRequest;
 import com.flexshell.controller.dto.PatientDeviceReadingQueryDto;
 import com.flexshell.controller.dto.PatientDeviceReadingResponse;
 import com.flexshell.controller.dto.PatientDeviceReadingSaveRequest;
+import com.flexshell.controller.dto.SmartWatchSyncReadingItem;
+import com.flexshell.controller.dto.SmartWatchSyncRequest;
+import com.flexshell.controller.dto.SmartWatchSyncResponse;
 import com.flexshell.persistence.postgres.model.AppointmentJpaEntity;
 import com.flexshell.persistence.postgres.model.PatientDeviceReadingJpaEntity;
 import com.flexshell.persistence.postgres.model.UserJpaEntity;
@@ -20,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Base64;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -91,6 +96,57 @@ public class PatientDeviceReadingService {
         PatientDeviceReadingJpaEntity saved = readingRepository.save(row);
         LOG.info("patient_device_reading_saved deviceType={} deviceKey={}", deviceType, deviceKey);
         return toResponse(saved);
+    }
+
+    private static final int SMART_WATCH_SYNC_MAX_ROWS = 31;
+
+    @Transactional
+    public SmartWatchSyncResponse syncSmartWatch(String actorUserId, SmartWatchSyncRequest request) {
+        if (resolveRole(actorUserId) != UserRole.PATIENT) {
+            throw new SecurityException("Only patients can sync smart watch readings.");
+        }
+        if (request == null || request.readings() == null || request.readings().isEmpty()) {
+            throw new IllegalArgumentException("PATIENT_DEVICE_READING_MEASUREMENTS_REQUIRED");
+        }
+        String platform = Objects.toString(request.platform(), "").trim();
+        if (platform.isBlank()) {
+            throw new IllegalArgumentException("PATIENT_DEVICE_READING_DEVICE_REQUIRED");
+        }
+        if (request.childProfileExternalId() != null) {
+            childProfileService.requireReadableChild(actorUserId, request.childProfileExternalId());
+        }
+
+        String deviceKey = "SMART_WATCH_" + platform.toUpperCase().replace('-', '_');
+        String deviceName = platform.replace('_', ' ');
+
+        List<PatientDeviceReadingResponse> savedRows = new ArrayList<>();
+        int count = 0;
+        for (SmartWatchSyncReadingItem item : request.readings()) {
+            if (count >= SMART_WATCH_SYNC_MAX_ROWS) {
+                break;
+            }
+            Map<String, Object> measurements = item.measurements();
+            if (measurements == null || measurements.isEmpty()) {
+                continue;
+            }
+            PatientDeviceReadingJpaEntity row = new PatientDeviceReadingJpaEntity();
+            row.setPatientUserId(actorUserId);
+            row.setDeviceKey(deviceKey);
+            row.setDeviceName(deviceName);
+            row.setDeviceType("smart_watch");
+            row.setMeasurements(new LinkedHashMap<>(measurements));
+            row.setRecordedAt(item.recordedAt() != null ? item.recordedAt() : Instant.now());
+            row.setChildProfileExternalId(request.childProfileExternalId());
+            row.setRecordedByUserId(actorUserId);
+            row.setDeleted(false);
+            savedRows.add(toResponse(readingRepository.save(row)));
+            count++;
+        }
+        if (savedRows.isEmpty()) {
+            throw new IllegalArgumentException("PATIENT_DEVICE_READING_MEASUREMENTS_REQUIRED");
+        }
+        LOG.info("smart_watch_sync_saved platform={} count={}", platform, savedRows.size());
+        return new SmartWatchSyncResponse(savedRows.size(), savedRows);
     }
 
     @Transactional

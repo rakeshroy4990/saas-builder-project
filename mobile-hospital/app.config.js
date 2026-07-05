@@ -5,6 +5,9 @@
 const fs = require('fs');
 const path = require('path');
 
+// Must match metro.config.js — lazy route imports avoid loading every screen at cold start.
+process.env.EXPO_ROUTER_IMPORT_MODE = 'lazy';
+
 const { validateGoogleServices } = require('./scripts/validateGoogleServices.js');
 
 function googleSchemeFromClientId(clientId) {
@@ -35,7 +38,10 @@ module.exports = ({ config }) => {
     {
       android: {
         buildArchs: ['arm64-v8a', 'armeabi-v7a'],
-        softwareKeyboardLayoutMode: 'resize'
+        softwareKeyboardLayoutMode: 'resize',
+        minSdkVersion: 26,
+        compileSdkVersion: 35,
+        targetSdkVersion: 35
       }
     }
   ]);

@@ -161,7 +161,7 @@ function GoogleSignInButtonNative(props: GoogleSignInButtonProps) {
       if (msg && !/cancel/i.test(msg)) {
         recordGoogleFailure();
       }
-      if (isGoogleNativeSdkError(err)) {
+      if (await isGoogleNativeSdkError(err)) {
         setError(formatGoogleSdkFailure(err, t('auth.googleFailed')));
         return;
       }

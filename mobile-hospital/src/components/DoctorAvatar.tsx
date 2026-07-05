@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { USER_SKETCH_IMAGE_DATA_URL } from '@saas-builder/hospital-api-client';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, StyleSheet, View, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors } from '@/theme/colors';
 
@@ -12,6 +12,7 @@ type DoctorAvatarProps = {
   size?: number;
   borderRadius?: number;
   style?: StyleProp<ViewStyle>;
+  imageStyle?: StyleProp<ImageStyle>;
 };
 
 function canLoadRemoteImage(profilePic: string, imageUrl: string): boolean {
@@ -29,7 +30,8 @@ export function DoctorAvatar({
   name,
   size = 72,
   borderRadius = 12,
-  style
+  style,
+  imageStyle
 }: DoctorAvatarProps) {
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -55,7 +57,7 @@ export function DoctorAvatar({
   return (
     <Image
       source={{ uri: imageUrl }}
-      style={[styles.image, frameStyle, style]}
+      style={[styles.image, frameStyle, imageStyle]}
       accessibilityLabel={name}
       onError={() => setLoadFailed(true)}
     />

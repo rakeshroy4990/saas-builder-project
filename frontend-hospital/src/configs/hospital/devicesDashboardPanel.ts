@@ -31,6 +31,11 @@ export function devicesPanelContentChildren(idPrefix: string): ComponentDefiniti
       id: `${idPrefix}-ui`,
       type: 'bluetooth-devices',
       config: {}
+    },
+    {
+      id: `${idPrefix}-smart-watch`,
+      type: 'smart-watch-integration',
+      config: {}
     }
   ];
 }

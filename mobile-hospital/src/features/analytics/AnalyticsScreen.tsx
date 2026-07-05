@@ -10,8 +10,7 @@ import {
   Text,
   View
 } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { cacheDirectory, EncodingType, writeAsStringAsync } from 'expo-file-system/legacy';
 
 import { useSessionStore } from '@/auth/sessionStore';
 import { fetchAnalyticsCsvMobile } from '@/features/analytics/analyticsApi';
@@ -50,7 +49,7 @@ export function AnalyticsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const role = String(useSessionStore((s) => s.user?.role ?? '')).toUpperCase();
-  const userId = String(useSessionStore((s) => s.user?.id ?? '')).trim();
+  const userId = String(useSessionStore((s) => s.user?.userId ?? '')).trim();
   const [range, setRange] = useState(shiftRange(30));
   const [doctorFilter, setDoctorFilter] = useState<{ id: string; name: string } | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -89,8 +88,13 @@ export function AnalyticsScreen() {
         to: range.to,
         doctorId: scopedDoctorId || undefined
       });
-      const path = `${FileSystem.cacheDirectory}agastya_${type}_${range.to}.csv`;
-      await FileSystem.writeAsStringAsync(path, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      if (!cacheDirectory) {
+        Alert.alert(t('analytics.exportTitle'), t('analytics.exportUnavailable'));
+        return;
+      }
+      const path = `${cacheDirectory}agastya_${type}_${range.to}.csv`;
+      await writeAsStringAsync(path, csv, { encoding: EncodingType.UTF8 });
+      const Sharing = await import('expo-sharing');
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(path, {
           mimeType: 'text/csv',

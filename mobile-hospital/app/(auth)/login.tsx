@@ -47,7 +47,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (!googleConfigured) return;
     if (Platform.OS !== 'web') {
-      ensureGoogleSignInConfigured();
+      void ensureGoogleSignInConfigured();
     }
     warmGoogleLogin();
   }, [googleConfigured]);

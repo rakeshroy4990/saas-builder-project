@@ -6,6 +6,8 @@ import com.flexshell.controller.dto.PatientDeviceReadingCreateRequest;
 import com.flexshell.controller.dto.PatientDeviceReadingQueryDto;
 import com.flexshell.controller.dto.PatientDeviceReadingResponse;
 import com.flexshell.controller.dto.PatientDeviceReadingSaveRequest;
+import com.flexshell.controller.dto.SmartWatchSyncRequest;
+import com.flexshell.controller.dto.SmartWatchSyncResponse;
 import com.flexshell.controller.dto.StandardApiResponse;
 import com.flexshell.controller.support.EntityListResponseSupport;
 import com.flexshell.controller.support.EntityQueryBinder;
@@ -118,6 +120,27 @@ public class PatientDeviceReadingController {
             PatientDeviceReadingResponse data = patientDeviceReadingService.save(userId, request);
             HttpStatus status = request.getExternalId() == null ? HttpStatus.CREATED : HttpStatus.OK;
             return ResponseEntity.status(status).body(StandardApiResponse.success(messages.success("success.patient.device.reading.saved"), data));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_DEVICE_READING_INVALID"), "PATIENT_DEVICE_READING_INVALID"));
+        } catch (SecurityException ex) {
+            return forbidden(ex.getMessage());
+        }
+    }
+
+    @PostMapping(value = "/sync-smart-watch", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<SmartWatchSyncResponse>> syncSmartWatch(
+            @RequestBody SmartWatchSyncRequest request,
+            Authentication authentication
+    ) {
+        String userId = actorId(authentication);
+        if (userId.isBlank()) {
+            return unauthorized();
+        }
+        try {
+            SmartWatchSyncResponse data = patientDeviceReadingService.syncSmartWatch(userId, request);
+            return ResponseEntity.ok(
+                    StandardApiResponse.success(messages.success("success.patient.device.reading.sync"), data));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(StandardApiResponse.error(messages.resolveException(ex, "PATIENT_DEVICE_READING_INVALID"), "PATIENT_DEVICE_READING_INVALID"));

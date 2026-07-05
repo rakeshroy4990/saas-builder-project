@@ -2,11 +2,10 @@ import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
 
 import { getOrCreateTraceId } from '@/analytics/sessionTelemetry';
 import { useSessionStore } from '@/auth/sessionStore';
-import { fetchWithAuthRetry } from '@/api/client';
+import { apiClient, fetchWithAuthRetry } from '@/api/client';
 import { getMobileApiBaseUrl } from '@/api/config';
 import { fetchWithTimeout } from '@/api/fetchWithTimeout';
 import { DEFAULT_API_TIMEOUT_MS } from '@/api/timeouts';
-import { api } from '@/api/client';
 
 export interface TriageResultRow {
   externalId: string;
@@ -205,7 +204,7 @@ export async function analyzeTriage(
 export async function fetchTriageForAppointmentId(appointmentId: string): Promise<TriageResultRow | null> {
   try {
     const path = `${SERVER_PATHS.triageResults}/appointment-id/${encodeURIComponent(appointmentId)}`;
-    const res = await api.get(path);
+    const res = await apiClient.get(path);
     return parseRow(res.data);
   } catch {
     return null;

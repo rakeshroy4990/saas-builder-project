@@ -23,7 +23,7 @@ export default function AnalyticsHeatmapScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const role = String(useSessionStore((s) => s.user?.role ?? '')).toUpperCase();
-  const userId = String(useSessionStore((s) => s.user?.id ?? '')).trim();
+  const userId = String(useSessionStore((s) => s.user?.userId ?? '')).trim();
   const range = defaultAnalyticsRange();
 
   const query = useQuery({

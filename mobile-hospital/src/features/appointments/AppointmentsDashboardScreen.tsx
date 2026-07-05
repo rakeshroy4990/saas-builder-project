@@ -126,7 +126,9 @@ export default function AppointmentsDashboardScreen() {
             renderItem={({ item }) => (
               <Pressable
                 style={[sharedStyles.card, { marginBottom: 10 }]}
-                onPress={() => router.push(`/(app)/(tabs)/appointments/${item.id}`)}
+                onPress={() =>
+                  router.push(`/(app)/(tabs)/appointments/${item.id}` as never)
+                }
               >
                 <Text style={{ fontSize: 16, fontWeight: '600', color: '#0f172a' }}>{item.patientName}</Text>
                 <Text style={sharedStyles.subtitle}>

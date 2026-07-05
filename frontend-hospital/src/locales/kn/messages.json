@@ -1266,6 +1266,88 @@
           "action": "ಬರಿಗಾಲಿನಲ್ಲಿ ಸ್ಕೇಲ್ ಮೇಲೆ ನಿಲ್ಲಿ ಮತ್ತು ರೀಡಿಂಗ್ ಸ್ಥಿರವಾಗುವವರೆಗೆ ಕಾಯಿರಿ."
         }
       }
+    },
+    "smartWatch": {
+      "title": "ಸ್ಮಾರ್ಟ್ ವಾಚ್",
+      "intro": "Apple Health ಅಥವಾ Google Health Connect ಮೂಲಕ ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್ ವಾಚ್‌ನಿಂದ ಹೃದಯ ಬಡಿತ, ಹೆಜ್ಜೆಗಳು ಮತ್ತು wellness ರೀಡಿಂಗ್‌ಗಳನ್ನು ಸಿಂಕ್ ಮಾಡಿ.",
+      "choosePlatformHint": "ನಿಮ್ಮ ವಾಚ್ ಬ್ರಾಂಡ್ ಅಥವಾ health ಆ್ಯಪ್ ಆಯ್ಕೆಮಾಡಿ. ಇದು ನಿಮ್ಮ ಆಯ್ಕೆಯನ್ನು ಮಾತ್ರ ಉಳಿಸುತ್ತದೆ — ವಾಚ್ ಇನ್ನೂ ಸಂಪರ್ಕಗೊಳ್ಳುವುದಿಲ್ಲ.",
+      "backToPlatforms": "← ವಾಚ್ ಆಯ್ಕೆಗಳಿಗೆ ಹಿಂತಿರುಗಿ",
+      "setupIntro": "ರೀಡಿಂಗ್‌ಗಳನ್ನು ಸಿಂಕ್ ಮಾಡಲು ನಿಮ್ಮ ಫೋನ್‌ನಲ್ಲಿ ಈ ಹಂತಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ:",
+      "syncTitle": "ನಾವು ಸಿಂಕ್ ಮಾಡಬಹುದಾದ ರೀಡಿಂಗ್‌ಗಳು (Health ಪ್ರವೇಶದ ನಂತರ)",
+      "syncItems": [
+        "ಹೃದಯ ಬಡಿತ ಮತ್ತು ವಿಶ್ರಾಂತಿ ನಾಡಿ",
+        "ದೈನಂದಿನ ಹೆಜ್ಜೆ ಎಣಿಕೆ",
+        "ನಿದ್ರೆಯ ಅವಧಿ",
+        "ರಕ್ತ ಆಮ್ಲಜನಕ (SpO₂) ನಿಮ್ಮ ವಾಚ್ ದಾಖಲಿಸಿದಾಗ"
+      ],
+      "saveWatchType": "ನನ್ನ ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಿ",
+      "saving": "ಉಳಿಸಲಾಗುತ್ತಿದೆ…",
+      "savedTitle": "ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಲಾಗಿದೆ",
+      "statusNotSyncing": "ಇನ್ನೂ ಸಿಂಕ್ ಆಗುತ್ತಿಲ್ಲ — ನಿಮ್ಮ ವಾಚ್ Agastyaಗೆ ಸಂಪರ್ಕಗೊಂಡಿಲ್ಲ.",
+      "savedSince": "{date} ರಂದು ಉಳಿಸಲಾಗಿದೆ",
+      "pendingSyncHint": "ಇನ್ನೂ ಯಾವುದೇ ರೀಡಿಂಗ್‌ಗಳು ಆಮದಾಗುತ್ತಿಲ್ಲ. Agastya ಮೊಬೈಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ಕೆಳಗಿನ ಹಂತಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ ಮತ್ತು Health ಅಥವಾ Health Connect ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ.",
+      "savedToast": "ವಾಚ್ ಪ್ರಕಾರ ಉಳಿಸಲಾಗಿದೆ. ಇನ್ನೂ ಸಿಂಕ್ ಆಗುತ್ತಿಲ್ಲ — ಮೊಬೈಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ಸೆಟಪ್ ಪೂರ್ಣಗೊಳಿಸಿ.",
+      "clearedToast": "ಉಳಿಸಿದ ವಾಚ್ ಪ್ರಕಾರ ತೆರವುಗೊಳಿಸಲಾಗಿದೆ.",
+      "clearSaved": "ಉಳಿಸಿದ ವಾಚ್ ಪ್ರಕಾರ ತೆರವುಗೊಳಿಸಿ",
+      "changeWatchType": "← ವಾಚ್ ಪ್ರಕಾರ ಬದಲಿಸಿ",
+      "webOnlyTitle": "ನಿಮ್ಮ ಫೋನ್‌ನಲ್ಲಿ ಸಂಪರ್ಕಿಸಿ — ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಅಲ್ಲ",
+      "webOnlyBody": "ವೆಬ್‌ಸೈಟ್‌ಗಳು ಸ್ಮಾರ್ಟ್ ವಾಚ್‌ಗಳನ್ನು ಜೋಡಿಸಲು ಅಥವಾ Apple Health / Health Connect ಓದಲು ಸಾಧ್ಯವಿಲ್ಲ. Agastya ಮೊಬೈಲ್ ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ, ನಂತರ ಅಲ್ಲಿ Connect Health data ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      "webConnectTitle": "ನಿಮ್ಮ ವಾಚ್ ಅನ್ನು ಹೇಗೆ ಸಂಪರ್ಕಿಸುವುದು",
+      "webConnectSteps": "Android ಫೋನ್‌ನಲ್ಲಿ ಈ ಹಂತಗಳನ್ನು ಅನುಸರಿಸಿ:",
+      "webConnectStep1": "Agastya Healthcare ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ ಅಥವಾ ತೆರೆಯಿರಿ.",
+      "webConnectStep2": "Growth → Smart watch ಗೆ ಹೋಗಿ, ನಿಮ್ಮ ವಾಚ್ ಬ್ರಾಂಡ್ (ಉದಾ. Fire-Boltt) ಆಯ್ಕೆಮಾಡಿ, ನಂತರ Connect Health data ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      "webConnectStep3": "Health Connect ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ. Fire-Boltt ಆ್ಯಪ್ Health Connect ಗೆ ಡೇಟಾ ಹಂಚಿಕೊಳ್ಳುತ್ತದೆ ಎಂದು ಮೊದಲು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+      "openMobileApp": "Agastya ಮೊಬೈಲ್ ಆ್ಯಪ್ ಪಡೆಯಿರಿ",
+      "notConnectedYetNote": "ಇಲ್ಲಿ ಉಳಿಸುವುದರಿಂದ ವಾಚ್ ಜೋಡಣೆ ಅಥವಾ ಸಂಪರ್ಕ ಆಗುವುದಿಲ್ಲ. Agastya ಮೊಬೈಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ Health ಅಥವಾ Health Connect ಅನುಮತಿಸಿದ ನಂತರ ನಿಜ ಸಿಂಕ್ ಪ್ರಾರಂಭವಾಗುತ್ತದೆ.",
+      "nextStepsTitle": "ಸಿಂಕ್ ಪ್ರಾರಂಭಿಸಲು ಸೆಟಪ್ ಪೂರ್ಣಗೊಳಿಸಿ",
+      "mobileAppNote": "ವೆಬ್ ಬ್ರೌಸರ್‌ಗಳು Apple Health ಅಥವಾ Health Connect ಅನ್ನು ನೇರವಾಗಿ ಓದಲು ಸಾಧ್ಯವಿಲ್ಲ. ಸಿಂಕ್ ಪೂರ್ಣಗೊಳಿಸಲು Agastya ಮೊಬೈಲ್ ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ.",
+      "platforms": {
+        "fire_boltt": {
+          "label": "Fire-Boltt",
+          "steps": [
+            "Fire-Boltt ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ ಮತ್ತು ವಾಚ್ ಜೋಡಣೆಯಾಗಿದೆ ಮತ್ತು ಹೆಜ್ಜೆ/ಹೃದಯ ಬಡಿತ ಸಿಂಕ್ ಆಗುತ್ತಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Android ನಲ್ಲಿ Google Health Connect ಸ್ಥಾಪಿಸಿ. Fire-Boltt ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ Health Connect ಅಥವಾ Google Fit ಸಿಂಕ್ ಸಕ್ರಿಯಗೊಳಿಸಿ (ಲಭ್ಯವಿದ್ದರೆ).",
+            "ಅದೇ ಫೋನ್‌ನಲ್ಲಿ Agastya Healthcare ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ.",
+            "Agastya ಮೊಬೈಲ್‌ನಲ್ಲಿ Smart watch ತೆರೆಯಿರಿ ಮತ್ತು Health Connect ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        },
+        "apple_watch": {
+          "label": "Apple Watch",
+          "steps": [
+            "iPhone ನಲ್ಲಿ Watch ಆ್ಯಪ್ ತೆರೆಯಿರಿ ಮತ್ತು Apple Watch ಜೋಡಣೆಯಾಗಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Settings → Health → Data Access & Devices ತೆರೆಯಿರಿ ಮತ್ತು ವಾಚ್ Apple Health ಜೊತೆ ಡೇಟಾ ಹಂಚಿಕೊಳ್ಳುತ್ತದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "ಅದೇ iPhone ನಲ್ಲಿ Agastya Healthcare ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ.",
+            "Agastya ಮೊಬೈಲ್‌ನಲ್ಲಿ Smart watch ತೆರೆಯಿರಿ ಮತ್ತು Apple Health ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        },
+        "wear_os": {
+          "label": "Wear OS / Pixel Watch",
+          "steps": [
+            "Android ಫೋನ್‌ನಲ್ಲಿ Wear OS ಅಥವಾ Pixel Watch ಆ್ಯಪ್‌ನಲ್ಲಿ ವಾಚ್ ಸಂಪರ್ಕಗೊಂಡಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Play Store ನಿಂದ Google Health Connect ಸ್ಥಾಪಿಸಿ (ಅಗತ್ಯವಿದ್ದರೆ).",
+            "Health Connect ನಲ್ಲಿ ವಾಚ್ ಅಥವಾ companion ಆ್ಯಪ್‌ಗೆ ಹೃದಯ ಬಡಿತ, ಹೆಜ್ಜೆಗಳು ಮತ್ತು ನಿದ್ರೆ ಡೇಟಾ ಬರೆಯಲು ಅನುಮತಿ ನೀಡಿ.",
+            "Agastya Healthcare ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ, Smart watch ತೆರೆಯಿರಿ ಮತ್ತು Health Connect ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        },
+        "samsung_galaxy": {
+          "label": "Samsung Galaxy Watch",
+          "steps": [
+            "Samsung Health ತೆರೆಯಿರಿ ಮತ್ತು Galaxy Watch ಸಂಪರ್ಕಗೊಂಡಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Samsung Health ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ Health Connect (Android) ಅಥವಾ Apple Health (iPhone) ಸಿಂಕ್ ಸಕ್ರಿಯಗೊಳಿಸಿ.",
+            "Agastya Healthcare ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ.",
+            "Agastya ಮೊಬೈಲ್‌ನಲ್ಲಿ Smart watch ತೆರೆಯಿರಿ ಮತ್ತು Health Connect ಅಥವಾ Apple Health ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        },
+        "fitbit": {
+          "label": "Fitbit",
+          "steps": [
+            "Fitbit ಆ್ಯಪ್ ತೆರೆಯಿರಿ ಮತ್ತು ವಾಚ್ ಸಿಂಕ್ ಆಗುತ್ತಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.",
+            "Android ನಲ್ಲಿ Fitbit ಅನ್ನು Health Connect ಗೆ ಲಿಂಕ್ ಮಾಡಿ. iPhone ನಲ್ಲಿ Apple Health ಹಂಚಿಕೆ ಸಕ್ರಿಯಗೊಳಿಸಿ (ಲಭ್ಯವಿದ್ದರೆ).",
+            "Agastya Healthcare ಆ್ಯಪ್ ಸ್ಥಾಪಿಸಿ.",
+            "Agastya ಮೊಬೈಲ್‌ನಲ್ಲಿ Smart watch ತೆರೆಯಿರಿ ಮತ್ತು Health Connect ಅಥವಾ Apple Health ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ."
+          ]
+        }
+      }
     }
   },
   "legal": {

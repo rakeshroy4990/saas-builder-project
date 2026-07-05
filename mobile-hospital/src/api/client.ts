@@ -1,8 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import {
   getApiBaseUrl,
-  isEnvelopeSuccess,
-  parseAuthLoginPayload,
   SERVER_PATHS,
   unwrapEnvelope
 } from '@saas-builder/hospital-api-client';
@@ -10,10 +8,7 @@ import { acceptLanguageHeaderValue } from '@saas-builder/i18n-contract';
 import { activeMobileLocale } from '@/i18n/locale';
 
 import {
-  clearSecureAuth,
-  getStoredRefreshToken,
-  setStoredRefreshToken,
-  setStoredSessionProfile
+  clearSecureAuth
 } from '@/auth/secureTokens';
 import {
   emitLoggedInSessionSummary,
@@ -22,13 +17,23 @@ import {
   scheduleFlushSessionTelemetry
 } from '@/analytics/sessionTelemetry';
 import { shouldSkipTelemetrySessionSummaryForUrl } from '@/analytics/telemetryUrlSkip';
-import { isAccessTokenExpired, useSessionStore } from '@/auth/sessionStore';
-import { DEFAULT_ACCESS_TOKEN_TTL_SECONDS } from '@/auth/tokenTtl';
+import { useSessionStore } from '@/auth/sessionStore';
 import { toUserFacingApiError } from '@/api/apiErrors';
-import { AUTH_API_TIMEOUT_MS, DEFAULT_API_TIMEOUT_MS, GROWTH_SUMMARY_TIMEOUT_MS } from '@/api/timeouts';
+import { DEFAULT_API_TIMEOUT_MS, GROWTH_SUMMARY_TIMEOUT_MS } from '@/api/timeouts';
+import {
+  cancelPendingTokenRefresh,
+  ensureFreshAccessToken,
+  refreshAccessToken
+} from '@/api/tokenRefresh';
 
 import { applyMultipartHeaders } from './multipart';
 import { getMobileApiBaseUrl } from './config';
+
+export {
+  cancelPendingTokenRefresh,
+  ensureFreshAccessToken,
+  refreshAccessToken
+} from '@/api/tokenRefresh';
 
 function rejectWithFriendlyMessage(error: AxiosError): Promise<never> {
   const friendly = toUserFacingApiError(error, error.message);
@@ -40,18 +45,7 @@ function rejectWithFriendlyMessage(error: AxiosError): Promise<never> {
 
 type TelemetryAxiosConfig = InternalAxiosRequestConfig & { __telemetryT0?: number };
 
-let refreshInFlight: Promise<boolean> | null = null;
-let refreshAbortController: AbortController | null = null;
-
-/** Stops a slow startup refresh so explicit login is not queued behind it. */
-export function cancelPendingTokenRefresh(): void {
-  refreshAbortController?.abort();
-  refreshAbortController = null;
-  refreshInFlight = null;
-}
-
 export const apiClient = axios.create({
-  baseURL: getMobileApiBaseUrl(),
   timeout: DEFAULT_API_TIMEOUT_MS,
   headers: {
     Accept: 'application/json',
@@ -82,98 +76,6 @@ function resolveApiPath(config: InternalAxiosRequestConfig): string {
   return `${base}${url.startsWith('/') ? url : `/${url}`}`;
 }
 
-const DEFAULT_REFRESH_TIMEOUT_MS = AUTH_API_TIMEOUT_MS;
-
-export async function refreshAccessToken(options?: {
-  timeoutMs?: number;
-  /** When true, aborts any in-flight refresh and starts a new one. */
-  force?: boolean;
-}): Promise<boolean> {
-  if (refreshInFlight) {
-    if (options?.force) {
-      cancelPendingTokenRefresh();
-    } else {
-      return refreshInFlight;
-    }
-  }
-
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_REFRESH_TIMEOUT_MS;
-  const controller = new AbortController();
-  refreshAbortController = controller;
-
-  refreshInFlight = (async () => {
-    try {
-      const refreshToken = await getStoredRefreshToken();
-      if (!refreshToken) return false;
-
-      const response = await axios.post(
-        `${getMobileApiBaseUrl()}${SERVER_PATHS.refresh}`,
-        { DeviceId: 'mobile', RefreshToken: refreshToken },
-        {
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'Accept-Language': acceptLanguageHeaderValue(activeMobileLocale())
-          },
-          timeout: timeoutMs,
-          signal: controller.signal
-        }
-      );
-
-      if (!isEnvelopeSuccess(response.data)) return false;
-
-      const parsed = parseAuthLoginPayload(response.data, '');
-      if (!parsed.accessToken) return false;
-
-      const user = useSessionStore.getState().user ?? {
-        userId: parsed.userId,
-        email: parsed.email,
-        displayName: parsed.displayName,
-        role: parsed.role
-      };
-      useSessionStore.getState().setSession({
-        accessToken: parsed.accessToken,
-        user,
-        expiresInSeconds: parsed.expiresInSeconds ?? DEFAULT_ACCESS_TOKEN_TTL_SECONDS
-      });
-      await setStoredSessionProfile(user);
-
-      if (parsed.refreshToken) {
-        await setStoredRefreshToken(parsed.refreshToken);
-      }
-      return true;
-    } catch (error) {
-      if (axios.isCancel(error)) return false;
-      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-      if (status === 401 || status === 403) {
-        useSessionStore.getState().clearSession();
-        await clearSecureAuth();
-      }
-      return false;
-    } finally {
-      if (refreshAbortController === controller) {
-        refreshAbortController = null;
-      }
-      refreshInFlight = null;
-    }
-  })();
-
-  return refreshInFlight;
-}
-
-/** Refreshes the access JWT when expired or close to expiry (fetch, STOMP, proactive keeper). */
-export async function ensureFreshAccessToken(): Promise<boolean> {
-  const hasAccess = Boolean(useSessionStore.getState().accessToken);
-  if (!hasAccess) {
-    const refresh = await getStoredRefreshToken();
-    if (!refresh?.trim()) return false;
-  }
-  if (!isAccessTokenExpired()) {
-    return Boolean(useSessionStore.getState().accessToken);
-  }
-  return refreshAccessToken();
-}
-
 /** Runs `fetch` with Bearer auth; on 401, silently refreshes once and retries. */
 export async function fetchWithAuthRetry(buildRequest: () => Promise<Response>): Promise<Response> {
   await ensureFreshAccessToken();
@@ -194,6 +96,9 @@ export async function fetchWithAuthRetry(buildRequest: () => Promise<Response>):
 }
 
 apiClient.interceptors.request.use(async (config) => {
+  if (!config.baseURL) {
+    config.baseURL = getMobileApiBaseUrl();
+  }
   applyMultipartHeaders(config);
   const url = String(config.url ?? '');
   const isRefresh = url.includes(SERVER_PATHS.refresh);

@@ -33,6 +33,7 @@ export type ComponentType =
   | 'doctor-validate-prescription'
   | 'doctor-recommended-dosage'
   | 'bluetooth-devices'
+  | 'smart-watch-integration'
   | 'growth-workspace'
   | 'appointment-growth-form';
 
