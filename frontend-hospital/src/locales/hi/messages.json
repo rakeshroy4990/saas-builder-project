@@ -3,6 +3,7 @@
     "menu": "मेनू",
     "home": "होम",
     "dashboard": "डैशबोर्ड",
+    "analytics": "क्लिनिक एनालिटिक्स",
     "prescription": "प्रिस्क्रिप्शन",
     "aiDiagnosis": "AI निदान",
     "blog": "ब्लॉग",
@@ -594,6 +595,7 @@
       "appointments": "अपॉइंटमेंट",
       "workingSlots": "कार्य समय स्लॉट सेट करें",
       "administration": "प्रशासन",
+      "analytics": "क्लिनिक एनालिटिक्स",
       "devices": "डिवाइस",
       "growth": "वृद्धि ट्रैकिंग",
       "triage": "लक्षण जांचें",
@@ -662,6 +664,8 @@
       "additionalNotes": "अतिरिक्त नोट्स: {additionalNotes}",
       "statusScheduled": "निर्धारित",
       "markVisitComplete": "विज़िट पूर्ण चिह्नित करें",
+      "markNoShow": "नो-शो चिह्नित करें",
+      "markRescheduled": "पुनर्निर्धारित चिह्नित करें",
       "issueEprescription": "संरचित ई-प्रिस्क्रिप्शन जारी करें",
       "videoCall": "वीडियो कॉल",
       "cancelAppointment": "अपॉइंटमेंट रद्द करें",
@@ -1289,6 +1293,53 @@
     "reviewed": "समीक्षित चिह्नित",
     "reviewFailed": "समीक्षित चिह्नित नहीं हो सका",
     "viewSafety": "सुरक्षा"
+  },
+  "analytics": {
+    "title": "क्लिनिक एनालिटिक्स",
+    "dataUpdated": "डेटा अपडेट: {time}",
+    "export": "CSV निर्यात",
+    "viewingDoctor": "देख रहे हैं: {name}",
+    "vsPrevPeriod": "पिछली अवधि की तुलना में",
+    "notEnoughData": "अभी पर्याप्त डेटा नहीं — और अपॉइंटमेंट पूरे होने पर देखें।",
+    "allTime": "सभी समय",
+    "stacked": "स्टैक्ड",
+    "grouped": "समूहित",
+    "trendTitle": "अपॉइंटमेंट प्रवृत्ति",
+    "outcomesTitle": "अपॉइंटमेंट परिणाम",
+    "heatmapTitle": "चरम घंटे",
+    "newVsReturningTitle": "नए बनाम वापस आने वाले रोगी",
+    "funnelTitle": "रोगी प्रतिधारण",
+    "doctorComparison": "डॉक्टर तुलना",
+    "doctorName": "डॉक्टर",
+    "newPatients": "नए रोगी",
+    "returningPatients": "वापस आने वाले रोगी",
+    "cards": {
+      "appointments": "अपॉइंटमेंट",
+      "completion": "पूर्णता दर",
+      "patients": "अद्वितीय रोगी",
+      "returnRate": "वापसी दर"
+    },
+    "outcomes": {
+      "completed": "पूर्ण",
+      "noShow": "नो-शो",
+      "cancelled": "रद्द",
+      "rescheduled": "पुनर्निर्धारित"
+    },
+    "heatmap": {
+      "busiest": "सबसे व्यस्त: {slot} ({count} अपॉइंटमेंट)",
+      "noShowRisk": "उच्चतम नो-शो जोखिम: {slot} ({pct}%)"
+    },
+    "funnel": {
+      "total": "कुल रोगी",
+      "once": "एक बार आए",
+      "returning": "वापस आए (2+)",
+      "loyal": "नियमित (3+)"
+    },
+    "retention": {
+      "healthy": "अच्छी प्रतिधारण",
+      "improve": "सुधार की गुंजाइश",
+      "low": "कम प्रतिधारण"
+    }
   },
   "serverCopy": {
     "acceptLanguageHint": "API को सर्वर-प्रदत्त पाठ के लिए Accept-Language (उदा. hi, en) का सम्मान करना चाहिए, या स्थिर कोड लौटाकर क्लाइंट अनुवाद करवाएँ।"

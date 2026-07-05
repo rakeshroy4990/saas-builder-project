@@ -57,6 +57,8 @@ public class AppointmentService {
     private static final String EMAIL_NOTIFY_STATUS_PENDING = "PENDING";
     private static final String STATUS_CANCELLED = "CANCELLED";
     private static final String STATUS_COMPLETED = "COMPLETED";
+    private static final String STATUS_NO_SHOW = "NO_SHOW";
+    private static final String STATUS_RESCHEDULED = "RESCHEDULED";
     /** Admin-only soft removal from operational views; document stays in Mongo. */
     public static final String STATUS_DELETED = "DELETED";
     private static final int BOOKING_DATE_AVAILABILITY_DEFAULT_DAYS = 10;
@@ -248,6 +250,50 @@ public class AppointmentService {
             return toResponse(entity);
         }
         entity.setStatus(STATUS_COMPLETED);
+        entity.setUpdatedTimestamp(Instant.now());
+        entity.setUpdatedBy(actorUserId);
+        return toResponse(repository.save(entity));
+    }
+
+    /**
+     * Marks a consultation as no-show. Only the assigned doctor may record this outcome.
+     */
+    public AppointmentResponse markNoShow(String id, String actorUserId) {
+        return markDoctorOutcome(id, actorUserId, STATUS_NO_SHOW, "APPOINTMENT_NO_SHOW_INVALID");
+    }
+
+    /**
+     * Marks a consultation as rescheduled (slot released for rebooking). Only the assigned doctor.
+     */
+    public AppointmentResponse markRescheduled(String id, String actorUserId) {
+        return markDoctorOutcome(id, actorUserId, STATUS_RESCHEDULED, "APPOINTMENT_RESCHEDULED_INVALID");
+    }
+
+    private AppointmentResponse markDoctorOutcome(
+            String id,
+            String actorUserId,
+            String targetStatus,
+            String invalidCode
+    ) {
+        AppointmentAccess repository = requireAppointmentAccess();
+        AppointmentEntity entity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
+        UserRole role = resolveUserRole(actorUserId);
+        if (role != UserRole.DOCTOR) {
+            throw new SecurityException("Only the treating doctor can update this appointment outcome");
+        }
+        String doctorId = normalize(entity.getDoctorId());
+        if (!doctorId.equalsIgnoreCase(normalize(actorUserId))) {
+            throw new SecurityException("Only the assigned doctor can update this appointment outcome");
+        }
+        String current = normalize(entity.getStatus());
+        if (STATUS_CANCELLED.equalsIgnoreCase(current) || STATUS_COMPLETED.equalsIgnoreCase(current)) {
+            throw new IllegalArgumentException(invalidCode);
+        }
+        if (targetStatus.equalsIgnoreCase(current)) {
+            return toResponse(entity);
+        }
+        entity.setStatus(targetStatus);
         entity.setUpdatedTimestamp(Instant.now());
         entity.setUpdatedBy(actorUserId);
         return toResponse(repository.save(entity));
@@ -805,6 +851,11 @@ public class AppointmentService {
             return false;
         }
         String s = normalize(row.getStatus());
+        if (STATUS_COMPLETED.equalsIgnoreCase(s)
+                || STATUS_NO_SHOW.equalsIgnoreCase(s)
+                || STATUS_RESCHEDULED.equalsIgnoreCase(s)) {
+            return false;
+        }
         return s.isEmpty() || DEFAULT_STATUS_OPEN.equalsIgnoreCase(s);
     }
 

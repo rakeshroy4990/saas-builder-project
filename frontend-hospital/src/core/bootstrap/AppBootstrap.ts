@@ -25,6 +25,7 @@ import DynDoctorValidatePrescriptionPanel from '../../components/primitives/DynD
 import DynDoctorRecommendedDosagePanel from '../../components/primitives/DynDoctorRecommendedDosagePanel.vue';
 import DynTriageWizard from '../../components/primitives/DynTriageWizard.vue';
 import DynTriageResultBadge from '../../components/primitives/DynTriageResultBadge.vue';
+import DynAnalyticsWorkspace from '../../components/primitives/DynAnalyticsWorkspace.vue';
 
 /** STOMP + chat UI — not needed for first paint. */
 const DynChat = defineAsyncComponent(() => import('@realtime/components/DynChat.vue'));
@@ -60,6 +61,7 @@ export function bootstrap(): void {
   ComponentRegistry.register('video-call', DynVideoCall);
   ComponentRegistry.register('bluetooth-devices', DynBluetoothDevicesHost);
   ComponentRegistry.register('growth-workspace', DynGrowthWorkspace);
+  ComponentRegistry.register('analytics-workspace', DynAnalyticsWorkspace);
   ComponentRegistry.register('appointment-growth-form', DynAppointmentGrowthForm);
   ComponentRegistry.register('doctor-schedule-editor', DynDoctorScheduleEditor);
   ComponentRegistry.register('medicine-list-editor', DynMedicineListEditor);

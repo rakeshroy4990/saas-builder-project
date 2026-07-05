@@ -634,5 +634,32 @@
   },
   "vitals": {
     "title": "वाइटल ट्रेंड"
+  },
+  "analytics": {
+    "title": "क्लिनिक एनालिटिक्स",
+    "export": "निर्यात",
+    "exportTitle": "एनालिटिक्स रिपोर्ट निर्यात",
+    "exportFailed": "निर्यात विफल — कृपया पुनः प्रयास करें।",
+    "exportUnavailable": "इस डिवाइस पर शेयरिंग उपलब्ध नहीं है।",
+    "forbidden": "आपके पास क्लिनिक एनालिटिक्स की अनुमति नहीं है।",
+    "viewingDoctor": "देख रहे हैं: {{name}}",
+    "trendTitle": "अपॉइंटमेंट प्रवृत्ति",
+    "heatmapTitle": "चरम घंटे",
+    "viewFullHeatmap": "पूर्ण हीटमैप देखें →",
+    "funnelTitle": "रोगी प्रतिधारण",
+    "allTime": "सभी समय",
+    "doctorComparison": "डॉक्टर तुलना",
+    "cards": {
+      "appointments": "अपॉइंटमेंट",
+      "completion": "पूर्णता दर",
+      "patients": "अद्वितीय रोगी",
+      "returnRate": "वापसी दर"
+    },
+    "funnel": {
+      "total": "कुल रोगी",
+      "once": "एक बार आए",
+      "returning": "वापस आए (2+)",
+      "loyal": "नियमित (3+)"
+    }
   }
 }

@@ -28,6 +28,53 @@ export const visibleWhenLoggedInAsDoctor: ConditionConfig = {
   }
 };
 
+/** Clinic analytics — signed-in admins and doctors only. */
+export const visibleWhenStaffAnalytics: ConditionConfig = {
+  expression:
+    "String(userId ?? '').trim().length > 0 && (String(role ?? '').toUpperCase() === 'ADMIN' || String(role ?? '').toUpperCase() === 'DOCTOR')",
+  mappings: {
+    userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+  }
+};
+
+const staffAnalyticsNavActive: ConditionConfig = {
+  expression:
+    "(String(role ?? '').toUpperCase() === 'ADMIN' || String(role ?? '').toUpperCase() === 'DOCTOR') && activeMenu === 'DASHBOARD' && String(activeItem ?? '') === 'analytics'",
+  mappings: {
+    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' },
+    activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+  }
+};
+
+const staffAnalyticsNavInactive: ConditionConfig = {
+  expression:
+    "(String(role ?? '').toUpperCase() === 'ADMIN' || String(role ?? '').toUpperCase() === 'DOCTOR') && (activeMenu !== 'DASHBOARD' || String(activeItem ?? '') !== 'analytics')",
+  mappings: {
+    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' },
+    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' },
+    activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+  }
+};
+
+/** Dashboard header tab — not active while Clinic Analytics sub-view is open (same route). */
+const dashboardNavActive: ConditionConfig = {
+  expression: "activeMenu === 'DASHBOARD' && String(activeItem ?? '') !== 'analytics'",
+  mappings: {
+    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' },
+    activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+  }
+};
+
+const dashboardNavInactive: ConditionConfig = {
+  expression: "activeMenu !== 'DASHBOARD' || String(activeItem ?? '') === 'analytics'",
+  mappings: {
+    activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' },
+    activeItem: { packageName: 'hospital', key: 'DashboardNav', property: 'activeItem' }
+  }
+};
+
 /** Shared site header + mobile menu (Home / Dashboard / Blog, auth, Book Now). */
 const hospitalPublicHeader: ComponentDefinition = {
   id: 'hospital-public-header',
@@ -134,12 +181,7 @@ const hospitalPublicHeader: ComponentDefinition = {
             {
               id: 'hospital-public-header-nav-dashboard-active',
               type: 'button',
-              condition: {
-                expression: "activeMenu === 'DASHBOARD'",
-                mappings: {
-                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                }
-              },
+              condition: dashboardNavActive,
               config: {
                 i18nKey: 'nav.dashboard',
                 styles: {
@@ -152,16 +194,34 @@ const hospitalPublicHeader: ComponentDefinition = {
             {
               id: 'hospital-public-header-nav-dashboard',
               type: 'button',
-              condition: {
-                expression: "activeMenu !== 'DASHBOARD'",
-                mappings: {
-                  activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-                }
-              },
+              condition: dashboardNavInactive,
               config: {
                 i18nKey: 'nav.dashboard',
                 styles: { styleTemplate: 'hosp.header.menuButton' },
                 click: { actionId: 'open-dashboard-home' }
+              }
+            },
+            {
+              id: 'hospital-public-header-nav-analytics-active',
+              type: 'button',
+              condition: staffAnalyticsNavActive,
+              config: {
+                i18nKey: 'nav.analytics',
+                styles: {
+                  styleTemplate: 'hosp.header.menuButton',
+                  utilityClasses: 'bg-emerald-100 text-emerald-700'
+                },
+                click: { actionId: 'open-dashboard-analytics' }
+              }
+            },
+            {
+              id: 'hospital-public-header-nav-analytics',
+              type: 'button',
+              condition: staffAnalyticsNavInactive,
+              config: {
+                i18nKey: 'nav.analytics',
+                styles: { styleTemplate: 'hosp.header.menuButton' },
+                click: { actionId: 'open-dashboard-analytics' }
               }
             },
             {
@@ -566,12 +626,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
       {
         id: 'hospital-public-mobile-menu-dashboard-active',
         type: 'button',
-        condition: {
-          expression: "activeMenu === 'DASHBOARD'",
-          mappings: {
-            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-          }
-        },
+        condition: dashboardNavActive,
         config: {
           i18nKey: 'nav.dashboard',
           styles: { styleTemplate: 'hosp.header.menuButtonActive' },
@@ -581,16 +636,31 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
       {
         id: 'hospital-public-mobile-menu-dashboard',
         type: 'button',
-        condition: {
-          expression: "activeMenu !== 'DASHBOARD'",
-          mappings: {
-            activeMenu: { packageName: 'hospital', key: 'HeaderUiState', property: 'activeMenu' }
-          }
-        },
+        condition: dashboardNavInactive,
         config: {
           i18nKey: 'nav.dashboard',
           styles: { styleTemplate: 'hosp.header.menuButton' },
           click: { actionId: 'open-dashboard-home' }
+        }
+      },
+      {
+        id: 'hospital-public-mobile-menu-analytics-active',
+        type: 'button',
+        condition: staffAnalyticsNavActive,
+        config: {
+          i18nKey: 'nav.analytics',
+          styles: { styleTemplate: 'hosp.header.menuButtonActive' },
+          click: { actionId: 'open-dashboard-analytics' }
+        }
+      },
+      {
+        id: 'hospital-public-mobile-menu-analytics',
+        type: 'button',
+        condition: staffAnalyticsNavInactive,
+        config: {
+          i18nKey: 'nav.analytics',
+          styles: { styleTemplate: 'hosp.header.menuButton' },
+          click: { actionId: 'open-dashboard-analytics' }
         }
       },
       {

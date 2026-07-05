@@ -115,6 +115,14 @@ export default function HomeTab() {
           onPress: () => router.push('/(app)/recommended-dosage' as never)
         },
         {
+          id: 'analytics',
+          label: t('analytics.title'),
+          icon: 'bar-chart-outline',
+          tint: '#0f766e',
+          background: '#ecfdf5',
+          onPress: () => router.push('/(app)/analytics' as never)
+        },
+        {
           id: 'growth',
           label: t('home.launcher.doctorQuickActions.growthTracking'),
           icon: 'analytics-outline',

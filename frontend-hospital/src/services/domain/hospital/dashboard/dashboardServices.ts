@@ -34,6 +34,9 @@ function resolvePreservedDashboardTab(role: string, tab: string): string {
   const normalizedRole = String(role ?? '').trim().toUpperCase();
   const normalizedTab = String(tab ?? '').trim().toLowerCase();
   if (normalizedTab === 'admin' && normalizedRole === 'ADMIN') return 'admin';
+  if (normalizedTab === 'analytics' && (normalizedRole === 'ADMIN' || normalizedRole === 'DOCTOR')) {
+    return 'analytics';
+  }
   if (normalizedTab === 'working-slots' && (normalizedRole === 'ADMIN' || normalizedRole === 'DOCTOR')) {
     return 'working-slots';
   }
@@ -54,6 +57,7 @@ const DASHBOARD_GUARD_TABS = new Set([
   'appointments',
   'working-slots',
   'admin',
+  'analytics',
   'devices',
   'growth',
   'triage',
@@ -140,6 +144,32 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
   },
   {
     packageName: 'hospital',
+    serviceId: 'open-dashboard-analytics',
+    execute: async () => {
+      const appStore = useAppStore(pinia);
+      const authSession = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
+      const role = String(authSession.role ?? '').trim().toUpperCase();
+      if (role !== 'ADMIN' && role !== 'DOCTOR') {
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Forbidden dashboard tab',
+          suppressPopupInlineError: true
+        };
+      }
+      appStore.setData('hospital', 'DashboardNav', { activeItem: 'analytics', preserveOnInit: true });
+      await runHospitalService('set-dashboard-header-active');
+      const currentPath = String(router.currentRoute.value.path ?? '').trim();
+      if (currentPath === '/dashboard') {
+        await runHospitalService('init-dashboard');
+        await runHospitalService('init-analytics-dashboard');
+        return ok();
+      }
+      await router.push('/dashboard');
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
     serviceId: 'require-hospital-dashboard-session',
     responseCodes: { failure: ['DASHBOARD_SESSION_REQUIRED'] },
     execute: async (request) => {
@@ -186,6 +216,13 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         };
       }
       if (tab === 'admin' && role !== 'ADMIN') {
+        return {
+          responseCode: 'DASHBOARD_SESSION_REQUIRED',
+          message: 'Forbidden dashboard tab',
+          suppressPopupInlineError: true
+        };
+      }
+      if (tab === 'analytics' && role !== 'ADMIN' && role !== 'DOCTOR') {
         return {
           responseCode: 'DASHBOARD_SESSION_REQUIRED',
           message: 'Forbidden dashboard tab',
@@ -244,6 +281,10 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
         await runHospitalService('set-dashboard-nav-triage', { preserveOnInit: true });
         await runHospitalService('init-triage-page');
         await runHospitalService('set-dashboard-header-active');
+        return ok();
+      }
+      if (tab === 'analytics') {
+        await runHospitalService('open-dashboard-analytics');
         return ok();
       }
       await runHospitalService('set-dashboard-nav-appointments');
@@ -375,6 +416,9 @@ export const dashboardHospitalServices: ServiceDefinition[] = [
             // Non-fatal: FAB badge still updates after opening chat.
           }
         }
+      }
+      if (activeItem === 'analytics' && (role === 'ADMIN' || role === 'DOCTOR')) {
+        await runHospitalService('init-analytics-dashboard');
       }
       return ok();
     }

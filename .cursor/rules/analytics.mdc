@@ -1,0 +1,30 @@
+---
+description: Rules for clinic analytics dashboard
+globs: ["**/analytics*", "**/retention*", "**/trend*", "**/heatmap*"]
+---
+
+# Analytics invariants
+
+## Data scoping — critical security rule
+- DOCTOR role: doctorId in all analytics queries MUST be overridden server-side to the authenticated user's own ID. Never trust a client-supplied doctorId from a doctor user.
+- ADMIN role only can query across doctors or supply arbitrary doctorId.
+- PATIENT role: 403 on all analytics endpoints, no exceptions.
+- CSV exports follow the same scoping rules as the corresponding GET endpoints.
+
+## Materialized views
+- Dashboard data comes from materialized views ONLY — never run heavy aggregation queries on the raw appointments table per request (will timeout under load).
+- Exception: `new_vs_returning` monthly breakdown may query appointments directly (6-month window only).
+- Views are refreshed nightly at 02:00 IST via Spring `@Scheduled`. A manual refresh endpoint exists for admins.
+- If a matview is empty (first deploy, no refresh yet), return empty arrays not errors. The frontend handles empty state gracefully.
+
+## Patient data in exports
+- CSV exports include operational fields only: counts, dates, names, categories.
+- Never include: medical records, diagnoses, prescription content, contact numbers/email, device readings, or triage data in any analytics export.
+
+## Display rules
+- Doctor comparison table is ADMIN only — never render for DOCTOR role even if the API accidentally returns other doctors' data.
+- Retention funnel and heatmap are all-time data — never filter by date range. Show "All-time" label so the user isn't confused when changing the date picker.
+- If a metric has fewer than 10 data points, show a "Not enough data yet" empty state instead of a statistically meaningless chart.
+
+## Timezone
+- All date computations use `Asia/Kolkata` (IST). Materialized views and SQL helpers use this zone; Spring DTOs pass dates as-is without re-conversion.

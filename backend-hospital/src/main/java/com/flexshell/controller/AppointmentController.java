@@ -265,6 +265,40 @@ public class AppointmentController {
         }
     }
 
+    @PostMapping(value = "/no-show/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AppointmentResponse>> markNoShow(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        try {
+            AppointmentResponse data = appointmentService.markNoShow(id, authentication.getName());
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.no.show"), data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_NO_SHOW_INVALID"), "APPOINTMENT_NO_SHOW_INVALID"));
+        }
+    }
+
+    @PostMapping(value = "/rescheduled/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AppointmentResponse>> markRescheduled(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        try {
+            AppointmentResponse data = appointmentService.markRescheduled(id, authentication.getName());
+            return ResponseEntity.ok(StandardApiResponse.success(messages.success("success.appointment.rescheduled"), data));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_FORBIDDEN"), "APPOINTMENT_FORBIDDEN"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(StandardApiResponse.error(messages.resolveException(ex, "APPOINTMENT_RESCHEDULED_INVALID"), "APPOINTMENT_RESCHEDULED_INVALID"));
+        }
+    }
+
     @GetMapping(value = "/get/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<AppointmentResponse>> getById(
             @PathVariable String id,

@@ -3,6 +3,7 @@
     "menu": "Menu",
     "home": "Home",
     "dashboard": "Dashboard",
+    "analytics": "Clinic Analytics",
     "prescription": "Prescriptions",
     "aiDiagnosis": "AI Diagnosis",
     "blog": "Blog",
@@ -594,6 +595,7 @@
       "appointments": "Appointments",
       "workingSlots": "Set working time slots",
       "administration": "Administration",
+      "analytics": "Clinic Analytics",
       "devices": "Devices",
       "growth": "Growth Tracking",
       "triage": "Check symptoms",
@@ -671,6 +673,8 @@
       "additionalNotes": "Additional notes: {additionalNotes}",
       "statusScheduled": "Scheduled",
       "markVisitComplete": "Mark visit complete",
+      "markNoShow": "Mark no-show",
+      "markRescheduled": "Mark rescheduled",
       "issueEprescription": "Issue structured e-prescription",
       "videoCall": "Video Call",
       "cancelAppointment": "Cancel appointment",
@@ -1302,6 +1306,53 @@
     "reviewed": "Marked as reviewed",
     "reviewFailed": "Could not mark as reviewed",
     "viewSafety": "Safety"
+  },
+  "analytics": {
+    "title": "Clinic Analytics",
+    "dataUpdated": "Data updated: {time}",
+    "export": "Export CSV",
+    "viewingDoctor": "Viewing: {name}",
+    "vsPrevPeriod": "vs prev period",
+    "notEnoughData": "Not enough data yet — check back once more appointments have been completed.",
+    "allTime": "All-time",
+    "stacked": "Stacked",
+    "grouped": "Grouped",
+    "trendTitle": "Appointment trend",
+    "outcomesTitle": "Appointment outcomes",
+    "heatmapTitle": "Peak hours",
+    "newVsReturningTitle": "New vs returning patients",
+    "funnelTitle": "Patient retention funnel",
+    "doctorComparison": "Doctor comparison",
+    "doctorName": "Doctor",
+    "newPatients": "New patients",
+    "returningPatients": "Returning patients",
+    "cards": {
+      "appointments": "Appointments",
+      "completion": "Completion rate",
+      "patients": "Unique patients",
+      "returnRate": "Return rate"
+    },
+    "outcomes": {
+      "completed": "Completed",
+      "noShow": "No-show",
+      "cancelled": "Cancelled",
+      "rescheduled": "Rescheduled"
+    },
+    "heatmap": {
+      "busiest": "Busiest slot: {slot} ({count} appointments)",
+      "noShowRisk": "Highest no-show risk: {slot} ({pct}% no-show rate)"
+    },
+    "funnel": {
+      "total": "Total patients",
+      "once": "Visited once",
+      "returning": "Returned (2+ visits)",
+      "loyal": "Loyal (3+ visits)"
+    },
+    "retention": {
+      "healthy": "Healthy retention",
+      "improve": "Room to improve",
+      "low": "Low retention"
+    }
   },
   "serverCopy": {
     "acceptLanguageHint": "APIs should honor Accept-Language (e.g. hi, en) for server-rendered copy or return stable codes for client translation."

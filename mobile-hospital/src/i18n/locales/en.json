@@ -151,7 +151,8 @@
     }
   },
   "common": {
-    "selectPlaceholder": "Select…"
+    "selectPlaceholder": "Select…",
+    "back": "Back"
   },
   "doctors": {
     "list": {
@@ -673,5 +674,32 @@
   },
   "vitals": {
     "title": "Vitals trend"
+  },
+  "analytics": {
+    "title": "Clinic Analytics",
+    "export": "Export",
+    "exportTitle": "Export analytics report",
+    "exportFailed": "Export failed — please try again or use the web dashboard.",
+    "exportUnavailable": "Sharing is not available on this device.",
+    "forbidden": "You do not have access to clinic analytics.",
+    "viewingDoctor": "Viewing: {{name}}",
+    "trendTitle": "Appointment trend",
+    "heatmapTitle": "Peak hours",
+    "viewFullHeatmap": "View full heatmap →",
+    "funnelTitle": "Patient retention",
+    "allTime": "All-time",
+    "doctorComparison": "Doctor comparison",
+    "cards": {
+      "appointments": "Appointments",
+      "completion": "Completion rate",
+      "patients": "Unique patients",
+      "returnRate": "Return rate"
+    },
+    "funnel": {
+      "total": "Total patients",
+      "once": "Visited once",
+      "returning": "Returned (2+)",
+      "loyal": "Loyal (3+)"
+    }
   }
 }

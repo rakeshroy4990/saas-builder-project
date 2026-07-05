@@ -3,6 +3,7 @@
     "menu": "ಮೆನು",
     "home": "ಮುಖಪುಟ",
     "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "analytics": "ಕ್ಲಿನಿಕ್ ವಿಶ್ಲೇಷಣೆ",
     "prescription": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್‌ಗಳು",
     "aiDiagnosis": "AI ನಿದಾನ",
     "blog": "ಬ್ಲಾಗ್",
@@ -618,6 +619,7 @@
       "appointments": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು",
       "workingSlots": "ಕೆಲಸದ ಸಮಯ ಸ್ಲಾಟ್‌ಗಳನ್ನು ಹೊಂದಿಸಿ",
       "administration": "ನಿರ್ವಹಣೆ",
+      "analytics": "ಕ್ಲಿನಿಕ್ ವಿಶ್ಲೇಷಣೆ",
       "devices": "ಸಾಧನಗಳು",
       "growth": "ಬೆಳವಣಿಗೆ ಟ್ರ್ಯಾಕಿಂಗ್",
       "triage": "ಲಕ್ಷಣಗಳನ್ನು ಪರೀಕ್ಷಿಸಿ",
@@ -686,6 +688,8 @@
       "additionalNotes": "ಹೆಚ್ಚುವರಿ ಟಿಪ್ಪಣಿಗಳು: {additionalNotes}",
       "statusScheduled": "ನಿಗದಿಪಡಿಸಲಾಗಿದೆ",
       "markVisitComplete": "ಭೇಟಿ ಪೂರ್ಣ ಎಂದು ಗುರುತಿಸಿ",
+      "markNoShow": "ಹಾಜರಾಗದಿರುವುದು ಎಂದು ಗುರುತಿಸಿ",
+      "markRescheduled": "ಮರುನಿಗದಿ ಎಂದು ಗುರುತಿಸಿ",
       "issueEprescription": "ಸಂರಚಿತ ಇ-ಪ್ರಿಸ್ಕ್ರಿಪ್ಶನ್ ನೀಡಿ",
       "videoCall": "ವೀಡಿಯೋ ಕಾಲ್",
       "cancelAppointment": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ರದ್ದು",
@@ -1343,6 +1347,53 @@
     "reviewed": "ಪರಿಶೀಲಿಸಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ",
     "reviewFailed": "ಪರಿಶೀಲಿಸಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಲಿಲ್ಲ",
     "viewSafety": "ಸುರಕ್ಷತೆ"
+  },
+  "analytics": {
+    "title": "ಕ್ಲಿನಿಕ್ ವಿಶ್ಲೇಷಣೆ",
+    "dataUpdated": "ಡೇಟಾ ನವೀಕರಿಸಲಾಗಿದೆ: {time}",
+    "export": "CSV ರಫ್ತು",
+    "viewingDoctor": "ವೀಕ್ಷಿಸುತ್ತಿದ್ದೀರಿ: {name}",
+    "vsPrevPeriod": "ಹಿಂದಿನ ಅವಧಿಗೆ ಹೋಲಿಸಿದರೆ",
+    "notEnoughData": "ಇನ್ನೂ ಸಾಕಷ್ಟು ಡೇಟಾ ಇಲ್ಲ — ಹೆಚ್ಚು ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳ ನಂತರ ನೋಡಿ.",
+    "allTime": "ಎಲ್ಲಾ ಸಮಯ",
+    "stacked": "ಸ್ಟ್ಯಾಕ್",
+    "grouped": "ಗುಂಪು",
+    "trendTitle": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಪ್ರವೃತ್ತಿ",
+    "outcomesTitle": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಫಲಿತಾಂಶ",
+    "heatmapTitle": "ಗರಿಷ್ಠ ಗಂಟೆಗಳು",
+    "newVsReturningTitle": "ಹೊಸ ಮತ್ತು ಮರಳಿ ಬರುವ ರೋಗಿಗಳು",
+    "funnelTitle": "ರೋಗಿ ಧಾರಣಾ ಫನಲ್",
+    "doctorComparison": "ವೈದ್ಯರ ಹೋಲಿಕೆ",
+    "doctorName": "ವೈದ್ಯ",
+    "newPatients": "ಹೊಸ ರೋಗಿಗಳು",
+    "returningPatients": "ಮರಳಿ ಬರುವ ರೋಗಿಗಳು",
+    "cards": {
+      "appointments": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು",
+      "completion": "ಪೂರ್ಣಗೊಳಿಸುವಿಕೆ ದರ",
+      "patients": "ವಿಶಿಷ್ಟ ರೋಗಿಗಳು",
+      "returnRate": "ಮರಳುವಿಕೆ ದರ"
+    },
+    "outcomes": {
+      "completed": "ಪೂರ್ಣ",
+      "noShow": "ಹಾಜರಾಗಿಲ್ಲ",
+      "cancelled": "ರದ್ದು",
+      "rescheduled": "ಮರುನಿಗದಿ"
+    },
+    "heatmap": {
+      "busiest": "ಅತ್ಯಂತ ಕಾರ್ಯನಿರತ: {slot} ({count})",
+      "noShowRisk": "ಅತ್ಯಧಿಕ ಹಾಜರಾಗದ ಅಪಾಯ: {slot} ({pct}%)"
+    },
+    "funnel": {
+      "total": "ಒಟ್ಟು ರೋಗಿಗಳು",
+      "once": "ಒಮ್ಮೆ ಭೇಟಿ",
+      "returning": "ಮರಳಿ ಬಂದವರು (2+)",
+      "loyal": "ನಿಷ್ಠಾವಂತ (3+)"
+    },
+    "retention": {
+      "healthy": "ಆರೋಗ್ಯಕರ ಧಾರಣೆ",
+      "improve": "ಸುಧಾರಣೆಗೆ ಅವಕಾಶ",
+      "low": "ಕಡಿಮೆ ಧಾರಣೆ"
+    }
   },
   "serverCopy": {
     "acceptLanguageHint": "API server-rendered copy ಗಾಗಿ Accept-Language (ಉದಾ. kn, hi, en) honor ಮಾಡಬೇಕು, ಅಥವಾ client translation ಗಾಗಿ stable codes return."

@@ -12,8 +12,8 @@ interface ButtonConfig {
   pendingLabel?: string;
   /** Icon-only or leading icon when `text` is empty. */
   iconPreset?: 'google' | 'home';
-  /** Small affordance after label (e.g. account menu trigger). */
-  trailingVisual?: 'chevron-down';
+  /** When true, label wraps instead of truncating with an ellipsis (sidebar nav). */
+  wrapLabel?: boolean;
   disabled?: boolean;
   hiddenWhenEmptyText?: boolean;
   title?: string;
@@ -86,7 +86,10 @@ const onClick = () => {
       class="inline-flex min-h-[1.25em] min-w-0 max-w-full items-center justify-center gap-2"
     >
       <component :is="busyIndicator" class="shrink-0" aria-hidden="true" />
-      <span class="min-w-0 truncate text-left">{{
+      <span
+        class="min-w-0 text-left"
+        :class="config?.wrapLabel ? 'whitespace-normal break-words' : 'truncate'"
+      >{{
         String(config?.pendingLabel ?? config?.text ?? 'Please wait…').trim() || 'Please wait…'
       }}</span>
     </span>
@@ -130,7 +133,10 @@ const onClick = () => {
       <span v-if="String(config?.text ?? '').trim().length > 0">{{ config?.text }}</span>
     </span>
     <span v-else class="inline-flex min-w-0 max-w-full items-center gap-1">
-      <span class="min-w-0 truncate">{{ config?.text ?? '' }}</span>
+      <span
+        class="min-w-0"
+        :class="config?.wrapLabel ? 'whitespace-normal break-words text-left' : 'truncate'"
+      >{{ config?.text ?? '' }}</span>
       <svg
         v-if="config?.trailingVisual === 'chevron-down'"
         class="h-4 w-4 shrink-0 text-slate-500 opacity-80"

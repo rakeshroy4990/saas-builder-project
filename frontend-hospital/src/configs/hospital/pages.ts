@@ -7,6 +7,7 @@ import { hospitalEducationAttachmentSequencePopupPage } from './educationAttachm
 import { hospitalProfilePage } from './profilePage';
 import { dashboardDevicesNavButtons, hospitalDashboardDevicesPanel } from './devicesDashboardPanel';
 import { dashboardGrowthNavButtons, hospitalDashboardGrowthPanel } from './growthDashboardPanel';
+import { dashboardAnalyticsNavButtons, hospitalDashboardAnalyticsPanel } from './analyticsDashboardPanel';
 import { dashboardTriageNavButtons, hospitalDashboardTriagePanel } from './triageDashboardPanel';
 import {
   dashboardRecommendedDosageNavButtons,
@@ -567,6 +568,7 @@ export const hospitalPages: PageConfig[] = [
                         }
                       }
                     },
+                    ...dashboardAnalyticsNavButtons(),
                     {
                       id: 'hospital-dashboard-menu-working-slots-active',
                       type: 'button',
@@ -580,6 +582,8 @@ export const hospitalPages: PageConfig[] = [
                       },
                       config: {
                         i18nKey: 'dashboard.nav.workingSlots',
+                        titleI18nKey: 'dashboard.nav.workingSlots',
+                        wrapLabel: true,
                         styles: {
                           utilityClasses:
                             'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
@@ -612,6 +616,8 @@ export const hospitalPages: PageConfig[] = [
                       },
                       config: {
                         i18nKey: 'dashboard.nav.workingSlots',
+                        titleI18nKey: 'dashboard.nav.workingSlots',
+                        wrapLabel: true,
                         styles: {
                           utilityClasses:
                             'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
@@ -1035,6 +1041,44 @@ export const hospitalPages: PageConfig[] = [
                                       },
                                       click: {
                                         actionId: 'complete-dashboard-visit',
+                                        data: { appointmentId: '{{id}}' }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-no-show',
+                                    type: 'button',
+                                    condition: {
+                                      expression: 'canMarkNoShow === "Y"'
+                                    },
+                                    config: {
+                                      text: '✗',
+                                      titleI18nKey: 'dashboard.appointments.markNoShow',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-red-400 px-2 py-1 text-xs leading-none text-red-800 hover:bg-red-50'
+                                      },
+                                      click: {
+                                        actionId: 'mark-dashboard-no-show',
+                                        data: { appointmentId: '{{id}}' }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    id: 'hospital-dashboard-appointment-rescheduled',
+                                    type: 'button',
+                                    condition: {
+                                      expression: 'canMarkRescheduled === "Y"'
+                                    },
+                                    config: {
+                                      text: '↻',
+                                      titleI18nKey: 'dashboard.appointments.markRescheduled',
+                                      styles: {
+                                        utilityClasses:
+                                          'rounded-md border border-amber-400 px-2 py-1 text-xs leading-none text-amber-800 hover:bg-amber-50'
+                                      },
+                                      click: {
+                                        actionId: 'mark-dashboard-rescheduled',
                                         data: { appointmentId: '{{id}}' }
                                       }
                                     }
@@ -1707,6 +1751,7 @@ export const hospitalPages: PageConfig[] = [
                         ]
                       }
                     },
+                    hospitalDashboardAnalyticsPanel,
                     hospitalDashboardTriagePanel,
                     hospitalDashboardGrowthPanel,
                     hospitalDashboardDevicesPanel,

@@ -16,6 +16,27 @@ function resolveHeaderMenuOpenState(responsive: Record<string, unknown>): boolea
   return responsive.headerMenuOpen !== false;
 }
 
+/** Stop working-slots spinner/state from leaking into other dashboard tabs. */
+function clearDoctorScheduleLoadingUnlessWorkingSlots(activeItem: string): void {
+  if (String(activeItem ?? '').trim().toLowerCase() === 'working-slots') {
+    return;
+  }
+  const appStore = useAppStore(pinia);
+  const ui = (appStore.getData('hospital', 'DoctorScheduleUi') ?? {}) as Record<string, unknown>;
+  if (ui.loading === true) {
+    appStore.setProperty('hospital', 'DoctorScheduleUi', 'loading', false);
+  }
+}
+
+function applyDashboardNav(activeItem: string, request: { data?: Record<string, unknown> }): void {
+  clearDoctorScheduleLoadingUnlessWorkingSlots(activeItem);
+  const patch: Record<string, unknown> = { activeItem };
+  if (request.data?.preserveOnInit === true) {
+    patch.preserveOnInit = true;
+  }
+  useAppStore(pinia).setData('hospital', 'DashboardNav', patch);
+}
+
 function isCurrentHomeRoute(): boolean {
   const path = String(router.currentRoute.value?.path ?? window.location.pathname ?? '').trim();
   return path === '/home' || path === '/';
@@ -284,9 +305,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-dashboard-nav-appointments',
     execute: async (request) => {
-      const patch: Record<string, unknown> = { activeItem: 'appointments' };
-      if (request.data?.preserveOnInit === true) patch.preserveOnInit = true;
-      useAppStore(pinia).setData('hospital', 'DashboardNav', patch);
+      applyDashboardNav('appointments', request);
       return ok();
     }
   },
@@ -294,9 +313,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-dashboard-nav-working-slots',
     execute: async (request) => {
-      const patch: Record<string, unknown> = { activeItem: 'working-slots' };
-      if (request.data?.preserveOnInit === true) patch.preserveOnInit = true;
-      useAppStore(pinia).setData('hospital', 'DashboardNav', patch);
+      applyDashboardNav('working-slots', request);
       return ok();
     }
   },
@@ -304,9 +321,15 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-dashboard-nav-admin',
     execute: async (request) => {
-      const patch: Record<string, unknown> = { activeItem: 'admin' };
-      if (request.data?.preserveOnInit === true) patch.preserveOnInit = true;
-      useAppStore(pinia).setData('hospital', 'DashboardNav', patch);
+      applyDashboardNav('admin', request);
+      return ok();
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'set-dashboard-nav-analytics',
+    execute: async (request) => {
+      applyDashboardNav('analytics', request);
       return ok();
     }
   },
@@ -314,9 +337,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-dashboard-nav-devices',
     execute: async (request) => {
-      const patch: Record<string, unknown> = { activeItem: 'devices' };
-      if (request.data?.preserveOnInit === true) patch.preserveOnInit = true;
-      useAppStore(pinia).setData('hospital', 'DashboardNav', patch);
+      applyDashboardNav('devices', request);
       return ok();
     }
   },
@@ -324,9 +345,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-dashboard-nav-growth',
     execute: async (request) => {
-      const patch: Record<string, unknown> = { activeItem: 'growth' };
-      if (request.data?.preserveOnInit === true) patch.preserveOnInit = true;
-      useAppStore(pinia).setData('hospital', 'DashboardNav', patch);
+      applyDashboardNav('growth', request);
       return ok();
     }
   },
@@ -334,9 +353,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-dashboard-nav-triage',
     execute: async (request) => {
-      const patch: Record<string, unknown> = { activeItem: 'triage' };
-      if (request.data?.preserveOnInit === true) patch.preserveOnInit = true;
-      useAppStore(pinia).setData('hospital', 'DashboardNav', patch);
+      applyDashboardNav('triage', request);
       return ok();
     }
   },
@@ -344,9 +361,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-dashboard-nav-validate-prescription',
     execute: async (request) => {
-      const patch: Record<string, unknown> = { activeItem: 'validate-prescription' };
-      if (request.data?.preserveOnInit === true) patch.preserveOnInit = true;
-      useAppStore(pinia).setData('hospital', 'DashboardNav', patch);
+      applyDashboardNav('validate-prescription', request);
       return ok();
     }
   },
@@ -354,9 +369,7 @@ export const navigationHospitalServices: ServiceDefinition[] = [
     packageName: 'hospital',
     serviceId: 'set-dashboard-nav-recommended-dosage',
     execute: async (request) => {
-      const patch: Record<string, unknown> = { activeItem: 'recommended-dosage' };
-      if (request.data?.preserveOnInit === true) patch.preserveOnInit = true;
-      useAppStore(pinia).setData('hospital', 'DashboardNav', patch);
+      applyDashboardNav('recommended-dosage', request);
       return ok();
     }
   },

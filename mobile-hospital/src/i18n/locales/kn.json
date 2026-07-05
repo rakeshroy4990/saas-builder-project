@@ -634,5 +634,32 @@
   },
   "vitals": {
     "title": "ವೈಟಲ್ಸ್ ಟ್ರೆಂಡ್"
+  },
+  "analytics": {
+    "title": "ಕ್ಲಿನಿಕ್ ವಿಶ್ಲೇಷಣೆ",
+    "export": "ರಫ್ತು",
+    "exportTitle": "ವಿಶ್ಲೇಷಣೆ ವರದಿ ರಫ್ತು",
+    "exportFailed": "ರಫ್ತು ವಿಫಲ — ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "exportUnavailable": "ಈ ಸಾಧನದಲ್ಲಿ ಹಂಚಿಕೆ ಲಭ್ಯವಿಲ್ಲ.",
+    "forbidden": "ಕ್ಲಿನಿಕ್ ವಿಶ್ಲೇಷಣೆಗೆ ಪ್ರವೇಶವಿಲ್ಲ.",
+    "viewingDoctor": "ವೀಕ್ಷಿಸುತ್ತಿದ್ದೀರಿ: {{name}}",
+    "trendTitle": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಪ್ರವೃತ್ತಿ",
+    "heatmapTitle": "ಗರಿಷ್ಠ ಗಂಟೆಗಳು",
+    "viewFullHeatmap": "ಪೂರ್ಣ ಹೀಟ್‌ಮ್ಯಾಪ್ →",
+    "funnelTitle": "ರೋಗಿ ಧಾರಣೆ",
+    "allTime": "ಎಲ್ಲಾ ಸಮಯ",
+    "doctorComparison": "ವೈದ್ಯರ ಹೋಲಿಕೆ",
+    "cards": {
+      "appointments": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು",
+      "completion": "ಪೂರ್ಣಗೊಳಿಸುವಿಕೆ",
+      "patients": "ವಿಶಿಷ್ಟ ರೋಗಿಗಳು",
+      "returnRate": "ಮರಳುವಿಕೆ ದರ"
+    },
+    "funnel": {
+      "total": "ಒಟ್ಟು ರೋಗಿಗಳು",
+      "once": "ಒಮ್ಮೆ ಭೇಟಿ",
+      "returning": "ಮರಳಿ ಬಂದವರು",
+      "loyal": "ನಿಷ್ಠಾವಂತ"
+    }
   }
 }

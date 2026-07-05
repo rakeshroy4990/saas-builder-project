@@ -30,9 +30,11 @@
     "@sentry/vue": "^10.50.0",
     "@stomp/stompjs": "^7.2.1",
     "axios": "^1.15.0",
+    "chart.js": "^4.5.1",
     "firebase": "^12.12.1",
     "pinia": "^3.0.4",
     "vue": "^3.5.32",
+    "vue-chartjs": "^5.3.3",
     "vue-i18n": "^11.4.2",
     "vue-router": "^4.6.4"
   },

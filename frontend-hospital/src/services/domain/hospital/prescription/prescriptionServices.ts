@@ -616,6 +616,54 @@ export const prescriptionHospitalServices: ServiceDefinition[] = [
   },
   {
     packageName: 'hospital',
+    serviceId: 'mark-dashboard-no-show',
+    execute: async (request) => {
+      const appointmentId = String(request.data?.appointmentId ?? '').trim();
+      if (!appointmentId) {
+        useToastStore(pinia).show('Missing appointment id.', 'error');
+        return { responseCode: 'APPOINTMENT_NO_SHOW_FAILED', message: 'Missing appointment id' };
+      }
+      try {
+        await apiClient.post(`${URLRegistry.paths.appointmentNoShow}/${encodeURIComponent(appointmentId)}`);
+        useToastStore(pinia).show('Appointment marked as no-show.', 'success');
+        await loadDashboardAppointmentsPage();
+        return ok();
+      } catch (error) {
+        const message = isAxiosError(error)
+          ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||
+            'Unable to mark no-show.'
+          : 'Unable to mark no-show.';
+        useToastStore(pinia).show(message, 'error');
+        return { responseCode: 'APPOINTMENT_NO_SHOW_FAILED', message };
+      }
+    }
+  },
+  {
+    packageName: 'hospital',
+    serviceId: 'mark-dashboard-rescheduled',
+    execute: async (request) => {
+      const appointmentId = String(request.data?.appointmentId ?? '').trim();
+      if (!appointmentId) {
+        useToastStore(pinia).show('Missing appointment id.', 'error');
+        return { responseCode: 'APPOINTMENT_RESCHEDULED_FAILED', message: 'Missing appointment id' };
+      }
+      try {
+        await apiClient.post(`${URLRegistry.paths.appointmentRescheduled}/${encodeURIComponent(appointmentId)}`);
+        useToastStore(pinia).show('Appointment marked as rescheduled.', 'success');
+        await loadDashboardAppointmentsPage();
+        return ok();
+      } catch (error) {
+        const message = isAxiosError(error)
+          ? pickString((error.response?.data ?? {}) as Record<string, unknown>, ['Message', 'message']) ||
+            'Unable to mark rescheduled.'
+          : 'Unable to mark rescheduled.';
+        useToastStore(pinia).show(message, 'error');
+        return { responseCode: 'APPOINTMENT_RESCHEDULED_FAILED', message };
+      }
+    }
+  },
+  {
+    packageName: 'hospital',
     serviceId: 'complete-dashboard-visit',
     execute: async (request) => {
       const appointmentId = String(request.data?.appointmentId ?? '').trim();

@@ -65,7 +65,16 @@ export const SERVER_PATHS = {
   telemetrySessionEvents: '/api/telemetry/session-events',
   telemetrySessionSnapshot: '/api/telemetry/session-snapshot',
   adminSessionTelemetryCrashes: '/api/v1/admin/session-telemetry/crashes',
-  adminSessionTelemetryFlowErrors: '/api/v1/admin/session-telemetry/flow-errors'
+  adminSessionTelemetryFlowErrors: '/api/v1/admin/session-telemetry/flow-errors',
+  analyticsOverview: '/api/v1/analytics/overview',
+  analyticsTrend: '/api/v1/analytics/trend',
+  analyticsHeatmap: '/api/v1/analytics/heatmap',
+  analyticsRetention: '/api/v1/analytics/retention',
+  analyticsDoctors: '/api/v1/analytics/doctors',
+  analyticsRefresh: '/api/v1/analytics/refresh',
+  analyticsExportAppointments: '/api/v1/analytics/export/appointments',
+  analyticsExportPatients: '/api/v1/analytics/export/patients',
+  analyticsExportRetention: '/api/v1/analytics/export/retention'
 } as const;
 
 export function appointmentJoinCallPath(appointmentId: string): string {

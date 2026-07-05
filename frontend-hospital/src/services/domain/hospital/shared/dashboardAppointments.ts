@@ -130,7 +130,9 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
   const isAssignedDoctor =
     role === 'DOCTOR' && Boolean(myUserId && doctorRowId && doctorRowId.toLowerCase() === myUserId.toLowerCase());
   const statusU = pickString(row, ['Status', 'status']).trim().toUpperCase();
-  const canMarkVisitComplete = isAssignedDoctor && statusU !== 'CANCELLED' && statusU !== 'COMPLETED';
+  const canMarkVisitComplete = isAssignedDoctor && statusU !== 'CANCELLED' && statusU !== 'COMPLETED' && statusU !== 'NO_SHOW' && statusU !== 'RESCHEDULED';
+  const canMarkNoShow = isAssignedDoctor && (statusU === 'OPEN' || statusU === 'SCHEDULED' || statusU === '');
+  const canMarkRescheduled = canMarkNoShow;
   const canIssueEprescription = isAssignedDoctor && statusU === 'COMPLETED';
   const canDownloadEprescription =
     statusU === 'COMPLETED' && (canEditAppointment === 'Y' || isAssignedDoctor || role === 'ADMIN');
@@ -140,6 +142,8 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
   const baseCanStartVideoCall =
     statusU !== 'CANCELLED'
     && statusU !== 'COMPLETED'
+    && statusU !== 'NO_SHOW'
+    && statusU !== 'RESCHEDULED'
     && statusU !== 'DELETED'
     && appointmentStartMs != null
     && Date.now() >= appointmentStartMs - 15 * 60 * 1000;
@@ -205,6 +209,8 @@ export function normalizeAppointmentRecord(entry: unknown, idx: number): Record<
     canEditAppointment,
     isAssignedDoctor: isAssignedDoctor ? 'Y' : '',
     canMarkVisitComplete: canMarkVisitComplete ? 'Y' : '',
+    canMarkNoShow: canMarkNoShow ? 'Y' : '',
+    canMarkRescheduled: canMarkRescheduled ? 'Y' : '',
     canIssueEprescription: canIssueEprescription ? 'Y' : '',
     canDownloadEprescription: canDownloadEprescription ? 'Y' : '',
     canStartVideoCall: canStartVideoCall ? 'Y' : ''

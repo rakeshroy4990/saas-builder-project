@@ -18,6 +18,11 @@ function emptyWeekly(): Record<string, { enabled: boolean; slotMinutes: number; 
   return w;
 }
 
+function isWorkingSlotsDashboardTab(): boolean {
+  const nav = (useAppStore(pinia).getData('hospital', 'DashboardNav') ?? {}) as Record<string, unknown>;
+  return String(nav.activeItem ?? '').trim().toLowerCase() === 'working-slots';
+}
+
 function mergeWeeklyFromApi(raw: unknown): Record<string, { enabled: boolean; slotMinutes: number; windows: { start: string; end: string }[] }> {
   const base = emptyWeekly();
   const node = (raw ?? {}) as Record<string, unknown>;
@@ -52,7 +57,9 @@ export const doctorScheduleHospitalServices: ServiceDefinition[] = [
     serviceId: 'init-doctor-working-slots',
     execute: async () => {
       const appStore = useAppStore(pinia);
-      appStore.setData('hospital', 'DashboardNav', { activeItem: 'working-slots' });
+      if (!isWorkingSlotsDashboardTab()) {
+        return ok();
+      }
       const auth = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
       const role = String(auth.role ?? '')
         .trim()
@@ -61,6 +68,9 @@ export const doctorScheduleHospitalServices: ServiceDefinition[] = [
       appStore.setData('hospital', 'DoctorScheduleUi', { loading: true, error: '', selectedDoctorId: '', doctorName: '' });
       appStore.setData('hospital', 'DoctorScheduleForm', { weekly: emptyWeekly() });
       if (!userId) {
+        if (!isWorkingSlotsDashboardTab()) {
+          return ok();
+        }
         appStore.setData('hospital', 'DoctorScheduleUi', { loading: false, error: 'Please sign in.', selectedDoctorId: '', doctorName: '' });
         return ok();
       }
@@ -76,6 +86,9 @@ export const doctorScheduleHospitalServices: ServiceDefinition[] = [
       } else if (role === 'ADMIN') {
         try {
           const response = await apiClient.get(URLRegistry.paths.doctorListActive, { params: { page: 0, size: 500 } });
+          if (!isWorkingSlotsDashboardTab()) {
+            return ok();
+          }
           const envelope = (response.data ?? {}) as Record<string, unknown>;
           const raw = envelope.Data ?? envelope.data ?? [];
           const list = Array.isArray(raw) ? (raw as unknown[]) : [];
@@ -97,7 +110,13 @@ export const doctorScheduleHospitalServices: ServiceDefinition[] = [
           appStore.setProperty('hospital', 'DoctorScheduleUi', 'error', 'Unable to load doctors.');
         }
       } else {
+        if (!isWorkingSlotsDashboardTab()) {
+          return ok();
+        }
         appStore.setData('hospital', 'DoctorScheduleUi', { loading: false, error: 'Only Admin or Doctor can edit schedules.', selectedDoctorId: '', doctorName: '' });
+        return ok();
+      }
+      if (!isWorkingSlotsDashboardTab()) {
         return ok();
       }
       const selected = pickString(
@@ -107,6 +126,9 @@ export const doctorScheduleHospitalServices: ServiceDefinition[] = [
       if (selected) {
         try {
           const response = await apiClient.get(URLRegistry.paths.doctorSchedule, { params: { doctorId: selected } });
+          if (!isWorkingSlotsDashboardTab()) {
+            return ok();
+          }
           const envelope = (response.data ?? {}) as Record<string, unknown>;
           const dataNode = (envelope.Data ?? envelope.data ?? null) as Record<string, unknown> | null;
           if (dataNode && typeof dataNode === 'object') {
@@ -123,7 +145,9 @@ export const doctorScheduleHospitalServices: ServiceDefinition[] = [
           appStore.setProperty('hospital', 'DoctorScheduleUi', 'error', 'Unable to load schedule (using defaults).');
         }
       }
-      appStore.setProperty('hospital', 'DoctorScheduleUi', 'loading', false);
+      if (isWorkingSlotsDashboardTab()) {
+        appStore.setProperty('hospital', 'DoctorScheduleUi', 'loading', false);
+      }
       return ok();
     }
   },

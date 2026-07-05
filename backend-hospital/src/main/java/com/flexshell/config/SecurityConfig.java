@@ -51,6 +51,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/youtube/hero-video").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/hospital/blog", "/api/hospital/blog/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/doctor/get", "/api/doctor/get/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/doctor/list-public", "/api/doctor/list-public/**").permitAll()
+                        .requestMatchers("/api/v1/analytics/**").authenticated()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/notification-rules/**", "/api/v1/domain-action-events/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users").hasRole("ADMIN")
@@ -120,6 +122,8 @@ public class SecurityConfig {
                             "/api/medical-department/get",
                             "/api/Em/get",
                             "/api/v1/medical-departments",
+                            "/api/doctor/get",
+                            "/api/doctor/list-public",
                             "/api/youtube/hero-video",
                             "/api/hospital/blog",
                             "/error",

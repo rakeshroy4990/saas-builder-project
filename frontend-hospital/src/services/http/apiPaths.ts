@@ -52,6 +52,8 @@ export const SERVER_PATHS = {
   appointmentDelete: '/api/appointment/delete',
   appointmentCancel: '/api/appointment/cancel',
   appointmentComplete: '/api/appointment/complete',
+  appointmentNoShow: '/api/appointment/no-show',
+  appointmentRescheduled: '/api/appointment/rescheduled',
   /** Structured e-prescription: append `/{appointmentId}/…` (ensure-draft, draft, validate, finalize, pdf). */
   prescriptionAppointmentBase: '/api/prescription/appointment',
   appointmentOccupiedSlots: '/api/appointment/occupied-slots',
@@ -117,7 +119,16 @@ export const SERVER_PATHS = {
   triageAnalyzeLegacy: '/api/triage/analyze',
   notifications: '/api/v1/notifications',
   notificationsUnreadCount: '/api/v1/notifications/unread-count',
-  notificationsReadAll: '/api/v1/notifications/read-all'
+  notificationsReadAll: '/api/v1/notifications/read-all',
+  analyticsOverview: '/api/v1/analytics/overview',
+  analyticsTrend: '/api/v1/analytics/trend',
+  analyticsHeatmap: '/api/v1/analytics/heatmap',
+  analyticsRetention: '/api/v1/analytics/retention',
+  analyticsDoctors: '/api/v1/analytics/doctors',
+  analyticsRefresh: '/api/v1/analytics/refresh',
+  analyticsExportAppointments: '/api/v1/analytics/export/appointments',
+  analyticsExportPatients: '/api/v1/analytics/export/patients',
+  analyticsExportRetention: '/api/v1/analytics/export/retention'
 } as const;
 
 export type ServerPathKey = keyof typeof SERVER_PATHS;

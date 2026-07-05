@@ -33,6 +33,7 @@ import { notificationHospitalServices } from './notifications/notificationServic
 import { triageHospitalServices } from './triage/triageServices';
 import { growthHospitalServices } from './growth/growthServices';
 import { appointmentGrowthHospitalServices } from './growth/appointmentGrowthServices';
+import { analyticsHospitalServices } from './analytics/analyticsServices';
 
 /**
  * Same service ids and behavior as legacy `services.ts`, in the same registration order
@@ -72,5 +73,6 @@ export const hospitalServices: ServiceDefinition[] = [
   ...notificationHospitalServices,
   ...triageHospitalServices,
   ...growthHospitalServices,
-  ...appointmentGrowthHospitalServices
+  ...appointmentGrowthHospitalServices,
+  ...analyticsHospitalServices
 ];
