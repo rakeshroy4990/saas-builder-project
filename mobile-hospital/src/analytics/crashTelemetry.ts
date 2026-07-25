@@ -1,14 +1,42 @@
-import { ErrorUtils, Platform } from 'react-native';
+import { Platform } from 'react-native';
+
+type GlobalErrorHandler = (error: Error, isFatal?: boolean) => void;
+
+type ErrorUtilsLike = {
+  getGlobalHandler: () => GlobalErrorHandler | undefined;
+  setGlobalHandler: (handler: GlobalErrorHandler) => void;
+};
 
 let registered = false;
+
+/**
+ * ErrorUtils is a Hermes/RN global — not a reliable named export from `react-native`.
+ * Importing `{ ErrorUtils }` yields undefined and crashes at cold start on
+ * `ErrorUtils.getGlobalHandler()`.
+ */
+function getErrorUtils(): ErrorUtilsLike | null {
+  const g = globalThis as typeof globalThis & { ErrorUtils?: ErrorUtilsLike };
+  const utils = g.ErrorUtils;
+  if (
+    utils &&
+    typeof utils.getGlobalHandler === 'function' &&
+    typeof utils.setGlobalHandler === 'function'
+  ) {
+    return utils;
+  }
+  return null;
+}
 
 /** Captures fatal/unhandled JS errors into session_telemetry ({@code flow=crash}). */
 export function registerGlobalCrashTelemetry(): void {
   if (registered) return;
   registered = true;
 
-  const prior = ErrorUtils.getGlobalHandler();
-  ErrorUtils.setGlobalHandler((error, isFatal) => {
+  const errorUtils = getErrorUtils();
+  if (!errorUtils) return;
+
+  const prior = errorUtils.getGlobalHandler();
+  errorUtils.setGlobalHandler((error, isFatal) => {
     void (async () => {
       try {
         const { readLastKnownRoutePath, recordAppCrashTelemetry } = await import(
@@ -33,4 +61,9 @@ export function registerGlobalCrashTelemetry(): void {
 }
 
 // Register before the root tree mounts so early JS errors are captured.
-registerGlobalCrashTelemetry();
+// Never let telemetry setup abort the JS bundle.
+try {
+  registerGlobalCrashTelemetry();
+} catch {
+  // ignore
+}

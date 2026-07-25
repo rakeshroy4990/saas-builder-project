@@ -23,7 +23,9 @@ public class SpeakerDiarizationService {
             You label speakers in a medical consultation transcript.
             Output ONLY a JSON array. No markdown.
             Each element: {"Speaker":"Doctor"|"Patient","Text":"..."}.
-            Preserve original multilingual wording (English, Hindi, Kannada) exactly in Text.
+            CRITICAL: Copy Text EXACTLY as given — keep Devanagari Hindi and Kannada scripts unchanged.
+            Do NOT transliterate Hindi into Latin letters. Do NOT translate. Do NOT correct spelling.
+            Do NOT drop words. Preserve English drug/lab names as written.
             Do NOT use Speaker 1 / Speaker 2.
             If unsure, prefer Doctor for clinical questions and Patient for symptom answers.
             """;
