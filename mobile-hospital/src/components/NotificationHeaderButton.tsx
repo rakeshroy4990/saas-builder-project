@@ -9,7 +9,9 @@ import { colors } from '@/theme/colors';
 export function NotificationHeaderButton() {
   const { t } = useTranslation();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const panelVisible = useNotificationStore((s) => s.panelVisible);
   const setPanelVisible = useNotificationStore((s) => s.setPanelVisible);
+  const hasUnread = unreadCount > 0;
   const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
 
   return (
@@ -17,15 +19,24 @@ export function NotificationHeaderButton() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={
-          unreadCount > 0
+          hasUnread
             ? t('notifications.bellAriaWithCount', { count: unreadCount })
             : t('notifications.bellAria')
         }
-        style={styles.button}
+        style={({ pressed }) => [
+          styles.button,
+          panelVisible && styles.buttonActive,
+          !panelVisible && hasUnread && styles.buttonUnread,
+          pressed && styles.buttonPressed
+        ]}
         onPress={() => setPanelVisible(true)}
       >
-        <Ionicons name="notifications-outline" size={22} color={colors.text} />
-        {unreadCount > 0 ? (
+        <Ionicons
+          name="notifications-outline"
+          size={20}
+          color={panelVisible || hasUnread ? colors.primaryDark : colors.textMuted}
+        />
+        {hasUnread ? (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{badgeText}</Text>
           </View>
@@ -40,28 +51,37 @@ const styles = StyleSheet.create({
   button: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 4
+    marginRight: 6
+  },
+  buttonUnread: {
+    backgroundColor: '#ecfdf5'
+  },
+  buttonActive: {
+    backgroundColor: '#d1fae5'
+  },
+  buttonPressed: {
+    opacity: 0.85
   },
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#dc2626',
+    top: 2,
+    right: 2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#f43f5e',
     borderWidth: 2,
     borderColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4
+    paddingHorizontal: 3
   },
   badgeText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700'
   }
 });

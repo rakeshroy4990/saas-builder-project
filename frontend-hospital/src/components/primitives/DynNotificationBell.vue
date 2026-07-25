@@ -292,44 +292,36 @@ onUnmounted(() => {
   <div ref="rootRef" class="relative shrink-0" data-notification-bell-root>
     <button
       type="button"
-      class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-1"
-      :class="hasUnread ? 'text-sky-800' : ''"
+      class="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-0 p-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+      :class="
+        panelOpen
+          ? 'bg-emerald-100 text-emerald-700'
+          : hasUnread
+            ? 'text-emerald-700 hover:bg-emerald-50'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+      "
+      :aria-expanded="panelOpen"
       :aria-label="hasUnread ? t('notifications.bellAriaWithCount', { count: unreadCount }) : t('notifications.bellAria')"
       :title="hasUnread ? t('notifications.bellAriaWithCount', { count: unreadCount }) : t('notifications.bellAria')"
       @click="togglePanel"
     >
-      <span class="relative flex h-6 w-6 items-center justify-center" aria-hidden="true">
-        <svg
-          v-if="hasUnread"
-          viewBox="0 0 24 24"
-          class="relative h-6 w-6 fill-current"
-          aria-hidden="true"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.036.94 3.915 2.55 5.133l.825.618a.75.75 0 01-.825 1.252H2.7a.75.75 0 01-.825-1.252l.825-.618A6.714 6.714 0 005.25 9.75V9zm4.502 8.832a2.252 2.252 0 105.496 0H9.752z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        <svg
-          v-else
-          viewBox="0 0 24 24"
-          class="relative h-6 w-6"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-          />
-        </svg>
-      </span>
+      <svg
+        viewBox="0 0 24 24"
+        class="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.75"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+        />
+      </svg>
       <span
         v-if="hasUnread"
-        class="pointer-events-none absolute -right-0.5 -top-0.5 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-600 px-1 text-[11px] font-bold leading-none text-white shadow tabular-nums"
+        class="pointer-events-none absolute right-0.5 top-0.5 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-white tabular-nums"
         aria-hidden="true"
       >
         {{ badgeText }}

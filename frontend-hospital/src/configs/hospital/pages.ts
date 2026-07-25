@@ -29,7 +29,6 @@ import { buildLocaleOnboardingButtons } from './localeOnboardingConfig';
 import { triageSoftBlockPopupPage } from './triagePopupPage';
 import { hospitalTriagePage } from './triagePage';
 import { hospitalAppointmentGrowthPopupPage } from './appointmentGrowthPopupPage';
-
 const todayDateInputValue = new Date().toISOString().split('T')[0] ?? '';
 
 export const hospitalPages: PageConfig[] = [
@@ -140,14 +139,19 @@ export const hospitalPages: PageConfig[] = [
                               }
                             }
                           },
-                          // {
-                          //   id: 'hospital-home-hero-secondary-cta',
-                          //   type: 'button',
-                          //   config: {
-                          //     text: 'Emergency Care',
-                          //     styles: { styleTemplate: 'hosp.button.secondary' }
-                          //   }
-                          // },
+                          {
+                            id: 'hospital-home-hero-audio-cta-doctor',
+                            type: 'button',
+                            condition: visibleWhenLoggedInAsDoctor,
+                            config: {
+                              i18nKey: 'home.hero.ctaAiConversation',
+                              styles: { styleTemplate: 'hosp.button.secondary' },
+                              click: {
+                                actionType: 'navigate',
+                                navigate: { packageName: 'hospital', pageId: 'ai-conversation' }
+                              }
+                            }
+                          },
                         ]
                       }
                     },
@@ -1874,6 +1878,68 @@ export const hospitalPages: PageConfig[] = [
         },
         hospitalSiteFooter('hospital-doctor-education-footer', '', {
           taglineI18nKey: 'footer.tagline.doctorEducation'
+        })
+      ]
+    }
+  },
+  {
+    packageName: 'hospital',
+    pageId: 'ai-conversation',
+    title: 'AI Conversation',
+    titleKey: 'page.aiConversation.title',
+    initializeActions: [{ actionId: 'set-home-header-active' }, { actionId: 'init-ai-conversation' }],
+    container: {
+      layoutTemplate: 'hosp.page.root',
+      children: [
+        ...hospitalPublicChromeTop,
+        {
+          id: 'hospital-ai-conversation-main',
+          type: 'container',
+          config: {
+            styles: {
+              utilityClasses:
+                'mx-auto flex w-full min-w-0 max-w-6xl flex-1 min-h-0 flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6'
+            },
+            children: [
+              {
+                id: 'hospital-ai-conversation-workspace',
+                type: 'ai-conversation-workspace',
+                condition: {
+                  expression: "String(role ?? '').toUpperCase() === 'DOCTOR'",
+                  mappings: {
+                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                  }
+                },
+                config: {}
+              },
+              {
+                id: 'hospital-ai-conversation-access-denied',
+                type: 'container',
+                condition: {
+                  expression: "String(role ?? '').toUpperCase() !== 'DOCTOR'",
+                  mappings: {
+                    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+                  }
+                },
+                config: {
+                  styles: { styleTemplate: 'hosp.section.card' },
+                  children: [
+                    {
+                      id: 'hospital-ai-conversation-access-denied-text',
+                      type: 'text',
+                      config: {
+                        i18nKey: 'aiConversation.doctorOnly',
+                        styles: { utilityClasses: 'text-sm font-medium text-slate-700' }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        hospitalSiteFooter('hospital-ai-conversation-footer', '', {
+          taglineI18nKey: 'footer.tagline.home'
         })
       ]
     }

@@ -75,8 +75,67 @@ export const SERVER_PATHS = {
   analyticsRefresh: '/api/v1/analytics/refresh',
   analyticsExportAppointments: '/api/v1/analytics/export/appointments',
   analyticsExportPatients: '/api/v1/analytics/export/patients',
-  analyticsExportRetention: '/api/v1/analytics/export/retention'
+  analyticsExportRetention: '/api/v1/analytics/export/retention',
+  audioStart: '/api/audio/start',
+  audioUpload: '/api/audio/upload',
+  audioTranscribe: '/api/audio/transcribe',
+  audioAnalyze: '/api/audio/analyze',
+  audioGenerateSummary: '/api/audio/generate-summary',
+  audioSave: '/api/audio/save',
+  audioByAppointment: '/api/audio'
 } as const;
+
+/**
+ * Normalize `POST /api/hospital/ai/chat` body to PascalCase wire keys.
+ * Spring uses global UPPER_CAMEL_CASE Jackson naming; camelCase keys leave
+ * `Message` null and fail `@NotBlank` → `AI_CHAT_INVALID`.
+ */
+export function toHospitalAiChatWireBody(body: Record<string, unknown>): Record<string, unknown> {
+  const pick = (...keys: string[]): unknown => {
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(body, key) && body[key] !== undefined) {
+        return body[key];
+      }
+    }
+    return undefined;
+  };
+
+  const historyRaw = pick('History', 'history');
+  const history = Array.isArray(historyRaw)
+    ? historyRaw.map((item) => {
+        if (item == null || typeof item !== 'object' || Array.isArray(item)) return item;
+        const row = item as Record<string, unknown>;
+        const role = row.Role ?? row.role;
+        const content = row.Content ?? row.content;
+        const out: Record<string, unknown> = {};
+        if (role !== undefined) out.Role = role;
+        if (content !== undefined) out.Content = content;
+        return out;
+      })
+    : historyRaw;
+
+  const out: Record<string, unknown> = {};
+  const message = pick('Message', 'message');
+  if (message !== undefined) out.Message = message;
+  if (history !== undefined) out.History = history;
+
+  const conversationId = pick('ConversationId', 'conversationId');
+  if (conversationId !== undefined) out.ConversationId = conversationId;
+
+  const bookName = pick('BookName', 'bookName');
+  if (bookName !== undefined) out.BookName = bookName;
+
+  const bookNames = pick('BookNames', 'bookNames');
+  if (bookNames !== undefined) out.BookNames = bookNames;
+
+  const retrievalQuestion = pick('RetrievalQuestion', 'retrievalQuestion');
+  if (retrievalQuestion !== undefined) out.RetrievalQuestion = retrievalQuestion;
+
+  const replyLocale = pick('ReplyLocale', 'replyLocale');
+  if (replyLocale !== undefined) out.ReplyLocale = replyLocale;
+
+  return out;
+}
 
 export function appointmentJoinCallPath(appointmentId: string): string {
   return `/api/appointment/${encodeURIComponent(appointmentId)}/join-call`;

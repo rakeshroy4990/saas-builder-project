@@ -17,6 +17,7 @@ export const hospitalRouteManifest: HospitalRouteManifestEntry[] = [
   { packageName: 'hospital', pageId: 'blog-article', skipRouteSmoke: true },
   { packageName: 'hospital', pageId: 'blog-read-more-popup', skipRouteSmoke: true },
   { packageName: 'hospital', pageId: 'doctor-education' },
+  { packageName: 'hospital', pageId: 'ai-conversation', skipRouteSmoke: true },
   { packageName: 'hospital', pageId: 'privacy' },
   { packageName: 'hospital', pageId: 'terms' },
   { packageName: 'hospital', pageId: 'dashboard' },

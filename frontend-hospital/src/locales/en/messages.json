@@ -103,6 +103,15 @@
       "googleSignIn": "Sign In With Google",
       "resetForgotPassword": "Reset / Forgot Password",
       "newUserRegister": "New user? Register"
+    },
+    "aiConversation": {
+      "title": "AI Consultation Assistant",
+      "languages": "Supported languages: English, Hindi, Kannada, and mixed-language conversations.",
+      "notice": "This consultation will be securely recorded and processed to generate a consultation summary.",
+      "appointment": "Appointment",
+      "languageHint": "Conversation language",
+      "consent": "I confirm patient consent to record this consultation for clinical documentation.",
+      "startRecording": "Start Recording"
     }
   },
   "register": {
@@ -148,26 +157,53 @@
     }
   },
   "page": {
-    "home": { "title": "Agastya Healthcare Hospital" },
-    "dashboard": { "title": "Dashboard" },
-    "prescriptions": { "title": "Prescriptions" },
-    "terms": { "title": "Terms & Conditions" },
-    "privacy": { "title": "Privacy Notice (India)" },
-    "blog": { "title": "Wellness Blog" },
-    "blogArticle": { "title": "Article" },
-    "chat": { "title": "Chat" },
-    "profile": { "title": "Profile" },
-    "appointment": { "title": "Appointment" },
+    "home": {
+      "title": "Agastya Healthcare Hospital"
+    },
+    "dashboard": {
+      "title": "Dashboard"
+    },
+    "prescriptions": {
+      "title": "Prescriptions"
+    },
+    "terms": {
+      "title": "Terms & Conditions"
+    },
+    "privacy": {
+      "title": "Privacy Notice (India)"
+    },
+    "blog": {
+      "title": "Wellness Blog"
+    },
+    "blogArticle": {
+      "title": "Article"
+    },
+    "chat": {
+      "title": "Chat"
+    },
+    "profile": {
+      "title": "Profile"
+    },
+    "appointment": {
+      "title": "Appointment"
+    },
     "patientDashboard": {
       "title": "Patient Dashboard",
       "introGuidance": "Review upcoming care highlights and schedule follow-up appointments quickly."
     },
-    "doctorOverview": { "title": "Doctor Overview" },
+    "doctorOverview": {
+      "title": "Doctor Overview"
+    },
     "doctorEducation": {
       "title": "Doctor Education",
       "doctorsOnly": "Education is available for doctor users only."
     },
-    "triage": { "title": "Check symptoms" }
+    "triage": {
+      "title": "Check symptoms"
+    },
+    "aiConversation": {
+      "title": "AI Conversation"
+    }
   },
   "profilePage": {
     "yourDetails": "Your details",
@@ -229,7 +265,8 @@
       "ctaPrimary": "Schedule Visit",
       "ctaDoctor": "AI Diagnosis",
       "ctaGrowthTracker": "Growth Tracker",
-      "featuredVideoTitle": "Featured video from Agastya Healthcare"
+      "featuredVideoTitle": "Featured video from Agastya Healthcare",
+      "ctaAiConversation": "🎙 AI Conversation"
     },
     "section": {
       "doctors": {
@@ -1214,16 +1251,46 @@
       "backToModels": "← Back to models",
       "unitLabel": "Unit: {unit}",
       "profiles": {
-        "SPIROFY_CIPLA": { "label": "Spirofy (Cipla spirometer)", "action": "Turn on the Spirofy device. In Chrome, select the LIVSMT-RO-… device from the list." },
-        "SPIROFY_SCAN_ALL": { "label": "Spirofy — scan all nearby", "action": "Turn on the Spirofy device and keep it near your computer." },
-        "MIR_SPIROBANK": { "label": "MIR Spirobank", "action": "Blow steadily into the mouthpiece when prompted." },
-        "NUVOAIR_AIR_NEXT": { "label": "NuvoAir Air Next", "action": "Breathe in fully, then blow out as hard and fast as possible." },
-        "GENERIC_SPIROMETER": { "label": "Generic Spirometer", "action": "Follow instructions on your spirometer device." },
-        "GENERIC_OXIMETER": { "label": "Pulse Oximeter", "action": "Place your finger inside the oximeter clip." },
-        "GENERIC_BP_MONITOR": { "label": "Blood Pressure Monitor", "action": "Wrap the cuff around your upper arm and stay still." },
-        "GENERIC_GLUCOMETER": { "label": "Glucometer", "action": "Insert a test strip and apply a blood sample." },
-        "GENERIC_THERMOMETER": { "label": "Thermometer", "action": "Turn the thermometer on and enable pairing mode if required. In the browser list, select your thermometer by name — most devices do not advertise a standard health service until connected." },
-        "XIAOMI_MI_SCALE": { "label": "Smart Scale (Mi / body composition)", "action": "Step on the scale barefoot and wait until the reading stabilizes." }
+        "SPIROFY_CIPLA": {
+          "label": "Spirofy (Cipla spirometer)",
+          "action": "Turn on the Spirofy device. In Chrome, select the LIVSMT-RO-… device from the list."
+        },
+        "SPIROFY_SCAN_ALL": {
+          "label": "Spirofy — scan all nearby",
+          "action": "Turn on the Spirofy device and keep it near your computer."
+        },
+        "MIR_SPIROBANK": {
+          "label": "MIR Spirobank",
+          "action": "Blow steadily into the mouthpiece when prompted."
+        },
+        "NUVOAIR_AIR_NEXT": {
+          "label": "NuvoAir Air Next",
+          "action": "Breathe in fully, then blow out as hard and fast as possible."
+        },
+        "GENERIC_SPIROMETER": {
+          "label": "Generic Spirometer",
+          "action": "Follow instructions on your spirometer device."
+        },
+        "GENERIC_OXIMETER": {
+          "label": "Pulse Oximeter",
+          "action": "Place your finger inside the oximeter clip."
+        },
+        "GENERIC_BP_MONITOR": {
+          "label": "Blood Pressure Monitor",
+          "action": "Wrap the cuff around your upper arm and stay still."
+        },
+        "GENERIC_GLUCOMETER": {
+          "label": "Glucometer",
+          "action": "Insert a test strip and apply a blood sample."
+        },
+        "GENERIC_THERMOMETER": {
+          "label": "Thermometer",
+          "action": "Turn the thermometer on and enable pairing mode if required. In the browser list, select your thermometer by name — most devices do not advertise a standard health service until connected."
+        },
+        "XIAOMI_MI_SCALE": {
+          "label": "Smart Scale (Mi / body composition)",
+          "action": "Step on the scale barefoot and wait until the reading stabilizes."
+        }
       }
     },
     "smartWatch": {
@@ -1458,5 +1525,70 @@
   },
   "serverCopy": {
     "acceptLanguageHint": "APIs should honor Accept-Language (e.g. hi, en) for server-rendered copy or return stable codes for client translation."
+  },
+  "aiConversation": {
+    "title": "AI Consultation Assistant",
+    "subtitle": "Record a consultation, review the transcript, and save a clinical summary.",
+    "disclaimer": "AI suggestions are assistive only and do not replace clinical judgment.",
+    "doctorOnly": "AI Conversation is available to doctors only.",
+    "idleHint": "Open AI Conversation from the home hero to start a recording session.",
+    "recording": "Recording...",
+    "paused": "Paused",
+    "doctorConsultation": "Doctor Consultation",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
+    "processing": "Processing consultation…",
+    "tabs": {
+      "transcript": "Transcript",
+      "summary": "Summary",
+      "soap": "SOAP Note",
+      "diagnosis": "Diagnosis Suggestions"
+    },
+    "swapSpeakers": "Speakers look swapped (Doctor ↔ Patient)",
+    "applySpeakerSwap": "Re-run diarization with swapped roles",
+    "noDiagnosis": "No diagnosis suggestions yet.",
+    "copy": "Copy",
+    "download": "Download",
+    "deleteTranscript": "Delete transcript",
+    "save": "Save",
+    "saved": "Saved to consultation record",
+    "status": {
+      "savingChunks": "Saving audio…",
+      "uploading": "Uploading audio…",
+      "transcribing": "Transcribing speech…",
+      "analyzing": "Analyzing conversation…",
+      "summarizing": "Generating clinical summary…",
+      "readyReview": "Ready for doctor review",
+      "copied": "Copied to clipboard",
+      "saved": "Consultation saved"
+    },
+    "errors": {
+      "noSession": "No recording session. Start from the home hero.",
+      "unsupported": "Audio recording is not supported in this browser.",
+      "micDenied": "Microphone permission denied.",
+      "notRecording": "Nothing is recording.",
+      "emptyAudio": "No audio was captured.",
+      "pipelineFailed": "Could not process the consultation audio.",
+      "copyFailed": "Could not copy to clipboard.",
+      "saveFailed": "Could not save the consultation.",
+      "selectAppointment": "Select an appointment to continue.",
+      "consentRequired": "Consent is required before recording.",
+      "startFailed": "Could not start the recording session."
+    },
+    "languages": "Supported languages: English, Hindi, Kannada, and mixed-language conversations.",
+    "notice": "This consultation will be securely recorded and processed to generate a consultation summary.",
+    "appointment": "Appointment",
+    "languageHint": "Conversation language",
+    "consent": "I confirm patient consent to record this consultation for clinical documentation.",
+    "startRecording": "Start Recording",
+    "starting": "Starting…",
+    "loadingAppointments": "Loading appointments…",
+    "languageOptions": {
+      "mixed": "Mixed language",
+      "en": "English",
+      "hi": "Hindi",
+      "kn": "Kannada"
+    }
   }
 }

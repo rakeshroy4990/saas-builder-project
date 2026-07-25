@@ -1,0 +1,164 @@
+import { apiClient } from './apiClient';
+import { resolveSpringApiUrl, SERVER_PATHS } from './apiPaths';
+import { pickString } from '../domain/hospital/shared/strings';
+
+export type AiConversationTurn = {
+  Speaker: string;
+  Text: string;
+};
+
+export type AiConversationSession = {
+  sessionId: string;
+  appointmentId: string;
+  status: string;
+  durationSeconds: number | null;
+  chunkCount: number;
+  languageDetected: string;
+  languageHint: string;
+  audioUrl: string;
+  transcriptText: string;
+  transcript: AiConversationTurn[];
+  speakersSwapped: boolean;
+  structuredJson: Record<string, unknown>;
+  summary: Record<string, unknown>;
+  soap: Record<string, unknown>;
+  committed: boolean;
+  message: string;
+};
+
+function asRecord(v: unknown): Record<string, unknown> {
+  return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
+
+function parseTurns(raw: unknown): AiConversationTurn[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((row) => {
+    const r = asRecord(row);
+    return {
+      Speaker: pickString(r, ['Speaker', 'speaker']) || 'Doctor',
+      Text: pickString(r, ['Text', 'text'])
+    };
+  });
+}
+
+function parseSession(body: unknown): AiConversationSession {
+  const envelope = asRecord(body);
+  const data = asRecord(envelope.Data ?? envelope.data);
+  return {
+    sessionId: pickString(data, ['SessionId', 'sessionId']),
+    appointmentId: pickString(data, ['AppointmentId', 'appointmentId']),
+    status: pickString(data, ['Status', 'status']),
+    durationSeconds: (() => {
+      const n = data.DurationSeconds ?? data.durationSeconds;
+      return typeof n === 'number' && Number.isFinite(n) ? n : null;
+    })(),
+    chunkCount: (() => {
+      const n = data.ChunkCount ?? data.chunkCount;
+      return typeof n === 'number' && Number.isFinite(n) ? n : 0;
+    })(),
+    languageDetected: pickString(data, ['LanguageDetected', 'languageDetected']),
+    languageHint: pickString(data, ['LanguageHint', 'languageHint']),
+    audioUrl: pickString(data, ['AudioUrl', 'audioUrl']),
+    transcriptText: pickString(data, ['TranscriptText', 'transcriptText']),
+    transcript: parseTurns(data.Transcript ?? data.transcript),
+    speakersSwapped: Boolean(data.SpeakersSwapped ?? data.speakersSwapped),
+    structuredJson: asRecord(data.StructuredJson ?? data.structuredJson),
+    summary: asRecord(data.Summary ?? data.summary),
+    soap: asRecord(data.Soap ?? data.soap),
+    committed: Boolean(data.Committed ?? data.committed),
+    message: pickString(envelope, ['Message', 'message'])
+  };
+}
+
+export async function startAiConversation(input: {
+  appointmentId: string;
+  languageHint: string;
+  consentAcknowledged: boolean;
+}): Promise<AiConversationSession> {
+  const { data } = await apiClient.post(SERVER_PATHS.audioStart, {
+    AppointmentId: input.appointmentId,
+    LanguageHint: input.languageHint,
+    ConsentAcknowledged: input.consentAcknowledged
+  });
+  return parseSession(data);
+}
+
+export async function uploadAiConversationAudio(input: {
+  sessionId: string;
+  durationSeconds: number;
+  blob: Blob;
+  filename?: string;
+  chunkIndex?: number;
+}): Promise<AiConversationSession> {
+  const form = new FormData();
+  form.append('SessionId', input.sessionId);
+  form.append('DurationSeconds', String(Math.max(0, Math.floor(input.durationSeconds))));
+  if (input.chunkIndex != null && Number.isFinite(input.chunkIndex)) {
+    form.append('ChunkIndex', String(Math.max(0, Math.floor(input.chunkIndex))));
+  }
+  form.append('file', input.blob, input.filename || 'consultation.webm');
+  const { data } = await apiClient.post(SERVER_PATHS.audioUpload, form);
+  return parseSession(data);
+}
+
+/** Best-effort flush for pagehide / unload (httpOnly cookies via credentials). */
+export function uploadAiConversationChunkKeepalive(input: {
+  sessionId: string;
+  durationSeconds: number;
+  chunkIndex: number;
+  blob: Blob;
+  filename?: string;
+}): void {
+  const form = new FormData();
+  form.append('SessionId', input.sessionId);
+  form.append('DurationSeconds', String(Math.max(0, Math.floor(input.durationSeconds))));
+  form.append('ChunkIndex', String(Math.max(0, Math.floor(input.chunkIndex))));
+  form.append('file', input.blob, input.filename || 'chunk.webm');
+  const url = resolveSpringApiUrl(SERVER_PATHS.audioUpload);
+  void fetch(url, { method: 'POST', body: form, keepalive: true, credentials: 'include' });
+}
+
+export async function transcribeAiConversation(
+  sessionId: string,
+  swapSpeakers = false
+): Promise<AiConversationSession> {
+  const { data } = await apiClient.post(SERVER_PATHS.audioTranscribe, {
+    SessionId: sessionId,
+    SwapSpeakers: swapSpeakers
+  });
+  return parseSession(data);
+}
+
+export async function analyzeAiConversation(sessionId: string): Promise<AiConversationSession> {
+  const { data } = await apiClient.post(SERVER_PATHS.audioAnalyze, { SessionId: sessionId });
+  return parseSession(data);
+}
+
+export async function generateAiConversationSummary(sessionId: string): Promise<AiConversationSession> {
+  const { data } = await apiClient.post(SERVER_PATHS.audioGenerateSummary, { SessionId: sessionId });
+  return parseSession(data);
+}
+
+export async function saveAiConversation(input: {
+  sessionId: string;
+  transcriptText: string;
+  transcript: AiConversationTurn[];
+  structuredJson: Record<string, unknown>;
+  summary: Record<string, unknown>;
+  soap: Record<string, unknown>;
+}): Promise<AiConversationSession> {
+  const { data } = await apiClient.post(SERVER_PATHS.audioSave, {
+    SessionId: input.sessionId,
+    TranscriptText: input.transcriptText,
+    Transcript: input.transcript,
+    StructuredJson: input.structuredJson,
+    Summary: input.summary,
+    Soap: input.soap
+  });
+  return parseSession(data);
+}
+
+export async function getAiConversationByAppointment(appointmentId: string): Promise<AiConversationSession> {
+  const { data } = await apiClient.get(`${SERVER_PATHS.audioByAppointment}/${encodeURIComponent(appointmentId)}`);
+  return parseSession(data);
+}

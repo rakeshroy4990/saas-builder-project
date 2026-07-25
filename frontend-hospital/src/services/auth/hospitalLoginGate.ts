@@ -13,6 +13,7 @@ export const HOSPITAL_PROTECTED_PAGE_IDS = new Set([
   'profile',
   'doctor-working-slots',
   'doctor-education',
+  'ai-conversation',
   'book-appointment',
   'chat',
   'appointment-receipts-popup',

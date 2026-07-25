@@ -1,3 +1,4 @@
+import { toHospitalAiChatWireBody } from '@saas-builder/hospital-api-client';
 import { recordPerf } from '@/composables/usePerf';
 import { getOrCreateTraceId } from '../logging/traceContext';
 import { ensureAccessTokenFreshForFetch, refreshHospitalAccessCookies, triggerHospitalReLoginFromFetch } from './apiClient';
@@ -15,9 +16,10 @@ export type HospitalAiChatStreamHandlers = {
 };
 
 function withAppReplyLocale(body: Record<string, unknown>): Record<string, unknown> {
-  const existing = body.ReplyLocale ?? body.replyLocale;
-  if (existing != null && String(existing).trim() !== '') return body;
-  return { ...body, ReplyLocale: activeAppLocale() };
+  const wire = toHospitalAiChatWireBody(body);
+  const existing = wire.ReplyLocale ?? wire.replyLocale;
+  if (existing != null && String(existing).trim() !== '') return wire;
+  return { ...wire, ReplyLocale: activeAppLocale() };
 }
 
 async function readHttpErrorDetail(res: Response): Promise<string> {

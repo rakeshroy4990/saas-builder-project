@@ -103,6 +103,15 @@
       "googleSignIn": "Google ನೊಂದಿಗೆ ಸೈನ್ ಇನ್",
       "resetForgotPassword": "ಮರುಹೊಂದಿಸಿ / ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿದ್ದೀರಾ",
       "newUserRegister": "ಹೊಸ ಬಳಕೆದಾರ? ನೋಂದಣಿ"
+    },
+    "aiConversation": {
+      "title": "AI ಸಮಾಲೋಚನೆ ಸಹಾಯಕ",
+      "languages": "Supported languages: English, Hindi, Kannada, and mixed-language conversations.",
+      "notice": "This consultation will be securely recorded and processed to generate a consultation summary.",
+      "appointment": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್",
+      "languageHint": "ಸಂಭಾಷಣೆಯ ಭಾಷೆ",
+      "consent": "I confirm patient consent to record this consultation for clinical documentation.",
+      "startRecording": "ರೆಕಾರ್ಡಿಂಗ್ ಪ್ರಾರಂಭಿಸಿ"
     }
   },
   "register": {
@@ -191,6 +200,9 @@
     },
     "triage": {
       "title": "ಲಕ್ಷಣಗಳನ್ನು ಪರೀಕ್ಷಿಸಿ"
+    },
+    "aiConversation": {
+      "title": "AI ಸಂಭಾಷಣೆ"
     }
   },
   "profilePage": {
@@ -253,7 +265,8 @@
       "ctaPrimary": "ಭೇಟಿ schedule ಮಾಡಿ",
       "ctaDoctor": "AI ನಿದಾನ",
       "ctaGrowthTracker": "ಬೆಳವಣಿಗೆ ಟ್ರ್ಯಾಕರ್",
-      "featuredVideoTitle": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ನಿಂದ featured ವೀಡಿಯೋ"
+      "featuredVideoTitle": "ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್ ನಿಂದ featured ವೀಡಿಯೋ",
+      "ctaAiConversation": "🎙 AI ಸಂಭಾಷಣೆ"
     },
     "section": {
       "doctors": {
@@ -1479,5 +1492,70 @@
   },
   "serverCopy": {
     "acceptLanguageHint": "API server-rendered copy ಗಾಗಿ Accept-Language (ಉದಾ. kn, hi, en) honor ಮಾಡಬೇಕು, ಅಥವಾ client translation ಗಾಗಿ stable codes return."
+  },
+  "aiConversation": {
+    "title": "AI ಸಮಾಲೋಚನೆ ಸಹಾಯಕ",
+    "subtitle": "Record a consultation, review the transcript, and save a clinical summary.",
+    "disclaimer": "AI suggestions are assistive only and do not replace clinical judgment.",
+    "doctorOnly": "AI ಸಂಭಾಷಣೆ — doctors only",
+    "idleHint": "Open AI Conversation from the home hero to start a recording session.",
+    "recording": "Recording...",
+    "paused": "Paused",
+    "doctorConsultation": "Doctor Consultation",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
+    "processing": "Processing consultation…",
+    "tabs": {
+      "transcript": "Transcript",
+      "summary": "Summary",
+      "soap": "SOAP Note",
+      "diagnosis": "Diagnosis Suggestions"
+    },
+    "swapSpeakers": "Speakers look swapped (Doctor ↔ Patient)",
+    "applySpeakerSwap": "Re-run diarization with swapped roles",
+    "noDiagnosis": "No diagnosis suggestions yet.",
+    "copy": "Copy",
+    "download": "Download",
+    "deleteTranscript": "Delete transcript",
+    "save": "Save",
+    "saved": "Saved to consultation record",
+    "status": {
+      "savingChunks": "ಆಡಿಯೋ ಉಳಿಸಲಾಗುತ್ತಿದೆ…",
+      "uploading": "Uploading audio…",
+      "transcribing": "Transcribing speech…",
+      "analyzing": "Analyzing conversation…",
+      "summarizing": "Generating clinical summary…",
+      "readyReview": "Ready for doctor review",
+      "copied": "Copied to clipboard",
+      "saved": "Consultation saved"
+    },
+    "errors": {
+      "noSession": "No recording session. Start from the home hero.",
+      "unsupported": "Audio recording is not supported in this browser.",
+      "micDenied": "Microphone permission denied.",
+      "notRecording": "Nothing is recording.",
+      "emptyAudio": "No audio was captured.",
+      "pipelineFailed": "Could not process the consultation audio.",
+      "copyFailed": "Could not copy to clipboard.",
+      "saveFailed": "Could not save the consultation.",
+      "selectAppointment": "Select an appointment to continue.",
+      "consentRequired": "Consent is required before recording.",
+      "startFailed": "Could not start the recording session."
+    },
+    "languages": "Supported languages: English, Hindi, Kannada, and mixed-language conversations.",
+    "notice": "This consultation will be securely recorded and processed to generate a consultation summary.",
+    "appointment": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್",
+    "languageHint": "ಸಂಭಾಷಣೆಯ ಭಾಷೆ",
+    "consent": "I confirm patient consent to record this consultation for clinical documentation.",
+    "startRecording": "ರೆಕಾರ್ಡಿಂಗ್ ಪ್ರಾರಂಭಿಸಿ",
+    "starting": "ಪ್ರಾರಂಭವಾಗುತ್ತಿದೆ…",
+    "loadingAppointments": "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಲೋಡ್ ಆಗುತ್ತಿವೆ…",
+    "languageOptions": {
+      "mixed": "ಮಿಶ್ರ ಭಾಷೆ",
+      "en": "ಇಂಗ್ಲಿಷ್",
+      "hi": "ಹಿಂದಿ",
+      "kn": "ಕನ್ನಡ"
+    }
   }
 }

@@ -26,6 +26,7 @@ import DynDoctorRecommendedDosagePanel from '../../components/primitives/DynDoct
 import DynTriageWizard from '../../components/primitives/DynTriageWizard.vue';
 import DynTriageResultBadge from '../../components/primitives/DynTriageResultBadge.vue';
 import DynAnalyticsWorkspace from '../../components/primitives/DynAnalyticsWorkspace.vue';
+import DynAiConversationWorkspace from '../../components/primitives/DynAiConversationWorkspace.vue';
 
 /** STOMP + chat UI — not needed for first paint. */
 const DynChat = defineAsyncComponent(() => import('@realtime/components/DynChat.vue'));
@@ -77,6 +78,7 @@ export function bootstrap(): void {
   ComponentRegistry.register('triage-result-badge', DynTriageResultBadge);
   ComponentRegistry.register('doctor-validate-prescription', DynDoctorValidatePrescriptionPanel);
   ComponentRegistry.register('doctor-recommended-dosage', DynDoctorRecommendedDosagePanel);
+  ComponentRegistry.register('ai-conversation-workspace', DynAiConversationWorkspace);
 
   registerHospitalModule();
 }

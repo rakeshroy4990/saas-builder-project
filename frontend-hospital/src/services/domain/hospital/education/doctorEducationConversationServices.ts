@@ -383,7 +383,7 @@ function truncateAiChatHistoryContent(content: string): string {
 function buildConversationHistory(
   session: ConversationSession,
   includeHistory: boolean
-): Array<{ role: 'user' | 'assistant'; content: string }> {
+): Array<{ Role: 'user' | 'assistant'; Content: string }> {
   if (!includeHistory) {
     return [];
   }
@@ -401,25 +401,25 @@ function buildConversationHistory(
       const body =
         message.role === 'assistant' ? assistantDisplayBody(raw).trim() || raw : raw;
       return {
-        role: message.role,
-        content: truncateAiChatHistoryContent(body)
+        Role: message.role,
+        Content: truncateAiChatHistoryContent(body)
       };
     })
-    .filter((row) => row.content.length > 0);
+    .filter((row) => row.Content.length > 0);
 }
 
 function educationConversationPayload(
   question: string,
-  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  history: Array<{ Role: 'user' | 'assistant'; Content: string }>,
   bookNames: string[],
   conversationId: string,
   retrievalQuestion?: string
 ): Record<string, unknown> {
   const retrievalSeed = String(retrievalQuestion ?? '').trim() || question;
   const payload: Record<string, unknown> = {
-    message: question,
-    history,
-    conversationId,
+    Message: question,
+    History: history,
+    ConversationId: conversationId,
     RetrievalQuestion: retrievalSeed
   };
   const normalized = Array.isArray(bookNames)

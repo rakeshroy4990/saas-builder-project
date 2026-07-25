@@ -38,7 +38,7 @@ import type { Composer } from 'vue-i18n';
 import { isSupportedLocale, type LocaleCode } from '@saas-builder/i18n-contract';
 
 type HospitalAppStore = ReturnType<typeof useAppStore>;
-type ChatMessage = { role: 'user' | 'assistant'; content: string };
+type ChatMessage = { Role: 'user' | 'assistant'; Content: string };
 const SMART_AI_ROOM_ID = 'smart-ai';
 
 const chatTr = (): Composer['t'] => (i18n.global as Composer).t.bind(i18n.global as Composer);
@@ -99,7 +99,7 @@ function buildAiHistory(messagesByRoomId: Record<string, unknown>, roomId: strin
       const body = String(row.body ?? '').trim();
       if (!body) return null;
       const mine = String(row.senderId ?? '').trim() === 'me';
-      return { role: mine ? 'user' : 'assistant', content: body } as ChatMessage;
+      return { Role: mine ? 'user' : 'assistant', Content: body } as ChatMessage;
     })
     .filter((item): item is ChatMessage => item !== null)
     .slice(-12);
@@ -921,7 +921,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
 
         let acc = '';
         await postHospitalAiChatNdjson(
-          { message: body, history },
+          { Message: body, History: history },
           {
             onStatus: (phase) => {
               if (chatLocale !== 'en' && (phase === 'translating' || phase === 'generating')) {

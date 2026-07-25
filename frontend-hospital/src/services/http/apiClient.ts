@@ -25,6 +25,7 @@ import { stashPendingHttpReplay } from '../domain/hospital/auth/postLoginHttpRep
 import { localizeTimeoutErrorMessageIfNeeded } from './httpUserFacingErrors';
 import { recordPerf } from '@/composables/usePerf';
 import { i18n } from '../../i18n';
+import { toHospitalAiChatWireBody } from '@saas-builder/hospital-api-client';
 import { acceptLanguageHeaderValue } from '@saas-builder/i18n-contract';
 
 const tr = (key: string): string => String((i18n.global as { t: (k: string) => string }).t(key));
@@ -283,6 +284,9 @@ apiClient.interceptors.request.use(async (config) => {
   if (isHospitalAiChat) {
     // RAG + large embeddings can exceed the default 15s client timeout.
     config.timeout = Math.max(config.timeout ?? 0, 180000);
+    if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
+      config.data = toHospitalAiChatWireBody(config.data as Record<string, unknown>);
+    }
   }
 
   const isTriageAnalyze =

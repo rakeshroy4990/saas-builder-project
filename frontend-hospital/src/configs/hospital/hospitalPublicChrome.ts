@@ -18,7 +18,7 @@ export const visibleWhenNotLoggedInAsDoctor: ConditionConfig = {
   }
 };
 
-/** Hero AI Diagnosis CTA — signed-in doctors only. */
+/** Hero AI Diagnosis / AI Conversation CTAs — signed-in doctors only. */
 export const visibleWhenLoggedInAsDoctor: ConditionConfig = {
   expression:
     "String(userId ?? '').trim().length > 0 && String(role ?? '').toUpperCase() === 'DOCTOR'",

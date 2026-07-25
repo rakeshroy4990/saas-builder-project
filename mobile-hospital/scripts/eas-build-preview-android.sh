@@ -46,7 +46,7 @@ cd "$APP_DIR"
 
 sync_package_lock
 
-log "Running EAS preflight"
+log "Running EAS preflight (includes Gradle assembleRelease / toolchain check)"
 npm run eas:preflight -- --platform android --profile preview
 
 log "Preflight passed — starting EAS build"

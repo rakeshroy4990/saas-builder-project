@@ -1,4 +1,4 @@
-import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
+import { SERVER_PATHS, toHospitalAiChatWireBody } from '@saas-builder/hospital-api-client';
 import { acceptLanguageHeaderValue } from '@saas-builder/i18n-contract';
 
 import {
@@ -41,9 +41,10 @@ type StreamTiming = {
 };
 
 function withAppReplyLocale(body: Record<string, unknown>): Record<string, unknown> {
-  const existing = body.ReplyLocale ?? body.replyLocale;
-  if (existing != null && String(existing).trim() !== '') return body;
-  return { ...body, ReplyLocale: activeMobileLocale() };
+  const wire = toHospitalAiChatWireBody(body);
+  const existing = wire.ReplyLocale ?? wire.replyLocale;
+  if (existing != null && String(existing).trim() !== '') return wire;
+  return { ...wire, ReplyLocale: activeMobileLocale() };
 }
 
 export function pickReplyFromChatPayload(data: Record<string, unknown>): string {

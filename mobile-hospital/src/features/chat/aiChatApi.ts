@@ -36,9 +36,9 @@ export async function sendAiChatMessageStreaming(
   let metadata: AiChatMetadata = {};
   const reply = await postHospitalAiChatNdjson(
     {
-      message,
-      conversationId: null,
-      history: history.map((h) => ({ role: h.role, content: h.content }))
+      Message: message,
+      ConversationId: null,
+      History: history.map((h) => ({ Role: h.role, Content: h.content }))
     },
     {
       onStatus: handlers.onStatus,

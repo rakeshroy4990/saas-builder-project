@@ -350,6 +350,58 @@ public class OpenAiChatAdapter {
             Rules: general wellness and health literacy only; varied topics across items.
             """;
 
+    /**
+     * Generic JSON-oriented completion for clinical pipelines (conversation analyzer / summary).
+     * Caller owns the system prompt; response is raw model text (expected JSON).
+     */
+    public String completeClinicalJson(String systemPrompt, String userPrompt, int maxOutputTokens) {
+        if (apiKey.isBlank()) {
+            throw new AiProviderException(
+                    AiProviderException.Kind.CONFIG_MISSING,
+                    "Smart AI is not configured on this environment."
+            );
+        }
+        int tokens = Math.min(4096, Math.max(256, maxOutputTokens));
+        try {
+            String requestBody = buildRequestBody(
+                    Objects.toString(systemPrompt, "").trim(),
+                    List.of(),
+                    Objects.toString(userPrompt, "").trim(),
+                    tokens,
+                    0.2
+            );
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(joinUrl(baseUrl, chatPath)))
+                    .timeout(Duration.ofMillis(Math.max(timeoutMs, 90_000)))
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new AiProviderException(
+                        AiProviderException.Kind.PROVIDER_FAILED,
+                        "Clinical AI completion failed.",
+                        "openai",
+                        response.statusCode(),
+                        ""
+                );
+            }
+            return parseResponseText(response.body()).trim();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "Smart AI provider is temporarily unavailable."
+            );
+        } catch (IOException ex) {
+            throw new AiProviderException(
+                    AiProviderException.Kind.PROVIDER_FAILED,
+                    "Smart AI provider is temporarily unavailable."
+            );
+        }
+    }
+
     public String complete(List<AiChatMessageDto> history, String message) {
         if (apiKey.isBlank()) {
             throw new AiProviderException(

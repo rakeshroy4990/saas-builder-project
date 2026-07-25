@@ -9,9 +9,9 @@ export function buildEducationChatPayload(
 ): Record<string, unknown> {
   const retrievalSeed = String(retrievalQuestion ?? '').trim() || question;
   const payload: Record<string, unknown> = {
-    message: question,
-    history,
-    conversationId,
+    Message: question,
+    History: history.map((h) => ({ Role: h.role, Content: h.content })),
+    ConversationId: conversationId,
     RetrievalQuestion: retrievalSeed
   };
   const normalized = bookNames.map((b) => String(b ?? '').trim()).filter(Boolean);

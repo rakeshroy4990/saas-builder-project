@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "test": "jest",
     "test:watch": "jest --watch",
+    "postinstall": "bash scripts/patch-gradle-foojay.sh",
     "eas:preflight": "bash scripts/eas-preflight.sh",
     "eas:build:preview:android": "bash scripts/eas-build-preview-android.sh",
     "credentials:android": "eas credentials -p android"

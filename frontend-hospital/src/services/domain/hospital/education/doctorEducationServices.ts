@@ -457,7 +457,7 @@ function hospitalAiChatPayload(
   bookName: string,
   retrievalQuestion?: string
 ): Record<string, unknown> {
-  const payload: Record<string, unknown> = { message, history };
+  const payload: Record<string, unknown> = { Message: message, History: history };
   const bn = bookName.trim();
   if (bn) payload.BookName = bn;
   const rq = String(retrievalQuestion ?? '').trim();

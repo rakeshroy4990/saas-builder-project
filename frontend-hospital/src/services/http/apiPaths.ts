@@ -128,7 +128,15 @@ export const SERVER_PATHS = {
   analyticsRefresh: '/api/v1/analytics/refresh',
   analyticsExportAppointments: '/api/v1/analytics/export/appointments',
   analyticsExportPatients: '/api/v1/analytics/export/patients',
-  analyticsExportRetention: '/api/v1/analytics/export/retention'
+  analyticsExportRetention: '/api/v1/analytics/export/retention',
+  /** Doctor AI Conversation pipeline */
+  audioStart: '/api/audio/start',
+  audioUpload: '/api/audio/upload',
+  audioTranscribe: '/api/audio/transcribe',
+  audioAnalyze: '/api/audio/analyze',
+  audioGenerateSummary: '/api/audio/generate-summary',
+  audioSave: '/api/audio/save',
+  audioByAppointment: '/api/audio'
 } as const;
 
 export type ServerPathKey = keyof typeof SERVER_PATHS;
