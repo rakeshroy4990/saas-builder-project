@@ -51,7 +51,8 @@ module.exports = ({ config }) => {
     'expo-audio',
     {
       microphonePermission:
-        'Allow Agastya Healthcare to record consultation audio for AI Conversation clinical documentation.'
+        'Allow Agastya Healthcare to record consultation audio for AI Conversation clinical documentation.',
+      enableBackgroundRecording: true
     }
   ]);
 

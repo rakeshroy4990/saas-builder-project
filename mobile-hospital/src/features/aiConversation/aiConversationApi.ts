@@ -1,8 +1,10 @@
 import { SERVER_PATHS } from '@saas-builder/hospital-api-client';
 
+import { isLikelyOffline, toUserFacingApiError } from '@/api/apiErrors';
 import { apiClient } from '@/api/client';
 import { postMultipartLocalFile } from '@/api/postMultipart';
 import { UPLOAD_API_TIMEOUT_MS } from '@/api/timeouts';
+import { useNetworkStore } from '@/network/networkStore';
 
 export type AiConversationTurn = {
   Speaker: string;
@@ -217,12 +219,59 @@ function parseSession(body: unknown): AiConversationSession {
   };
 }
 
-function apiErrorMessage(err: unknown, fallback: string): string {
-  const ax = err as { response?: { data?: Record<string, unknown> }; message?: string };
-  const msg = String(ax.response?.data?.Message ?? ax.response?.data?.message ?? '').trim();
-  if (msg) return msg;
-  const m = String(ax.message ?? '').trim();
-  return m || fallback;
+export function apiErrorMessage(err: unknown, fallback: string): string {
+  return toUserFacingApiError(err, fallback);
+}
+
+/** Wait until NetInfo reports online (or timeout). */
+export async function waitForNetwork(timeoutMs = 120_000): Promise<boolean> {
+  if (!useNetworkStore.getState().isOffline && !isLikelyOffline()) {
+    return true;
+  }
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    await new Promise((r) => setTimeout(r, 1500));
+    if (!useNetworkStore.getState().isOffline) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export async function withRetries<T>(
+  label: string,
+  fn: () => Promise<T>,
+  options?: { attempts?: number; delayMs?: number }
+): Promise<T> {
+  const attempts = options?.attempts ?? 3;
+  const delayMs = options?.delayMs ?? 2000;
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    if (useNetworkStore.getState().isOffline) {
+      const online = await waitForNetwork(60_000);
+      if (!online) {
+        throw new Error('OFFLINE');
+      }
+    }
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const ax = err as { response?: { status?: number }; message?: string };
+      const status = ax.response?.status;
+      const retryable =
+        !status ||
+        status >= 500 ||
+        status === 408 ||
+        status === 429 ||
+        /offline|network|timeout|taking too long/i.test(String(ax.message ?? err));
+      if (!retryable || i === attempts - 1) {
+        throw err;
+      }
+      await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 export async function loadDoctorAppointmentsForAiConversation(): Promise<AppointmentOption[]> {
@@ -365,5 +414,3 @@ export async function saveAiConversation(input: {
   );
   return parseSession(data);
 }
-
-export { apiErrorMessage };

@@ -1591,7 +1591,9 @@
       "eprescriptionApplied": "Applied to e-prescription draft",
       "readyReview": "Ready for doctor review",
       "copied": "Copied to clipboard",
-      "saved": "Consultation saved"
+      "saved": "Consultation saved",
+      "backgroundRecordingHint": "Recording continues if you minimize this window. Keep the tab open (do not close it).",
+      "backgroundRecordingOk": "Back — recording is still active."
     },
     "errors": {
       "noSession": "No recording session. Start from the home hero.",

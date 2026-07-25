@@ -100,6 +100,13 @@ let flushTimer: number | null = null;
 let flushChain: Promise<void> = Promise.resolve();
 let mimeType = 'audio/webm';
 let pageHideBound = false;
+/** Keeps the tab "audio-active" so Chromium is less likely to suspend MediaRecorder when minimized. */
+let keepAliveAudioEl: HTMLAudioElement | null = null;
+let keepAliveAudioCtx: AudioContext | null = null;
+let wakeLockSentinel: WakeLockSentinel | null = null;
+let recordingStartedAtMs = 0;
+let pausedAccumulatedMs = 0;
+let pauseStartedAtMs = 0;
 
 const isDoctor = computed(() => {
   const auth = (appStore.getData('hospital', 'AuthSession') ?? {}) as Record<string, unknown>;
@@ -352,35 +359,158 @@ function startFlushTimer() {
   }, CHUNK_FLUSH_MS);
 }
 
+function syncElapsedFromWallClock() {
+  if (!recordingStartedAtMs) return;
+  const pausedExtra =
+    phase.value === 'paused' && pauseStartedAtMs > 0 ? Date.now() - pauseStartedAtMs : 0;
+  const ms = Date.now() - recordingStartedAtMs - pausedAccumulatedMs - pausedExtra;
+  elapsedSec.value = Math.max(0, Math.floor(ms / 1000));
+}
+
+function startTickTimer() {
+  clearTick();
+  tickTimer = window.setInterval(() => {
+    if (phase.value === 'recording') {
+      syncElapsedFromWallClock();
+    }
+  }, 1000);
+}
+
+async function requestWakeLock() {
+  try {
+    const nav = navigator as Navigator & {
+      wakeLock?: { request: (type: 'screen') => Promise<WakeLockSentinel> };
+    };
+    if (!nav.wakeLock?.request || document.visibilityState !== 'visible') return;
+    wakeLockSentinel = await nav.wakeLock.request('screen');
+    wakeLockSentinel.addEventListener('release', () => {
+      wakeLockSentinel = null;
+    });
+  } catch {
+    /* unsupported or denied — continue without */
+  }
+}
+
+async function releaseWakeLock() {
+  try {
+    await wakeLockSentinel?.release();
+  } catch {
+    /* ignore */
+  }
+  wakeLockSentinel = null;
+}
+
+/**
+ * Browsers throttle background tabs; an active (muted) media element + AudioContext
+ * connected to the mic stream reduces MediaRecorder suspension when the window is minimized.
+ */
+function startBackgroundRecordingKeepAlive(stream: MediaStream) {
+  stopBackgroundRecordingKeepAlive();
+  try {
+    const el = document.createElement('audio');
+    el.srcObject = stream;
+    el.muted = true;
+    el.volume = 0;
+    el.setAttribute('playsinline', 'true');
+    el.setAttribute('aria-hidden', 'true');
+    el.style.display = 'none';
+    document.body.appendChild(el);
+    keepAliveAudioEl = el;
+    void el.play().catch(() => {
+      /* autoplay may be blocked; AudioContext path still helps */
+    });
+  } catch {
+    /* ignore */
+  }
+  try {
+    const AC =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    keepAliveAudioCtx = ctx;
+    const source = ctx.createMediaStreamSource(stream);
+    const gain = ctx.createGain();
+    // Zero gain — no audible loopback; still marks the document as using the audio graph.
+    gain.gain.value = 0;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    void ctx.resume();
+  } catch {
+    /* ignore */
+  }
+}
+
+function stopBackgroundRecordingKeepAlive() {
+  try {
+    keepAliveAudioEl?.pause();
+    keepAliveAudioEl?.remove();
+  } catch {
+    /* ignore */
+  }
+  keepAliveAudioEl = null;
+  try {
+    void keepAliveAudioCtx?.close();
+  } catch {
+    /* ignore */
+  }
+  keepAliveAudioCtx = null;
+}
+
 function onPageHideFlush() {
   if (phase.value !== 'recording' && phase.value !== 'paused') return;
+  // Do not stop MediaRecorder — only flush what we have so far.
   requestRecorderData();
   void enqueueFlush({ keepalive: true });
 }
 
-function onVisibilityFlush() {
-  if (document.visibilityState !== 'hidden') return;
+function onVisibilityChange() {
   if (phase.value !== 'recording' && phase.value !== 'paused') return;
-  requestRecorderData();
-  void enqueueFlush({ keepalive: true });
+
+  if (document.visibilityState === 'hidden') {
+    // Keep recording; flush chunks because timers are heavily throttled in background tabs.
+    requestRecorderData();
+    void enqueueFlush({ keepalive: true });
+    void releaseWakeLock();
+    return;
+  }
+
+  // Tab visible again: restore keep-alive, wake lock, and wall-clock timer.
+  syncElapsedFromWallClock();
+  if (keepAliveAudioCtx?.state === 'suspended') {
+    void keepAliveAudioCtx.resume();
+  }
+  if (keepAliveAudioEl?.paused && mediaStream) {
+    void keepAliveAudioEl.play().catch(() => undefined);
+  }
+  if (phase.value === 'recording') {
+    if (!tickTimer) startTickTimer();
+    if (!flushTimer) startFlushTimer();
+    requestRecorderData();
+    void enqueueFlush();
+    void requestWakeLock();
+  }
+  statusLine.value = t('aiConversation.status.backgroundRecordingOk');
 }
 
 function bindUnloadFlush() {
   if (pageHideBound || typeof window === 'undefined') return;
   window.addEventListener('pagehide', onPageHideFlush);
-  document.addEventListener('visibilitychange', onVisibilityFlush);
+  document.addEventListener('visibilitychange', onVisibilityChange);
   pageHideBound = true;
 }
 
 function unbindUnloadFlush() {
   if (!pageHideBound || typeof window === 'undefined') return;
   window.removeEventListener('pagehide', onPageHideFlush);
-  document.removeEventListener('visibilitychange', onVisibilityFlush);
+  document.removeEventListener('visibilitychange', onVisibilityChange);
   pageHideBound = false;
 }
 
 function stopTracks() {
   mediaRecorder = null;
+  stopBackgroundRecordingKeepAlive();
+  void releaseWakeLock();
   if (mediaStream) {
     mediaStream.getTracks().forEach((tr) => tr.stop());
     mediaStream = null;
@@ -405,6 +535,14 @@ async function beginRecording() {
         channelCount: 1
       }
     });
+    // Prefer not to force track ending when the tab is backgrounded (browser-dependent).
+    mediaStream.getAudioTracks().forEach((track) => {
+      try {
+        track.contentHint = 'speech';
+      } catch {
+        /* ignore */
+      }
+    });
     const preferred = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
     mimeType = preferred.find((m) => MediaRecorder.isTypeSupported(m)) || '';
     resetChunkState();
@@ -416,17 +554,28 @@ async function beginRecording() {
       if (ev.data && ev.data.size > 0) {
         chunks.push(ev.data);
         pendingParts.push(ev.data);
+        // Size-based flush so background timer throttling still uploads audio.
+        const pendingBytes = pendingParts.reduce(
+          (n, p) => n + (p instanceof Blob ? p.size : 0),
+          0
+        );
+        if (pendingBytes >= 240_000) {
+          void enqueueFlush();
+        }
       }
     };
     mediaRecorder.start(1000);
+    startBackgroundRecordingKeepAlive(mediaStream);
+    recordingStartedAtMs = Date.now();
+    pausedAccumulatedMs = 0;
+    pauseStartedAtMs = 0;
     elapsedSec.value = 0;
-    clearTick();
-    tickTimer = window.setInterval(() => {
-      elapsedSec.value += 1;
-    }, 1000);
+    startTickTimer();
     startFlushTimer();
     bindUnloadFlush();
+    void requestWakeLock();
     phase.value = 'recording';
+    statusLine.value = t('aiConversation.status.backgroundRecordingHint');
     appStore.setProperty('hospital', 'AiConversationSession', 'phase', 'recording');
   } catch {
     error.value = t('aiConversation.errors.micDenied');
@@ -437,22 +586,30 @@ async function beginRecording() {
 function pauseRecording() {
   if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
   mediaRecorder.pause();
+  pauseStartedAtMs = Date.now();
   clearTick();
   clearFlushTimer();
   requestRecorderData();
   void enqueueFlush();
+  void releaseWakeLock();
   phase.value = 'paused';
 }
 
 function resumeRecording() {
   if (!mediaRecorder || mediaRecorder.state !== 'paused') return;
+  if (pauseStartedAtMs > 0) {
+    pausedAccumulatedMs += Date.now() - pauseStartedAtMs;
+    pauseStartedAtMs = 0;
+  }
   mediaRecorder.resume();
-  clearTick();
-  tickTimer = window.setInterval(() => {
-    elapsedSec.value += 1;
-  }, 1000);
+  if (keepAliveAudioCtx?.state === 'suspended') {
+    void keepAliveAudioCtx.resume();
+  }
+  startTickTimer();
   startFlushTimer();
+  void requestWakeLock();
   phase.value = 'recording';
+  statusLine.value = t('aiConversation.status.backgroundRecordingHint');
 }
 
 async function stopAndProcess() {
@@ -815,6 +972,9 @@ onBeforeUnmount(() => {
         </p>
         <p class="font-mono text-3xl tabular-nums text-slate-800">{{ timerLabel }}</p>
         <p class="text-sm text-slate-600">{{ t('aiConversation.doctorConsultation') }}</p>
+        <p class="max-w-md text-center text-xs text-slate-500">
+          {{ t('aiConversation.status.backgroundRecordingHint') }}
+        </p>
         <div class="flex flex-wrap justify-center gap-3">
           <button
             v-if="phase === 'recording'"

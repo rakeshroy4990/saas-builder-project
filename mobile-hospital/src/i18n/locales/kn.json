@@ -832,7 +832,10 @@
       "eprescriptionApplied": "Applied to e-prescription draft",
       "readyReview": "Ready for doctor review",
       "copied": "Copied to clipboard",
-      "saved": "Consultation saved"
+      "saved": "Consultation saved",
+      "waitingNetwork": "Waiting for network…",
+      "retryHint": "Processing paused. Your audio is still on this device — retry when online.",
+      "audioPreserved": "Consultation audio was kept locally and can be uploaded again."
     },
     "errors": {
       "noSession": "No recording session.",
@@ -847,13 +850,16 @@
       "saveFailed": "Could not save the consultation.",
       "selectAppointment": "Select an appointment to continue.",
       "consentRequired": "Consent is required before recording.",
-      "startFailed": "Could not start the recording session."
+      "startFailed": "Could not start the recording session.",
+      "offlineOrSleep": "Connection was lost (offline or phone sleep). Tap Retry when you are back online."
     },
     "languageOptions": {
       "mixed": "Mixed language",
       "en": "English",
       "hi": "Hindi",
       "kn": "Kannada"
-    }
+    },
+    "retry": "Retry processing",
+    "discardSession": "Start over"
   }
 }

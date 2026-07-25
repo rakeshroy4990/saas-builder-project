@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
+  AppState,
+  type AppStateStatus,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,9 +20,11 @@ import {
   useAudioRecorderState
 } from 'expo-audio';
 import * as Clipboard from 'expo-clipboard';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Sharing from 'expo-sharing';
 import { cacheDirectory, EncodingType, writeAsStringAsync } from 'expo-file-system/legacy';
 
+import { isLikelyOffline } from '@/api/apiErrors';
 import { KeyboardSafeView } from '@/components/KeyboardSafeView';
 import {
   analyzeAiConversation,
@@ -35,17 +39,22 @@ import {
   startAiConversation,
   transcribeAiConversation,
   uploadAiConversationAudio,
+  waitForNetwork,
+  withRetries,
   type AiConversationMedicine,
   type AiConversationPrescription,
   type AiConversationSession,
   type AppointmentOption
 } from '@/features/aiConversation/aiConversationApi';
+import { useNetworkStore } from '@/network/networkStore';
 import { colors } from '@/theme/colors';
 import { TAB_SCROLL_BOTTOM_PADDING } from '@/theme/layout';
 import { sharedStyles } from '@/theme/styles';
 
-type Phase = 'idle' | 'recording' | 'paused' | 'processing' | 'review' | 'saved';
+type Phase = 'idle' | 'recording' | 'paused' | 'processing' | 'failed' | 'review' | 'saved';
 type TabId = 'transcript' | 'summary' | 'soap' | 'diagnosis' | 'prescription';
+
+const KEEP_AWAKE_TAG = 'ai-conversation';
 
 const LANGUAGE_OPTIONS = [
   { value: 'mixed', labelKey: 'aiConversation.languageOptions.mixed' },
@@ -94,6 +103,7 @@ export function AiConversationScreen() {
   const [elapsedSec, setElapsedSec] = useState(0);
   const [swapSpeakers, setSwapSpeakers] = useState(false);
   const [applyingEprescription, setApplyingEprescription] = useState(false);
+  const isOffline = useNetworkStore((s) => s.isOffline);
 
   const [sessionId, setSessionId] = useState('');
   const [transcriptText, setTranscriptText] = useState('');
@@ -104,9 +114,30 @@ export function AiConversationScreen() {
   const [prescription, setPrescription] = useState<AiConversationPrescription>(
     emptyAiConversationPrescription()
   );
+  /** Local recording file — kept so Stop/upload can retry after sleep/offline. */
+  const [localAudioUri, setLocalAudioUri] = useState<string | null>(null);
+  const [audioUploaded, setAudioUploaded] = useState(false);
 
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const elapsedRef = useRef(0);
+  const sessionIdRef = useRef('');
+  const localAudioUriRef = useRef<string | null>(null);
+  const audioUploadedRef = useRef(false);
+  const retryingRef = useRef(false);
+  const phaseRef = useRef<Phase>('idle');
+
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
+  useEffect(() => {
+    localAudioUriRef.current = localAudioUri;
+  }, [localAudioUri]);
+  useEffect(() => {
+    audioUploadedRef.current = audioUploaded;
+  }, [audioUploaded]);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   const possibleDiagnosis = useMemo(() => {
     const list = summary.PossibleDiagnosis ?? summary.possibleDiagnosis;
@@ -160,6 +191,7 @@ export function AiConversationScreen() {
   useEffect(() => {
     return () => {
       clearTick();
+      deactivateKeepAwake(KEEP_AWAKE_TAG);
       try {
         if (recorder.isRecording) {
           void recorder.stop();
@@ -169,6 +201,20 @@ export function AiConversationScreen() {
       }
     };
   }, [clearTick, recorder]);
+
+  /** Prevent screen sleep while recording or running the LLM pipeline. */
+  useEffect(() => {
+    const active =
+      phase === 'recording' || phase === 'paused' || phase === 'processing' || phase === 'failed';
+    if (active) {
+      void activateKeepAwakeAsync(KEEP_AWAKE_TAG);
+    } else {
+      deactivateKeepAwake(KEEP_AWAKE_TAG);
+    }
+    return () => {
+      if (!active) deactivateKeepAwake(KEEP_AWAKE_TAG);
+    };
+  }, [phase]);
 
   async function ensureMicPermission(): Promise<boolean> {
     const status = await AudioModule.requestRecordingPermissionsAsync();
@@ -183,11 +229,17 @@ export function AiConversationScreen() {
       return;
     }
     try {
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        allowsBackgroundRecording: true
+      });
       await recorder.prepareToRecordAsync();
       recorder.record();
       elapsedRef.current = 0;
       setElapsedSec(0);
+      setLocalAudioUri(null);
+      setAudioUploaded(false);
       clearTick();
       tickRef.current = setInterval(() => {
         elapsedRef.current += 1;
@@ -197,6 +249,17 @@ export function AiConversationScreen() {
     } catch {
       setError(t('aiConversation.errors.micDenied'));
     }
+  }
+
+  function markFailed(err: unknown, fallbackKey: string) {
+    const offline = isLikelyOffline() || String(err).includes('OFFLINE');
+    setError(
+      offline
+        ? t('aiConversation.errors.offlineOrSleep')
+        : apiErrorMessage(err, t(fallbackKey))
+    );
+    setPhase('failed');
+    setStatusLine(t('aiConversation.status.retryHint'));
   }
 
   async function startRecordingSession() {
@@ -244,63 +307,158 @@ export function AiConversationScreen() {
     setPhase('recording');
   }
 
-  async function runPipeline() {
-    if (!sessionId) {
-      setError(t('aiConversation.errors.noSession'));
-      return;
+  async function ensureOnlineOrFail(): Promise<boolean> {
+    if (!isLikelyOffline() && !useNetworkStore.getState().isOffline) {
+      return true;
     }
-    setPhase('processing');
-    try {
-      setStatusLine(t('aiConversation.status.transcribing'));
-      applySession(await transcribeAiConversation(sessionId, swapSpeakers));
-      setStatusLine(t('aiConversation.status.analyzing'));
-      applySession(await analyzeAiConversation(sessionId));
-      setStatusLine(t('aiConversation.status.summarizing'));
-      applySession(await generateAiConversationSummary(sessionId));
-      setStatusLine(t('aiConversation.status.prescribing'));
-      applySession(await generateAiConversationPrescription(sessionId));
-      setPhase('review');
-      setTab('prescription');
-      setStatusLine(t('aiConversation.status.readyReview'));
-    } catch (err) {
-      setError(apiErrorMessage(err, t('aiConversation.errors.pipelineFailed')));
-      setPhase('idle');
+    setStatusLine(t('aiConversation.status.waitingNetwork'));
+    const online = await waitForNetwork(90_000);
+    if (!online) {
+      markFailed(new Error('OFFLINE'), 'aiConversation.errors.pipelineFailed');
+      return false;
     }
+    return true;
   }
 
-  async function stopAndProcess() {
-    setError('');
-    if (!sessionId) {
-      setError(t('aiConversation.errors.notRecording'));
-      return;
+  async function uploadLocalAudioIfNeeded(): Promise<boolean> {
+    const sid = sessionIdRef.current;
+    const uri = localAudioUriRef.current;
+    if (!sid) {
+      setError(t('aiConversation.errors.noSession'));
+      setPhase('failed');
+      return false;
     }
-    setPhase('processing');
+    if (audioUploadedRef.current) {
+      return true;
+    }
+    if (!uri) {
+      setError(t('aiConversation.errors.emptyAudio'));
+      setPhase('failed');
+      return false;
+    }
+    if (!(await ensureOnlineOrFail())) {
+      return false;
+    }
     setStatusLine(t('aiConversation.status.uploading'));
-    clearTick();
-    try {
-      if (recorder.isRecording || recorderState.isRecording) {
-        await recorder.stop();
-      }
-      const uri = recorder.uri;
-      if (!uri) {
-        setError(t('aiConversation.errors.emptyAudio'));
-        setPhase('idle');
-        return;
-      }
-      const uploaded = await uploadAiConversationAudio({
-        sessionId,
+    const uploaded = await withRetries('upload', () =>
+      uploadAiConversationAudio({
+        sessionId: sid,
         durationSeconds: elapsedRef.current,
         fileUri: uri,
         filename: 'consultation.m4a',
         mimeType: 'audio/mp4'
-      });
-      applySession(uploaded);
-      await runPipeline();
+      })
+    );
+    applySession(uploaded);
+    setAudioUploaded(true);
+    audioUploadedRef.current = true;
+    return true;
+  }
+
+  async function runPipeline() {
+    const sid = sessionIdRef.current;
+    if (!sid) {
+      setError(t('aiConversation.errors.noSession'));
+      setPhase('failed');
+      return;
+    }
+    setPhase('processing');
+    setError('');
+    try {
+      if (!(await ensureOnlineOrFail())) {
+        return;
+      }
+      setStatusLine(t('aiConversation.status.transcribing'));
+      applySession(
+        await withRetries('transcribe', () => transcribeAiConversation(sid, swapSpeakers))
+      );
+      setStatusLine(t('aiConversation.status.analyzing'));
+      applySession(await withRetries('analyze', () => analyzeAiConversation(sid)));
+      setStatusLine(t('aiConversation.status.summarizing'));
+      applySession(await withRetries('summary', () => generateAiConversationSummary(sid)));
+      setStatusLine(t('aiConversation.status.prescribing'));
+      applySession(await withRetries('prescription', () => generateAiConversationPrescription(sid)));
+      setPhase('review');
+      setTab('prescription');
+      setStatusLine(t('aiConversation.status.readyReview'));
     } catch (err) {
-      setError(apiErrorMessage(err, t('aiConversation.errors.pipelineFailed')));
-      setPhase('idle');
+      markFailed(err, 'aiConversation.errors.pipelineFailed');
     }
   }
+
+  async function processConsultation(opts?: { fromRetry?: boolean }) {
+    if (retryingRef.current) return;
+    retryingRef.current = true;
+    setPhase('processing');
+    setError('');
+    clearTick();
+    try {
+      if (!opts?.fromRetry) {
+        if (recorder.isRecording || recorderState.isRecording) {
+          await recorder.stop();
+        }
+        const uri = recorder.uri;
+        if (!uri) {
+          setError(t('aiConversation.errors.emptyAudio'));
+          setPhase('failed');
+          return;
+        }
+        setLocalAudioUri(uri);
+        localAudioUriRef.current = uri;
+        setAudioUploaded(false);
+        audioUploadedRef.current = false;
+      }
+      const uploaded = await uploadLocalAudioIfNeeded();
+      if (!uploaded) {
+        return;
+      }
+      await runPipeline();
+    } catch (err) {
+      markFailed(err, 'aiConversation.errors.pipelineFailed');
+    } finally {
+      retryingRef.current = false;
+    }
+  }
+
+  async function stopAndProcess() {
+    if (!sessionIdRef.current) {
+      setError(t('aiConversation.errors.notRecording'));
+      return;
+    }
+    await processConsultation();
+  }
+
+  async function retryProcessing() {
+    await processConsultation({ fromRetry: true });
+  }
+
+  // Auto-retry when connectivity returns after a sleep/offline failure.
+  useEffect(() => {
+    if (phase !== 'failed' || isOffline || retryingRef.current) return;
+    if (!sessionIdRef.current || (!audioUploadedRef.current && !localAudioUriRef.current)) return;
+    const timer = setTimeout(() => {
+      if (phaseRef.current === 'failed' && !useNetworkStore.getState().isOffline) {
+        void retryProcessing();
+      }
+    }, 1200);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional auto-retry trigger
+  }, [isOffline, phase]);
+
+  // When app wakes from sleep, resume a failed pipeline if we still have audio/session.
+  useEffect(() => {
+    const onChange = (next: AppStateStatus) => {
+      if (next !== 'active') return;
+      if (phaseRef.current !== 'failed') return;
+      if (useNetworkStore.getState().isOffline) return;
+      if (!sessionIdRef.current) return;
+      if (!audioUploadedRef.current && !localAudioUriRef.current) return;
+      void retryProcessing();
+    };
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function regeneratePrescription() {
     if (!sessionId) return;
@@ -511,6 +669,42 @@ export function AiConversationScreen() {
             <ActivityIndicator color={colors.primary} size="large" />
             <Text style={[styles.body, styles.gapTop]}>{t('aiConversation.processing')}</Text>
             <Text style={styles.muted}>{statusLine}</Text>
+            {isOffline ? (
+              <Text style={[styles.muted, styles.gapTop]}>{t('aiConversation.status.waitingNetwork')}</Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {phase === 'failed' ? (
+          <View style={styles.card}>
+            <Text style={styles.body}>{t('aiConversation.status.retryHint')}</Text>
+            {isOffline ? (
+              <Text style={[styles.muted, styles.gapTop]}>{t('aiConversation.status.waitingNetwork')}</Text>
+            ) : null}
+            <Text style={[styles.muted, styles.gapTop]}>
+              {localAudioUri || audioUploaded
+                ? t('aiConversation.status.audioPreserved')
+                : t('aiConversation.errors.emptyAudio')}
+            </Text>
+            <View style={[styles.row, styles.gapTop]}>
+              <Pressable
+                style={[sharedStyles.button, isOffline && styles.disabled]}
+                disabled={isOffline}
+                onPress={() => void retryProcessing()}
+              >
+                <Text style={sharedStyles.buttonText}>{t('aiConversation.retry')}</Text>
+              </Pressable>
+              <Pressable
+                style={styles.secondaryBtn}
+                onPress={() => {
+                  setPhase('idle');
+                  setError('');
+                  setStatusLine('');
+                }}
+              >
+                <Text style={styles.secondaryBtnText}>{t('aiConversation.discardSession')}</Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
 
