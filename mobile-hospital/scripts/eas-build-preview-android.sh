@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run lockfile sync, EAS preflight checks, then preview Android cloud build.
+# Run lockfile sync, Android SDK guard, EAS preflight, then preview Android cloud build.
 # Usage: npm run eas:build:preview:android
 #        bash scripts/eas-build-preview-android.sh
 
@@ -42,9 +42,18 @@ sync_package_lock() {
   fi
 }
 
+# Catch compileSdk/targetSdk mismatches before EAS burns ~15m on checkReleaseAarMetadata.
+check_android_sdk_versions() {
+  log "Validate Android compileSdk/targetSdk vs Expo SDK"
+  if ! bash "$SCRIPT_DIR/check-android-sdk-versions.sh"; then
+    fail "Android SDK version check failed — fix app.config.js before eas build"
+  fi
+}
+
 cd "$APP_DIR"
 
 sync_package_lock
+check_android_sdk_versions
 
 log "Running EAS preflight (includes Gradle assembleRelease / toolchain check)"
 npm run eas:preflight -- --platform android --profile preview

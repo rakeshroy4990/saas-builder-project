@@ -40,8 +40,9 @@ module.exports = ({ config }) => {
         buildArchs: ['arm64-v8a', 'armeabi-v7a'],
         softwareKeyboardLayoutMode: 'resize',
         minSdkVersion: 26,
-        compileSdkVersion: 35,
-        targetSdkVersion: 35
+        compileSdkVersion: 36,
+        targetSdkVersion: 36,
+        buildToolsVersion: '36.0.0'
       }
     }
   ]);

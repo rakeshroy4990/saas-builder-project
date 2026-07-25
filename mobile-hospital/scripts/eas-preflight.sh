@@ -117,6 +117,7 @@ require_file "$ARCHIVE_APP/app.config.js" "app.config.js must be committed and n
 require_file "$ARCHIVE_APP/app.json" "app.json must be committed and not ignored"
 require_file "$ARCHIVE_APP/scripts/validateGoogleServices.js" "Check root .easignore — use /scripts/ not scripts/"
 require_file "$ARCHIVE_APP/scripts/patch-gradle-foojay.sh" "patch-gradle-foojay.sh must be committed for Gradle 9 / EAS Android builds"
+require_file "$ARCHIVE_APP/scripts/check-android-sdk-versions.sh" "check-android-sdk-versions.sh must be committed for Android SDK preflight"
 require_file "$ARCHIVE_APP/assets/images/icon.png" "Check root .easignore — use /images/ not images/"
 require_file "$ARCHIVE_APP/assets/images/android-icon-foreground.png" "Adaptive icon assets must be in git"
 require_file "$ARCHIVE_APP/assets/images/splash-icon.png" "Splash icon must be in git"
@@ -135,7 +136,7 @@ if ! bash "$ARCHIVE_APP/scripts/patch-gradle-foojay.sh"; then
   fail "patch-gradle-foojay.sh failed — React Native Gradle plugin may be incompatible with Gradle 9"
 fi
 
-log "Step 4/6 — Load app.config.js and run expo prebuild --no-install"
+log "Step 4/6 — Load app.config.js, Android SDK guard, expo prebuild --no-install"
 export EAS_BUILD_PROFILE="$PROFILE"
 if ! node -e "
   const path = require('path');
@@ -145,6 +146,14 @@ if ! node -e "
   console.log('  ✓ app.config.js loaded');
 " "$ARCHIVE_APP"; then
   fail "app.config.js failed to load"
+fi
+
+if [[ "$PLATFORM" == "android" ]]; then
+  # Same guard as eas-build-preview-android.sh — fails before Gradle/EAS when
+  # expo-build-properties pins compileSdk below Expo / AndroidX requirements.
+  if ! EAS_BUILD_PROFILE="$PROFILE" bash "$SCRIPT_DIR/check-android-sdk-versions.sh" "$ARCHIVE_APP"; then
+    fail "Android SDK version check failed — raise compileSdk/targetSdk in app.config.js"
+  fi
 fi
 
 if ! npx expo prebuild --no-install --platform "$PLATFORM"; then
