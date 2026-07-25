@@ -5,12 +5,18 @@ import { useAppStore } from '../../store/useAppStore';
 import { pinia } from '../../store/pinia';
 import {
   analyzeAiConversation,
+  applyAiConversationToEprescription,
+  emptyAiConversationPrescription,
+  formatAiConversationPrescription,
+  generateAiConversationPrescription,
   generateAiConversationSummary,
   saveAiConversation,
   startAiConversation,
   transcribeAiConversation,
   uploadAiConversationAudio,
   uploadAiConversationChunkKeepalive,
+  type AiConversationMedicine,
+  type AiConversationPrescription,
   type AiConversationSession,
   type AiConversationTurn
 } from '../../services/http/aiConversationApi';
@@ -19,7 +25,7 @@ import {
 const CHUNK_FLUSH_MS = 15_000;
 
 type Phase = 'idle' | 'recording' | 'paused' | 'processing' | 'review' | 'saved';
-type TabId = 'transcript' | 'summary' | 'soap' | 'diagnosis';
+type TabId = 'transcript' | 'summary' | 'soap' | 'diagnosis' | 'prescription';
 type AppointmentOption = { id: string; label: string; value: string };
 
 const { t } = useI18n();
@@ -44,6 +50,21 @@ const transcriptTurns = ref<AiConversationTurn[]>([]);
 const structuredJson = ref<Record<string, unknown>>({});
 const summary = ref<Record<string, unknown>>({});
 const soap = ref<Record<string, unknown>>({});
+const prescription = ref<AiConversationPrescription>(emptyAiConversationPrescription());
+const applyingEprescription = ref(false);
+
+const prescriptionInvestigationsText = computed({
+  get: () => prescription.value.Investigations.join('\n'),
+  set: (v: string) => {
+    prescription.value = {
+      ...prescription.value,
+      Investigations: v
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    };
+  }
+});
 
 const appointmentOptions = computed((): AppointmentOption[] => {
   const opts = appStore.getData('hospital', 'AiConversationAppointmentOptions') as
@@ -140,7 +161,40 @@ function applySession(session: AiConversationSession) {
   if (Object.keys(session.structuredJson).length) structuredJson.value = session.structuredJson;
   if (Object.keys(session.summary).length) summary.value = session.summary;
   if (Object.keys(session.soap).length) soap.value = session.soap;
+  if (session.prescription) prescription.value = session.prescription;
   if (session.message) statusLine.value = session.message;
+}
+
+function emptyMedicineRow(): AiConversationMedicine {
+  return {
+    Name: '',
+    Strength: '',
+    Dose: '',
+    Frequency: '',
+    Route: '',
+    DurationDays: '',
+    Instructions: '',
+    ScheduleCategory: ''
+  };
+}
+
+function addMedicineRow() {
+  prescription.value = {
+    ...prescription.value,
+    Medicines: [...prescription.value.Medicines, emptyMedicineRow()]
+  };
+}
+
+function removeMedicineRow(index: number) {
+  prescription.value = {
+    ...prescription.value,
+    Medicines: prescription.value.Medicines.filter((_, i) => i !== index)
+  };
+}
+
+function updateMedicineField(index: number, field: keyof AiConversationMedicine, value: string) {
+  const next = prescription.value.Medicines.map((m, i) => (i === index ? { ...m, [field]: value } : m));
+  prescription.value = { ...prescription.value, Medicines: next };
 }
 
 function hydrateFromStore() {
@@ -476,8 +530,11 @@ async function stopAndProcess() {
     statusLine.value = t('aiConversation.status.summarizing');
     const summarized = await generateAiConversationSummary(sessionId.value);
     applySession(summarized);
+    statusLine.value = t('aiConversation.status.prescribing');
+    const withRx = await generateAiConversationPrescription(sessionId.value);
+    applySession(withRx);
     phase.value = 'review';
-    tab.value = 'transcript';
+    tab.value = 'prescription';
     appStore.setProperty('hospital', 'AiConversationSession', 'phase', 'review');
     statusLine.value = t('aiConversation.status.readyReview');
   } catch (err: unknown) {
@@ -500,10 +557,52 @@ async function swapAndRetranscribe() {
     applySession(analyzed);
     const summarized = await generateAiConversationSummary(sessionId.value);
     applySession(summarized);
+    statusLine.value = t('aiConversation.status.prescribing');
+    const withRx = await generateAiConversationPrescription(sessionId.value);
+    applySession(withRx);
     phase.value = 'review';
   } catch {
     error.value = t('aiConversation.errors.pipelineFailed');
     phase.value = 'review';
+  }
+}
+
+async function regeneratePrescription() {
+  if (!sessionId.value) return;
+  error.value = '';
+  phase.value = 'processing';
+  statusLine.value = t('aiConversation.status.prescribing');
+  try {
+    const withRx = await generateAiConversationPrescription(sessionId.value);
+    applySession(withRx);
+    phase.value = 'review';
+    tab.value = 'prescription';
+    statusLine.value = withRx.message || t('aiConversation.status.prescriptionReady');
+  } catch (err: unknown) {
+    const ax = err as { response?: { data?: Record<string, unknown> } };
+    const msg = String(ax.response?.data?.Message ?? ax.response?.data?.message ?? '').trim();
+    error.value = msg || t('aiConversation.errors.prescriptionFailed');
+    phase.value = 'review';
+  }
+}
+
+async function applyToEprescription() {
+  if (!sessionId.value) return;
+  error.value = '';
+  applyingEprescription.value = true;
+  try {
+    const res = await applyAiConversationToEprescription({
+      sessionId: sessionId.value,
+      prescription: prescription.value
+    });
+    applySession(res);
+    statusLine.value = res.message || t('aiConversation.status.eprescriptionApplied');
+  } catch (err: unknown) {
+    const ax = err as { response?: { data?: Record<string, unknown> } };
+    const msg = String(ax.response?.data?.Message ?? ax.response?.data?.message ?? '').trim();
+    error.value = msg || t('aiConversation.errors.eprescriptionFailed');
+  } finally {
+    applyingEprescription.value = false;
   }
 }
 
@@ -523,6 +622,8 @@ async function copyActive() {
       `A: ${soapAssessment.value}`,
       `P: ${soapPlan.value}`
     ].join('\n');
+  } else if (tab.value === 'prescription') {
+    text = formatAiConversationPrescription(prescription.value);
   } else text = possibleDiagnosis.value.join('\n');
   try {
     await navigator.clipboard.writeText(text);
@@ -544,6 +645,9 @@ function downloadActive() {
   } else if (tab.value === 'soap') {
     text = JSON.stringify(soap.value, null, 2);
     name = 'soap.json';
+  } else if (tab.value === 'prescription') {
+    text = formatAiConversationPrescription(prescription.value);
+    name = 'prescription.txt';
   } else {
     text = possibleDiagnosis.value.join('\n');
     name = 'diagnosis.txt';
@@ -566,7 +670,8 @@ async function save() {
       transcript: transcriptTurns.value,
       structuredJson: structuredJson.value,
       summary: { ...summary.value, Soap: soap.value },
-      soap: soap.value
+      soap: soap.value,
+      prescription: prescription.value
     });
     applySession(saved);
     phase.value = 'saved';
@@ -748,7 +853,7 @@ onBeforeUnmount(() => {
       <div v-else class="flex flex-col gap-4">
         <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
           <button
-            v-for="id in (['transcript', 'summary', 'soap', 'diagnosis'] as TabId[])"
+            v-for="id in (['transcript', 'summary', 'soap', 'diagnosis', 'prescription'] as TabId[])"
             :key="id"
             type="button"
             class="rounded-lg px-3 py-2 text-sm font-medium"
@@ -805,12 +910,196 @@ onBeforeUnmount(() => {
           </label>
         </div>
 
-        <ul v-else class="list-disc space-y-1 pl-5 text-sm text-slate-800">
+        <ul v-else-if="tab === 'diagnosis'" class="list-disc space-y-1 pl-5 text-sm text-slate-800">
           <li v-for="(dx, i) in possibleDiagnosis" :key="i">{{ dx }}</li>
           <li v-if="!possibleDiagnosis.length" class="list-none text-slate-500">
             {{ t('aiConversation.noDiagnosis') }}
           </li>
         </ul>
+
+        <div v-else-if="tab === 'prescription'" class="flex flex-col gap-4">
+          <p class="text-xs text-slate-500">{{ t('aiConversation.prescription.hint') }}</p>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">{{ t('aiConversation.prescription.complaint') }}</span>
+            <textarea
+              v-model="prescription.Complaint"
+              rows="2"
+              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">{{ t('aiConversation.prescription.history') }}</span>
+            <textarea
+              v-model="prescription.History"
+              rows="3"
+              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">{{ t('aiConversation.prescription.allergies') }}</span>
+            <input
+              v-model="prescription.Allergies"
+              type="text"
+              class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">{{ t('aiConversation.prescription.diagnosis') }}</span>
+            <textarea
+              v-model="prescription.Diagnosis"
+              rows="2"
+              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+            />
+          </label>
+
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-medium">{{ t('aiConversation.prescription.medicines') }}</span>
+              <button
+                type="button"
+                class="text-sm font-medium text-[var(--brand-primary,#0f766e)] underline"
+                @click="addMedicineRow"
+              >
+                {{ t('aiConversation.prescription.addMedicine') }}
+              </button>
+            </div>
+            <p v-if="!prescription.Medicines.length" class="text-sm text-slate-500">
+              {{ t('aiConversation.prescription.noMedicines') }}
+            </p>
+            <div
+              v-for="(med, idx) in prescription.Medicines"
+              :key="idx"
+              class="grid gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3 sm:grid-cols-2"
+            >
+              <label class="flex flex-col gap-1 text-xs sm:col-span-2">
+                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.medName') }}</span>
+                <input
+                  :value="med.Name"
+                  type="text"
+                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  @input="updateMedicineField(idx, 'Name', ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-xs">
+                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.strength') }}</span>
+                <input
+                  :value="med.Strength"
+                  type="text"
+                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  @input="updateMedicineField(idx, 'Strength', ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-xs">
+                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.dose') }}</span>
+                <input
+                  :value="med.Dose"
+                  type="text"
+                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  @input="updateMedicineField(idx, 'Dose', ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-xs">
+                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.frequency') }}</span>
+                <input
+                  :value="med.Frequency"
+                  type="text"
+                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  @input="updateMedicineField(idx, 'Frequency', ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-xs">
+                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.route') }}</span>
+                <input
+                  :value="med.Route"
+                  type="text"
+                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  @input="updateMedicineField(idx, 'Route', ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-xs">
+                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.durationDays') }}</span>
+                <input
+                  :value="med.DurationDays"
+                  type="text"
+                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  @input="updateMedicineField(idx, 'DurationDays', ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-xs sm:col-span-2">
+                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.instructions') }}</span>
+                <input
+                  :value="med.Instructions"
+                  type="text"
+                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  @input="updateMedicineField(idx, 'Instructions', ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+              <button
+                type="button"
+                class="justify-self-start text-xs font-medium text-red-700 underline sm:col-span-2"
+                @click="removeMedicineRow(idx)"
+              >
+                {{ t('aiConversation.prescription.removeMedicine') }}
+              </button>
+            </div>
+          </div>
+
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">{{ t('aiConversation.prescription.investigations') }}</span>
+            <textarea
+              v-model="prescriptionInvestigationsText"
+              rows="3"
+              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+              :placeholder="t('aiConversation.prescription.investigationsHint')"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">{{ t('aiConversation.prescription.advice') }}</span>
+            <textarea
+              v-model="prescription.Advice"
+              rows="3"
+              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">{{ t('aiConversation.prescription.followUp') }}</span>
+            <textarea
+              v-model="prescription.FollowUpAdvice"
+              rows="2"
+              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+            />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium">{{ t('aiConversation.prescription.clinicalNotes') }}</span>
+            <textarea
+              v-model="prescription.ClinicalNotes"
+              rows="2"
+              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+            />
+          </label>
+
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              class="inline-flex min-w-36 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-slate-200"
+              @click="regeneratePrescription"
+            >
+              {{ t('aiConversation.prescription.regenerate') }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-w-36 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-slate-200 disabled:opacity-60"
+              :disabled="applyingEprescription"
+              @click="applyToEprescription"
+            >
+              {{
+                applyingEprescription
+                  ? t('aiConversation.prescription.applying')
+                  : t('aiConversation.prescription.applyToEprescription')
+              }}
+            </button>
+          </div>
+        </div>
 
         <div class="flex flex-wrap gap-3 pt-2">
           <button

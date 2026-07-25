@@ -3,6 +3,7 @@ package com.flexshell.controller;
 import com.flexshell.ai.AiProviderException;
 import com.flexshell.audio.LocalConsultationAudioStorage;
 import com.flexshell.controller.dto.StandardApiResponse;
+import com.flexshell.controller.dto.audio.AudioApplyPrescriptionRequest;
 import com.flexshell.controller.dto.audio.AudioConversationResponse;
 import com.flexshell.controller.dto.audio.AudioSaveRequest;
 import com.flexshell.controller.dto.audio.AudioSessionRequest;
@@ -114,6 +115,29 @@ public class AiConversationController {
         return handle(
                 () -> aiConversationService.generateSummary(actorId(authentication), sessionId),
                 "success.audio.summary"
+        );
+    }
+
+    @PostMapping(value = "/generate-prescription", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AudioConversationResponse>> generatePrescription(
+            @RequestBody AudioSessionRequest request,
+            Authentication authentication
+    ) {
+        String sessionId = request == null ? null : request.sessionId();
+        return handle(
+                () -> aiConversationService.generatePrescription(actorId(authentication), sessionId),
+                "success.audio.prescription"
+        );
+    }
+
+    @PostMapping(value = "/apply-to-eprescription", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StandardApiResponse<AudioConversationResponse>> applyToEprescription(
+            @RequestBody AudioApplyPrescriptionRequest request,
+            Authentication authentication
+    ) {
+        return handle(
+                () -> aiConversationService.applyPrescriptionToEprescription(actorId(authentication), request),
+                "success.audio.eprescription.applied"
         );
     }
 

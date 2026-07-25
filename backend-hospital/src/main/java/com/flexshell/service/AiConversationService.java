@@ -7,8 +7,10 @@ import com.flexshell.audio.pipeline.ClinicalSummaryService;
 import com.flexshell.audio.pipeline.ConsultationProcessorRegistry;
 import com.flexshell.audio.pipeline.ConsultationStorageService;
 import com.flexshell.audio.pipeline.ConversationAnalyzerService;
+import com.flexshell.audio.pipeline.PrescriptionFromConversationService;
 import com.flexshell.audio.pipeline.SpeakerDiarizationService;
 import com.flexshell.audio.pipeline.SpeechRecognitionService;
+import com.flexshell.controller.dto.audio.AudioApplyPrescriptionRequest;
 import com.flexshell.controller.dto.audio.AudioConversationResponse;
 import com.flexshell.controller.dto.audio.AudioSaveRequest;
 import com.flexshell.controller.dto.audio.AudioStartRequest;
@@ -16,6 +18,7 @@ import com.flexshell.persistence.postgres.model.ConsultationAudioJpaEntity;
 import com.flexshell.persistence.postgres.model.ConsultationTranscriptJpaEntity;
 import com.flexshell.persistence.postgres.model.AppointmentJpaEntity;
 import com.flexshell.persistence.postgres.repository.AppointmentJpaRepository;
+import com.flexshell.prescription.StructuredPrescriptionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -41,6 +44,8 @@ public class AiConversationService {
     private final SpeakerDiarizationService speakerDiarizationService;
     private final ConversationAnalyzerService conversationAnalyzerService;
     private final ClinicalSummaryService clinicalSummaryService;
+    private final PrescriptionFromConversationService prescriptionFromConversationService;
+    private final StructuredPrescriptionService structuredPrescriptionService;
     private final ConsultationProcessorRegistry processorRegistry;
 
     public AiConversationService(
@@ -51,6 +56,8 @@ public class AiConversationService {
             SpeakerDiarizationService speakerDiarizationService,
             ConversationAnalyzerService conversationAnalyzerService,
             ClinicalSummaryService clinicalSummaryService,
+            PrescriptionFromConversationService prescriptionFromConversationService,
+            StructuredPrescriptionService structuredPrescriptionService,
             ConsultationProcessorRegistry processorRegistry
     ) {
         this.appointmentRepository = appointmentRepository;
@@ -60,6 +67,8 @@ public class AiConversationService {
         this.speakerDiarizationService = speakerDiarizationService;
         this.conversationAnalyzerService = conversationAnalyzerService;
         this.clinicalSummaryService = clinicalSummaryService;
+        this.prescriptionFromConversationService = prescriptionFromConversationService;
+        this.structuredPrescriptionService = structuredPrescriptionService;
         this.processorRegistry = processorRegistry;
     }
 
@@ -254,6 +263,58 @@ public class AiConversationService {
     }
 
     @Transactional
+    public AudioConversationResponse generatePrescription(String doctorUserId, String sessionId) {
+        ConsultationAudioJpaEntity audio = requireOwnedDraft(doctorUserId, sessionId);
+        ConsultationTranscriptJpaEntity transcript = requireTranscript(audio.getExternalId());
+        String plain = Objects.toString(transcript.getTranscriptText(), "").trim();
+        Map<String, Object> structured = transcript.getStructuredJson();
+        Map<String, Object> summary = transcript.getSummaryJson();
+        if (plain.isBlank() && (structured == null || structured.isEmpty())) {
+            throw new IllegalArgumentException("AUDIO_TRANSCRIPT_EMPTY");
+        }
+        Map<String, Object> prescription = prescriptionFromConversationService.generate(plain, structured, summary);
+        transcript.setPrescriptionJson(prescription);
+        storageService.saveTranscript(transcript);
+        audio.setStatus("PRESCRIPTION_READY");
+        audio = storageService.saveAudio(audio);
+        return toResponse(audio, transcript, null);
+    }
+
+    /**
+     * Merges generated/edited medicines + advice into the appointment's structured e-prescription draft.
+     * Requires a completed appointment (same rule as the e-prescription UI).
+     */
+    @Transactional
+    public AudioConversationResponse applyPrescriptionToEprescription(
+            String doctorUserId,
+            AudioApplyPrescriptionRequest request
+    ) {
+        if (request == null || request.sessionId() == null || request.sessionId().isBlank()) {
+            throw new IllegalArgumentException("AUDIO_SESSION_INVALID");
+        }
+        ConsultationAudioJpaEntity audio = requireOwned(doctorUserId, request.sessionId());
+        ConsultationTranscriptJpaEntity transcript = requireTranscript(audio.getExternalId());
+        Map<String, Object> prescription = request.prescription() != null && !request.prescription().isEmpty()
+                ? request.prescription()
+                : transcript.getPrescriptionJson();
+        if (prescription == null || prescription.isEmpty()) {
+            throw new IllegalArgumentException("AUDIO_PRESCRIPTION_EMPTY");
+        }
+        if (!audio.isCommitted()) {
+            transcript.setPrescriptionJson(prescription);
+            storageService.saveTranscript(transcript);
+        }
+        String appointmentId = audio.getAppointmentExternalId().toString();
+        structuredPrescriptionService.getOrCreateDraft(appointmentId, doctorUserId);
+        Map<String, Object> patch = PrescriptionFromConversationService.toEprescriptionPatch(prescription);
+        if (patch.isEmpty()) {
+            throw new IllegalArgumentException("AUDIO_PRESCRIPTION_EMPTY");
+        }
+        structuredPrescriptionService.saveDraft(appointmentId, patch, doctorUserId);
+        return toResponse(audio, transcript, null);
+    }
+
+    @Transactional
     public AudioConversationResponse save(String doctorUserId, AudioSaveRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("AUDIO_SAVE_INVALID");
@@ -278,8 +339,11 @@ public class AiConversationService {
                 : (summary != null && summary.get("Soap") instanceof Map<?, ?> m
                         ? castMap(m)
                         : transcript.getSoapJson());
+        Map<String, Object> prescription = request.prescription() != null
+                ? request.prescription()
+                : transcript.getPrescriptionJson();
 
-        storageService.commit(audio, transcript, text, turns, structured, summary, soap);
+        storageService.commit(audio, transcript, text, turns, structured, summary, soap, prescription);
         LOG.info(
                 "ai_conversation_saved sessionId={} appointmentId={}",
                 audio.getExternalId(),
@@ -307,6 +371,14 @@ public class AiConversationService {
     }
 
     private ConsultationAudioJpaEntity requireOwnedDraft(String doctorUserId, String sessionIdRaw) {
+        ConsultationAudioJpaEntity audio = requireOwned(doctorUserId, sessionIdRaw);
+        if (audio.isCommitted()) {
+            throw new IllegalArgumentException("AUDIO_ALREADY_SAVED");
+        }
+        return audio;
+    }
+
+    private ConsultationAudioJpaEntity requireOwned(String doctorUserId, String sessionIdRaw) {
         requireDoctor(doctorUserId);
         UUID sessionId = parseUuid(sessionIdRaw, "AUDIO_SESSION_INVALID");
         ConsultationAudioJpaEntity audio = storageService
@@ -314,9 +386,6 @@ public class AiConversationService {
                 .orElseThrow(() -> new IllegalArgumentException("AUDIO_SESSION_NOT_FOUND"));
         if (!doctorUserId.equalsIgnoreCase(audio.getDoctorUserId())) {
             throw new SecurityException("AUDIO_FORBIDDEN");
-        }
-        if (audio.isCommitted()) {
-            throw new IllegalArgumentException("AUDIO_ALREADY_SAVED");
         }
         return audio;
     }
@@ -375,6 +444,10 @@ public class AiConversationService {
         if ((soap == null || soap.isEmpty()) && summary != null && summary.get("Soap") instanceof Map<?, ?> m) {
             soap = castMap(m);
         }
+        Map<String, Object> prescription = transcript.getPrescriptionJson();
+        if (prescription == null || prescription.isEmpty()) {
+            prescription = PrescriptionFromConversationService.empty();
+        }
         return new AudioConversationResponse(
                 audio.getExternalId().toString(),
                 audio.getAppointmentExternalId().toString(),
@@ -390,6 +463,7 @@ public class AiConversationService {
                 transcript.getStructuredJson(),
                 summary,
                 soap,
+                prescription,
                 audio.isCommitted()
         );
     }

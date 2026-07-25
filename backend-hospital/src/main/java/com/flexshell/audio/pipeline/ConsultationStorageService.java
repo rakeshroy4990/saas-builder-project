@@ -70,7 +70,8 @@ public class ConsultationStorageService {
             List<Map<String, Object>> transcriptJson,
             Map<String, Object> structured,
             Map<String, Object> summary,
-            Map<String, Object> soap
+            Map<String, Object> soap,
+            Map<String, Object> prescription
     ) {
         audio.setCommitted(true);
         audio.setStatus("SAVED");
@@ -81,6 +82,7 @@ public class ConsultationStorageService {
         transcript.setStructuredJson(structured);
         transcript.setSummaryJson(summary);
         transcript.setSoapJson(soap);
+        transcript.setPrescriptionJson(prescription);
         transcript.setCommitted(true);
         transcriptRepository.save(transcript);
     }

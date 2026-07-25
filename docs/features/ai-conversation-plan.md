@@ -84,6 +84,8 @@ ConsultationProcessorRegistry  (extensibility)
 | `POST` | `/api/audio/transcribe` | STT + diarization |
 | `POST` | `/api/audio/analyze` | Stage 1 structured extraction |
 | `POST` | `/api/audio/generate-summary` | Stage 2 clinical summary |
+| `POST` | `/api/audio/generate-prescription` | Standard Rx draft (Complaint, History, Diagnosis, Medicines…) |
+| `POST` | `/api/audio/apply-to-eprescription` | Push medicines/advice into clinic e-prescription draft |
 | `POST` | `/api/audio/save` | Commit after doctor review |
 | `GET` | `/api/audio/{appointmentId}` | Load committed consultation for appointment |
 
@@ -108,7 +110,7 @@ Wire keys: PascalCase (`SessionId`, `Transcript`, `StructuredJson`, `Soap`, …)
 1. **Hero:** `[ AI Diagnosis ] [ 🎙 AI Conversation ]` — navigates to AI Consultation Assistant (no popup)
 2. **Page setup:** languages notice, appointment, conversation language (default **Mixed**), consent, **Start Recording**
 3. **Recording:** timer, Pause / Stop (MediaRecorder, high-quality webm/opus); **~15s chunk uploads** + `pagehide`/`visibilitychange` keepalive so partial audio survives tab close
-4. **Review tabs:** Transcript · Summary · SOAP · Diagnosis — edit / copy / delete transcript / Download / Save
+4. **Review tabs:** Transcript · Summary · SOAP · Diagnosis · **Prescription** — edit / copy / delete transcript / Download / Save; Apply medicines to e-prescription when appointment is completed
 5. **Security copy:** recording processed to generate summary; only treating doctor can access
 
 ---

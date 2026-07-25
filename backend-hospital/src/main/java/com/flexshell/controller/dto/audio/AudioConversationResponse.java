@@ -22,5 +22,6 @@ public record AudioConversationResponse(
         @JsonProperty("StructuredJson") Map<String, Object> structuredJson,
         @JsonProperty("Summary") Map<String, Object> summary,
         @JsonProperty("Soap") Map<String, Object> soap,
+        @JsonProperty("Prescription") Map<String, Object> prescription,
         @JsonProperty("Committed") Boolean committed
 ) {}

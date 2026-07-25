@@ -11,5 +11,6 @@ public record AudioSaveRequest(
         @JsonProperty("Transcript") List<Map<String, Object>> transcript,
         @JsonProperty("StructuredJson") Map<String, Object> structuredJson,
         @JsonProperty("Summary") Map<String, Object> summary,
-        @JsonProperty("Soap") Map<String, Object> soap
+        @JsonProperty("Soap") Map<String, Object> soap,
+        @JsonProperty("Prescription") Map<String, Object> prescription
 ) {}

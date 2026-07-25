@@ -53,6 +53,10 @@ public class ConsultationTranscriptJpaEntity {
     @Column(name = "soap_json", columnDefinition = "jsonb")
     private Map<String, Object> soapJson = new LinkedHashMap<>();
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "prescription_json", columnDefinition = "jsonb")
+    private Map<String, Object> prescriptionJson = new LinkedHashMap<>();
+
     @Column(name = "speakers_swapped", nullable = false)
     private boolean speakersSwapped;
 
@@ -151,6 +155,14 @@ public class ConsultationTranscriptJpaEntity {
 
     public void setSoapJson(Map<String, Object> soapJson) {
         this.soapJson = soapJson == null ? new LinkedHashMap<>() : soapJson;
+    }
+
+    public Map<String, Object> getPrescriptionJson() {
+        return prescriptionJson;
+    }
+
+    public void setPrescriptionJson(Map<String, Object> prescriptionJson) {
+        this.prescriptionJson = prescriptionJson == null ? new LinkedHashMap<>() : prescriptionJson;
     }
 
     public boolean isSpeakersSwapped() {

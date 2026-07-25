@@ -135,6 +135,8 @@ export const SERVER_PATHS = {
   audioTranscribe: '/api/audio/transcribe',
   audioAnalyze: '/api/audio/analyze',
   audioGenerateSummary: '/api/audio/generate-summary',
+  audioGeneratePrescription: '/api/audio/generate-prescription',
+  audioApplyToEprescription: '/api/audio/apply-to-eprescription',
   audioSave: '/api/audio/save',
   audioByAppointment: '/api/audio'
 } as const;
