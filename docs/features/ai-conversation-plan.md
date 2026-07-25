@@ -1,8 +1,8 @@
 # AI Conversation — Design & Implementation Plan
 
-**Status:** Design locked · Web MVP implemented (pipeline + hero + review UI)  
+**Status:** Design locked · Web + mobile implemented (pipeline + hero + review + prescription)  
 **Last updated:** 2026-07-25  
-**Scope v1:** Web only (mobile deferred)
+**Scope:** Web and mobile (doctor-only)
 
 Doctor-only feature to record patient consultations, transcribe multilingual speech (English, Hindi, Kannada, mixed), diarize Doctor/Patient, run a two-stage LLM pipeline, let the doctor review/edit, then save to the consultation record.
 
@@ -12,7 +12,7 @@ Doctor-only feature to record patient consultations, transcribe multilingual spe
 
 | # | Decision | Choice |
 |---|----------|--------|
-| 1 | Platforms | **Web first**; mobile later |
+| 1 | Platforms | **Web + mobile** (doctor-only) |
 | 2 | Entry point | Hero CTA adjacent to **AI Diagnosis**, doctor-only |
 | 3 | UX shell | Consent modal → recording screen → processing → review tabs → Save |
 | 4 | Persistence | Draft session during pipeline; **committed only on Save** |
@@ -128,7 +128,6 @@ Wire keys: PascalCase (`SessionId`, `Transcript`, `StructuredJson`, `Soap`, …)
 
 ## Out of scope (v1)
 
-- Mobile app
 - Agora call mix recording
 - True acoustic diarization (pyannote)
 - ICD-10 / Rx / billing processors (hooks only)

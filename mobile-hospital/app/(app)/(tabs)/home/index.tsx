@@ -79,6 +79,10 @@ export default function HomeTab() {
     requireAuth(() => router.push('/(app)/(tabs)/appointments/book' as never));
   }
 
+  function onHeroAiConversation() {
+    router.push('/(app)/ai-conversation' as never);
+  }
+
   function onBookDoctor(doctor?: DoctorListEntry) {
     requireAuth(() =>
       router.push({
@@ -137,6 +141,14 @@ export default function HomeTab() {
           tint: colors.primaryDark,
           background: '#ecfdf5',
           onPress: () => openMainTab('ai-diagnosis')
+        },
+        {
+          id: 'ai-conversation',
+          label: t('home.launcher.doctorQuickActions.aiConversation'),
+          icon: 'mic-outline',
+          tint: '#b45309',
+          background: '#fffbeb',
+          onPress: () => router.push('/(app)/ai-conversation' as never)
         }
       ];
     }
@@ -176,7 +188,12 @@ export default function HomeTab() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.page}>
-        <HomeHeroBanner onCta={onHeroCta} ctaLabel={content.heroCta} />
+        <HomeHeroBanner
+          onCta={onHeroCta}
+          ctaLabel={content.heroCta}
+          onSecondaryCta={isDoctor ? onHeroAiConversation : undefined}
+          secondaryCtaLabel={isDoctor ? t('home.hero.ctaAiConversation') : undefined}
+        />
 
         <HomeQuickActions actions={quickActions} layout={isDoctor ? 'grid' : 'row'} />
 

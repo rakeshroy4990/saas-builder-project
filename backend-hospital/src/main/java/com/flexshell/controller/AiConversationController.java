@@ -149,7 +149,11 @@ public class AiConversationController {
         return handle(() -> aiConversationService.save(actorId(authentication), request), "success.audio.saved");
     }
 
-    @GetMapping(value = "/{appointmentId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    /**
+     * UUID-only path so action routes like {@code /generate-prescription} are not captured
+     * (which previously yielded HTTP 405 for POST against the GET mapping).
+     */
+    @GetMapping(value = "/{appointmentId:[0-9a-fA-F-]{36}}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<StandardApiResponse<AudioConversationResponse>> getByAppointment(
             @PathVariable("appointmentId") String appointmentId,
             Authentication authentication

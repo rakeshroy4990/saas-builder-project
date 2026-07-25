@@ -7,10 +7,18 @@ import { SECTION_GAP, SURFACE_RADIUS } from '@/theme/layout';
 type HomeHeroBannerProps = {
   onCta: () => void;
   ctaLabel: string;
+  onSecondaryCta?: () => void;
+  secondaryCtaLabel?: string;
 };
 
-export function HomeHeroBanner({ onCta, ctaLabel }: HomeHeroBannerProps) {
+export function HomeHeroBanner({
+  onCta,
+  ctaLabel,
+  onSecondaryCta,
+  secondaryCtaLabel
+}: HomeHeroBannerProps) {
   const { t } = useTranslation();
+  const showSecondary = Boolean(onSecondaryCta && secondaryCtaLabel);
 
   return (
     <View style={styles.wrap}>
@@ -24,9 +32,16 @@ export function HomeHeroBanner({ onCta, ctaLabel }: HomeHeroBannerProps) {
       <Text style={styles.title}>{t('home.launcher.heroTitle')}</Text>
       <Text style={styles.subtitle}>{t('home.launcher.heroSubtitle')}</Text>
 
-      <Pressable style={styles.cta} onPress={onCta} accessibilityRole="button">
-        <Text style={styles.ctaText}>{ctaLabel}</Text>
-      </Pressable>
+      <View style={styles.ctaRow}>
+        <Pressable style={styles.cta} onPress={onCta} accessibilityRole="button">
+          <Text style={styles.ctaText}>{ctaLabel}</Text>
+        </Pressable>
+        {showSecondary ? (
+          <Pressable style={styles.ctaSecondary} onPress={onSecondaryCta} accessibilityRole="button">
+            <Text style={styles.ctaSecondaryText}>{secondaryCtaLabel}</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -85,6 +100,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 16
   },
+  ctaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10
+  },
   cta: {
     alignSelf: 'flex-start',
     backgroundColor: colors.primaryDark,
@@ -93,6 +113,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12
   },
   ctaText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700'
+  },
+  ctaSecondary: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
+    paddingHorizontal: 18,
+    paddingVertical: 12
+  },
+  ctaSecondaryText: {
     color: '#fff',
     fontSize: 15,
     fontWeight: '700'

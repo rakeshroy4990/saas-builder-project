@@ -27,6 +27,7 @@ export function ChatFab({ bottomOffset }: ChatFabProps) {
   if (
     pathname.includes('/ai-chat') ||
     pathname.includes('ai-diagnosis') ||
+    pathname.includes('ai-conversation') ||
     pathname.includes('video-call')
   ) {
     return null;

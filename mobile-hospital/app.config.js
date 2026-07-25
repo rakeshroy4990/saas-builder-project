@@ -46,6 +46,13 @@ module.exports = ({ config }) => {
     }
   ]);
   plugins.push('expo-localization');
+  plugins.push([
+    'expo-audio',
+    {
+      microphonePermission:
+        'Allow Agastya Healthcare to record consultation audio for AI Conversation clinical documentation.'
+    }
+  ]);
 
   if (useDevClient) {
     plugins.unshift('expo-dev-client');

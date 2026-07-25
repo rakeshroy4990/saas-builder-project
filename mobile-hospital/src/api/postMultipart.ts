@@ -62,7 +62,7 @@ export async function postMultipartLocalFile(
   fileUri: string,
   fileName: string,
   mimeType: string,
-  options?: { fieldName?: string }
+  options?: { fieldName?: string; parameters?: Record<string, string> }
 ): Promise<unknown> {
   const fieldName = options?.fieldName ?? 'file';
   const name = fileName.trim() || `upload-${Date.now()}.jpg`;
@@ -70,6 +70,7 @@ export async function postMultipartLocalFile(
   const readableUri = await ensureUploadableFileUri(fileUri, name);
   const file = await loadExpoUploadFile(readableUri);
   const url = resolveSpringApiUrl(getMobileApiBaseUrl(), path);
+  const parameters = options?.parameters;
 
   const runUpload = async (): Promise<UploadResult> => {
     const { UploadType } = await import('expo-file-system');
@@ -87,7 +88,8 @@ export async function postMultipartLocalFile(
       uploadType: UploadType.MULTIPART,
       fieldName,
       mimeType: type,
-      headers
+      headers,
+      ...(parameters && Object.keys(parameters).length ? { parameters } : {})
     });
   };
 

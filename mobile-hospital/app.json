@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.agastya.healthcare",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Allow Agastya Healthcare to connect to health devices via Bluetooth.",
-        "NSBluetoothPeripheralUsageDescription": "Allow Agastya Healthcare to connect to health devices via Bluetooth."
+        "NSBluetoothPeripheralUsageDescription": "Allow Agastya Healthcare to connect to health devices via Bluetooth.",
+        "NSMicrophoneUsageDescription": "Allow Agastya Healthcare to record consultation audio for AI Conversation clinical documentation."
       }
     },
     "android": {
