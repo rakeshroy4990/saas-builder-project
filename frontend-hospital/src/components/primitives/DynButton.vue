@@ -139,7 +139,7 @@ const onClick = () => {
       >{{ config?.text ?? '' }}</span>
       <svg
         v-if="config?.trailingVisual === 'chevron-down'"
-        class="h-4 w-4 shrink-0 text-slate-500 opacity-80"
+        class="h-4 w-4 shrink-0 text-ink-500 opacity-80"
         viewBox="0 0 20 20"
         fill="currentColor"
         aria-hidden="true"

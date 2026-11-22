@@ -73,10 +73,10 @@ function formatFrequency(min: number | null, max: number | null): string {
 </script>
 
 <template>
-  <section class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+  <section class="flex flex-col gap-4 rounded-2xl border border-ink-200 bg-white p-4 shadow-sm">
     <div class="grid gap-3 sm:grid-cols-2">
       <label class="block space-y-1 text-sm">
-        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ink-500">
           {{ t('dashboard.recommendedDosage.childAgeMonths') }}
         </span>
         <input
@@ -84,12 +84,12 @@ function formatFrequency(min: number | null, max: number | null): string {
           type="number"
           min="0"
           step="0.1"
-          class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+          class="w-full rounded-xl border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-trust-300 focus:ring-4 focus:ring-trust-100"
           :placeholder="t('dashboard.recommendedDosage.childAgePlaceholder')"
         />
       </label>
       <label class="block space-y-1 text-sm">
-        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ink-500">
           {{ t('dashboard.recommendedDosage.childWeightKg') }}
         </span>
         <input
@@ -97,27 +97,27 @@ function formatFrequency(min: number | null, max: number | null): string {
           type="number"
           min="0"
           step="0.01"
-          class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+          class="w-full rounded-xl border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-trust-300 focus:ring-4 focus:ring-trust-100"
           :placeholder="t('dashboard.recommendedDosage.childWeightPlaceholder')"
         />
       </label>
     </div>
 
     <label class="block space-y-1 text-sm">
-      <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <span class="text-xs font-semibold uppercase tracking-wide text-ink-500">
         {{ t('dashboard.recommendedDosage.drugName') }}
       </span>
       <input
         v-model="drugName"
         type="text"
-        class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+        class="w-full rounded-xl border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-trust-300 focus:ring-4 focus:ring-trust-100"
         :placeholder="t('dashboard.recommendedDosage.drugNamePlaceholder')"
       />
     </label>
 
     <button
       type="button"
-      class="inline-flex items-center justify-center self-start rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+      class="inline-flex items-center justify-center self-start rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-ink-300"
       :disabled="!canRecommend"
       @click="submitRecommendation"
     >
@@ -128,47 +128,47 @@ function formatFrequency(min: number | null, max: number | null): string {
 
     <section
       v-if="recommendation"
-      class="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm"
+      class="space-y-2 rounded-xl border border-ink-200 bg-ink-50 p-3 text-sm"
     >
-      <p class="font-semibold text-slate-900">
+      <p class="font-semibold text-ink-900">
         {{ recommendation.genericName || recommendation.extractedName }}
       </p>
-      <p class="text-slate-700">{{ recommendation.message }}</p>
+      <p class="text-ink-700">{{ recommendation.message }}</p>
 
       <dl v-if="recommendation.status === 'available'" class="grid gap-2 sm:grid-cols-2">
         <div>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-ink-500">
             {{ t('dashboard.recommendedDosage.expectedDose') }}
           </dt>
-          <dd class="mt-0.5 text-slate-900">{{ formatRange(recommendation.expectedDoseRangeMg) }}</dd>
+          <dd class="mt-0.5 text-ink-900">{{ formatRange(recommendation.expectedDoseRangeMg) }}</dd>
         </div>
         <div>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-ink-500">
             {{ t('dashboard.recommendedDosage.dosePerKg') }}
           </dt>
-          <dd class="mt-0.5 text-slate-900">
+          <dd class="mt-0.5 text-ink-900">
             {{ recommendation.dosePerKgMg != null ? `${recommendation.dosePerKgMg} mg/kg` : '—' }}
           </dd>
         </div>
         <div>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-ink-500">
             {{ t('dashboard.recommendedDosage.maxDaily') }}
           </dt>
-          <dd class="mt-0.5 text-slate-900">
+          <dd class="mt-0.5 text-ink-900">
             {{ recommendation.maxDailyDoseMg != null ? `${recommendation.maxDailyDoseMg} mg` : '—' }}
           </dd>
         </div>
         <div>
-          <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-ink-500">
             {{ t('dashboard.recommendedDosage.frequency') }}
           </dt>
-          <dd class="mt-0.5 text-slate-900">
+          <dd class="mt-0.5 text-ink-900">
             {{ formatFrequency(recommendation.frequencyPerDayMin, recommendation.frequencyPerDayMax) }}
           </dd>
         </div>
       </dl>
 
-      <p v-if="recommendation.source" class="text-xs text-slate-500">
+      <p v-if="recommendation.source" class="text-xs text-ink-500">
         {{ t('dashboard.recommendedDosage.source', { source: recommendation.source }) }}
       </p>
     </section>

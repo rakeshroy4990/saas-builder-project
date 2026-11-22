@@ -234,10 +234,10 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
 <template>
   <section :id="htmlId" class="space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-lg font-semibold text-slate-900">{{ t('prescriptions.view.title') }}</h2>
+      <h2 class="text-lg font-semibold text-ink-900">{{ t('prescriptions.view.title') }}</h2>
       <button
         type="button"
-        class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+        class="inline-flex items-center justify-center rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm font-semibold text-ink-800 shadow-sm hover:bg-ink-50 disabled:opacity-50"
         :disabled="loading"
         @click="refresh"
       >
@@ -245,41 +245,41 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
       </button>
     </div>
 
-    <p v-if="loading" class="text-sm text-sky-700">Loading…</p>
+    <p v-if="loading" class="text-sm text-trust-700">Loading…</p>
     <p v-else-if="error" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
       {{ error }}
     </p>
-    <p v-else-if="!displayRows.length" class="text-sm text-slate-500">{{ t('prescriptions.view.empty') }}</p>
+    <p v-else-if="!displayRows.length" class="text-sm text-ink-500">{{ t('prescriptions.view.empty') }}</p>
 
-    <div v-else class="overflow-x-auto rounded-xl border border-slate-200">
-      <table class="min-w-full divide-y divide-slate-200 text-sm">
-        <thead class="bg-slate-50">
+    <div v-else class="overflow-x-auto rounded-xl border border-ink-200">
+      <table class="min-w-full divide-y divide-ink-200 text-sm">
+        <thead class="bg-ink-50">
           <tr>
-            <th class="px-3 py-2 text-left font-semibold text-slate-600">{{ t('prescriptions.view.columns.date') }}</th>
-            <th class="px-3 py-2 text-left font-semibold text-slate-600">{{ t('prescriptions.view.columns.status') }}</th>
-            <th class="px-3 py-2 text-left font-semibold text-slate-600">{{ t('prescriptions.view.columns.type') }}</th>
-            <th class="px-3 py-2 text-left font-semibold text-slate-600">{{ t('prescriptions.view.columns.actions') }}</th>
+            <th class="px-3 py-2 text-left font-semibold text-ink-600">{{ t('prescriptions.view.columns.date') }}</th>
+            <th class="px-3 py-2 text-left font-semibold text-ink-600">{{ t('prescriptions.view.columns.status') }}</th>
+            <th class="px-3 py-2 text-left font-semibold text-ink-600">{{ t('prescriptions.view.columns.type') }}</th>
+            <th class="px-3 py-2 text-left font-semibold text-ink-600">{{ t('prescriptions.view.columns.actions') }}</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 bg-white">
+        <tbody class="divide-y divide-ink-100 bg-white">
           <tr v-for="row in displayRows" :key="row.kind === 'group' ? row.groupExternalId : row.item.externalId">
-            <td class="px-3 py-2 text-slate-800">
+            <td class="px-3 py-2 text-ink-800">
               {{ formatDate(rowPrimaryItem(row).createdAt) }}
               <span
                 v-if="row.kind === 'group' && isDiagnosisGroupRow(row)"
-                class="mt-0.5 block text-xs font-medium text-violet-800"
+                class="mt-0.5 block text-xs font-medium text-trust-800"
               >
                 {{ t('prescriptions.view.diagnosisBadge', { count: row.pages.length }) }}
               </span>
               <span
                 v-else-if="row.kind === 'group'"
-                class="mt-0.5 block text-xs font-medium text-sky-700"
+                class="mt-0.5 block text-xs font-medium text-trust-700"
               >
                 {{ t('prescriptions.view.multiPageBadge', { count: row.pages.length }) }}
               </span>
               <span
                 v-if="row.kind === 'group' && isDiagnosisGroupRow(row) && row.sharedDiagnosis"
-                class="mt-0.5 block text-xs text-violet-700"
+                class="mt-0.5 block text-xs text-trust-700"
               >
                 {{ row.sharedDiagnosis }}
               </span>
@@ -288,21 +288,21 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
               <span
                 class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold"
                 :class="{
-                  'bg-slate-100 text-slate-700': rowStatus(row) === 'pending',
-                  'bg-sky-100 text-sky-800': rowStatus(row) === 'processing',
-                  'bg-emerald-100 text-emerald-800': rowStatus(row) === 'verified',
+                  'bg-ink-100 text-ink-700': rowStatus(row) === 'pending',
+                  'bg-trust-100 text-trust-800': rowStatus(row) === 'processing',
+                  'bg-brand-100 text-brand-800': rowStatus(row) === 'verified',
                   'bg-rose-100 text-rose-800': rowStatus(row) === 'rejected'
                 }"
               >
                 {{ statusLabel(rowStatus(row)) }}
               </span>
             </td>
-            <td class="px-3 py-2 text-slate-600">
+            <td class="px-3 py-2 text-ink-600">
               <template v-if="row.kind === 'group' && isDiagnosisGroupRow(row)">
-                <span class="block text-xs text-violet-700">{{ t('prescriptions.view.diagnosisType') }}</span>
+                <span class="block text-xs text-trust-700">{{ t('prescriptions.view.diagnosisType') }}</span>
               </template>
               <template v-else-if="row.kind === 'group'">
-                <span class="block text-xs text-slate-500">{{ t('prescriptions.view.multiPageType') }}</span>
+                <span class="block text-xs text-ink-500">{{ t('prescriptions.view.multiPageType') }}</span>
               </template>
               <template v-else>
                 {{ mimeLabel(row.item.mimeType) }}
@@ -315,7 +315,7 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                     v-for="(page, idx) in row.pages"
                     :key="page.externalId"
                     type="button"
-                    class="text-sm font-semibold text-sky-700 hover:text-sky-900"
+                    class="text-sm font-semibold text-trust-700 hover:text-trust-900"
                     @click="downloadItem(page)"
                   >
                     {{
@@ -331,7 +331,7 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
               <template v-else>
                 <button
                   type="button"
-                  class="text-sm font-semibold text-sky-700 hover:text-sky-900"
+                  class="text-sm font-semibold text-trust-700 hover:text-trust-900"
                   @click="downloadItem(row.item)"
                 >
                   {{ t('prescriptions.view.download') }}
@@ -339,7 +339,7 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                 <button
                   v-if="rowStatus(row) === 'verified'"
                   type="button"
-                  class="ml-3 text-sm font-semibold text-violet-700 hover:text-violet-900"
+                  class="ml-3 text-sm font-semibold text-trust-700 hover:text-trust-900"
                   @click="expandedSafetyId = expandedSafetyId === row.item.externalId ? null : row.item.externalId"
                 >
                   {{ t('prescriptionSafety.viewSafety') }}
@@ -352,9 +352,9 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                 </div>
                 <div
                   v-if="linkDiagnosisPrescriptionId === row.item.externalId"
-                  class="mt-2 space-y-2 rounded-lg border border-violet-100 bg-violet-50/50 p-2"
+                  class="mt-2 space-y-2 rounded-lg border border-trust-100 bg-trust-50/50 p-2"
                 >
-                  <p class="text-xs font-semibold text-violet-900">{{ t('prescriptions.view.linkDiagnosisTitle') }}</p>
+                  <p class="text-xs font-semibold text-trust-900">{{ t('prescriptions.view.linkDiagnosisTitle') }}</p>
                   <div class="flex flex-wrap gap-3">
                     <label class="inline-flex items-center gap-1 text-xs">
                       <input v-model="linkDiagnosisUseNew" type="radio" :value="true" />
@@ -369,13 +369,13 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                     v-if="linkDiagnosisUseNew"
                     v-model="linkDiagnosisNewText"
                     type="text"
-                    class="w-full rounded border border-slate-200 px-2 py-1 text-xs"
+                    class="w-full rounded border border-ink-200 px-2 py-1 text-xs"
                     :placeholder="t('prescriptions.view.linkDiagnosisPlaceholder')"
                   />
                   <select
                     v-else
                     v-model="linkDiagnosisGroupId"
-                    class="w-full rounded border border-slate-200 px-2 py-1 text-xs"
+                    class="w-full rounded border border-ink-200 px-2 py-1 text-xs"
                   >
                     <option value="">{{ t('prescriptions.upload.sameDiagnosis.selectPlaceholder') }}</option>
                     <option v-for="g in diagnosisGroups" :key="g.groupExternalId" :value="g.groupExternalId">
@@ -385,13 +385,13 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                   <div class="flex gap-2">
                     <button
                       type="button"
-                      class="text-xs font-semibold text-violet-800"
+                      class="text-xs font-semibold text-trust-800"
                       :disabled="linking"
                       @click="confirmLinkDiagnosis"
                     >
                       {{ t('prescriptions.view.linkDiagnosisConfirm') }}
                     </button>
-                    <button type="button" class="text-xs text-slate-600" @click="cancelLinkDiagnosis">
+                    <button type="button" class="text-xs text-ink-600" @click="cancelLinkDiagnosis">
                       {{ t('prescriptions.view.linkCancel') }}
                     </button>
                   </div>
@@ -399,7 +399,7 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                 <div v-else-if="!row.item.groupExternalId" class="mt-1 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    class="text-xs font-semibold text-violet-700 hover:text-violet-900"
+                    class="text-xs font-semibold text-trust-700 hover:text-trust-900"
                     :disabled="linking"
                     @click="startLinkDiagnosis(row.item)"
                   >
@@ -408,7 +408,7 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                   <button
                     v-if="linkFrontExternalId === row.item.externalId"
                     type="button"
-                    class="text-xs font-semibold text-slate-600 hover:text-slate-900"
+                    class="text-xs font-semibold text-ink-600 hover:text-ink-900"
                     :disabled="linking"
                     @click="cancelLinkFront"
                   >
@@ -417,7 +417,7 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                   <button
                     v-else-if="!linkFrontExternalId"
                     type="button"
-                    class="text-xs font-semibold text-sky-700 hover:text-sky-900"
+                    class="text-xs font-semibold text-trust-700 hover:text-trust-900"
                     :disabled="linking"
                     @click="startLinkFront(row.item)"
                   >
@@ -426,7 +426,7 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                   <button
                     v-else-if="linkFrontExternalId && linkFrontExternalId !== row.item.externalId"
                     type="button"
-                    class="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+                    class="text-xs font-semibold text-brand-700 hover:text-brand-900"
                     :disabled="linking"
                     @click="linkAsBackPage(row.item)"
                   >
@@ -434,7 +434,7 @@ function summaryLinesForRow(row: PrescriptionDisplayRow): string[] {
                   </button>
                 </div>
               </template>
-              <ul v-if="summaryLinesForRow(row).length" class="mt-1 text-xs text-slate-500">
+              <ul v-if="summaryLinesForRow(row).length" class="mt-1 text-xs text-ink-500">
                 <li v-for="(line, idx) in summaryLinesForRow(row)" :key="idx">{{ line }}</li>
               </ul>
             </td>

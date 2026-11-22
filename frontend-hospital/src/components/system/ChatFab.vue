@@ -61,7 +61,7 @@ const onFabClick = () => {
   <button
     id="hospital-chat-fab"
     type="button"
-    class="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-cyan-600 text-white shadow-xl transition hover:from-indigo-700 hover:to-cyan-700 focus:outline-none focus:ring-4 focus:ring-indigo-200"
+    class="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-xl shadow-brand-900/25 ring-4 ring-surface transition hover:-translate-y-0.5 hover:from-brand-600 hover:to-brand-800 focus:outline-none focus-visible:ring-brand-200"
     :aria-label="fabAriaLabel"
     @click="onFabClick"
   >
@@ -73,7 +73,7 @@ const onFabClick = () => {
       {{ badgeText }}
     </span>
     <span
-      class="pointer-events-none absolute -left-2 -top-2 rounded-full border border-white/70 bg-white/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-700"
+      class="pointer-events-none absolute -left-2 -top-2 rounded-full border border-white/70 bg-white/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-700"
       aria-hidden="true"
     >
       AI

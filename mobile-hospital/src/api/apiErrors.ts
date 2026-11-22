@@ -47,6 +47,15 @@ function isNetworkFailure(error: unknown): boolean {
 }
 
 /**
+ * True when the API returned an unresolved Spring message key (e.g. {@code error.auth.invalid_credentials})
+ * instead of localized copy. Treat as missing Message so callers can use a fallback.
+ */
+export function looksLikeUnresolvedServerMessageKey(message: string): boolean {
+  const trimmed = message.trim();
+  return /^(error|success)\.[a-z0-9_.]+$/i.test(trimmed);
+}
+
+/**
  * Maps API/transport failures to short, user-safe copy (no raw axios codes or stack traces).
  */
 export function toUserFacingApiError(error: unknown, fallback: string = GENERIC_FALLBACK): string {
@@ -59,7 +68,11 @@ export function toUserFacingApiError(error: unknown, fallback: string = GENERIC_
 
   if (isAxiosError(error)) {
     const payload = (error.response?.data ?? {}) as Record<string, unknown>;
-    const serverMessage = pickString(payload, ['Message', 'message']);
+    const rawServerMessage = pickString(payload, ['Message', 'message']);
+    const serverMessage =
+      rawServerMessage && !looksLikeUnresolvedServerMessageKey(rawServerMessage)
+        ? rawServerMessage
+        : '';
     const errorCode = pickString(payload, ['ErrorCode', 'errorCode']);
     if (
       serverMessage &&

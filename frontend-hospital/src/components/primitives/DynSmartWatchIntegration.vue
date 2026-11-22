@@ -80,16 +80,16 @@ onMounted(loadState);
 <template>
   <div
     :id="htmlId"
-    class="w-full border-t border-slate-200 pt-6 mt-2 space-y-4"
+    class="w-full border-t border-ink-200 pt-6 mt-2 space-y-4"
     data-testid="smart-watch-integration"
   >
     <div class="space-y-1">
-      <h2 class="text-xl font-semibold text-slate-900">{{ t('devices.smartWatch.title') }}</h2>
-      <p class="text-sm text-slate-600">{{ t('devices.smartWatch.intro') }}</p>
+      <h2 class="text-xl font-semibold text-ink-900">{{ t('devices.smartWatch.title') }}</h2>
+      <p class="text-sm text-ink-600">{{ t('devices.smartWatch.intro') }}</p>
     </div>
 
     <div
-      class="rounded-xl border border-sky-300 bg-sky-50 p-4 text-sm text-sky-950 space-y-2"
+      class="rounded-xl border border-trust-300 bg-trust-50 p-4 text-sm text-trust-950 space-y-2"
       role="note"
       data-testid="smart-watch-web-banner"
     >
@@ -98,18 +98,18 @@ onMounted(loadState);
     </div>
 
     <div v-if="showPlatformList" class="space-y-3">
-      <p class="text-sm text-slate-600">{{ t('devices.smartWatch.choosePlatformHint') }}</p>
+      <p class="text-sm text-ink-600">{{ t('devices.smartWatch.choosePlatformHint') }}</p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <button
           v-for="platform in SMART_WATCH_PLATFORMS"
           :key="platform"
           type="button"
-          class="rounded-xl border border-slate-200 bg-white p-4 text-left hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors"
+          class="rounded-xl border border-ink-200 bg-white p-4 text-left hover:border-brand-300 hover:bg-brand-50/50 transition-colors"
           :data-testid="`smart-watch-platform-${platform}`"
           @click="selectPlatform(platform)"
         >
           <span class="text-2xl mr-2" aria-hidden="true">{{ PLATFORM_ICONS[platform] }}</span>
-          <span class="font-semibold text-slate-900">{{ platformLabel(platform) }}</span>
+          <span class="font-semibold text-ink-900">{{ platformLabel(platform) }}</span>
         </button>
       </div>
     </div>
@@ -117,28 +117,28 @@ onMounted(loadState);
     <div v-else class="space-y-4">
       <button
         type="button"
-        class="text-sm text-emerald-700 hover:underline"
+        class="text-sm text-brand-700 hover:underline"
         @click="onChangeWatchType"
       >
         {{ t('devices.smartWatch.changeWatchType') }}
       </button>
 
-      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-        <p class="font-semibold text-slate-900">
+      <div class="rounded-xl border border-ink-200 bg-ink-50 p-4 space-y-3">
+        <p class="font-semibold text-ink-900">
           <span aria-hidden="true">⌚</span>
           {{ platformLabel(activePlatform!) }}
         </p>
-        <p class="text-sm text-slate-700">{{ t('devices.smartWatch.setupIntro') }}</p>
-        <ol class="list-decimal list-inside space-y-1 text-sm text-slate-700">
+        <p class="text-sm text-ink-700">{{ t('devices.smartWatch.setupIntro') }}</p>
+        <ol class="list-decimal list-inside space-y-1 text-sm text-ink-700">
           <li v-for="(step, index) in platformSteps(activePlatform!)" :key="index">
             {{ step }}
           </li>
         </ol>
       </div>
 
-      <div class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-2">
-        <p class="text-sm font-semibold text-emerald-900">{{ t('devices.smartWatch.syncTitle') }}</p>
-        <ul class="list-disc list-inside text-sm text-emerald-900/90 space-y-0.5">
+      <div class="rounded-xl border border-brand-200 bg-brand-50/60 p-4 space-y-2">
+        <p class="text-sm font-semibold text-brand-900">{{ t('devices.smartWatch.syncTitle') }}</p>
+        <ul class="list-disc list-inside text-sm text-brand-900/90 space-y-0.5">
           <li v-for="(item, index) in syncItems()" :key="index">{{ item }}</li>
         </ul>
       </div>
@@ -156,7 +156,7 @@ onMounted(loadState);
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
           data-testid="smart-watch-open-mobile"
           @click="openMobileAppStore"
         >

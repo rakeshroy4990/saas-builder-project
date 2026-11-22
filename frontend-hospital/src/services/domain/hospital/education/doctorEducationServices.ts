@@ -639,7 +639,7 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
           hospitalAiChatPayload(prompt, [], String(prev.selectedBook ?? ''), retrievalSeed)
         );
         const data = (response.data?.Data ?? response.data?.data ?? {}) as Record<string, unknown>;
-        const reply = String(data.reply ?? data.message ?? '').trim();
+        const reply = String(data.Reply ?? data.reply ?? data.Message ?? data.message ?? '').trim();
         const { summary: focusSummary, cards: flashcards } = parseSummaryAndFlashcards(reply);
         const latest = getEducationState(appStore);
         appStore.setData('hospital', 'DoctorEducationUiState', {
@@ -714,7 +714,7 @@ export const doctorEducationHospitalServices: ServiceDefinition[] = [
           hospitalAiChatPayload(prompt, [], String(prev.selectedBook ?? ''), retrievalSeed)
         );
         const data = (response.data?.Data ?? response.data?.data ?? {}) as Record<string, unknown>;
-        const detail = String(data.reply ?? data.message ?? '').trim();
+        const detail = String(data.Reply ?? data.reply ?? data.Message ?? data.message ?? '').trim();
         const latest = getEducationState(appStore);
         const byCard = (latest.detailByCardId ?? {}) as Record<string, string>;
         appStore.setData('hospital', 'DoctorEducationUiState', {

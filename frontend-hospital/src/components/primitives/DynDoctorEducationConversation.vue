@@ -745,33 +745,33 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 </script>
 
 <template>
-  <section :id="htmlId" class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white/95 shadow-sm">
+  <section :id="htmlId" class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-ink-200 bg-white/95 shadow-sm">
     <div class="flex min-h-0 flex-1 flex-col px-4 pt-4 sm:px-5 sm:pt-5">
       <div class="flex min-h-0 flex-1 flex-col gap-0">
         <div class="order-1 shrink-0 space-y-5">
         <div class="flex items-start justify-between gap-3 min-w-0">
           <div class="min-w-0 flex-1 space-y-1">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-trust-700">
               {{ t('education.conversation.historyTitle') }}
             </p>
-            <h3 class="text-xl font-semibold text-slate-900">{{ t('education.conversation.inputLabel') }}</h3>
+            <h3 class="text-xl font-semibold text-ink-900">{{ t('education.conversation.inputLabel') }}</h3>
             <div class="flex flex-wrap gap-2 pt-2">
               <button
                 type="button"
-                class="inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-sky-100"
+                class="inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-trust-100"
                 :class="isBooksTab
-                  ? 'border-sky-300 bg-sky-600 text-white shadow-sm'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-sky-200 hover:bg-sky-50'"
+                  ? 'border-trust-300 bg-trust-600 text-white shadow-sm'
+                  : 'border-ink-200 bg-white text-ink-700 hover:border-trust-200 hover:bg-trust-50'"
                 @click="setQueryTab('books')"
               >
                 {{ t('education.conversation.tabs.books') }}
               </button>
               <button
                 type="button"
-                class="inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-sky-100"
+                class="inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-trust-100"
                 :class="isPrescriptionTab
-                  ? 'border-sky-300 bg-sky-600 text-white shadow-sm'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-sky-200 hover:bg-sky-50'"
+                  ? 'border-trust-300 bg-trust-600 text-white shadow-sm'
+                  : 'border-ink-200 bg-white text-ink-700 hover:border-trust-200 hover:bg-trust-50'"
                 @click="setQueryTab('prescription')"
               >
                 {{ t('education.conversation.tabs.prescription') }}
@@ -782,7 +782,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
           <div v-if="isBooksTab" class="shrink-0 flex items-center justify-end">
             <button
               type="button"
-              class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100"
+              class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-ink-200 bg-white text-ink-700 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800 focus:outline-none focus:ring-4 focus:ring-trust-100"
               :aria-label="showConversationControls ? t('education.conversation.closeControls') : t('education.conversation.openControls')"
               :title="showConversationControls ? t('education.conversation.closeControls') : t('education.conversation.openControls')"
               @click="showConversationControls = !showConversationControls"
@@ -804,49 +804,49 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 
         <div
           v-if="isBooksTab && hasBooks"
-          class="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center"
+          class="grid gap-2 rounded-2xl border border-ink-200 bg-ink-50 px-3 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center"
         >
-          <label for="doctor-education-conversation-book" class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <label for="doctor-education-conversation-book" class="text-xs font-semibold uppercase tracking-wide text-ink-500">
             {{ t('education.filterBook') }}
           </label>
           <div class="relative">
             <button
               ref="bookFilterButtonRef"
               type="button"
-              class="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+              class="flex w-full items-center justify-between gap-3 rounded-xl border border-ink-200 bg-white px-3 py-2 text-left text-sm text-ink-900 shadow-sm outline-none transition focus:border-trust-300 focus:ring-4 focus:ring-trust-100"
               :aria-expanded="bookFilterOpen ? 'true' : 'false'"
               aria-haspopup="listbox"
               @click="bookFilterOpen = !bookFilterOpen"
             >
               <span class="min-w-0 truncate">{{ selectedBooksCountLabel }}</span>
-              <span class="shrink-0 text-slate-500" aria-hidden="true">▾</span>
+              <span class="shrink-0 text-ink-500" aria-hidden="true">▾</span>
             </button>
 
             <div
               v-if="bookFilterOpen"
               ref="bookFilterPanelRef"
-              class="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+              class="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-xl"
               role="dialog"
               :aria-label="t('education.filterBook')"
             >
-              <div class="border-b border-slate-100 p-3">
+              <div class="border-b border-ink-100 p-3">
                 <div class="flex items-center gap-2">
                   <input
                     v-model="bookFilterQuery"
                     type="text"
-                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                    class="w-full rounded-xl border border-ink-200 bg-ink-50 px-3 py-2 text-sm text-ink-900 outline-none transition focus:border-trust-300 focus:ring-4 focus:ring-trust-100"
                     :placeholder="t('education.conversation.bookFilterSearchPlaceholder')"
                   />
                   <button
                     type="button"
-                    class="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="shrink-0 rounded-xl border border-ink-200 bg-white px-3 py-2 text-xs font-semibold text-ink-700 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800 disabled:cursor-not-allowed disabled:opacity-50"
                     :disabled="selectedBooks.length === 0 && !bookFilterQuery.trim()"
                     @click="resetBookSelection"
                   >
                     {{ t('education.conversation.bookFilterReset') }}
                   </button>
                 </div>
-                <p class="mt-2 text-xs text-slate-500">
+                <p class="mt-2 text-xs text-ink-500">
                   {{ t('education.conversation.bookFilterSelectedCount', { count: selectedBooks.length }) }}
                 </p>
               </div>
@@ -856,12 +856,12 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                   v-for="book in filteredBooks"
                   :key="book"
                   type="button"
-                  class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-slate-800 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-sky-100"
+                  class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-ink-800 transition hover:bg-ink-50 focus:outline-none focus:ring-4 focus:ring-trust-100"
                   @click="toggleBookSelection(book)"
                 >
                   <span
-                    class="grid h-5 w-5 place-items-center rounded border border-slate-300 bg-white text-[12px] font-bold text-sky-700"
-                    :class="selectedBooks.includes(book) ? 'border-sky-300 bg-sky-50' : ''"
+                    class="grid h-5 w-5 place-items-center rounded border border-ink-300 bg-white text-[12px] font-bold text-trust-700"
+                    :class="selectedBooks.includes(book) ? 'border-trust-300 bg-trust-50' : ''"
                     aria-hidden="true"
                   >
                     {{ selectedBooks.includes(book) ? '✓' : '' }}
@@ -869,15 +869,15 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                   <span class="min-w-0 flex-1 truncate">{{ book }}</span>
                 </button>
 
-                <p v-if="filteredBooks.length === 0" class="px-3 py-3 text-sm text-slate-500">
+                <p v-if="filteredBooks.length === 0" class="px-3 py-3 text-sm text-ink-500">
                   {{ t('education.conversation.bookFilterNoResults') }}
                 </p>
               </div>
 
-              <div class="flex items-center justify-end gap-2 border-t border-slate-100 bg-white p-3">
+              <div class="flex items-center justify-end gap-2 border-t border-ink-100 bg-white p-3">
                 <button
                   type="button"
-                  class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
+                  class="rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800"
                   @click="closeBookFilter"
                 >
                   {{ t('common.close') }}
@@ -889,28 +889,28 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 
         <div
           v-if="isBooksTab && showConversationControls"
-          class="space-y-4 rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,_rgba(239,246,255,0.9),_rgba(255,255,255,0.96))] p-4 shadow-sm"
+          class="space-y-4 rounded-3xl border border-ink-200 bg-[linear-gradient(135deg,_rgba(239,246,255,0.9),_rgba(255,255,255,0.96))] p-4 shadow-sm"
         >
           <div class="flex flex-wrap items-center gap-2">
-            <span class="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-800 shadow-sm">
+            <span class="rounded-full border border-trust-200 bg-white px-3 py-1 text-xs font-semibold text-trust-800 shadow-sm">
               {{ t('education.conversation.currentSession') }}: {{ activeSessionTitle }}
             </span>
-            <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
+            <span class="rounded-full border border-ink-200 bg-white px-3 py-1 text-xs font-semibold text-ink-600 shadow-sm">
               {{ t('education.conversation.messageCount', { count: activeSessionMessageCount }) }}
             </span>
             <button
               type="button"
-              class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
+              class="inline-flex items-center justify-center rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800"
               @click="startNewConversation"
             >
               {{ t('education.conversation.newConversation') }}
             </button>
           </div>
 
-          <label class="flex w-full max-w-xs flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <label class="flex w-full max-w-xs flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
             <span>{{ t('education.workspace.modeLabel') }}</span>
             <select
-              class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+              class="w-full rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-ink-900 shadow-sm outline-none transition focus:border-trust-300 focus:ring-4 focus:ring-trust-100"
               :value="uiMode"
               @change="onModeChange"
             >
@@ -922,38 +922,38 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
           <div class="flex flex-wrap gap-2">
             <button
               type="button"
-              class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
+              class="inline-flex items-center justify-center rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800"
               @click="showQuickStarts = !showQuickStarts"
             >
               {{ showQuickStarts ? t('education.conversation.hideQuickStarts') : t('education.conversation.showQuickStarts') }}
             </button>
             <button
               type="button"
-              class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
+              class="inline-flex items-center justify-center rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800"
               @click="showSavedThreads = !showSavedThreads"
             >
               {{ showSavedThreads ? t('education.conversation.hideSavedThreads') : t('education.conversation.showSavedThreads') }}
             </button>
             <button
               type="button"
-              class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+              class="inline-flex items-center justify-center rounded-xl border border-ink-200 bg-ink-50 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-ink-300 hover:bg-ink-100"
               @click="showConversationControls = false"
             >
               {{ t('education.conversation.done') }}
             </button>
           </div>
 
-          <div v-if="showQuickStarts && topics.length > 0" class="rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+          <div v-if="showQuickStarts && topics.length > 0" class="rounded-3xl border border-ink-200 bg-white px-4 py-4 shadow-sm">
             <div class="mb-3">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.conversation.quickStartsTitle') }}</p>
-              <p class="text-sm text-slate-600">{{ t('education.conversation.quickStartsSubtitle') }}</p>
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">{{ t('education.conversation.quickStartsTitle') }}</p>
+              <p class="text-sm text-ink-600">{{ t('education.conversation.quickStartsSubtitle') }}</p>
             </div>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <button
                 v-for="topic in topics"
                 :key="topic"
                 type="button"
-                class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50"
+                class="rounded-2xl border border-ink-200 bg-ink-50 px-4 py-3 text-left text-sm font-semibold text-ink-800 transition hover:-translate-y-0.5 hover:border-trust-200 hover:bg-trust-50"
                 @click="setPrompt(topic)"
               >
                 {{ topic }}
@@ -963,11 +963,11 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 
           <div
             v-if="showSavedThreads"
-            class="rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+            class="rounded-3xl border border-ink-200 bg-white px-4 py-4 shadow-sm"
           >
             <div class="mb-3">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.conversation.savedThreadsTitle') }}</p>
-              <p class="text-sm text-slate-600">{{ t('education.conversation.savedThreadsSubtitle') }}</p>
+              <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">{{ t('education.conversation.savedThreadsTitle') }}</p>
+              <p class="text-sm text-ink-600">{{ t('education.conversation.savedThreadsSubtitle') }}</p>
             </div>
             <div class="space-y-2">
               <button
@@ -976,20 +976,20 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                 type="button"
                 class="w-full rounded-2xl border px-3 py-3 text-left transition"
                 :class="session.id === activeSession?.id
-                  ? 'border-sky-300 bg-sky-50 shadow-sm'
-                  : 'border-slate-200 bg-white hover:border-sky-200 hover:bg-slate-50'"
+                  ? 'border-trust-300 bg-trust-50 shadow-sm'
+                  : 'border-ink-200 bg-white hover:border-trust-200 hover:bg-ink-50'"
                 @click="openConversation(session.id)"
               >
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
-                    <p class="truncate text-sm font-semibold text-slate-900">{{ session.title }}</p>
-                    <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                    <p class="truncate text-sm font-semibold text-ink-900">{{ session.title }}</p>
+                    <p class="mt-1 line-clamp-2 text-xs leading-5 text-ink-500">
                       {{ threadPreviewLine(session.messages[session.messages.length - 1]) }}
                     </p>
                   </div>
                   <span
                     v-if="session.bookName"
-                    class="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                    class="shrink-0 rounded-full border border-ink-200 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink-500"
                   >
                     {{ session.bookName }}
                   </span>
@@ -1008,7 +1008,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 
         <div
           v-if="isBooksTab"
-          class="order-2 flex min-h-0 flex-1 flex-col border-slate-200"
+          class="order-2 flex min-h-0 flex-1 flex-col border-ink-200"
           :class="messages.length > 0 ? 'min-h-[10rem] border-t pt-4' : ''"
         >
           <div
@@ -1059,9 +1059,9 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 
                   <div
                     v-if="message.loading && !message.content?.trim()"
-                    class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600"
+                    class="flex items-center gap-3 rounded-2xl border border-ink-200 bg-white px-4 py-4 text-sm text-ink-600"
                   >
-                    <span class="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
+                    <span class="h-4 w-4 animate-spin rounded-full border-2 border-ink-200 border-t-trust-500" />
                     <span>{{ t('education.conversation.loadingAnswer') }}</span>
                   </div>
                   <p v-else :class="assistantMessageBodyClass">
@@ -1070,12 +1070,12 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
 
                   <div
                     v-if="!message.loading && message.reference && message.reference.length > 0"
-                    class="mt-4 rounded-2xl border border-slate-200 bg-white px-3 py-3"
+                    class="mt-4 rounded-2xl border border-ink-200 bg-white px-3 py-3"
                   >
-                    <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
                       {{ t('education.conversation.referenceTitle') }}
                     </p>
-                    <ul class="list-inside list-disc space-y-1 text-sm text-slate-700">
+                    <ul class="list-inside list-disc space-y-1 text-sm text-ink-700">
                       <li v-for="(ref, refIdx) in message.reference" :key="`${message.id}-ref-${refIdx}`">
                         {{ t('education.conversation.referenceLine', { book: ref.bookName, page: ref.page + 1 }) }}
                       </li>
@@ -1083,7 +1083,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                   </div>
 
                   <div v-if="!message.loading && message.images && message.images.length > 0" class="mt-4 space-y-3">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.conversation.figuresTitle') }}</p>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">{{ t('education.conversation.figuresTitle') }}</p>
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       <a
                         v-for="image in message.images"
@@ -1091,20 +1091,20 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                         :href="image.url"
                         target="_blank"
                         rel="noreferrer"
-                        class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
+                        class="group overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-trust-200 hover:shadow-md"
                       >
                         <img
                           :src="image.url"
                           :alt="image.caption || t('education.conversation.figureAlt', { page: image.page + 1 })"
-                          class="h-44 w-full bg-slate-100 object-cover"
+                          class="h-44 w-full bg-ink-100 object-cover"
                           loading="lazy"
                         />
                         <div class="space-y-2 px-3 py-3">
                           <div class="flex items-center justify-between gap-2">
-                            <span class="rounded-full bg-sky-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-sky-700">
+                            <span class="rounded-full bg-trust-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-trust-700">
                               {{ t('education.conversation.pageBadge', { page: image.page + 1 }) }}
                             </span>
-                            <span class="text-[11px] font-medium text-slate-500">{{ image.ext.toUpperCase() }}</span>
+                            <span class="text-[11px] font-medium text-ink-500">{{ image.ext.toUpperCase() }}</span>
                           </div>
                         </div>
                       </a>
@@ -1112,13 +1112,13 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                   </div>
 
                   <div v-if="!message.loading && educationAssistantFollowUps(message).length > 0" class="mt-4 space-y-2">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.conversation.followUpTitle') }}</p>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">{{ t('education.conversation.followUpTitle') }}</p>
                     <div class="flex flex-wrap gap-2">
                       <button
                         v-for="followUp in educationAssistantFollowUps(message)"
                         :key="followUp"
                         type="button"
-                        class="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-800 transition hover:bg-sky-50"
+                        class="rounded-full border border-trust-200 bg-white px-3 py-1.5 text-xs font-semibold text-trust-800 transition hover:bg-trust-50"
                         @click="submitConversation(followUp, { includeHistory: true })"
                       >
                         {{ followUp }}
@@ -1131,10 +1131,10 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
           </div>
         </div>
 
-        <div v-if="isBooksTab" class="order-3 shrink-0 space-y-3 border-t border-slate-200 bg-white/95 pt-4 pb-4 sm:pb-5">
+        <div v-if="isBooksTab" class="order-3 shrink-0 space-y-3 border-t border-ink-200 bg-white/95 pt-4 pb-4 sm:pb-5">
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2 min-w-0">
-              <label for="doctor-education-conversation-draft" class="text-xs font-semibold uppercase tracking-wide text-slate-500 min-w-0">
+              <label for="doctor-education-conversation-draft" class="text-xs font-semibold uppercase tracking-wide text-ink-500 min-w-0">
                 {{ t('education.conversation.inputPromptLabel') }}
               </label>
               <div class="flex shrink-0 items-center gap-1">
@@ -1156,7 +1156,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                 />
                 <button
                   type="button"
-                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-ink-200 bg-white text-ink-600 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800 focus:outline-none focus:ring-4 focus:ring-trust-100 disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="conversationLoading || prescriptionReading"
                   :aria-label="t('education.conversation.attachFileAria')"
                   :title="t('education.conversation.attachFileAria')"
@@ -1168,7 +1168,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                 </button>
                 <button
                   type="button"
-                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-ink-200 bg-white text-ink-600 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800 focus:outline-none focus:ring-4 focus:ring-trust-100 disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="conversationLoading || prescriptionReading"
                   :aria-label="t('education.conversation.attachCameraAria')"
                   :title="t('education.conversation.attachCameraAria')"
@@ -1186,7 +1186,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
               id="doctor-education-conversation-draft"
               :value="conversationDraft"
               rows="1"
-              class="w-full resize-none overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:opacity-60"
+              class="w-full resize-none overflow-hidden rounded-2xl border border-ink-200 bg-ink-50 px-4 py-3 text-sm leading-6 text-ink-900 shadow-sm outline-none transition focus:border-trust-300 focus:ring-4 focus:ring-trust-100 disabled:opacity-60"
               :disabled="conversationLoading || prescriptionReading"
               :placeholder="t('education.conversation.inputPlaceholder')"
               @input="onDraftInput"
@@ -1196,10 +1196,10 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
               <div
                 v-for="(file, fileIndex) in attachedClinicalFiles"
                 :key="file.id"
-                class="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-900"
+                class="inline-flex items-center gap-2 rounded-full border border-trust-200 bg-trust-50 px-3 py-1 text-xs font-medium text-trust-900"
               >
                 <span
-                  class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-sky-300 bg-white px-1 text-[10px] font-bold text-sky-700"
+                  class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-trust-300 bg-white px-1 text-[10px] font-bold text-trust-700"
                   :title="t('education.conversation.attachmentOrderLabel', { order: fileIndex + 1 })"
                 >
                   {{ fileIndex + 1 }}
@@ -1210,7 +1210,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
                 <button
                   v-if="attachedClinicalFiles.length === 1"
                   type="button"
-                  class="rounded-full border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-sky-800 transition hover:bg-sky-100"
+                  class="rounded-full border border-trust-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-trust-800 transition hover:bg-trust-100"
                   @click="removeAttachedClinicalFile(file.id)"
                 >
                   {{ t('education.conversation.removeFile') }}
@@ -1219,7 +1219,7 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
               <button
                 v-if="attachedClinicalFiles.length > 1"
                 type="button"
-                class="rounded-full border border-sky-300 bg-white px-3 py-1 text-xs font-semibold text-sky-800 shadow-sm transition hover:bg-sky-50"
+                class="rounded-full border border-trust-300 bg-white px-3 py-1 text-xs font-semibold text-trust-800 shadow-sm transition hover:bg-trust-50"
                 @click="openAttachmentSequenceModal"
               >
                 {{ t('education.conversation.reviewSequence') }}
@@ -1232,8 +1232,8 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
           </p>
 
           <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <p class="text-xs leading-5 text-slate-500">
-              <span v-if="prescriptionReading" class="font-medium text-sky-700">{{ t('education.conversation.readingPrescription') }}</span>
+            <p class="text-xs leading-5 text-ink-500">
+              <span v-if="prescriptionReading" class="font-medium text-trust-700">{{ t('education.conversation.readingPrescription') }}</span>
               <span v-else-if="attachedClinicalFiles.length > 1">
                 {{ t('education.conversation.attachmentsConfirmSequenceHint', { count: attachedClinicalFiles.length }) }}
               </span>
@@ -1243,14 +1243,14 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
               <span v-else>{{ t('education.conversation.submitHint') }}</span>
               <span
                 v-if="showAutoSentNotice"
-                class="ml-2 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700"
+                class="ml-2 inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700"
               >
                 {{ t('education.conversation.autoSentNotice') }}
               </span>
             </p>
             <button
               type="button"
-              class="inline-flex items-center justify-center rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+              class="inline-flex items-center justify-center rounded-xl bg-trust-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-trust-700 focus:outline-none focus:ring-4 focus:ring-trust-200 disabled:cursor-not-allowed disabled:bg-ink-300 disabled:text-ink-600"
               :disabled="!canSendComposer"
               @click="submitConversation()"
             >
@@ -1264,18 +1264,18 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
   <Teleport to="body">
     <div
       v-if="showPrescriptionCameraModal"
-      class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/75 p-4"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-ink-950/75 p-4"
       role="dialog"
       aria-modal="true"
       :aria-label="t('education.conversation.cameraModalTitle')"
       @click.self="closePrescriptionCameraModal"
     >
       <div
-        class="w-full max-w-lg overflow-hidden rounded-3xl border border-slate-600 bg-slate-900 p-4 shadow-2xl sm:p-5"
+        class="w-full max-w-lg overflow-hidden rounded-3xl border border-ink-600 bg-ink-900 p-4 shadow-2xl sm:p-5"
         @click.stop
       >
         <p class="text-sm font-semibold text-white">{{ t('education.conversation.cameraModalTitle') }}</p>
-        <p class="mt-1 text-xs leading-relaxed text-slate-400">{{ t('education.conversation.cameraModalHint') }}</p>
+        <p class="mt-1 text-xs leading-relaxed text-ink-400">{{ t('education.conversation.cameraModalHint') }}</p>
         <video
           ref="cameraVideoRef"
           class="mt-3 aspect-video w-full rounded-2xl bg-black object-cover"
@@ -1286,14 +1286,14 @@ function threadPreviewLine(message: ConversationMessage | undefined): string {
         <div class="mt-4 flex flex-wrap justify-end gap-2">
           <button
             type="button"
-            class="inline-flex items-center justify-center rounded-xl border border-slate-500 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-500/40"
+            class="inline-flex items-center justify-center rounded-xl border border-ink-500 bg-ink-800 px-4 py-2 text-sm font-semibold text-ink-100 transition hover:bg-ink-700 focus:outline-none focus:ring-4 focus:ring-ink-500/40"
             @click="closePrescriptionCameraModal"
           >
             {{ t('education.conversation.cameraModalCancel') }}
           </button>
           <button
             type="button"
-            class="inline-flex items-center justify-center rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-400 focus:outline-none focus:ring-4 focus:ring-sky-300/50 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300"
+            class="inline-flex items-center justify-center rounded-xl bg-trust-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-trust-400 focus:outline-none focus:ring-4 focus:ring-trust-300/50 disabled:cursor-not-allowed disabled:bg-ink-600 disabled:text-ink-300"
             :disabled="!cameraPreviewReady"
             @click="capturePrescriptionCameraFrame"
           >

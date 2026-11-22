@@ -58,7 +58,7 @@ export const hospitalProfilePage: PageConfig = {
                           config: {
                             styles: {
                               utilityClasses:
-                                'col-span-12 md:col-span-2 rounded-xl border border-slate-200 bg-white p-3 space-y-2'
+                                'col-span-12 md:col-span-2 rounded-2xl border border-line bg-surface p-2.5 space-y-1 shadow-tile'
                             },
                             children: [
                               {
@@ -69,7 +69,7 @@ export const hospitalProfilePage: PageConfig = {
                                   i18nKey: 'nav.profile',
                                   styles: {
                                     utilityClasses:
-                                      'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
+                                      'w-full rounded-full bg-brand-600 px-4 py-2.5 text-left text-sm font-semibold text-white shadow-sm shadow-brand-900/10'
                                   },
                                   click: { actionId: 'set-profile-page-section', data: { section: 'profile' } }
                                 }
@@ -82,7 +82,7 @@ export const hospitalProfilePage: PageConfig = {
                                   i18nKey: 'nav.profile',
                                   styles: {
                                     utilityClasses:
-                                      'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                                      'w-full rounded-full px-4 py-2.5 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-brand-50 hover:text-brand-800'
                                   },
                                   click: { actionId: 'set-profile-page-section', data: { section: 'profile' } }
                                 }
@@ -95,7 +95,7 @@ export const hospitalProfilePage: PageConfig = {
                                   i18nKey: 'nav.inactiveAccount',
                                   styles: {
                                     utilityClasses:
-                                      'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
+                                      'w-full rounded-full bg-brand-600 px-4 py-2.5 text-left text-sm font-semibold text-white shadow-sm shadow-brand-900/10'
                                   },
                                   click: { actionId: 'set-profile-page-section', data: { section: 'inactive' } }
                                 }
@@ -108,7 +108,7 @@ export const hospitalProfilePage: PageConfig = {
                                   i18nKey: 'nav.inactiveAccount',
                                   styles: {
                                     utilityClasses:
-                                      'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                                      'w-full rounded-full px-4 py-2.5 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-brand-50 hover:text-brand-800'
                                   },
                                   click: { actionId: 'set-profile-page-section', data: { section: 'inactive' } }
                                 }
@@ -122,7 +122,7 @@ export const hospitalProfilePage: PageConfig = {
                           config: {
                             styles: {
                               utilityClasses:
-                                'col-span-12 md:col-span-10 rounded-xl border border-slate-200 bg-white p-4 space-y-4'
+                                'col-span-12 md:col-span-10 rounded-2xl border border-line bg-surface p-4 sm:p-6 shadow-tile space-y-4'
                             },
                             children: [
                               {
@@ -163,7 +163,7 @@ export const hospitalProfilePage: PageConfig = {
                                       type: 'text',
                                       config: {
                                         i18nKey: 'profilePage.yourDetails',
-                                        styles: { utilityClasses: 'text-lg font-semibold text-slate-900' }
+                                        styles: { utilityClasses: 'text-lg font-semibold text-ink-900' }
                                       }
                                     },
                                     {
@@ -377,7 +377,7 @@ export const hospitalProfilePage: PageConfig = {
                                       type: 'text',
                                       config: {
                                         i18nKey: 'profilePage.inactiveHeading',
-                                        styles: { utilityClasses: 'text-lg font-semibold text-slate-900' }
+                                        styles: { utilityClasses: 'text-lg font-semibold text-ink-900' }
                                       }
                                     },
                                     {
@@ -385,7 +385,7 @@ export const hospitalProfilePage: PageConfig = {
                                       type: 'text',
                                       config: {
                                         i18nKey: 'profilePage.inactiveCopy',
-                                        styles: { utilityClasses: 'text-sm leading-relaxed text-slate-600' }
+                                        styles: { utilityClasses: 'text-sm leading-relaxed text-ink-600' }
                                       }
                                     },
                                     {
@@ -395,7 +395,7 @@ export const hospitalProfilePage: PageConfig = {
                                         i18nKey: 'profilePage.deactivateButton',
                                         styles: {
                                           utilityClasses:
-                                            'self-start rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700'
+                                            'self-start rounded-full bg-rose-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-rose-800'
                                         },
                                         click: { actionId: 'deactivate-user-account' }
                                       }

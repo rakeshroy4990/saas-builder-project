@@ -67,7 +67,7 @@ function onField(field: string, event: Event): void {
     </p>
 
     <div :class="ws('formGrid')">
-      <label class="flex flex-col gap-1 text-sm text-slate-800">
+      <label class="flex flex-col gap-1 text-sm text-ink-800">
         {{ t('growth.heightCm') }}
         <input
           type="number"
@@ -78,7 +78,7 @@ function onField(field: string, event: Event): void {
           @input="onField('entryHeightCm', $event)"
         />
       </label>
-      <label class="flex flex-col gap-1 text-sm text-slate-800">
+      <label class="flex flex-col gap-1 text-sm text-ink-800">
         {{ t('growth.weightKg') }}
         <input
           type="number"
@@ -89,7 +89,7 @@ function onField(field: string, event: Event): void {
           @input="onField('entryWeightKg', $event)"
         />
       </label>
-      <label class="flex flex-col gap-1 text-sm text-slate-800">
+      <label class="flex flex-col gap-1 text-sm text-ink-800">
         {{ t('growth.headCircCm') }}
         <input
           type="number"
@@ -102,7 +102,7 @@ function onField(field: string, event: Event): void {
       </label>
     </div>
 
-    <p v-if="session.lastSavedSummary" class="text-sm font-medium text-emerald-800">
+    <p v-if="session.lastSavedSummary" class="text-sm font-medium text-brand-800">
       {{ session.lastSavedSummary }}
     </p>
 

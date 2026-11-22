@@ -23,9 +23,9 @@ const value = computed(() => props.config?.text ?? '');
 const interactiveClasses = computed(() => {
   if (!props.config?.click) return '';
   if (props.config.plainClick) {
-    return ' cursor-pointer select-none rounded-md px-1 -mx-1 py-0.5 hover:bg-slate-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2';
+    return ' cursor-pointer select-none rounded-md px-1 -mx-1 py-0.5 hover:bg-ink-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2';
   }
-  return ' cursor-pointer select-none rounded-md px-1 -mx-1 py-0.5 decoration-emerald-600/50 underline-offset-4 hover:underline hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2';
+  return ' cursor-pointer select-none rounded-md px-1 -mx-1 py-0.5 decoration-brand-600/50 underline-offset-4 hover:underline hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2';
 });
 
 const onClick = async () => {

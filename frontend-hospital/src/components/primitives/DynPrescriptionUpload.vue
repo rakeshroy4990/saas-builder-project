@@ -357,38 +357,38 @@ async function processQueue(): Promise<void> {
 <template>
   <section :id="htmlId" class="space-y-4">
     <div>
-      <h2 class="text-lg font-semibold text-slate-900">{{ t('prescriptions.upload.title') }}</h2>
-      <p class="mt-1 text-sm text-slate-600">{{ uploadHint }}</p>
+      <h2 class="text-lg font-semibold text-ink-900">{{ t('prescriptions.upload.title') }}</h2>
+      <p class="mt-1 text-sm text-ink-600">{{ uploadHint }}</p>
     </div>
 
     <fieldset class="space-y-2">
-      <legend class="text-sm font-semibold text-slate-800">{{ t('prescriptions.upload.modeLabel') }}</legend>
+      <legend class="text-sm font-semibold text-ink-800">{{ t('prescriptions.upload.modeLabel') }}</legend>
       <div class="flex flex-wrap gap-4">
-        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-700">
           <input
             type="radio"
             name="prescription-upload-mode"
-            class="text-sky-600"
+            class="text-trust-600"
             :checked="uploadMode === 'single'"
             @change="onUploadModeChange('single')"
           />
           {{ t('prescriptions.upload.modeSingle') }}
         </label>
-        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-700">
           <input
             type="radio"
             name="prescription-upload-mode"
-            class="text-sky-600"
+            class="text-trust-600"
             :checked="uploadMode === 'frontBack'"
             @change="onUploadModeChange('frontBack')"
           />
           {{ t('prescriptions.upload.modeFrontBack') }}
         </label>
-        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-700">
           <input
             type="radio"
             name="prescription-upload-mode"
-            class="text-sky-600"
+            class="text-trust-600"
             :checked="uploadMode === 'sameDiagnosis'"
             @change="onUploadModeChange('sameDiagnosis')"
           />
@@ -399,25 +399,25 @@ async function processQueue(): Promise<void> {
 
     <div
       v-if="uploadMode === 'sameDiagnosis'"
-      class="space-y-3 rounded-xl border border-violet-100 bg-violet-50/60 px-4 py-3"
+      class="space-y-3 rounded-xl border border-trust-100 bg-trust-50/60 px-4 py-3"
     >
-      <p class="text-sm font-semibold text-violet-900">{{ t('prescriptions.upload.sameDiagnosis.setupTitle') }}</p>
+      <p class="text-sm font-semibold text-trust-900">{{ t('prescriptions.upload.sameDiagnosis.setupTitle') }}</p>
       <div class="flex flex-wrap gap-4">
-        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-700">
           <input
             type="radio"
             name="diagnosis-link-target"
-            class="text-violet-600"
+            class="text-trust-600"
             :checked="diagnosisLinkTarget === 'new'"
             @change="diagnosisLinkTarget = 'new'"
           />
           {{ t('prescriptions.upload.sameDiagnosis.newDiagnosis') }}
         </label>
-        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-700">
           <input
             type="radio"
             name="diagnosis-link-target"
-            class="text-violet-600"
+            class="text-trust-600"
             :checked="diagnosisLinkTarget === 'existing'"
             @change="diagnosisLinkTarget = 'existing'"
           />
@@ -425,24 +425,24 @@ async function processQueue(): Promise<void> {
         </label>
       </div>
       <div v-if="diagnosisLinkTarget === 'new'">
-        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <label class="block text-xs font-semibold uppercase tracking-wide text-ink-500">
           {{ t('prescriptions.upload.sameDiagnosis.diagnosisLabel') }}
         </label>
         <input
           v-model="diagnosisText"
           type="text"
-          class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+          class="mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900"
           :placeholder="t('prescriptions.upload.sameDiagnosis.diagnosisPlaceholder')"
           :disabled="busy"
         />
       </div>
       <div v-else>
-        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <label class="block text-xs font-semibold uppercase tracking-wide text-ink-500">
           {{ t('prescriptions.upload.sameDiagnosis.selectDiagnosis') }}
         </label>
         <select
           v-model="existingDiagnosisGroupId"
-          class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+          class="mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900"
           :disabled="busy || diagnosisGroupsLoading"
         >
           <option value="">{{ t('prescriptions.upload.sameDiagnosis.selectPlaceholder') }}</option>
@@ -455,25 +455,25 @@ async function processQueue(): Promise<void> {
             ({{ t('prescriptions.upload.sameDiagnosis.prescriptionCount', { count: group.prescriptionCount }) }})
           </option>
         </select>
-        <p v-if="!diagnosisGroupsLoading && !diagnosisGroups.length" class="mt-1 text-xs text-slate-500">
+        <p v-if="!diagnosisGroupsLoading && !diagnosisGroups.length" class="mt-1 text-xs text-ink-500">
           {{ t('prescriptions.upload.sameDiagnosis.noExisting') }}
         </p>
       </div>
-      <p v-if="groupExternalId && uploadMode === 'sameDiagnosis'" class="text-xs font-medium text-violet-800">
+      <p v-if="groupExternalId && uploadMode === 'sameDiagnosis'" class="text-xs font-medium text-trust-800">
         {{ t('prescriptions.upload.sameDiagnosis.sessionActive') }}
       </p>
     </div>
 
     <p
       v-if="uploadMode === 'frontBack'"
-      class="rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-900"
+      class="rounded-xl border border-trust-100 bg-trust-50 px-3 py-2 text-sm font-medium text-trust-900"
     >
       {{ frontBackStepLabel }}
     </p>
 
     <div
       class="relative flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition"
-      :class="dragOver ? 'border-sky-400 bg-sky-50' : 'border-slate-200 bg-slate-50/80'"
+      :class="dragOver ? 'border-trust-400 bg-trust-50' : 'border-ink-200 bg-ink-50/80'"
       @dragover.prevent="dragOver = true"
       @dragleave.prevent="dragOver = false"
       @drop="onDrop"
@@ -494,11 +494,11 @@ async function processQueue(): Promise<void> {
         capture="environment"
         @change="onFileInput"
       />
-      <p class="text-sm font-medium text-slate-700">{{ dropHint }}</p>
+      <p class="text-sm font-medium text-ink-700">{{ dropHint }}</p>
       <div class="flex flex-wrap items-center justify-center gap-2">
         <button
           type="button"
-          class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 disabled:opacity-50"
+          class="inline-flex items-center justify-center rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 disabled:opacity-50"
           :disabled="busy"
           @click="openFilePicker"
         >
@@ -506,7 +506,7 @@ async function processQueue(): Promise<void> {
         </button>
         <button
           type="button"
-          class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 disabled:opacity-50"
+          class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-ink-200 bg-white text-ink-600 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 disabled:opacity-50"
           :disabled="busy"
           :aria-label="t('prescriptions.upload.camera')"
           :title="t('prescriptions.upload.camera')"
@@ -524,17 +524,17 @@ async function processQueue(): Promise<void> {
       <li
         v-for="item in queue"
         :key="item.id"
-        class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+        class="flex items-center justify-between gap-3 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm"
       >
-        <span class="min-w-0 truncate font-medium text-slate-800">
-          <span v-if="item.pageLabel" class="text-slate-500">{{ item.pageLabel }} · </span>
+        <span class="min-w-0 truncate font-medium text-ink-800">
+          <span v-if="item.pageLabel" class="text-ink-500">{{ item.pageLabel }} · </span>
           {{ item.file.name }}
         </span>
         <span
           class="shrink-0 text-xs font-semibold"
           :class="{
-            'text-sky-700': item.status === 'uploading',
-            'text-emerald-700': item.status === 'done',
+            'text-trust-700': item.status === 'uploading',
+            'text-trust-700': item.status === 'done',
             'text-amber-700': item.status === 'duplicate',
             'text-rose-700': item.status === 'error'
           }"
@@ -543,20 +543,20 @@ async function processQueue(): Promise<void> {
         </span>
       </li>
     </ul>
-    <p v-else class="text-sm text-slate-500">{{ t('prescriptions.upload.queueEmpty') }}</p>
+    <p v-else class="text-sm text-ink-500">{{ t('prescriptions.upload.queueEmpty') }}</p>
 
     <div
       v-if="showCameraModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/60 p-4"
       role="dialog"
       aria-modal="true"
       :aria-label="t('prescriptions.upload.cameraModalTitle')"
       @click.self="closeCameraModal"
     >
       <div class="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
-        <div class="border-b border-slate-200 px-4 py-3">
-          <h3 class="text-sm font-semibold text-slate-900">{{ t('prescriptions.upload.cameraModalTitle') }}</h3>
-          <p class="mt-0.5 text-xs text-slate-500">
+        <div class="border-b border-ink-200 px-4 py-3">
+          <h3 class="text-sm font-semibold text-ink-900">{{ t('prescriptions.upload.cameraModalTitle') }}</h3>
+          <p class="mt-0.5 text-xs text-ink-500">
             {{
               uploadMode === 'frontBack'
                 ? frontBackStepLabel
@@ -565,17 +565,17 @@ async function processQueue(): Promise<void> {
           </p>
         </div>
         <video ref="cameraVideoRef" class="aspect-[4/3] w-full bg-black object-cover" playsinline muted />
-        <div class="flex justify-end gap-2 border-t border-slate-200 px-4 py-3">
+        <div class="flex justify-end gap-2 border-t border-ink-200 px-4 py-3">
           <button
             type="button"
-            class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
+            class="rounded-lg border border-ink-200 px-3 py-2 text-sm font-semibold text-ink-700"
             @click="closeCameraModal"
           >
             {{ t('common.cancel') }}
           </button>
           <button
             type="button"
-            class="rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white"
+            class="rounded-lg bg-trust-600 px-3 py-2 text-sm font-semibold text-white"
             @click="captureCameraFrame"
           >
             {{ t('prescriptions.upload.capture') }}

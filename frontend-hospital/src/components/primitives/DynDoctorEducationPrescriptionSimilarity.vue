@@ -286,20 +286,20 @@ function sectionBarWidth(percent: number): string {
 }
 
 function sectionBarTone(percent: number): string {
-  if (percent >= 70) return 'bg-emerald-500';
+  if (percent >= 70) return 'bg-trust-500';
   if (percent >= 45) return 'bg-amber-400';
-  return 'bg-slate-300';
+  return 'bg-ink-300';
 }
 </script>
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col gap-4 pb-4 sm:pb-5">
-    <p class="rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-3 text-sm leading-6 text-sky-900">
+    <p class="rounded-2xl border border-trust-100 bg-trust-50/80 px-4 py-3 text-sm leading-6 text-trust-900">
       {{ t('education.prescriptionSimilarity.banner') }}
     </p>
 
     <div class="space-y-2">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">
         {{ t('education.prescriptionSimilarity.quickFillTitle') }}
       </p>
       <div class="flex flex-wrap gap-2">
@@ -307,7 +307,7 @@ function sectionBarTone(percent: number): string {
           v-for="example in quickFills"
           :key="example.id"
           type="button"
-          class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+          class="inline-flex items-center justify-center rounded-full border border-ink-200 bg-white px-4 py-1.5 text-sm font-semibold text-ink-800 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="searching || summarizingFile"
           @click="applyQuickFill(example.text)"
         >
@@ -318,7 +318,7 @@ function sectionBarTone(percent: number): string {
 
     <div class="space-y-2">
       <div class="flex items-center justify-between gap-2 min-w-0">
-        <label for="doctor-education-prescription-similarity-draft" class="text-xs font-semibold uppercase tracking-wide text-slate-500 min-w-0">
+        <label for="doctor-education-prescription-similarity-draft" class="text-xs font-semibold uppercase tracking-wide text-ink-500 min-w-0">
           {{ t('education.prescriptionSimilarity.inputLabel') }}
         </label>
         <div class="flex shrink-0 items-center gap-1">
@@ -339,7 +339,7 @@ function sectionBarTone(percent: number): string {
           />
           <button
             type="button"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-ink-200 bg-white text-ink-600 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800 focus:outline-none focus:ring-4 focus:ring-trust-100 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="searching || summarizingFile"
             :aria-label="t('education.conversation.attachFileAria')"
             @click="openFilePicker"
@@ -350,7 +350,7 @@ function sectionBarTone(percent: number): string {
           </button>
           <button
             type="button"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-ink-200 bg-white text-ink-600 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 hover:text-trust-800 focus:outline-none focus:ring-4 focus:ring-trust-100 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="searching || summarizingFile"
             :aria-label="t('education.conversation.attachCameraAria')"
             @click="openCameraPicker"
@@ -363,11 +363,11 @@ function sectionBarTone(percent: number): string {
         </div>
       </div>
 
-      <p v-if="pendingFile" class="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-        <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
+      <p v-if="pendingFile" class="flex flex-wrap items-center gap-2 text-xs text-ink-600">
+        <span class="rounded-full border border-ink-200 bg-ink-50 px-2 py-1 font-medium">
           {{ t('education.prescriptionSimilarity.attachedFile', { name: pendingFile.name }) }}
         </span>
-        <button type="button" class="font-semibold text-sky-700 hover:underline" @click="clearPendingFile">
+        <button type="button" class="font-semibold text-trust-700 hover:underline" @click="clearPendingFile">
           {{ t('education.prescriptionSimilarity.removeFile') }}
         </button>
       </p>
@@ -376,7 +376,7 @@ function sectionBarTone(percent: number): string {
         id="doctor-education-prescription-similarity-draft"
         :value="draft"
         rows="8"
-        class="w-full min-h-[min(32vh,14rem)] max-h-[min(48vh,24rem)] resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:opacity-60"
+        class="w-full min-h-[min(32vh,14rem)] max-h-[min(48vh,24rem)] resize-y rounded-2xl border border-ink-200 bg-ink-50 px-4 py-3 text-sm leading-6 text-ink-900 shadow-sm outline-none transition focus:border-trust-300 focus:ring-4 focus:ring-trust-100 disabled:opacity-60"
         :disabled="searching || summarizingFile"
         :placeholder="t('education.prescriptionSimilarity.inputPlaceholder')"
         @input="onDraftInput"
@@ -384,13 +384,13 @@ function sectionBarTone(percent: number): string {
       />
 
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <p class="text-xs leading-5 text-slate-500">
-          <span v-if="summarizingFile" class="font-medium text-sky-700">{{ t('education.prescriptionSimilarity.creatingSummary') }}</span>
+        <p class="text-xs leading-5 text-ink-500">
+          <span v-if="summarizingFile" class="font-medium text-trust-700">{{ t('education.prescriptionSimilarity.creatingSummary') }}</span>
           <span v-else>{{ t('education.prescriptionSimilarity.submitHint') }}</span>
         </p>
         <button
           type="button"
-          class="inline-flex shrink-0 items-center justify-center self-end rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 lg:self-auto"
+          class="inline-flex shrink-0 items-center justify-center self-end rounded-xl bg-trust-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-trust-700 focus:outline-none focus:ring-4 focus:ring-trust-200 disabled:cursor-not-allowed disabled:bg-ink-300 disabled:text-ink-600 lg:self-auto"
           :disabled="!canSearch"
           @click="submitSearch"
         >
@@ -416,46 +416,46 @@ function sectionBarTone(percent: number): string {
       </div>
       <div class="space-y-3 rounded-xl border border-amber-100 bg-white/90 px-3 py-3">
         <div v-if="uploadSummary.details.diagnosis?.trim()" class="space-y-1">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
             {{ t('education.prescriptionSimilarity.fields.diagnosis') }}
           </p>
-          <p class="text-sm leading-6 text-slate-800">{{ uploadSummary.details.diagnosis }}</p>
+          <p class="text-sm leading-6 text-ink-800">{{ uploadSummary.details.diagnosis }}</p>
         </div>
         <div v-if="uploadSummary.details.medicines?.length" class="space-y-1">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
             {{ t('education.prescriptionSimilarity.fields.medicines') }}
           </p>
-          <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-800">
+          <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-ink-800">
             <li v-for="(medicine, medIndex) in uploadSummary.details.medicines" :key="`upload-med-${medIndex}`">
               {{ medicine }}
             </li>
           </ul>
         </div>
         <div v-if="uploadSummary.details.dosage?.length" class="space-y-1">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
             {{ t('education.prescriptionSimilarity.fields.dosage') }}
           </p>
-          <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-800">
+          <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-ink-800">
             <li v-for="(line, doseIndex) in uploadSummary.details.dosage" :key="`upload-dose-${doseIndex}`">
               {{ line }}
             </li>
           </ul>
         </div>
         <div v-if="uploadSummary.details.advice?.length" class="space-y-1">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
             {{ t('education.prescriptionSimilarity.fields.advice') }}
           </p>
-          <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-800">
+          <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-ink-800">
             <li v-for="(line, adviceIndex) in uploadSummary.details.advice" :key="`upload-advice-${adviceIndex}`">
               {{ line }}
             </li>
           </ul>
         </div>
         <div v-if="uploadSummary.details.notes?.trim()" class="space-y-1">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
             {{ t('education.prescriptionSimilarity.fields.notes') }}
           </p>
-          <p class="text-sm leading-6 text-slate-800 whitespace-pre-wrap">{{ uploadSummary.details.notes }}</p>
+          <p class="text-sm leading-6 text-ink-800 whitespace-pre-wrap">{{ uploadSummary.details.notes }}</p>
         </div>
       </div>
     </section>
@@ -466,31 +466,31 @@ function sectionBarTone(percent: number): string {
 
     <div
       v-if="showResultsSection"
-      class="min-h-0 flex-1 space-y-3 overflow-y-auto border-t border-slate-200 pt-4"
+      class="min-h-0 flex-1 space-y-3 overflow-y-auto border-t border-ink-200 pt-4"
     >
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">
         {{ t('education.prescriptionSimilarity.resultsTitle') }}
       </p>
-      <p v-if="searching && !results.length" class="text-sm text-sky-700">
+      <p v-if="searching && !results.length" class="text-sm text-trust-700">
         {{ streamStatusText }}
       </p>
-      <p v-else-if="searching && results.length" class="text-xs text-sky-600">
+      <p v-else-if="searching && results.length" class="text-xs text-trust-600">
         {{ streamStatusText }}
       </p>
-      <p v-else-if="emptyHint" class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+      <p v-else-if="emptyHint" class="rounded-2xl border border-ink-200 bg-ink-50 px-3 py-2 text-sm text-ink-600">
         {{ emptyHint }}
       </p>
       <article
         v-for="(hit, index) in results"
         :key="hit.externalId || String(index)"
-        class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        class="rounded-2xl border border-ink-200 bg-white p-4 shadow-sm"
       >
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0 flex-1 space-y-1">
-            <p class="text-sm font-semibold text-slate-900">
+            <p class="text-sm font-semibold text-ink-900">
               {{ hit.patientName || t('education.prescriptionSimilarity.unknownPatient') }}
             </p>
-            <p class="text-xs text-slate-500">
+            <p class="text-xs text-ink-500">
               <span v-if="hit.doctorName">{{ hit.doctorName }}</span>
               <span v-if="hit.doctorName && hit.department"> · </span>
               <span v-if="hit.department">{{ hit.department }}</span>
@@ -499,7 +499,7 @@ function sectionBarTone(percent: number): string {
             </p>
           </div>
           <span
-            class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-bold tabular-nums text-emerald-800"
+            class="shrink-0 rounded-full border border-trust-200 bg-trust-50 px-3 py-1 text-sm font-bold tabular-nums text-trust-800"
             :title="t('education.prescriptionSimilarity.matchLabel')"
           >
             {{ formatPercent(hit.matchPercent) }}
@@ -508,9 +508,9 @@ function sectionBarTone(percent: number): string {
 
         <div
           v-if="hit.sectionBreakdown?.length"
-          class="mt-3 space-y-2 rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-3"
+          class="mt-3 space-y-2 rounded-xl border border-trust-100 bg-trust-50/50 px-3 py-3"
         >
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-sky-800/80">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-trust-800/80">
             {{ t('education.prescriptionSimilarity.sectionBreakdownTitle') }}
           </p>
           <div
@@ -519,10 +519,10 @@ function sectionBarTone(percent: number): string {
             class="space-y-1"
           >
             <div class="flex items-center justify-between gap-2 text-xs">
-              <span class="font-medium text-slate-700">{{ sectionBreakdownLabel(score.section) }}</span>
-              <span class="tabular-nums font-semibold text-slate-800">{{ formatPercent(score.matchPercent) }}</span>
+              <span class="font-medium text-ink-700">{{ sectionBreakdownLabel(score.section) }}</span>
+              <span class="tabular-nums font-semibold text-ink-800">{{ formatPercent(score.matchPercent) }}</span>
             </div>
-            <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
+            <div class="h-1.5 w-full overflow-hidden rounded-full bg-ink-200/80">
               <div
                 class="h-full rounded-full transition-all"
                 :class="sectionBarTone(score.matchPercent)"
@@ -532,57 +532,57 @@ function sectionBarTone(percent: number): string {
           </div>
         </div>
 
-        <div v-if="hasDisplayDetails(hit)" class="mt-3 space-y-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-3">
+        <div v-if="hasDisplayDetails(hit)" class="mt-3 space-y-3 rounded-xl border border-ink-100 bg-ink-50/80 px-3 py-3">
           <div v-if="hit.details?.diagnosis?.trim()" class="space-y-1">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
               {{ t('education.prescriptionSimilarity.fields.diagnosis') }}
             </p>
-            <p class="text-sm leading-6 text-slate-800">{{ hit.details.diagnosis }}</p>
+            <p class="text-sm leading-6 text-ink-800">{{ hit.details.diagnosis }}</p>
           </div>
           <div v-if="hit.details?.medicines?.length" class="space-y-1">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
               {{ t('education.prescriptionSimilarity.fields.medicines') }}
             </p>
-            <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-800">
+            <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-ink-800">
               <li v-for="(medicine, medIndex) in hit.details.medicines" :key="`${hit.externalId}-med-${medIndex}`">
                 {{ medicine }}
               </li>
             </ul>
           </div>
           <div v-if="hit.details?.dosage?.length" class="space-y-1">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
               {{ t('education.prescriptionSimilarity.fields.dosage') }}
             </p>
-            <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-800">
+            <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-ink-800">
               <li v-for="(line, doseIndex) in hit.details.dosage" :key="`${hit.externalId}-dose-${doseIndex}`">
                 {{ line }}
               </li>
             </ul>
           </div>
           <div v-if="hit.details?.advice?.length" class="space-y-1">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
               {{ t('education.prescriptionSimilarity.fields.advice') }}
             </p>
-            <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-800">
+            <ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-ink-800">
               <li v-for="(line, adviceIndex) in hit.details.advice" :key="`${hit.externalId}-advice-${adviceIndex}`">
                 {{ line }}
               </li>
             </ul>
           </div>
           <div v-if="hit.details?.notes?.trim()" class="space-y-1">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
               {{ t('education.prescriptionSimilarity.fields.notes') }}
             </p>
-            <p class="text-sm leading-6 text-slate-800 whitespace-pre-wrap">{{ hit.details.notes }}</p>
+            <p class="text-sm leading-6 text-ink-800 whitespace-pre-wrap">{{ hit.details.notes }}</p>
           </div>
         </div>
-        <p v-else class="mt-3 text-sm text-slate-500 italic">
+        <p v-else class="mt-3 text-sm text-ink-500 italic">
           {{ t('education.prescriptionSimilarity.noSnippet') }}
         </p>
         <div class="mt-4 flex flex-wrap justify-end">
           <button
             type="button"
-            class="inline-flex items-center justify-center rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800 shadow-sm transition hover:border-sky-300 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+            class="inline-flex items-center justify-center rounded-xl border border-trust-200 bg-trust-50 px-4 py-2 text-sm font-semibold text-trust-800 shadow-sm transition hover:border-trust-300 hover:bg-trust-100 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="!hit.externalId || Boolean(viewingExternalId)"
             @click="viewPrescription(hit)"
           >

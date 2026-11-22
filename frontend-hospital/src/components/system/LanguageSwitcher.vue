@@ -47,7 +47,7 @@ async function onSelectChange(ev: Event) {
     <select
       data-testid="app-language-select"
       :value="selectValue"
-      class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+      class="rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-sm text-ink-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40"
       :aria-label="t('nav.languageHint')"
       @change="onSelectChange"
     >

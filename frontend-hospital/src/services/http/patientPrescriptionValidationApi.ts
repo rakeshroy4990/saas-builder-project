@@ -164,8 +164,8 @@ export function riskBadgeClass(level: PrescriptionRiskLevel): string {
     case 'moderate':
       return 'bg-amber-100 text-amber-900 ring-amber-300';
     case 'low':
-      return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+      return 'bg-trust-50 text-trust-800 ring-trust-200';
     default:
-      return 'bg-slate-100 text-slate-600 ring-slate-200';
+      return 'bg-ink-100 text-ink-600 ring-ink-200';
   }
 }

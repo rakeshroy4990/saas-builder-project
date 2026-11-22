@@ -80,17 +80,17 @@ const flaggedDosages = computed(() =>
 </script>
 
 <template>
-  <section v-if="loading" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+  <section v-if="loading" class="rounded-xl border border-ink-200 bg-ink-50 px-4 py-3 text-sm text-ink-600">
     {{ t('prescriptionSafety.loading') }}
   </section>
 
-  <section v-else-if="!validation" class="rounded-xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500">
+  <section v-else-if="!validation" class="rounded-xl border border-dashed border-ink-200 px-4 py-3 text-sm text-ink-500">
     {{ t('prescriptionSafety.noneYet') }}
   </section>
 
   <section
     v-else-if="showPatientNote"
-    class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900"
+    class="rounded-xl border border-trust-200 bg-trust-50 px-4 py-3 text-sm text-trust-900"
   >
     <p v-if="validation.overallRiskLevel === 'critical'" class="font-medium">
       {{ t('prescriptionSafety.patientCritical') }}
@@ -100,7 +100,7 @@ const flaggedDosages = computed(() =>
 
   <section
     v-else-if="isDoctorView && validation.overallRiskLevel !== 'none'"
-    class="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+    class="space-y-4 rounded-xl border border-ink-200 bg-white p-4 shadow-sm"
     :class="{ 'ring-2 ring-rose-300': validation.overallRiskLevel === 'critical' && !validation.reviewedByDoctor }"
   >
     <div class="flex flex-wrap items-center justify-between gap-2">
@@ -110,50 +110,50 @@ const flaggedDosages = computed(() =>
       >
         {{ t(`prescriptionSafety.risk.${validation.overallRiskLevel}`) }}
       </span>
-      <span v-if="validation.reviewedByDoctor" class="text-xs font-medium text-emerald-700">
+      <span v-if="validation.reviewedByDoctor" class="text-xs font-medium text-trust-700">
         {{ t('prescriptionSafety.reviewedBadge') }}
       </span>
     </div>
 
-    <p v-if="validation.llmSummary" class="text-sm text-slate-700">{{ validation.llmSummary }}</p>
+    <p v-if="validation.llmSummary" class="text-sm text-ink-700">{{ validation.llmSummary }}</p>
 
     <div v-if="validation.interactionFindings.length" class="space-y-2">
-      <h3 class="text-sm font-semibold text-slate-900">{{ t('prescriptionSafety.interactions') }}</h3>
+      <h3 class="text-sm font-semibold text-ink-900">{{ t('prescriptionSafety.interactions') }}</h3>
       <article
         v-for="(item, idx) in validation.interactionFindings"
         :key="`${item.drugA}-${item.drugB}-${idx}`"
-        class="rounded-lg border border-slate-200 p-3 text-sm"
+        class="rounded-lg border border-ink-200 p-3 text-sm"
       >
-        <p class="font-semibold text-slate-900">{{ item.drugA }} + {{ item.drugB }}</p>
-        <p class="mt-1 text-xs uppercase tracking-wide text-slate-500">{{ item.severity }}</p>
-        <p class="mt-1 text-slate-700">{{ item.clinicalEffect }}</p>
-        <p class="mt-1 text-slate-600">{{ item.management }}</p>
-        <p v-if="item.drugsFrom === 'across_prescriptions'" class="mt-1 text-xs text-violet-700">
+        <p class="font-semibold text-ink-900">{{ item.drugA }} + {{ item.drugB }}</p>
+        <p class="mt-1 text-xs uppercase tracking-wide text-ink-500">{{ item.severity }}</p>
+        <p class="mt-1 text-ink-700">{{ item.clinicalEffect }}</p>
+        <p class="mt-1 text-ink-600">{{ item.management }}</p>
+        <p v-if="item.drugsFrom === 'across_prescriptions'" class="mt-1 text-xs text-trust-700">
           {{ t('prescriptionSafety.acrossPrescriptions') }}
         </p>
       </article>
     </div>
 
     <div v-if="flaggedDosages.length" class="space-y-2">
-      <h3 class="text-sm font-semibold text-slate-900">{{ t('prescriptionSafety.dosage') }}</h3>
+      <h3 class="text-sm font-semibold text-ink-900">{{ t('prescriptionSafety.dosage') }}</h3>
       <article
         v-for="(item, idx) in flaggedDosages"
         :key="`${item.genericName}-${idx}`"
-        class="rounded-lg border border-slate-200 p-3 text-sm"
+        class="rounded-lg border border-ink-200 p-3 text-sm"
       >
-        <p class="font-semibold text-slate-900">{{ item.genericName }}</p>
-        <p class="mt-1 text-slate-700">{{ item.message }}</p>
+        <p class="font-semibold text-ink-900">{{ item.genericName }}</p>
+        <p class="mt-1 text-ink-700">{{ item.message }}</p>
       </article>
     </div>
 
-    <p v-if="validation.unrecognizedDrugs.length" class="text-sm text-slate-600">
+    <p v-if="validation.unrecognizedDrugs.length" class="text-sm text-ink-600">
       {{ t('prescriptionSafety.unrecognized', { drugs: validation.unrecognizedDrugs.join(', ') }) }}
     </p>
 
     <div class="flex flex-wrap gap-2">
       <button
         type="button"
-        class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+        class="rounded-lg border border-ink-200 px-3 py-2 text-sm font-semibold text-ink-800 hover:bg-ink-50 disabled:opacity-50"
         :disabled="actionLoading"
         @click="onRevalidate"
       >
@@ -162,7 +162,7 @@ const flaggedDosages = computed(() =>
       <button
         v-if="!validation.reviewedByDoctor"
         type="button"
-        class="rounded-lg bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800 disabled:opacity-50"
+        class="rounded-lg bg-trust-700 px-3 py-2 text-sm font-semibold text-white hover:bg-trust-800 disabled:opacity-50"
         :disabled="actionLoading"
         @click="onReview"
       >

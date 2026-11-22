@@ -9,14 +9,15 @@
   },
   "brand": {
     "colors": {
-      "primary": "#0F6B5E",
-      "secondary": "#1A9E8B",
+      "primary": "#B84A33",
+      "secondary": "#0F6B5E",
       "accent": "#F5A623",
-      "danger": "#E53E3E",
-      "background": "#F7FAFA",
+      "danger": "#C53030",
+      "background": "#FFF8F1",
       "surface": "#FFFFFF",
-      "textPrimary": "#1A202C",
-      "textSecondary": "#718096"
+      "border": "#EFE4DA",
+      "textPrimary": "#2B2320",
+      "textSecondary": "#6B5E57"
     },
     "fonts": {
       "heading": "'Sora', 'Noto Sans Devanagari', sans-serif",
@@ -32,7 +33,7 @@
       "2xl": "1.5rem",
       "3xl": "1.875rem"
     },
-    "borderRadius": "0.5rem",
+    "borderRadius": "1rem",
     "shadowStyle": "soft"
   },
   "flags": {

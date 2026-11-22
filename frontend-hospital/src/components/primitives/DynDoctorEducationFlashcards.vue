@@ -208,7 +208,7 @@ onMounted(async () => {
 <template>
   <section
     :id="htmlId"
-    class="max-w-full min-w-0 space-y-6 overflow-x-hidden rounded-3xl border border-emerald-100 bg-[radial-gradient(circle_at_top_left,_#f0fdf4,_#ffffff_45%,_#ecfeff_100%)] p-4 shadow-[0_20px_60px_-25px_rgba(16,185,129,0.35)] sm:p-6"
+    class="max-w-full min-w-0 space-y-6 overflow-x-hidden rounded-3xl border border-brand-100 bg-[radial-gradient(circle_at_top_left,_#fff1e8,_#ffffff_45%,_#fef6e4_100%)] p-4 shadow-[0_20px_60px_-25px_rgba(184,74,51,0.30)] sm:p-6"
   >
     <div v-if="detailMode" class="explainer-shell">
       <div class="explainer-back-row">
@@ -305,21 +305,21 @@ onMounted(async () => {
     </div>
 
     <template v-else>
-    <header class="flex items-start justify-between gap-3 min-w-0 border-b border-emerald-100/80 pb-4">
+    <header class="flex items-start justify-between gap-3 min-w-0 border-b border-brand-100/80 pb-4">
       <div class="min-w-0 flex-1 space-y-1">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">{{ t('education.doctorStudio') }}</p>
-        <h2 class="text-3xl font-semibold leading-tight text-slate-900">{{ t('education.flashcardsTitle') }}</h2>
-        <p class="text-sm text-slate-600">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">{{ t('education.doctorStudio') }}</p>
+        <h2 class="text-3xl font-semibold leading-tight text-ink-900">{{ t('education.flashcardsTitle') }}</h2>
+        <p class="text-sm text-ink-600">
           {{ t('education.flashcardsSubtitle') }}
         </p>
       </div>
       <div class="shrink-0 flex items-center gap-2">
-        <div class="rounded-full border border-emerald-200 bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-700 backdrop-blur">
+        <div class="rounded-full border border-brand-200 bg-white/90 px-3 py-1 text-xs font-semibold text-brand-700 backdrop-blur">
           {{ t('education.cardsCount', { count: flashcards.length }) }}
         </div>
         <button
           type="button"
-          class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200 bg-white text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+          class="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-brand-200 bg-white text-brand-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800 focus:outline-none focus:ring-4 focus:ring-brand-100"
           :aria-label="showFlashcardControls ? t('education.workspace.closeLayoutControls') : t('education.workspace.openLayoutControls')"
           :title="showFlashcardControls ? t('education.workspace.closeLayoutControls') : t('education.workspace.openLayoutControls')"
           @click="showFlashcardControls = !showFlashcardControls"
@@ -341,12 +341,12 @@ onMounted(async () => {
 
     <div
       v-if="showFlashcardControls"
-      class="rounded-2xl border border-emerald-100 bg-white/80 px-4 py-3 shadow-sm"
+      class="rounded-2xl border border-brand-100 bg-white/80 px-4 py-3 shadow-sm"
     >
-      <label class="flex w-full max-w-xs flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <label class="flex w-full max-w-xs flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-ink-500">
         <span>{{ t('education.workspace.modeLabel') }}</span>
         <select
-          class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+          class="w-full rounded-xl border border-brand-200 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-ink-900 shadow-sm outline-none transition focus:border-brand-300 focus:ring-4 focus:ring-brand-100"
           :value="uiMode"
           @change="onModeChange"
         >
@@ -358,14 +358,14 @@ onMounted(async () => {
 
     <div
       v-if="books.length > 0"
-      class="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-white/70 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+      class="flex flex-col gap-2 rounded-2xl border border-ink-100 bg-white/70 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
     >
-      <label for="doctor-education-book-filter" class="shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <label for="doctor-education-book-filter" class="shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-500">
         {{ t('education.filterBook') }}
       </label>
       <select
         id="doctor-education-book-filter"
-        class="w-full min-w-[12rem] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100 sm:ml-auto sm:max-w-md"
+        class="w-full min-w-[12rem] rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 shadow-sm outline-none transition focus:border-brand-300 focus:ring-4 focus:ring-brand-100 sm:ml-auto sm:max-w-md"
         :value="selectedBook"
         @change="onBookFilterChange"
       >
@@ -375,7 +375,7 @@ onMounted(async () => {
     </div>
 
     <div class="space-y-3">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ t('education.startTopic') }}</p>
+      <p class="text-xs font-semibold uppercase tracking-wide text-ink-500">{{ t('education.startTopic') }}</p>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="topic in topics"
@@ -384,8 +384,8 @@ onMounted(async () => {
           class="rounded-full border px-3 py-1.5 text-xs font-semibold transition duration-200"
           :class="
             selectedTopic === topic
-              ? 'border-emerald-300 bg-emerald-100 text-emerald-800 shadow-sm'
-              : 'border-slate-200 bg-white/80 text-slate-700 hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50'
+              ? 'border-brand-300 bg-brand-100 text-brand-800 shadow-sm'
+              : 'border-ink-200 bg-white/80 text-ink-700 hover:-translate-y-0.5 hover:border-brand-200 hover:bg-brand-50'
           "
           @click="chooseTopic(topic)"
         >
@@ -395,47 +395,47 @@ onMounted(async () => {
     </div>
 
     <div class="space-y-2">
-      <label for="doctor-education-draft" class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <label for="doctor-education-draft" class="text-xs font-semibold uppercase tracking-wide text-ink-500">
         {{ t('education.addFocus') }}
       </label>
       <textarea
         id="doctor-education-draft"
         :value="draftText"
         rows="4"
-        class="w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+        class="w-full rounded-2xl border border-ink-200 bg-white/90 px-3 py-2 text-sm text-ink-900 shadow-sm outline-none transition focus:border-brand-300 focus:ring-4 focus:ring-brand-100"
         :placeholder="t('education.focusPlaceholder')"
         @input="onDraftInput"
       />
       <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <button
           type="button"
-          class="inline-flex w-full items-center justify-center rounded-xl border border-emerald-300 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-300 disabled:text-slate-600 sm:w-auto sm:min-w-[11rem]"
+          class="inline-flex w-full items-center justify-center rounded-xl border border-brand-300 bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-4 focus:ring-brand-200 disabled:cursor-not-allowed disabled:border-ink-200 disabled:bg-ink-300 disabled:text-ink-600 sm:w-auto sm:min-w-[11rem]"
           :disabled="!canSubmitFlashcards || loading"
           @click="submitFlashcards"
         >
           {{ loading ? t('education.submitFlashcardsLoading') : t('education.submitFlashcards') }}
         </button>
       </div>
-      <p class="text-xs text-slate-500">
+      <p class="text-xs text-ink-500">
         {{ t('education.generationHint') }}
       </p>
     </div>
 
     <div
       v-if="focusSummary"
-      class="rounded-2xl border border-teal-100 bg-white/95 p-4 shadow-sm ring-1 ring-emerald-50"
+      class="rounded-2xl border border-trust-100 bg-white/95 p-4 shadow-sm ring-1 ring-brand-50"
     >
-      <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+      <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-700">
         {{ t('education.focusSummaryTitle') }}
       </p>
-      <div class="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{{ focusSummary }}</div>
+      <div class="whitespace-pre-wrap text-sm leading-relaxed text-ink-700">{{ focusSummary }}</div>
     </div>
 
     <div v-if="loading" aria-live="polite" class="grid grid-cols-1 gap-3 md:grid-cols-2">
-      <div v-for="i in 4" :key="i" class="animate-pulse rounded-2xl border border-slate-200 bg-white p-4">
-        <div class="mb-2 h-3 w-24 rounded bg-slate-200" />
-        <div class="mb-2 h-4 w-5/6 rounded bg-slate-200" />
-        <div class="h-4 w-3/5 rounded bg-slate-100" />
+      <div v-for="i in 4" :key="i" class="animate-pulse rounded-2xl border border-ink-200 bg-white p-4">
+        <div class="mb-2 h-3 w-24 rounded bg-ink-200" />
+        <div class="mb-2 h-4 w-5/6 rounded bg-ink-200" />
+        <div class="h-4 w-3/5 rounded bg-ink-100" />
       </div>
     </div>
 
@@ -448,17 +448,17 @@ onMounted(async () => {
         v-for="card in flashcards"
         :key="card.id"
         class="rounded-2xl border bg-white/95 p-4 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-        :class="selectedCardId === card.id ? 'border-emerald-300 ring-2 ring-emerald-100' : 'border-slate-200 hover:border-emerald-200'"
+        :class="selectedCardId === card.id ? 'border-brand-300 ring-2 ring-brand-100' : 'border-ink-200 hover:border-brand-200'"
       >
         <button
           type="button"
-          class="w-full rounded-lg text-left focus:outline-none focus:ring-4 focus:ring-emerald-100"
+          class="w-full rounded-lg text-left focus:outline-none focus:ring-4 focus:ring-brand-100"
           @click="toggleFlip(card.id)"
         >
-          <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+          <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-700">
             {{ flipped.has(card.id) ? t('education.backLabel') : t('education.front') }}
           </p>
-          <p class="text-sm leading-6 text-slate-800">
+          <p class="text-sm leading-6 text-ink-800">
             {{ flipped.has(card.id) ? card.back : card.front }}
           </p>
         </button>
@@ -466,7 +466,7 @@ onMounted(async () => {
         <div class="mt-3 flex items-center gap-2">
           <button
             type="button"
-            class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+            class="rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-100 focus:outline-none focus:ring-4 focus:ring-brand-100"
             :disabled="detailLoadingCardId === card.id"
             @click="searchCardDetail(card)"
           >
@@ -476,18 +476,18 @@ onMounted(async () => {
 
         <div
           v-if="detailByCardId[card.id]"
-          class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+          class="mt-3 rounded-lg border border-ink-200 bg-ink-50 px-3 py-2"
           aria-live="polite"
         >
-          <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">{{ t('education.detailedNotes') }}</p>
-          <p class="whitespace-pre-wrap text-sm leading-6 text-slate-700">
+          <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-600">{{ t('education.detailedNotes') }}</p>
+          <p class="whitespace-pre-wrap text-sm leading-6 text-ink-700">
             {{ detailByCardId[card.id] }}
           </p>
         </div>
       </article>
     </div>
 
-    <p v-if="!loading && !error && flashcards.length === 0" class="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-500">
+    <p v-if="!loading && !error && flashcards.length === 0" class="rounded-lg border border-dashed border-ink-300 bg-white px-3 py-2 text-sm text-ink-500">
       {{ t('education.emptyState') }}
     </p>
     </template>
@@ -497,8 +497,8 @@ onMounted(async () => {
 <style scoped>
 .explainer-shell {
   background: #ffffff;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
+  color: #2b2320;
+  border: 1px solid #efe4da;
   border-radius: 18px;
   padding: 14px;
   max-width: 100%;
@@ -515,16 +515,16 @@ onMounted(async () => {
   margin-bottom: 14px;
 }
 .explainer-back-btn {
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
-  color: #334155;
+  border: 1px solid #dccbbe;
+  background: #fcf8f4;
+  color: #50453f;
   border-radius: 10px;
   font-size: 12px;
   padding: 6px 10px;
 }
 .explainer-back-btn:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
+  background: #f6efe8;
+  border-color: #b3a194;
 }
 .explainer-header {
   margin-bottom: 18px;
@@ -541,19 +541,19 @@ onMounted(async () => {
   border-radius: 10px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
-  border: 1px solid #d1fae5;
+  background: linear-gradient(135deg, #fde3d3, #fbc9a8);
+  border: 1px solid #fbe3d6;
 }
 .explainer-title {
   font-size: clamp(16px, 4.5vw, 20px);
   font-weight: 800;
   line-height: 1.25;
   word-break: break-word;
-  color: #0f172a;
+  color: #2b2320;
 }
 .explainer-subtitle {
   font-size: 11px;
-  color: #64748b;
+  color: #807065;
   line-height: 1.45;
 }
 .explainer-level-bar {
@@ -570,16 +570,16 @@ onMounted(async () => {
 }
 .explainer-level-btn {
   text-align: left;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #efe4da;
   border-radius: 10px;
   background: #fafafa;
-  color: #0f172a;
+  color: #2b2320;
   padding: 12px 10px;
   min-width: 0;
   width: 100%;
 }
 .explainer-level-btn:hover {
-  border-color: #cbd5e1;
+  border-color: #dccbbe;
   background: #ffffff;
 }
 .explainer-level-btn.active-mbbs {
@@ -604,21 +604,21 @@ onMounted(async () => {
   font-weight: 800;
   letter-spacing: 1px;
   margin-bottom: 3px;
-  color: #0f172a;
+  color: #2b2320;
 }
 .level-desc {
   display: block;
   font-size: 11px;
   line-height: 1.45;
-  color: #475569;
+  color: #6b5e57;
   overflow-wrap: anywhere;
   word-break: normal;
   hyphens: auto;
 }
 .explainer-input-card,
 .explainer-output-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #fcf8f4;
+  border: 1px solid #efe4da;
   border-radius: 14px;
   padding: 14px;
 }
@@ -648,7 +648,7 @@ onMounted(async () => {
   display: block;
   margin-bottom: 6px;
   font-size: 10px;
-  color: #64748b;
+  color: #807065;
   text-transform: uppercase;
   letter-spacing: 1.4px;
 }
@@ -656,9 +656,9 @@ onMounted(async () => {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #dccbbe;
   background: #ffffff;
-  color: #0f172a;
+  color: #2b2320;
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 12px;
@@ -668,9 +668,9 @@ onMounted(async () => {
   max-width: 100%;
   box-sizing: border-box;
   min-height: 88px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #dccbbe;
   background: #ffffff;
-  color: #1e293b;
+  color: #3a312c;
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 12px;
@@ -684,7 +684,7 @@ onMounted(async () => {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #efe4da;
   padding-bottom: 10px;
   margin-bottom: 10px;
 }
@@ -699,9 +699,9 @@ onMounted(async () => {
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 800;
-  border: 1px solid #99f6e4;
-  color: #0f766e;
-  background: #ccfbf1;
+  border: 1px solid var(--color-trust-200, #b9d6d0);
+  color: var(--color-trust-700, #0d5a50);
+  background: var(--color-trust-50, #eef6f4);
   border-radius: 6px;
   padding: 4px 10px;
 }
@@ -712,16 +712,16 @@ onMounted(async () => {
   width: 100%;
   overflow-wrap: anywhere;
   word-break: break-word;
-  color: #0f172a;
+  color: #2b2320;
 }
 .explainer-output-body {
   white-space: pre-wrap;
   line-height: 1.8;
-  color: #334155;
+  color: #50453f;
   font-size: 13px;
 }
 .explainer-output-placeholder {
-  color: #94a3b8;
+  color: #b3a194;
   font-style: italic;
 }
 .explainer-output-sections {
@@ -735,22 +735,22 @@ onMounted(async () => {
   border-left: 3px solid #99f6e4;
   border-radius: 0 10px 10px 0;
   background: #ffffff;
-  border-top: 1px solid #f1f5f9;
-  border-right: 1px solid #f1f5f9;
-  border-bottom: 1px solid #f1f5f9;
+  border-top: 1px solid #f6efe8;
+  border-right: 1px solid #f6efe8;
+  border-bottom: 1px solid #f6efe8;
 }
 .explainer-detail-title {
   margin: 0 0 8px;
   font-size: 13px;
   font-weight: 700;
-  color: #0f766e;
+  color: var(--color-trust-700, #0d5a50);
   letter-spacing: 0.02em;
 }
 .explainer-detail-text {
   margin: 0;
   white-space: pre-wrap;
   line-height: 1.75;
-  color: #334155;
+  color: #50453f;
   font-size: 13px;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -759,15 +759,15 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #64748b;
+  color: #807065;
   font-size: 12px;
 }
 .spinner {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 2px solid #e2e8f0;
-  border-top-color: #059669;
+  border: 2px solid #efe4da;
+  border-top-color: var(--brand-primary, #b84a33);
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin {

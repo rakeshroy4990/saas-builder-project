@@ -28,6 +28,7 @@ export default function HomeTab() {
   const role = String(useSessionStore((s) => s.user?.role ?? '')).toUpperCase();
   const isLoggedIn = Boolean(accessToken);
   const isDoctor = isLoggedIn && isDoctorRole(role);
+  const isLoggedInPatient = isLoggedIn && role === 'PATIENT';
   const [videoId, setVideoId] = useState<string | null>(null);
   const [doctors, setDoctors] = useState<DoctorListEntry[]>([]);
 
@@ -153,7 +154,7 @@ export default function HomeTab() {
       ];
     }
 
-    return [
+    const actions: HomeQuickAction[] = [
       {
         id: 'schedule',
         label: t('home.launcher.quickActions.schedule'),
@@ -169,17 +170,20 @@ export default function HomeTab() {
         tint: '#1d4ed8',
         background: '#eff6ff',
         onPress: () => requireAuth(() => openMainTab('appointments'))
-      },
-      {
+      }
+    ];
+    if (!isLoggedInPatient) {
+      actions.push({
         id: 'growth',
         label: t('growth.trackerLabel', 'Growth Tracker'),
         icon: 'analytics-outline',
         tint: '#7c3aed',
         background: '#f5f3ff',
         onPress: () => requireAuth(() => router.push('/(app)/growth' as never))
-      }
-    ];
-  }, [isDoctor, router, t]);
+      });
+    }
+    return actions;
+  }, [isDoctor, isLoggedInPatient, router, t]);
 
   return (
     <ScrollView

@@ -396,10 +396,10 @@ const chartGeometry = computed(() => {
 });
 
 function percentileBadgeClass(percentile: number | null): string {
-  if (percentile == null) return 'bg-slate-100 text-slate-700';
+  if (percentile == null) return 'bg-ink-100 text-ink-700';
   if (percentile < 3 || percentile > 97) return 'bg-red-100 text-red-800';
   if (percentile < 15 || percentile > 85) return 'bg-amber-100 text-amber-800';
-  return 'bg-emerald-100 text-emerald-800';
+  return 'bg-trust-100 text-trust-800';
 }
 
 function formatPercentileDisplay(percentile: number | null): string {
@@ -590,7 +590,7 @@ watch(
           <option value="female">{{ t('growth.sex.female') }}</option>
         </select>
         <label class="flex flex-col gap-1">
-          <span class="text-xs font-medium text-slate-600">{{ t('growth.motherHeightCm') }}</span>
+          <span class="text-xs font-medium text-ink-600">{{ t('growth.motherHeightCm') }}</span>
           <input
             :class="ws('input')"
             type="text"
@@ -602,7 +602,7 @@ watch(
           />
         </label>
         <label class="flex flex-col gap-1">
-          <span class="text-xs font-medium text-slate-600">{{ t('growth.fatherHeightCm') }}</span>
+          <span class="text-xs font-medium text-ink-600">{{ t('growth.fatherHeightCm') }}</span>
           <input
             :class="ws('input')"
             type="text"
@@ -614,7 +614,7 @@ watch(
           />
         </label>
       </div>
-      <p class="text-xs leading-relaxed text-slate-600">{{ t('growth.parentHeightHint') }}</p>
+      <p class="text-xs leading-relaxed text-ink-600">{{ t('growth.parentHeightHint') }}</p>
       <div :class="ws('formActions')">
         <button type="button" :class="inlinePrimaryButtonClass" @click="run('save-new-child-profile')">
           {{ t(session.editingChildId ? 'growth.updateChild' : 'growth.saveChild') }}
@@ -634,7 +634,7 @@ watch(
           @click="metricGuideOpen = !metricGuideOpen"
         >
           <span>{{ t('growth.metricGuide.title') }}</span>
-          <span class="shrink-0 text-xs text-slate-500" aria-hidden="true">{{ metricGuideOpen ? '▲' : '▼' }}</span>
+          <span class="shrink-0 text-xs text-ink-500" aria-hidden="true">{{ metricGuideOpen ? '▲' : '▼' }}</span>
         </button>
         <div v-show="metricGuideOpen" :class="ws('collapsibleBody')">
           <ul :class="ws('collapsibleList')">
@@ -643,8 +643,8 @@ watch(
               :key="metric.id"
               :class="[ws('collapsibleListItem'), session.metric === metric.id ? ws('collapsibleListItemActive') : '']"
             >
-              <span class="shrink-0 font-medium text-slate-800">{{ t(metric.labelKey) }}</span>
-              <span class="hidden text-slate-400 sm:inline">—</span>
+              <span class="shrink-0 font-medium text-ink-800">{{ t(metric.labelKey) }}</span>
+              <span class="hidden text-ink-400 sm:inline">—</span>
               <span>{{ t(metric.guideKey) }}</span>
             </li>
           </ul>
@@ -665,9 +665,9 @@ watch(
 
       <div v-if="session.loading" :class="ws('loadingText')">{{ t('growth.loading') }}</div>
 
-      <div v-else-if="session.selectedChildId && midParentalHeight?.complete" :class="[ws('callout'), 'mb-3', 'border-2', 'border-teal-500', 'bg-teal-50']">
-        <p :class="[ws('calloutTitle'), 'text-teal-900']">{{ t('growth.midParentalHeight.title') }}</p>
-        <p class="mt-2 text-base font-semibold text-teal-950">
+      <div v-else-if="session.selectedChildId && midParentalHeight?.complete" :class="[ws('callout'), 'mb-3', 'border-2', 'border-trust-500', 'bg-trust-50']">
+        <p :class="[ws('calloutTitle'), 'text-trust-900']">{{ t('growth.midParentalHeight.title') }}</p>
+        <p class="mt-2 text-base font-semibold text-trust-950">
           {{ t('growth.midParentalHeight.targetAdult', {
             height: midParentalHeight.targetAdultHeightCm,
             low: midParentalHeight.targetRangeLowCm,
@@ -676,7 +676,7 @@ watch(
         </p>
         <p
           v-if="midParentalHeight.expectedHeightAtAgeCm != null"
-          class="mt-2 rounded-lg bg-white/80 px-3 py-2 text-sm font-medium text-teal-900 ring-1 ring-teal-200"
+          class="mt-2 rounded-lg bg-white/80 px-3 py-2 text-sm font-medium text-trust-900 ring-1 ring-trust-200"
         >
           {{ t('growth.midParentalHeight.expectedAtAge', {
             height: midParentalHeight.expectedHeightAtAgeCm,
@@ -685,26 +685,26 @@ watch(
         </p>
         <p
           v-if="geneticHeightComparison === 'above'"
-          class="mt-2 text-sm font-medium text-teal-800"
+          class="mt-2 text-sm font-medium text-trust-800"
         >
           {{ t('growth.midParentalHeight.latestAboveGenetic') }}
         </p>
         <p
           v-else-if="geneticHeightComparison === 'below'"
-          class="mt-2 text-sm font-medium text-teal-800"
+          class="mt-2 text-sm font-medium text-trust-800"
         >
           {{ t('growth.midParentalHeight.latestBelowGenetic') }}
         </p>
         <p
           v-else-if="geneticHeightComparison === 'on_track'"
-          class="mt-2 text-sm font-medium text-teal-800"
+          class="mt-2 text-sm font-medium text-trust-800"
         >
           {{ t('growth.midParentalHeight.latestOnGenetic') }}
         </p>
-        <p class="mt-2 text-xs leading-relaxed text-teal-800/90">{{ t('growth.midParentalHeight.note') }}</p>
+        <p class="mt-2 text-xs leading-relaxed text-trust-800/90">{{ t('growth.midParentalHeight.note') }}</p>
         <p
           v-if="session.metric !== 'lhfa'"
-          class="mt-2 text-xs font-semibold text-teal-900"
+          class="mt-2 text-xs font-semibold text-trust-900"
         >
           {{ t('growth.midParentalHeight.viewHeightChart') }}
         </p>
@@ -712,7 +712,7 @@ watch(
 
       <div v-else-if="session.selectedChildId" :class="[ws('callout'), 'mb-3']">
         <p :class="ws('calloutTitle')">{{ t('growth.midParentalHeight.title') }}</p>
-        <p class="mt-2 text-sm text-slate-600">{{ t('growth.midParentalHeight.incomplete') }}</p>
+        <p class="mt-2 text-sm text-ink-600">{{ t('growth.midParentalHeight.incomplete') }}</p>
       </div>
 
       <div v-if="!session.loading" :class="ws('chartCard')">
@@ -726,7 +726,7 @@ watch(
               :y1="tick.y"
               :x2="chartGeometry.width - chartGeometry.pad.right"
               :y2="tick.y"
-              stroke="#f1f5f9"
+              stroke="#f6efe8"
             />
           </g>
           <g v-for="tick in chartGeometry.xTicks" :key="`x-grid-${tick.value}`">
@@ -735,7 +735,7 @@ watch(
               :y1="chartGeometry.plotTop"
               :x2="tick.x"
               :y2="chartGeometry.plotBottom"
-              stroke="#f1f5f9"
+              stroke="#f6efe8"
             />
           </g>
           <line
@@ -743,14 +743,14 @@ watch(
             :y1="chartGeometry.plotBottom"
             :x2="chartGeometry.width - chartGeometry.pad.right"
             :y2="chartGeometry.plotBottom"
-            stroke="#cbd5e1"
+            stroke="#dccbbe"
           />
           <line
             :x1="chartGeometry.pad.left"
             :y1="chartGeometry.plotTop"
             :x2="chartGeometry.pad.left"
             :y2="chartGeometry.plotBottom"
-            stroke="#cbd5e1"
+            stroke="#dccbbe"
           />
           <g v-for="tick in chartGeometry.yTicks" :key="`y-tick-${tick.value}`">
             <text
@@ -758,7 +758,7 @@ watch(
               :y="tick.y + 4"
               text-anchor="end"
               font-size="10"
-              fill="#64748b"
+              fill="#807065"
             >
               {{ tick.label }}
             </text>
@@ -769,7 +769,7 @@ watch(
               :y="chartGeometry.plotBottom + 16"
               text-anchor="middle"
               font-size="10"
-              fill="#64748b"
+              fill="#807065"
             >
               {{ tick.label }}
             </text>
@@ -780,7 +780,7 @@ watch(
             text-anchor="middle"
             font-size="11"
             font-weight="600"
-            fill="#475569"
+            fill="#6b5e57"
           >
             {{ t('growth.chart.ageMonths') }}
           </text>
@@ -790,19 +790,19 @@ watch(
             text-anchor="middle"
             font-size="11"
             font-weight="600"
-            fill="#475569"
+            fill="#6b5e57"
             :transform="`rotate(-90, 14, ${(chartGeometry.plotTop + chartGeometry.plotBottom) / 2})`"
           >
             {{ t(yAxisTitleKey) }}
           </text>
           <path v-if="chartGeometry.curvePath('P3')" :d="chartGeometry.curvePath('P3')" fill="none" stroke="#fca5a5" stroke-width="1" stroke-dasharray="4 3" />
-          <path v-if="chartGeometry.curvePath('P50')" :d="chartGeometry.curvePath('P50')" fill="none" stroke="#94a3b8" stroke-width="1.5" />
+          <path v-if="chartGeometry.curvePath('P50')" :d="chartGeometry.curvePath('P50')" fill="none" class="stroke-ink-400" stroke-width="1.5" />
           <path v-if="chartGeometry.curvePath('P97')" :d="chartGeometry.curvePath('P97')" fill="none" stroke="#fdba74" stroke-width="1" stroke-dasharray="4 3" />
           <path
             v-if="session.metric === 'lhfa' && chartGeometry.geneticPath"
             :d="chartGeometry.geneticPath"
             fill="none"
-            stroke="#0d9488"
+            class="stroke-trust-600"
             stroke-width="2"
             stroke-dasharray="6 4"
           />
@@ -812,7 +812,7 @@ watch(
               :cy="chartGeometry.geneticTargetMarker.y"
               r="9"
               fill="none"
-              stroke="#0d9488"
+              class="stroke-trust-600"
               stroke-width="2"
               opacity="0.35"
             />
@@ -820,28 +820,28 @@ watch(
               :cx="chartGeometry.geneticTargetMarker.x"
               :cy="chartGeometry.geneticTargetMarker.y"
               r="5"
-              fill="#0d9488"
+              class="fill-trust-600"
               stroke="#ffffff"
               stroke-width="2"
             />
           </g>
-          <path v-if="chartGeometry.childLine" :d="chartGeometry.childLine" fill="none" stroke="#2563eb" stroke-width="2.5" />
+          <path v-if="chartGeometry.childLine" :d="chartGeometry.childLine" fill="none" class="stroke-brand-600" stroke-width="2.5" />
           <circle
             v-for="(pt, idx) in chartGeometry.scaledPoints"
             :key="idx"
             :cx="pt.x"
             :cy="pt.y"
             r="4"
-            fill="#2563eb"
+            class="fill-brand-600"
           />
         </svg>
         <div :class="ws('chartLegend')">
           <span class="inline-flex items-center gap-1.5">
-            <span class="inline-block h-0.5 w-4 rounded bg-blue-600" />
+            <span class="inline-block h-0.5 w-4 rounded bg-brand-600" />
             {{ t('growth.chart.legendChild') }}
           </span>
           <span class="inline-flex items-center gap-1.5">
-            <span class="inline-block h-0.5 w-4 rounded bg-slate-400" />
+            <span class="inline-block h-0.5 w-4 rounded bg-ink-400" />
             {{ t('growth.chart.legendP50') }}
           </span>
           <span class="inline-flex items-center gap-1.5">
@@ -856,7 +856,7 @@ watch(
             v-if="session.metric === 'lhfa' && midParentalHeight?.complete"
             class="inline-flex items-center gap-1.5"
           >
-            <span class="inline-block h-0.5 w-4 rounded border-b border-dashed border-teal-600" />
+            <span class="inline-block h-0.5 w-4 rounded border-b border-dashed border-trust-600" />
             {{ t('growth.chart.legendGeneticTarget') }}
           </span>
         </div>
@@ -867,7 +867,7 @@ watch(
           <p :class="ws('calloutTitle')">{{ t('growth.chart.bmiContextTitle') }}</p>
           <p
             v-if="latestGrowthCharacteristics?.phrase"
-            class="mt-1 text-sm font-medium text-slate-800"
+            class="mt-1 text-sm font-medium text-ink-800"
           >
             {{ t('growth.profilePhrase', { phrase: latestGrowthCharacteristics.phrase }) }}
           </p>
@@ -878,7 +878,7 @@ watch(
             <span
               v-for="label in latestGrowthCharacteristics.labels"
               :key="label"
-              class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"
+              class="rounded-full bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-700"
             >
               {{ label }}
             </span>
@@ -908,19 +908,19 @@ watch(
           </div>
           <p
             v-if="latestChartRecord && formatBmiKgM2(latestChartRecord)"
-            class="mt-2 text-xs leading-relaxed text-slate-600"
+            class="mt-2 text-xs leading-relaxed text-ink-600"
           >
             {{ t('growth.chart.bmiValueLine', { bmi: formatBmiKgM2(latestChartRecord) }) }}
           </p>
           <p
             v-if="latestChartRecord && isTallLeanGrowthPattern(latestChartRecord)"
-            class="mt-2 text-xs leading-relaxed text-slate-600"
+            class="mt-2 text-xs leading-relaxed text-ink-600"
           >
             {{ t('growth.bmiTallLeanHint', { weightPct: Math.round(latestChartRecord.weightPercentile ?? 0) }) }}
           </p>
           <p
             v-else-if="latestChartRecord?.bmiPercentile != null && latestChartRecord.bmiPercentile < 15"
-            class="mt-2 text-xs leading-relaxed text-slate-600"
+            class="mt-2 text-xs leading-relaxed text-ink-600"
           >
             {{ t('growth.chart.bmiContextHint', { weightPct: Math.round(latestChartRecord.weightPercentile ?? 0) }) }}
           </p>
@@ -929,7 +929,7 @@ watch(
           <p :class="ws('calloutTitle')">{{ t('growth.chart.referenceLinesTitle') }}</p>
           <ul class="space-y-1.5">
             <li class="flex gap-2">
-              <span class="mt-1.5 inline-block h-0.5 w-4 shrink-0 rounded bg-slate-400" aria-hidden="true" />
+              <span class="mt-1.5 inline-block h-0.5 w-4 shrink-0 rounded bg-ink-400" aria-hidden="true" />
               <span>
                 <span :class="ws('calloutStrong')">{{ t('growth.chart.legendP50') }}:</span>
                 {{ t('growth.chart.p50Importance') }}
@@ -961,7 +961,7 @@ watch(
           @click="manualEntryOpen = !manualEntryOpen"
         >
           <span>{{ session.editingRecordId ? t('growth.editReading') : t('growth.manualEntry') }}</span>
-          <span class="shrink-0 text-xs text-slate-500" aria-hidden="true">{{ manualEntryOpen ? '▲' : '▼' }}</span>
+          <span class="shrink-0 text-xs text-ink-500" aria-hidden="true">{{ manualEntryOpen ? '▲' : '▼' }}</span>
         </button>
         <div v-show="manualEntryOpen" :class="[ws('collapsibleBody'), ws('panelStack')]">
         <div>
@@ -1073,7 +1073,7 @@ watch(
               </div>
               <p
                 v-if="resolveRecordCharacteristics(record).phrase"
-                :class="[ws('historySummary'), 'font-medium text-slate-800 !mt-2']"
+                :class="[ws('historySummary'), 'font-medium text-ink-800 !mt-2']"
               >
                 {{ t('growth.profilePhrase', { phrase: resolveRecordCharacteristics(record).phrase }) }}
               </p>
@@ -1085,7 +1085,7 @@ watch(
               </p>
               <p
                 v-else-if="summaryInflightIds[record.externalId]"
-                :class="[ws('historySummary'), 'text-slate-500 italic']"
+                :class="[ws('historySummary'), 'text-ink-500 italic']"
               >
                 {{ t('growth.historySummaryLoading') }}
               </p>

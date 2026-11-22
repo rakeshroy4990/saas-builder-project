@@ -3,9 +3,9 @@ import { hospitalPublicChromeTop, hospitalSiteFooter } from './hospitalPublicChr
 
 const prescriptionNavButtonStyles = {
   active:
-    'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm',
+    'w-full rounded-full bg-brand-600 px-4 py-2.5 text-left text-sm font-semibold text-white shadow-sm shadow-brand-900/10',
   inactive:
-    'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
+    'w-full rounded-full px-4 py-2.5 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-brand-50 hover:text-brand-800'
 };
 
 function prescriptionNavButton(
@@ -69,7 +69,7 @@ export const hospitalPrescriptionsPage: PageConfig = {
               config: {
                 styles: {
                   utilityClasses:
-                    'col-span-12 lg:col-span-2 rounded-xl border border-slate-200 bg-white p-3 space-y-2'
+                    'col-span-12 lg:col-span-2 rounded-2xl border border-line bg-surface p-2.5 space-y-1 shadow-tile'
                 },
                 children: [
                   prescriptionNavButton(
@@ -106,7 +106,7 @@ export const hospitalPrescriptionsPage: PageConfig = {
               type: 'container',
               config: {
                 styles: {
-                  utilityClasses: 'col-span-12 lg:col-span-10 rounded-xl border border-slate-200 bg-white p-4'
+                  utilityClasses: 'col-span-12 lg:col-span-10 rounded-2xl border border-line bg-surface p-4 sm:p-6 shadow-tile'
                 },
                 children: [
                   {

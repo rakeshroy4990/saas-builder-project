@@ -398,7 +398,7 @@ export const hospitalBookAppointmentPopupPage: PageConfig = {
         id: 'hospital-book-appt-popup-divider',
         type: 'container',
         config: {
-          styles: { utilityClasses: 'h-px w-full bg-slate-200' },
+          styles: { utilityClasses: 'h-px w-full bg-ink-200' },
           children: []
         }
       },

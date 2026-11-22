@@ -76,7 +76,9 @@ export default function LoginScreen() {
       router.replace('/(app)/(tabs)/home' as never);
     } catch (err) {
       setLoading(false);
-      setError(formatBackendAuthFailure(err, getLoginErrorMessage(err)));
+      setError(
+        formatBackendAuthFailure(err, getLoginErrorMessage(err, t('auth.invalidCredentials')))
+      );
     }
   }
 

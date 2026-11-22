@@ -266,7 +266,8 @@ function truncateMessagesForResend(
 
 /** Use inner `Data` when the caller passed the full hospital envelope by mistake. */
 function resolveChatPayloadRow(data: Record<string, unknown>): Record<string, unknown> {
-  const hasDirectText = ['reply', 'message', 'answer', 'Answer'].some((key) => {
+  // Wire keys are PascalCase (Jackson UPPER_CAMEL_CASE); keep camelCase for legacy.
+  const hasDirectText = ['Reply', 'reply', 'Message', 'message', 'Answer', 'answer'].some((key) => {
     const v = data[key];
     return v !== undefined && v !== null && String(v).trim() !== '';
   });
@@ -276,6 +277,14 @@ function resolveChatPayloadRow(data: Record<string, unknown>): Record<string, un
     return nested as Record<string, unknown>;
   }
   return data;
+}
+
+/** Strip streamed follow-up trailer (`@@FOLLOWUPS_JSON@@` + JSON array) if complete.Reply was empty. */
+function stripStreamedFollowupsTrailer(text: string): string {
+  const marker = '@@FOLLOWUPS_JSON@@';
+  const idx = text.indexOf(marker);
+  if (idx < 0) return text.trim();
+  return text.slice(0, idx).trim();
 }
 
 function extractConversationResponse(data: unknown): {
@@ -300,7 +309,9 @@ function extractConversationResponse(data: unknown): {
       .filter((item): item is ConversationFigure => item !== null)
     : [];
   const chunksUsed = Number(row.chunksUsed ?? row.ChunksUsed ?? 0) || undefined;
-  let answer = String(row.reply ?? row.message ?? row.answer ?? row.Answer ?? '').trim();
+  let answer = String(
+    row.Reply ?? row.reply ?? row.Message ?? row.message ?? row.Answer ?? row.answer ?? ''
+  ).trim();
   const unwrapNested = (text: string): { text: string; extras: string[] } => {
     const embedded = tryParseEmbeddedAssistantJson(text);
     if (!embedded) return { text, extras: [] };
@@ -321,12 +332,16 @@ function extractConversationResponse(data: unknown): {
     }
   }
   if (!answer) {
-    const topAnswer = String(root.answer ?? root.Answer ?? '').trim();
+    const topAnswer = String(
+      root.Reply ?? root.reply ?? root.Answer ?? root.answer ?? root.Message ?? root.message ?? ''
+    ).trim();
     if (topAnswer) answer = topAnswer;
   }
   if (!answer && data && typeof data === 'object' && !Array.isArray(data)) {
     const d = data as Record<string, unknown>;
-    const topAnswer = String(d.answer ?? d.Answer ?? '').trim();
+    const topAnswer = String(
+      d.Reply ?? d.reply ?? d.Answer ?? d.answer ?? d.Message ?? d.message ?? ''
+    ).trim();
     if (topAnswer) answer = topAnswer;
   }
   if (followUpQuestions.length === 0) {
@@ -788,13 +803,17 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
               streamSettled = true;
               cancelPendingBubblePatch();
               const parsed = extractConversationResponse(data);
-              const rawAnswer = parsed.answer || educationComposer().t('education.conversation.emptyAnswer');
-              const displayBody = assistantDisplayBody(rawAnswer);
-              const finalContent = displayBody.trim() || educationComposer().t('education.conversation.emptyAnswer');
+              const streamedFallback = stripStreamedFollowupsTrailer(acc);
+              const resolvedAnswer =
+                parsed.answer.trim() || streamedFallback || educationComposer().t('education.conversation.emptyAnswer');
+              const displayBody = assistantDisplayBody(resolvedAnswer);
+              const finalContent =
+                displayBody.trim() || streamedFallback || educationComposer().t('education.conversation.emptyAnswer');
               const followUps =
                 parsed.followUpQuestions.length > 0
                   ? parsed.followUpQuestions
-                  : assistantDisplayFollowUps(rawAnswer, undefined);
+                  : assistantDisplayFollowUps(resolvedAnswer, undefined);
+              const hasAnswer = Boolean(parsed.answer.trim() || streamedFallback);
               const latest = getEducationState(appStore);
               const latestEnsured = ensureConversationState(latest);
               const updatedSessions = updateSessions(
@@ -813,7 +832,7 @@ export const doctorEducationConversationHospitalServices: ServiceDefinition[] = 
                       ...message,
                       content: finalContent,
                       loading: false,
-                      error: parsed.answer?.trim() ? '' : educationComposer().t('education.conversation.emptyAnswer'),
+                      error: hasAnswer ? '' : educationComposer().t('education.conversation.emptyAnswer'),
                       source: parsed.source,
                       chunksUsed: parsed.chunksUsed,
                       followUpQuestions: followUps,

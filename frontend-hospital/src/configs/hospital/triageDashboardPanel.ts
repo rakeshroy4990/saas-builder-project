@@ -50,9 +50,9 @@ export const hospitalDashboardTriagePanel: ComponentDefinition = {
 /** Left menu active/inactive pair for Check symptoms tab (patients only). */
 export function dashboardTriageNavButtons(): ComponentDefinition[] {
   const activeClasses =
-    'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm';
+    'w-full rounded-full bg-brand-600 px-4 py-2.5 text-left text-sm font-semibold text-white shadow-sm shadow-brand-900/10';
   const inactiveClasses =
-    'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50';
+    'w-full rounded-full px-4 py-2.5 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-brand-50 hover:text-brand-800';
 
   const clickChain = {
     actionId: 'require-hospital-dashboard-session',

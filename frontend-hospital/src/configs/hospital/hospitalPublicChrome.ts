@@ -18,6 +18,16 @@ export const visibleWhenNotLoggedInAsDoctor: ConditionConfig = {
   }
 };
 
+/** Home hero Growth Tracker — guests only. Hidden for a signed-in patient or doctor. */
+export const visibleWhenHomeGrowthTracker: ConditionConfig = {
+  expression:
+    "!(String(userId ?? '').trim().length > 0 && (String(role ?? '').toUpperCase() === 'PATIENT' || String(role ?? '').toUpperCase() === 'DOCTOR'))",
+  mappings: {
+    userId: { packageName: 'hospital', key: 'AuthSession', property: 'userId' },
+    role: { packageName: 'hospital', key: 'AuthSession', property: 'role' }
+  }
+};
+
 /** Hero AI Diagnosis / AI Conversation CTAs — signed-in doctors only. */
 export const visibleWhenLoggedInAsDoctor: ConditionConfig = {
   expression:
@@ -103,7 +113,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                       titleI18nKey: 'nav.menu',
                       styles: {
                         utilityClasses:
-                          'inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 lg:invisible'
+                          'inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-800 hover:bg-brand-100 lg:invisible'
                       },
                       click: { actionId: 'toggle-header-menu' }
                     }
@@ -184,10 +194,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               condition: dashboardNavActive,
               config: {
                 i18nKey: 'nav.dashboard',
-                styles: {
-                  styleTemplate: 'hosp.header.menuButton',
-                  utilityClasses: 'bg-emerald-100 text-emerald-700'
-                },
+                styles: { styleTemplate: 'hosp.header.menuButtonActive' },
                 click: { actionId: 'open-dashboard-home' }
               }
             },
@@ -207,10 +214,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               condition: staffAnalyticsNavActive,
               config: {
                 i18nKey: 'nav.analytics',
-                styles: {
-                  styleTemplate: 'hosp.header.menuButton',
-                  utilityClasses: 'bg-emerald-100 text-emerald-700'
-                },
+                styles: { styleTemplate: 'hosp.header.menuButtonActive' },
                 click: { actionId: 'open-dashboard-analytics' }
               }
             },
@@ -235,10 +239,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               },
               config: {
                 i18nKey: 'nav.prescription',
-                styles: {
-                  styleTemplate: 'hosp.header.menuButton',
-                  utilityClasses: 'bg-emerald-100 text-emerald-700'
-                },
+                styles: { styleTemplate: 'hosp.header.menuButtonActive' },
                 click: {
                   actionId: 'set-prescription-header-active',
                   onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'prescriptions' } }
@@ -275,10 +276,7 @@ const hospitalPublicHeader: ComponentDefinition = {
               },
               config: {
                 i18nKey: 'nav.aiDiagnosis',
-                styles: {
-                  styleTemplate: 'hosp.header.menuButton',
-                  utilityClasses: 'bg-emerald-100 text-emerald-700'
-                },
+                styles: { styleTemplate: 'hosp.header.menuButtonActive' },
                 click: {
                   actionId: 'set-education-header-active',
                   onSuccess: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'doctor-education' } }
@@ -317,7 +315,7 @@ const hospitalPublicHeader: ComponentDefinition = {
             //     i18nKey: 'nav.blog',
             //     styles: {
             //       styleTemplate: 'hosp.header.menuButton',
-            //       utilityClasses: 'bg-emerald-100 text-emerald-700'
+            //       utilityClasses: 'bg-brand-100 text-brand-700'
             //     },
             //     click: {
             //       actionId: 'set-blog-header-active',
@@ -438,7 +436,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                             layout: { type: 'flex', flex: ['flex', 'flex-col', 'items-stretch', 'gap-1'] },
                             styles: {
                               utilityClasses:
-                                'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
+                                'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-2xl border border-line bg-surface p-1.5 shadow-tile-hover'
                             },
                             children: [
                               {
@@ -531,7 +529,7 @@ const hospitalPublicHeader: ComponentDefinition = {
                             layout: { type: 'flex', flex: ['flex', 'flex-col', 'items-stretch', 'gap-1'] },
                             styles: {
                               utilityClasses:
-                                'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md'
+                                'absolute left-0 top-[calc(100%+6px)] z-30 min-w-44 rounded-2xl border border-line bg-surface p-1.5 shadow-tile-hover'
                             },
                             children: [
                               {
@@ -621,7 +619,7 @@ const hospitalPublicMobileMenu: ComponentDefinition = {
     }
   },
   config: {
-    styles: { utilityClasses: 'lg:hidden rounded-xl border border-slate-200 bg-white px-3 py-2' },
+    styles: { utilityClasses: 'lg:hidden flex flex-col gap-1 rounded-2xl border border-line bg-surface p-2 shadow-tile' },
     children: [
       {
         id: 'hospital-public-mobile-menu-dashboard-active',
@@ -807,11 +805,11 @@ export function hospitalSiteFooter(
       config: taglineFromI18n
         ? {
             i18nKey: options!.taglineI18nKey!.trim(),
-            styles: { utilityClasses: 'text-xs text-slate-500 text-center' }
+            styles: { utilityClasses: 'text-xs text-ink-500 text-center' }
           }
         : {
             text: tagline,
-            styles: { utilityClasses: 'text-xs text-slate-500 text-center' }
+            styles: { utilityClasses: 'text-xs text-ink-500 text-center' }
           }
     }
   ];
@@ -861,7 +859,7 @@ export function hospitalSiteFooter(
     type: 'container',
     config: {
       styles: {
-        utilityClasses: 'mt-auto w-full shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-3'
+        utilityClasses: 'mt-auto w-full shrink-0 rounded-t-3xl border border-b-0 border-line bg-surface/80 px-4 py-4 sm:px-6'
       },
       children
     }

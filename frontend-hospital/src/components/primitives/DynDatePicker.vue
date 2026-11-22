@@ -199,23 +199,23 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
         :disabled="Boolean(config?.disabled)"
         readonly
       />
-      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">📅</span>
+      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-500">📅</span>
       </button>
 
       <div
         v-if="panelOpen"
         :id="panelId"
-        class="absolute left-0 top-[calc(100%+8px)] z-40 w-full max-w-[360px] rounded-lg border border-slate-200 bg-white p-2 shadow-lg"
+        class="absolute left-0 top-[calc(100%+8px)] z-40 w-full max-w-[360px] rounded-lg border border-ink-200 bg-white p-2 shadow-lg"
         role="dialog"
         :aria-label="t('common.chooseDate')"
       >
       <div class="mb-1 flex items-center justify-between">
-        <button type="button" class="rounded px-2 py-1 text-xs hover:bg-slate-100" @click="goPreviousMonth">‹</button>
-        <div class="text-xs font-semibold text-slate-800">{{ monthTitle }}</div>
-        <button type="button" class="rounded px-2 py-1 text-xs hover:bg-slate-100" @click="goNextMonth">›</button>
+        <button type="button" class="rounded px-2 py-1 text-xs hover:bg-ink-100" @click="goPreviousMonth">‹</button>
+        <div class="text-xs font-semibold text-ink-800">{{ monthTitle }}</div>
+        <button type="button" class="rounded px-2 py-1 text-xs hover:bg-ink-100" @click="goNextMonth">›</button>
       </div>
 
-      <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-500">
+      <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-ink-500">
         <div v-for="w in WEEKDAY_LABELS" :key="w" class="py-0.5">{{ w }}</div>
       </div>
 
@@ -227,9 +227,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
           :disabled="day.disabled"
           :class="[
             'min-h-10 rounded border px-1 py-0.5 text-center transition',
-            !day.inCurrentMonth && day.slotCount === null ? 'border-transparent text-slate-300' : '',
-            day.disabled ? 'border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 hover:bg-slate-50',
-            model === day.iso ? 'border-blue-500 bg-blue-50 text-blue-700' : ''
+            !day.inCurrentMonth && day.slotCount === null ? 'border-transparent text-ink-300' : '',
+            day.disabled ? 'border-ink-200 bg-ink-100 text-ink-400' : 'border-ink-200 hover:bg-ink-50',
+            model === day.iso ? 'border-brand-500 bg-brand-50 text-brand-800' : ''
           ]"
           @click="selectDay(day)"
         >
@@ -237,7 +237,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick));
           <div
             v-if="day.slotCount !== null"
             class="mt-0.5 text-[10px] font-bold"
-            :class="day.slotCount > 0 ? 'text-emerald-700' : 'text-slate-400'"
+            :class="day.slotCount > 0 ? 'text-brand-700' : 'text-ink-400'"
           >
             {{ day.slotCount }}
           </div>

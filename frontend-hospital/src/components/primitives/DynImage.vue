@@ -26,7 +26,7 @@ const classes = computed(() =>
 const imageSrc = computed(() => resolveImageSource(props.config?.src));
 
 const interactiveRing = computed(() =>
-  props.config?.click ? ' cursor-pointer rounded-full ring-offset-2 hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500' : ''
+  props.config?.click ? ' cursor-pointer rounded-full ring-offset-2 hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500' : ''
 );
 
 const onClick = async () => {

@@ -851,7 +851,9 @@
       "selectAppointment": "Select an appointment to continue.",
       "consentRequired": "Consent is required before recording.",
       "startFailed": "Could not start the recording session.",
-      "offlineOrSleep": "Connection was lost (offline or phone sleep). Tap Retry when you are back online."
+      "offlineOrSleep": "Connection was lost (offline or phone sleep). Tap Retry when you are back online.",
+      "recordingFailed": "ಮೈಕ್ರೊಫೋನ್ ರೆಕಾರ್ಡರ್ ಪ್ರಾರಂಭಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+      "micSettingsHint": "ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ. ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಸಕ್ರಿಯಗೊಳಿಸಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
     },
     "languageOptions": {
       "mixed": "Mixed language",
@@ -860,6 +862,9 @@
       "kn": "Kannada"
     },
     "retry": "Retry processing",
-    "discardSession": "Start over"
+    "discardSession": "Start over",
+    "openSettings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ",
+    "micPermissionTitle": "ಮೈಕ್ರೊಫೋನ್ ಅನುಮತಿ",
+    "micPermissionMessage": "ವೈದ್ಯ-ರೋಗಿ ಸಮಾಲೋಚನೆಯನ್ನು ರೆಕಾರ್ಡ್ ಮಾಡಲು ಅಗಸ್ತ್ಯ ಹೆಲ್ತ್‌ಕೇರ್‌ಗೆ ಮೈಕ್ರೊಫೋನ್ ಬೇಕು."
   }
 }

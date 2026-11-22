@@ -19,6 +19,7 @@ import { hospitalTermsPage } from './termsPage';
 import { hospitalPrivacyPage } from './privacyPage';
 import {
   disabledWhenLoggedInAsDoctor,
+  visibleWhenHomeGrowthTracker,
   visibleWhenLoggedInAsDoctor,
   visibleWhenNotLoggedInAsDoctor,
   hospitalPublicChromeTop,
@@ -58,7 +59,7 @@ export const hospitalPages: PageConfig[] = [
           type: 'container',
           config: {
             layoutTemplate: 'hosp.hero.section',
-            styles: { styleTemplate: 'hosp.section.card' },
+            styles: { styleTemplate: 'hosp.hero.card' },
             children: [
               {
                 id: 'hospital-home-hero-copy',
@@ -111,7 +112,7 @@ export const hospitalPages: PageConfig[] = [
                           {
                             id: 'hospital-home-hero-growth-cta',
                             type: 'button',
-                            condition: visibleWhenNotLoggedInAsDoctor,
+                            condition: visibleWhenHomeGrowthTracker,
                             config: {
                               i18nKey: 'home.hero.ctaGrowthTracker',
                               styles: { styleTemplate: 'hosp.button.secondary' },
@@ -163,6 +164,7 @@ export const hospitalPages: PageConfig[] = [
                         mapping: { packageName: 'hospital', key: 'HomeContent', property: 'stats' },
                         itemTemplate: {
                           layoutTemplate: 'hosp.stat.card',
+                          styles: { styleTemplate: 'hosp.stat.card' },
                           children: [
                             {
                               id: 'hospital-home-hero-stat-value',
@@ -515,7 +517,7 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   styles: {
                     utilityClasses:
-                      'col-span-12 lg:col-span-2 rounded-xl border border-slate-200 bg-white p-3 space-y-2'
+                      'col-span-12 lg:col-span-2 rounded-2xl border border-line bg-surface p-2.5 space-y-1 shadow-tile'
                   },
                   children: [
                     {
@@ -531,7 +533,7 @@ export const hospitalPages: PageConfig[] = [
                         i18nKey: 'dashboard.nav.appointments',
                         styles: {
                           utilityClasses:
-                            'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
+                            'w-full rounded-full bg-brand-600 px-4 py-2.5 text-left text-sm font-semibold text-white shadow-sm shadow-brand-900/10'
                         },
                         click: {
                           actionId: 'require-hospital-dashboard-session',
@@ -558,7 +560,7 @@ export const hospitalPages: PageConfig[] = [
                         i18nKey: 'dashboard.nav.appointments',
                         styles: {
                           utilityClasses:
-                            'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                            'w-full rounded-full px-4 py-2.5 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-brand-50 hover:text-brand-800'
                         },
                         click: {
                           actionId: 'require-hospital-dashboard-session',
@@ -590,7 +592,7 @@ export const hospitalPages: PageConfig[] = [
                         wrapLabel: true,
                         styles: {
                           utilityClasses:
-                            'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
+                            'w-full rounded-full bg-brand-600 px-4 py-2.5 text-left text-sm font-semibold text-white shadow-sm shadow-brand-900/10'
                         },
                         click: {
                           actionId: 'require-hospital-dashboard-session',
@@ -624,7 +626,7 @@ export const hospitalPages: PageConfig[] = [
                         wrapLabel: true,
                         styles: {
                           utilityClasses:
-                            'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                            'w-full rounded-full px-4 py-2.5 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-brand-50 hover:text-brand-800'
                         },
                         click: {
                           actionId: 'require-hospital-dashboard-session',
@@ -656,7 +658,7 @@ export const hospitalPages: PageConfig[] = [
                         i18nKey: 'dashboard.nav.administration',
                         styles: {
                           utilityClasses:
-                            'w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-800 shadow-sm'
+                            'w-full rounded-full bg-brand-600 px-4 py-2.5 text-left text-sm font-semibold text-white shadow-sm shadow-brand-900/10'
                         },
                         click: {
                           actionId: 'require-hospital-dashboard-session',
@@ -686,7 +688,7 @@ export const hospitalPages: PageConfig[] = [
                         i18nKey: 'dashboard.nav.administration',
                         styles: {
                           utilityClasses:
-                            'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                            'w-full rounded-full px-4 py-2.5 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-brand-50 hover:text-brand-800'
                         },
                         click: {
                           actionId: 'require-hospital-dashboard-session',
@@ -713,7 +715,7 @@ export const hospitalPages: PageConfig[] = [
                 id: 'hospital-dashboard-main',
                 type: 'container',
                 config: {
-                  styles: { utilityClasses: 'col-span-12 lg:col-span-10 rounded-xl border border-slate-200 bg-white p-4 space-y-4' },
+                  styles: { utilityClasses: 'col-span-12 lg:col-span-10 rounded-2xl border border-line bg-surface p-4 sm:p-6 shadow-tile space-y-4' },
                   children: [
                     {
                       id: 'hospital-dashboard-panel-appointments',
@@ -746,7 +748,7 @@ export const hospitalPages: PageConfig[] = [
                             type: 'text',
                             config: {
                               mapping: { packageName: 'hospital', key: 'DashboardAppointments', property: 'totalLabel' },
-                              styles: { utilityClasses: 'text-sm font-semibold text-slate-600' }
+                              styles: { utilityClasses: 'text-sm font-semibold text-ink-600' }
                             }
                           }
                         ]
@@ -760,7 +762,7 @@ export const hospitalPages: PageConfig[] = [
                         titleI18nKey: 'dashboard.filters.toggleTitle',
                         styles: {
                           utilityClasses:
-                            'inline-flex lg:hidden w-fit rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700'
+                            'inline-flex lg:hidden w-fit rounded-full border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink-700'
                         },
                         click: { actionId: 'toggle-dashboard-filters' }
                       }
@@ -835,7 +837,7 @@ export const hospitalPages: PageConfig[] = [
                                     titleI18nKey: 'dashboard.filters.clearTitle',
                                     styles: {
                                       utilityClasses:
-                                        'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-600 bg-white text-xl font-semibold text-emerald-700'
+                                        'inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-200 bg-surface text-xl font-semibold text-brand-700 hover:bg-brand-50'
                                     },
                                     click: { actionId: 'clear-dashboard-filters' }
                                   }
@@ -908,7 +910,7 @@ export const hospitalPages: PageConfig[] = [
                                     titleI18nKey: 'dashboard.filters.clearTitle',
                                     styles: {
                                       utilityClasses:
-                                        'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-600 bg-white text-xl font-semibold text-emerald-700'
+                                        'inline-flex h-11 w-11 items-center justify-center rounded-full border border-brand-200 bg-surface text-xl font-semibold text-brand-700 hover:bg-brand-50'
                                     },
                                     click: { actionId: 'clear-dashboard-filters' }
                                   }
@@ -930,7 +932,7 @@ export const hospitalPages: PageConfig[] = [
                       },
                       config: {
                         i18nKey: 'dashboard.appointments.loading',
-                        styles: { utilityClasses: 'text-sm font-medium text-slate-600' }
+                        styles: { utilityClasses: 'text-sm font-medium text-ink-600' }
                       }
                     },
                     {
@@ -959,7 +961,7 @@ export const hospitalPages: PageConfig[] = [
                       },
                       config: {
                         i18nKey: 'dashboard.appointments.empty',
-                        styles: { utilityClasses: 'text-sm text-slate-500' }
+                        styles: { utilityClasses: 'text-sm text-ink-500' }
                       }
                     },
                     {
@@ -980,7 +982,7 @@ export const hospitalPages: PageConfig[] = [
                             type: 'flex',
                             flex: ['flex', 'flex-row', 'items-start', 'justify-between', 'gap-3']
                           },
-                          styles: { utilityClasses: 'mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3' },
+                          styles: { utilityClasses: 'mb-3 rounded-2xl border border-line bg-ink-50 p-3' },
                           children: [
                             {
                               id: 'hospital-dashboard-appointment-main',
@@ -996,7 +998,7 @@ export const hospitalPages: PageConfig[] = [
                                     type: 'text',
                                     config: {
                                       text: '{{rowLine1}}',
-                                      styles: { utilityClasses: 'text-sm font-semibold text-slate-800' }
+                                      styles: { utilityClasses: 'text-sm font-semibold text-ink-800' }
                                     }
                                   },
                                   {
@@ -1004,7 +1006,7 @@ export const hospitalPages: PageConfig[] = [
                                     type: 'text',
                                     config: {
                                       text: '{{rowLine2}}',
-                                      styles: { utilityClasses: 'text-xs text-slate-600' }
+                                      styles: { utilityClasses: 'text-xs text-ink-600' }
                                     }
                                   },
                                   {
@@ -1015,7 +1017,7 @@ export const hospitalPages: PageConfig[] = [
                                     },
                                     config: {
                                       text: '{{additionalNotesLine}}',
-                                      styles: { utilityClasses: 'text-xs text-slate-600' }
+                                      styles: { utilityClasses: 'text-xs text-ink-600' }
                                     }
                                   }
                                 ]
@@ -1041,7 +1043,7 @@ export const hospitalPages: PageConfig[] = [
                                       titleI18nKey: 'dashboard.appointments.markVisitComplete',
                                       styles: {
                                         utilityClasses:
-                                          'rounded-md border border-sky-500 px-2 py-1 text-xs leading-none text-sky-800 hover:bg-sky-50'
+                                          'rounded-md border border-trust-500 px-2 py-1 text-xs leading-none text-trust-800 hover:bg-trust-50'
                                       },
                                       click: {
                                         actionId: 'complete-dashboard-visit',
@@ -1098,7 +1100,7 @@ export const hospitalPages: PageConfig[] = [
                                       titleI18nKey: 'growth.appointment.recordAtVisit',
                                       styles: {
                                         utilityClasses:
-                                          'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-800 hover:bg-emerald-50'
+                                          'rounded-md border border-brand-500 px-2 py-1 text-xs leading-none text-brand-800 hover:bg-brand-50'
                                       },
                                       click: {
                                         actionId: 'open-appointment-growth-popup',
@@ -1122,7 +1124,7 @@ export const hospitalPages: PageConfig[] = [
                                       title: 'Issue structured e-prescription',
                                       styles: {
                                         utilityClasses:
-                                          'rounded-md border border-indigo-500 px-2 py-1 text-xs leading-none text-indigo-800 hover:bg-indigo-50'
+                                          'rounded-md border border-trust-500 px-2 py-1 text-xs leading-none text-trust-800 hover:bg-trust-50'
                                       },
                                       click: {
                                         actionId: 'open-eprescription-popup',
@@ -1141,7 +1143,7 @@ export const hospitalPages: PageConfig[] = [
                                       title: 'Download signed e-prescription PDF (if finalized)',
                                       styles: {
                                         utilityClasses:
-                                          'rounded-md border border-indigo-400 px-2 py-1 text-xs leading-none text-indigo-800 hover:bg-indigo-50'
+                                          'rounded-md border border-trust-400 px-2 py-1 text-xs leading-none text-trust-800 hover:bg-trust-50'
                                       },
                                       click: {
                                         actionId: 'download-eprescription-pdf',
@@ -1160,7 +1162,7 @@ export const hospitalPages: PageConfig[] = [
                                       title: 'Video Call',
                                       styles: {
                                         utilityClasses:
-                                          'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-700 hover:bg-emerald-50'
+                                          'rounded-md border border-brand-500 px-2 py-1 text-xs leading-none text-brand-700 hover:bg-brand-50'
                                       },
                                       click: {
                                         actionId: 'open-appointment-video-call',
@@ -1186,7 +1188,7 @@ export const hospitalPages: PageConfig[] = [
                                       title: 'Edit appointment',
                                       styles: {
                                         utilityClasses:
-                                          'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-700 hover:bg-emerald-50'
+                                          'rounded-md border border-brand-500 px-2 py-1 text-xs leading-none text-brand-700 hover:bg-brand-50'
                                       },
                                       click: {
                                         actionId: 'edit-dashboard-appointment',
@@ -1203,7 +1205,7 @@ export const hospitalPages: PageConfig[] = [
                                       hiddenWhenEmptyText: true,
                                       styles: {
                                         utilityClasses:
-                                          'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-700 hover:bg-emerald-50'
+                                          'rounded-md border border-brand-500 px-2 py-1 text-xs leading-none text-brand-700 hover:bg-brand-50'
                                       },
                                       click: {
                                         actionId: 'open-appointment-receipt',
@@ -1249,7 +1251,7 @@ export const hospitalPages: PageConfig[] = [
                             type: 'text',
                             config: {
                               mapping: { packageName: 'hospital', key: 'DashboardAppointments', property: 'pageLabel' },
-                              styles: { utilityClasses: 'text-sm font-medium text-slate-600' }
+                              styles: { utilityClasses: 'text-sm font-medium text-ink-600' }
                             }
                           },
                           {
@@ -1348,7 +1350,7 @@ export const hospitalPages: PageConfig[] = [
                                     titleI18nKey: 'common.refresh',
                                     styles: {
                                       utilityClasses:
-                                        'rounded-md border border-slate-300 px-2.5 py-1.5 text-base leading-none text-slate-700 hover:bg-slate-50'
+                                        'rounded-md border border-ink-300 px-2.5 py-1.5 text-base leading-none text-ink-700 hover:bg-ink-50'
                                     },
                                     click: {
                                       actionId: 'require-hospital-dashboard-session',
@@ -1398,7 +1400,7 @@ export const hospitalPages: PageConfig[] = [
                             },
                             config: {
                               i18nKey: 'dashboard.admin.pendingEmpty',
-                              styles: { utilityClasses: 'text-sm text-slate-500' }
+                              styles: { utilityClasses: 'text-sm text-ink-500' }
                             }
                           },
                           {
@@ -1420,14 +1422,14 @@ export const hospitalPages: PageConfig[] = [
                               mapping: { packageName: 'hospital', key: 'AdminDashboard', property: 'pendingRequests' },
                               itemTemplate: {
                                 layout: { type: 'flex', flex: ['flex', 'items-center', 'justify-between', 'gap-2', 'flex-wrap'] },
-                                styles: { utilityClasses: 'rounded-lg border border-slate-200 bg-slate-50 px-3 py-2' },
+                                styles: { utilityClasses: 'rounded-xl border border-line bg-ink-50 px-3 py-2' },
                                 children: [
                                   {
                                     id: 'hospital-dashboard-admin-pending-line',
                                     type: 'text',
                                     config: {
                                       text: '{{email}} · {{requestedRole}} · {{name}}',
-                                      styles: { utilityClasses: 'text-sm text-slate-800' }
+                                      styles: { utilityClasses: 'text-sm text-ink-800' }
                                     }
                                   },
                                   {
@@ -1438,7 +1440,7 @@ export const hospitalPages: PageConfig[] = [
                                       titleI18nKey: 'dashboard.admin.approveTitle',
                                       styles: {
                                         utilityClasses:
-                                          'rounded-md border border-emerald-600 px-2.5 py-1.5 text-base leading-none text-emerald-800 hover:bg-emerald-50'
+                                          'rounded-md border border-brand-600 px-2.5 py-1.5 text-base leading-none text-brand-800 hover:bg-brand-50'
                                       },
                                       click: {
                                         actionId: 'approve-admin-role-request',
@@ -1473,14 +1475,14 @@ export const hospitalPages: PageConfig[] = [
                               mapping: { packageName: 'hospital', key: 'AdminDashboard', property: 'doctors' },
                               itemTemplate: {
                                 layout: { type: 'flex', flex: ['flex', 'items-center', 'justify-between', 'gap-2', 'flex-wrap'] },
-                                styles: { utilityClasses: 'rounded-lg border border-slate-200 bg-white px-3 py-2' },
+                                styles: { utilityClasses: 'rounded-xl border border-line bg-surface px-3 py-2' },
                                 children: [
                                   {
                                     id: 'hospital-dashboard-admin-doctor-line',
                                     type: 'text',
                                     config: {
                                       text: '{{name}} · {{email}} · {{department}} · {{roleStatus}} · Active: {{active}}',
-                                      styles: { utilityClasses: 'text-sm text-slate-800' }
+                                      styles: { utilityClasses: 'text-sm text-ink-800' }
                                     }
                                   },
                                   {
@@ -1639,7 +1641,7 @@ export const hospitalPages: PageConfig[] = [
                               titleI18nKey: 'dashboard.admin.createDoctorTitle',
                               styles: {
                                 utilityClasses:
-                                  'rounded-md border border-emerald-600 px-2.5 py-1.5 text-base leading-none text-emerald-800 hover:bg-emerald-50'
+                                  'rounded-md border border-brand-600 px-2.5 py-1.5 text-base leading-none text-brand-800 hover:bg-brand-50'
                               },
                               click: { actionId: 'submit-admin-register-doctor' }
                             }
@@ -1723,7 +1725,7 @@ export const hospitalPages: PageConfig[] = [
                             },
                             config: {
                               mapping: { packageName: 'hospital', key: 'DoctorScheduleUi', property: 'doctorName' },
-                              styles: { utilityClasses: 'text-sm font-semibold text-slate-800' }
+                              styles: { utilityClasses: 'text-sm font-semibold text-ink-800' }
                             }
                           },
                           {
@@ -1737,7 +1739,7 @@ export const hospitalPages: PageConfig[] = [
                             },
                             config: {
                               i18nKey: 'common.loading',
-                              styles: { utilityClasses: 'text-sm text-slate-600' }
+                              styles: { utilityClasses: 'text-sm text-ink-600' }
                             }
                           },
                           {
@@ -1867,7 +1869,7 @@ export const hospitalPages: PageConfig[] = [
                       type: 'text',
                       config: {
                         i18nKey: 'page.doctorEducation.doctorsOnly',
-                        styles: { utilityClasses: 'text-sm font-medium text-slate-700' }
+                        styles: { utilityClasses: 'text-sm font-medium text-ink-700' }
                       }
                     }
                   ]
@@ -1929,7 +1931,7 @@ export const hospitalPages: PageConfig[] = [
                       type: 'text',
                       config: {
                         i18nKey: 'aiConversation.doctorOnly',
-                        styles: { utilityClasses: 'text-sm font-medium text-slate-700' }
+                        styles: { utilityClasses: 'text-sm font-medium text-ink-700' }
                       }
                     }
                   ]
@@ -1973,7 +1975,7 @@ export const hospitalPages: PageConfig[] = [
                 type: 'text',
                 config: {
                   i18nKey: 'blog.subheading',
-                  styles: { utilityClasses: 'text-sm text-slate-600 max-w-3xl' }
+                  styles: { utilityClasses: 'text-sm text-ink-600 max-w-3xl' }
                 }
               },
               {
@@ -1991,7 +1993,7 @@ export const hospitalPages: PageConfig[] = [
                 config: {
                   mapping: { packageName: 'hospital', key: 'BlogPreviews', property: 'contentSourceDetail' },
                   styles: {
-                    utilityClasses: 'text-xs text-slate-500 max-w-3xl border-l-2 border-emerald-200 pl-3 py-1'
+                    utilityClasses: 'text-xs text-ink-500 max-w-3xl border-l-2 border-brand-200 pl-3 py-1'
                   }
                 }
               },
@@ -2006,7 +2008,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   i18nKey: 'blog.loading',
-                  styles: { utilityClasses: 'text-sm text-slate-500' }
+                  styles: { utilityClasses: 'text-sm text-ink-500' }
                 }
               },
               {
@@ -2040,7 +2042,7 @@ export const hospitalPages: PageConfig[] = [
                     layout: { type: 'flex', flex: ['flex', 'flex-col', 'gap-2', 'h-full'] },
                     styles: {
                       utilityClasses:
-                        'rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-emerald-200 transition-colors h-full'
+                        'rounded-2xl border border-line bg-surface p-5 shadow-tile transition duration-200 hover:-translate-y-0.5 hover:shadow-tile-hover hover:border-brand-200 h-full'
                     },
                     children: [
                       {
@@ -2048,7 +2050,7 @@ export const hospitalPages: PageConfig[] = [
                         type: 'text',
                         config: {
                           text: '{{title}}',
-                          styles: { utilityClasses: 'text-lg font-semibold text-slate-900' }
+                          styles: { utilityClasses: 'text-lg font-semibold text-ink-900' }
                         }
                       },
                       {
@@ -2056,7 +2058,7 @@ export const hospitalPages: PageConfig[] = [
                         type: 'text',
                         config: {
                           text: '{{category}} · {{readTimeMinutes}} min read',
-                          styles: { utilityClasses: 'text-xs font-medium uppercase tracking-wide text-emerald-700' }
+                          styles: { utilityClasses: 'text-xs font-medium uppercase tracking-wide text-brand-700' }
                         }
                       },
                       {
@@ -2064,7 +2066,7 @@ export const hospitalPages: PageConfig[] = [
                         type: 'text',
                         config: {
                           text: '{{hook}}',
-                          styles: { utilityClasses: 'text-sm font-medium text-slate-800 leading-snug flex-1' }
+                          styles: { utilityClasses: 'text-sm font-medium text-ink-800 leading-snug flex-1' }
                         }
                       },
                       {
@@ -2072,7 +2074,7 @@ export const hospitalPages: PageConfig[] = [
                         type: 'text',
                         config: {
                           text: '{{curiosityQuestionsText}}',
-                          styles: { utilityClasses: 'text-sm text-slate-600 leading-relaxed whitespace-pre-line' }
+                          styles: { utilityClasses: 'text-sm text-ink-600 leading-relaxed whitespace-pre-line' }
                         }
                       },
                       {
@@ -2080,7 +2082,7 @@ export const hospitalPages: PageConfig[] = [
                         type: 'text',
                         config: {
                           i18nKey: 'blog.card.readMoreHint',
-                          styles: { utilityClasses: 'text-xs text-slate-500 italic' }
+                          styles: { utilityClasses: 'text-xs text-ink-500 italic' }
                         }
                       },
                       {
@@ -2099,7 +2101,7 @@ export const hospitalPages: PageConfig[] = [
                                 i18nKey: 'blog.card.openArticle',
                                 styles: {
                                   utilityClasses:
-                                    'inline-flex text-sm font-semibold text-slate-700 hover:text-slate-900 underline underline-offset-2'
+                                    'inline-flex text-sm font-semibold text-ink-700 hover:text-ink-900 underline underline-offset-2'
                                 },
                                 click: {
                                   packageName: 'hospital',
@@ -2128,7 +2130,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   i18nKey: 'blog.empty',
-                  styles: { utilityClasses: 'text-sm text-slate-500' }
+                  styles: { utilityClasses: 'text-sm text-ink-500' }
                 }
               }
             ]
@@ -2161,7 +2163,7 @@ export const hospitalPages: PageConfig[] = [
                 type: 'button',
                 config: {
                   i18nKey: 'blog.article.backAll',
-                  styles: { utilityClasses: 'self-start text-sm font-semibold text-emerald-700 hover:text-emerald-800' },
+                  styles: { utilityClasses: 'self-start text-sm font-semibold text-brand-700 hover:text-brand-800' },
                   click: { actionType: 'navigate', navigate: { packageName: 'hospital', pageId: 'blog' } }
                 }
               },
@@ -2176,7 +2178,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   i18nKey: 'blog.article.loading',
-                  styles: { utilityClasses: 'text-sm text-slate-500' }
+                  styles: { utilityClasses: 'text-sm text-ink-500' }
                 }
               },
               {
@@ -2224,7 +2226,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   mapping: { packageName: 'hospital', key: 'BlogArticleView', property: 'metaLine' },
-                  styles: { utilityClasses: 'text-xs font-medium uppercase tracking-wide text-emerald-700' }
+                  styles: { utilityClasses: 'text-xs font-medium uppercase tracking-wide text-brand-700' }
                 }
               },
               {
@@ -2241,7 +2243,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   mapping: { packageName: 'hospital', key: 'BlogArticleView', property: 'teaser' },
-                  styles: { utilityClasses: 'text-base text-slate-700 leading-relaxed' }
+                  styles: { utilityClasses: 'text-base text-ink-700 leading-relaxed' }
                 }
               }
             ]
@@ -2288,7 +2290,7 @@ export const hospitalPages: PageConfig[] = [
           type: 'text',
           config: {
             mapping: { packageName: 'hospital', key: 'BlogReadMore', property: 'title' },
-            styles: { utilityClasses: 'text-lg font-semibold text-slate-900' }
+            styles: { utilityClasses: 'text-lg font-semibold text-ink-900' }
           }
         },
         {
@@ -2296,7 +2298,7 @@ export const hospitalPages: PageConfig[] = [
           type: 'text',
           config: {
             mapping: { packageName: 'hospital', key: 'BlogReadMore', property: 'metaLine' },
-            styles: { utilityClasses: 'text-xs font-medium uppercase tracking-wide text-emerald-700' }
+            styles: { utilityClasses: 'text-xs font-medium uppercase tracking-wide text-brand-700' }
           }
         },
         {
@@ -2304,7 +2306,7 @@ export const hospitalPages: PageConfig[] = [
           type: 'text',
           config: {
             mapping: { packageName: 'hospital', key: 'BlogReadMore', property: 'teaser' },
-            styles: { utilityClasses: 'text-sm text-slate-700 leading-relaxed' }
+            styles: { utilityClasses: 'text-sm text-ink-700 leading-relaxed' }
           }
         },
         {
@@ -2318,7 +2320,7 @@ export const hospitalPages: PageConfig[] = [
           },
           config: {
             mapping: { packageName: 'hospital', key: 'BlogReadMore', property: 'slugLine' },
-            styles: { utilityClasses: 'text-xs text-slate-500 font-mono' }
+            styles: { utilityClasses: 'text-xs text-ink-500 font-mono' }
           }
         },
         {
@@ -2327,7 +2329,7 @@ export const hospitalPages: PageConfig[] = [
           config: {
             text:
               'Full long-form articles are not hosted here yet. Use this preview for general education only; talk to your clinician for personal care.',
-            styles: { utilityClasses: 'text-xs text-slate-500 border-t border-slate-100 pt-3' }
+            styles: { utilityClasses: 'text-xs text-ink-500 border-t border-ink-100 pt-3' }
           }
         }
       ]
@@ -2687,7 +2689,7 @@ export const hospitalPages: PageConfig[] = [
           config: {
             i18nKey: 'popup.chooseLanguageHint',
             styles: {
-              utilityClasses: 'text-center text-sm text-slate-600 leading-relaxed max-w-md mx-auto px-1'
+              utilityClasses: 'text-center text-sm text-ink-600 leading-relaxed max-w-md mx-auto px-1'
             }
           }
         },
@@ -3141,7 +3143,7 @@ export const hospitalPages: PageConfig[] = [
                       type: 'text',
                       config: {
                         text: 'I have read and agree to the',
-                        styles: { utilityClasses: 'text-sm text-slate-700' }
+                        styles: { utilityClasses: 'text-sm text-ink-700' }
                       }
                     },
                     {
@@ -3158,7 +3160,7 @@ export const hospitalPages: PageConfig[] = [
                       type: 'text',
                       config: {
                         text: 'and',
-                        styles: { utilityClasses: 'text-sm text-slate-700' }
+                        styles: { utilityClasses: 'text-sm text-ink-700' }
                       }
                     },
                     {
@@ -3178,7 +3180,7 @@ export const hospitalPages: PageConfig[] = [
                       type: 'text',
                       config: {
                         text: '.',
-                        styles: { utilityClasses: 'text-sm text-slate-700' }
+                        styles: { utilityClasses: 'text-sm text-ink-700' }
                       }
                     }
                   ]
@@ -3754,7 +3756,7 @@ export const hospitalPages: PageConfig[] = [
           id: 'hospital-popup-divider',
           type: 'container',
           config: {
-            styles: { utilityClasses: 'h-px w-full bg-slate-200' },
+            styles: { utilityClasses: 'h-px w-full bg-ink-200' },
             children: []
           }
         },
@@ -4188,7 +4190,7 @@ export const hospitalPages: PageConfig[] = [
           id: 'hospital-receipts-popup-scroll-shell',
           type: 'container',
           config: {
-            styles: { utilityClasses: 'max-h-[60vh] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3' },
+            styles: { utilityClasses: 'max-h-[60vh] overflow-y-auto rounded-2xl border border-line bg-ink-50 p-3' },
             children: [
               {
                 id: 'hospital-receipts-popup-empty',
@@ -4201,7 +4203,7 @@ export const hospitalPages: PageConfig[] = [
                 },
                 config: {
                   text: 'No receipts found for this appointment.',
-                  styles: { utilityClasses: 'text-sm text-slate-600' }
+                  styles: { utilityClasses: 'text-sm text-ink-600' }
                 }
               },
               {
@@ -4218,14 +4220,14 @@ export const hospitalPages: PageConfig[] = [
                   mapping: { packageName: 'hospital', key: 'DashboardReceiptViewer', property: 'items' },
                   itemTemplate: {
                     layoutTemplate: 'hosp.section.stack',
-                    styles: { utilityClasses: 'rounded-lg border border-slate-200 bg-white p-3 mb-3' },
+                    styles: { utilityClasses: 'rounded-xl border border-line bg-surface p-3 mb-3' },
                     children: [
                       {
                         id: 'hospital-receipts-popup-item-file-name',
                         type: 'text',
                         config: {
                           text: '{{fileName}}',
-                          styles: { utilityClasses: 'text-xs font-semibold text-slate-700 mb-2' }
+                          styles: { utilityClasses: 'text-xs font-semibold text-ink-700 mb-2' }
                         }
                       },
                       {
@@ -4234,7 +4236,7 @@ export const hospitalPages: PageConfig[] = [
                         config: {
                           src: '{{src}}',
                           alt: '{{fileName}}',
-                          styles: { utilityClasses: 'w-full rounded-md border border-slate-100 bg-white object-contain max-h-[42vh]' }
+                          styles: { utilityClasses: 'w-full rounded-md border border-ink-100 bg-white object-contain max-h-[42vh]' }
                         }
                       },
                       {
@@ -4251,7 +4253,7 @@ export const hospitalPages: PageConfig[] = [
                                 title: 'Download',
                                 styles: {
                                   utilityClasses:
-                                    'rounded-md border border-emerald-500 px-2 py-1 text-xs leading-none text-emerald-700 hover:bg-emerald-50'
+                                    'rounded-md border border-brand-500 px-2 py-1 text-xs leading-none text-brand-700 hover:bg-brand-50'
                                 },
                                 click: {
                                   actionId: 'download-appointment-receipt',
@@ -4330,7 +4332,7 @@ export const hospitalPages: PageConfig[] = [
                         i18nKey: 'chat.quick.setAppointment',
                         styles: {
                           utilityClasses:
-                            'w-full sm:flex-1 min-w-0 rounded-lg border border-emerald-600 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50'
+                            'w-full sm:flex-1 min-w-0 rounded-full border border-brand-200 bg-surface px-4 py-2.5 text-sm font-semibold text-brand-800 hover:bg-brand-50'
                         },
                         click: { actionId: 'open-appointment-popup' }
                       }
@@ -4342,7 +4344,7 @@ export const hospitalPages: PageConfig[] = [
                         i18nKey: 'chat.quick.userProfile',
                         styles: {
                           utilityClasses:
-                            'w-full sm:flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                            'w-full sm:flex-1 min-w-0 rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink-800 hover:bg-ink-50'
                         },
                         click: {
                           actionId: 'set-profile-header-active',
@@ -4399,14 +4401,14 @@ export const hospitalPages: PageConfig[] = [
           type: 'container',
           config: {
             layout: { type: 'flex', flex: ['flex', 'items-center', 'justify-between'] },
-            styles: { utilityClasses: 'shrink-0 px-4 py-3 border-b border-slate-200 bg-white' },
+            styles: { utilityClasses: 'shrink-0 px-4 py-3 border-b border-line bg-surface' },
             children: [
               {
                 id: 'hospital-chat-popup-title',
                 type: 'text',
                 config: {
                   i18nKey: 'chat.title',
-                  styles: { utilityClasses: 'text-base font-semibold text-slate-900' }
+                  styles: { utilityClasses: 'text-base font-semibold text-ink-900' }
                 }
               },
               {
@@ -4414,7 +4416,7 @@ export const hospitalPages: PageConfig[] = [
                 type: 'button',
                 config: {
                   text: 'X',
-                  styles: { utilityClasses: 'rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100' },
+                  styles: { utilityClasses: 'rounded-full px-3 py-2 text-sm font-semibold text-ink-700 hover:bg-ink-100' },
                   click: { actionType: 'closePopup' }
                 }
               }
@@ -4435,7 +4437,7 @@ export const hospitalPages: PageConfig[] = [
           config: {
             layout: {
               type: 'flex',
-              flex: ['flex', 'flex-col', 'gap-2', 'sm:flex-row', 'sm:flex-wrap', 'shrink-0', 'px-4', 'py-2.5', 'border-b', 'border-slate-100', 'bg-slate-50']
+              flex: ['flex', 'flex-col', 'gap-2', 'sm:flex-row', 'sm:flex-wrap', 'shrink-0', 'px-4', 'py-2.5', 'border-b', 'border-ink-100', 'bg-ink-50']
             },
             children: [
               {
@@ -4445,7 +4447,7 @@ export const hospitalPages: PageConfig[] = [
                   i18nKey: 'chat.quick.setAppointment',
                   styles: {
                     utilityClasses:
-                      'w-full sm:flex-1 min-w-0 rounded-lg border border-emerald-600 bg-white px-3 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50'
+                      'w-full sm:flex-1 min-w-0 rounded-full border border-brand-200 bg-surface px-4 py-2.5 text-sm font-semibold text-brand-800 hover:bg-brand-50'
                   },
                   click: { actionId: 'open-appointment-popup' }
                 }
@@ -4457,7 +4459,7 @@ export const hospitalPages: PageConfig[] = [
                   i18nKey: 'chat.quick.userProfile',
                   styles: {
                     utilityClasses:
-                      'w-full sm:flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50'
+                      'w-full sm:flex-1 min-w-0 rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink-800 hover:bg-ink-50'
                   },
                   click: {
                     actionType: 'closePopup',

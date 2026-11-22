@@ -177,7 +177,7 @@ async function runValidation(): Promise<void> {
 </script>
 
 <template>
-  <section class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+  <section class="flex flex-col gap-4 rounded-2xl border border-ink-200 bg-white p-4 shadow-sm">
     <div class="flex flex-wrap items-center gap-2">
       <input
         ref="fileInputRef"
@@ -196,7 +196,7 @@ async function runValidation(): Promise<void> {
       />
       <button
         type="button"
-        class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 disabled:opacity-50"
+        class="inline-flex items-center justify-center rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm font-semibold text-ink-800 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 disabled:opacity-50"
         :disabled="transcribing || validating"
         @click="openFilePicker"
       >
@@ -204,7 +204,7 @@ async function runValidation(): Promise<void> {
       </button>
       <button
         type="button"
-        class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 disabled:opacity-50"
+        class="inline-flex items-center justify-center rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm font-semibold text-ink-800 shadow-sm transition hover:border-trust-200 hover:bg-trust-50 disabled:opacity-50"
         :disabled="transcribing || validating"
         @click="openCameraPicker"
       >
@@ -212,11 +212,11 @@ async function runValidation(): Promise<void> {
       </button>
     </div>
 
-    <p v-if="pendingFile" class="text-xs text-slate-600">
-      <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 font-medium">
+    <p v-if="pendingFile" class="text-xs text-ink-600">
+      <span class="rounded-full border border-ink-200 bg-ink-50 px-2 py-1 font-medium">
         {{ t('dashboard.validatePrescription.attachedFile', { name: pendingFile.name }) }}
       </span>
-      <button type="button" class="ml-2 font-semibold text-sky-700 hover:underline" @click="clearPendingFile">
+      <button type="button" class="ml-2 font-semibold text-trust-700 hover:underline" @click="clearPendingFile">
         {{ t('dashboard.validatePrescription.removeFile') }}
       </button>
     </p>
@@ -224,19 +224,19 @@ async function runValidation(): Promise<void> {
     <p v-if="transcribeError" class="text-sm text-rose-700">{{ transcribeError }}</p>
     <p v-if="validationError" class="text-sm text-rose-700">{{ validationError }}</p>
 
-    <section v-if="transcribing" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+    <section v-if="transcribing" class="rounded-xl border border-ink-200 bg-ink-50 px-4 py-3 text-sm text-ink-600">
       <p>{{ phaseLabel }}</p>
     </section>
 
     <section
       v-else-if="hasTranscribedSummary"
-      class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
+      class="space-y-3 rounded-xl border border-ink-200 bg-ink-50 p-3"
     >
       <div class="flex items-center justify-between gap-2">
-        <h3 class="text-sm font-semibold text-slate-900">{{ t('dashboard.validatePrescription.summaryTitle') }}</h3>
+        <h3 class="text-sm font-semibold text-ink-900">{{ t('dashboard.validatePrescription.summaryTitle') }}</h3>
         <button
           type="button"
-          class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:border-sky-200 hover:text-sky-800"
+          class="inline-flex items-center gap-1 rounded-lg border border-ink-200 bg-white px-2 py-1 text-xs font-semibold text-ink-700 hover:border-trust-200 hover:text-trust-800"
           :aria-label="t('dashboard.validatePrescription.editSummary')"
           @click="toggleSummaryEdit"
         >
@@ -251,16 +251,16 @@ async function runValidation(): Promise<void> {
         v-if="summaryEditing"
         v-model="prescriptionSummary"
         rows="12"
-        class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-slate-800 shadow-inner focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"
+        class="w-full rounded-lg border border-ink-200 bg-white px-3 py-2 font-mono text-sm text-ink-800 shadow-inner focus:border-trust-300 focus:outline-none focus:ring-2 focus:ring-trust-100"
       />
       <pre
         v-else
-        class="whitespace-pre-wrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
+        class="whitespace-pre-wrap rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800"
       >{{ prescriptionSummary }}</pre>
 
       <button
         type="button"
-        class="inline-flex items-center justify-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 disabled:opacity-50"
+        class="inline-flex items-center justify-center rounded-xl bg-trust-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-trust-800 disabled:opacity-50"
         :disabled="validating || transcribing"
         @click="runValidation"
       >
@@ -270,7 +270,7 @@ async function runValidation(): Promise<void> {
 
     <section
       v-if="validation && showValidationResults"
-      class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3"
+      class="space-y-3 rounded-xl border border-ink-200 bg-ink-50 p-3"
     >
       <span
         class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset"
@@ -280,13 +280,13 @@ async function runValidation(): Promise<void> {
       </span>
 
       <div v-if="extractedMedicines.length" class="space-y-1">
-        <h3 class="text-sm font-semibold text-slate-900">{{ t('dashboard.validatePrescription.medicinesFound') }}</h3>
-        <p class="text-sm text-slate-700">{{ extractedMedicines.join(', ') }}</p>
+        <h3 class="text-sm font-semibold text-ink-900">{{ t('dashboard.validatePrescription.medicinesFound') }}</h3>
+        <p class="text-sm text-ink-700">{{ extractedMedicines.join(', ') }}</p>
       </div>
 
       <div
         v-if="validation && (validation.childWeightKgUsed != null || validation.temperatureFUsed != null || validation.childAgeMonthsUsed != null)"
-        class="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-900"
+        class="rounded-lg border border-trust-100 bg-trust-50 px-3 py-2 text-sm text-trust-900"
       >
         <p class="font-semibold">{{ t('dashboard.validatePrescription.vitalsFound') }}</p>
         <p v-if="validation.childWeightKgUsed != null">
@@ -304,41 +304,41 @@ async function runValidation(): Promise<void> {
         {{ t('dashboard.validatePrescription.noWeightHint') }}
       </p>
 
-      <p v-if="validation.llmSummary" class="text-sm text-slate-700">{{ validation.llmSummary }}</p>
+      <p v-if="validation.llmSummary" class="text-sm text-ink-700">{{ validation.llmSummary }}</p>
 
       <div v-if="validation.interactionFindings.length" class="space-y-2">
-        <h3 class="text-sm font-semibold text-slate-900">{{ t('prescriptionSafety.interactions') }}</h3>
+        <h3 class="text-sm font-semibold text-ink-900">{{ t('prescriptionSafety.interactions') }}</h3>
         <article
           v-for="(item, idx) in validation.interactionFindings"
           :key="`${item.drugA}-${item.drugB}-${idx}`"
-          class="rounded-lg border border-slate-200 bg-white p-3 text-sm"
+          class="rounded-lg border border-ink-200 bg-white p-3 text-sm"
         >
-          <p class="font-semibold text-slate-900">{{ item.drugA }} + {{ item.drugB }}</p>
-          <p class="mt-1 text-xs uppercase tracking-wide text-slate-500">{{ item.severity }}</p>
-          <p class="mt-1 text-slate-700">{{ item.clinicalEffect }}</p>
+          <p class="font-semibold text-ink-900">{{ item.drugA }} + {{ item.drugB }}</p>
+          <p class="mt-1 text-xs uppercase tracking-wide text-ink-500">{{ item.severity }}</p>
+          <p class="mt-1 text-ink-700">{{ item.clinicalEffect }}</p>
         </article>
       </div>
 
       <div v-if="validation.dosageFindings.length" class="space-y-2">
-        <h3 class="text-sm font-semibold text-slate-900">{{ t('prescriptionSafety.dosage') }}</h3>
+        <h3 class="text-sm font-semibold text-ink-900">{{ t('prescriptionSafety.dosage') }}</h3>
         <article
           v-for="(item, idx) in validation.dosageFindings"
           :key="`${item.genericName}-${idx}`"
-          class="rounded-lg border border-slate-200 bg-white p-3 text-sm"
+          class="rounded-lg border border-ink-200 bg-white p-3 text-sm"
         >
-          <p class="font-semibold text-slate-900">{{ item.genericName }}</p>
-          <p class="mt-1 text-slate-700">{{ item.message }}</p>
+          <p class="font-semibold text-ink-900">{{ item.genericName }}</p>
+          <p class="mt-1 text-ink-700">{{ item.message }}</p>
         </article>
       </div>
 
-      <p v-if="validation.unrecognizedDrugs.length" class="text-sm text-slate-600">
+      <p v-if="validation.unrecognizedDrugs.length" class="text-sm text-ink-600">
         {{ t('prescriptionSafety.unrecognized', { drugs: validation.unrecognizedDrugs.join(', ') }) }}
       </p>
     </section>
 
     <section
       v-else-if="validation"
-      class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+      class="rounded-xl border border-trust-200 bg-trust-50 px-4 py-3 text-sm text-trust-900"
     >
       {{ t(`prescriptionSafety.risk.${validation.overallRiskLevel}`) }}
     </section>

@@ -147,14 +147,14 @@ async function onSave() {
 </script>
 
 <template>
-  <div :id="htmlId" class="space-y-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+  <div :id="htmlId" class="space-y-4 rounded-xl border border-ink-200 bg-ink-50/80 p-4">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <p class="max-w-2xl text-sm text-slate-600">
+      <p class="max-w-2xl text-sm text-ink-600">
         {{ t('dashboard.workingSlots.helper') }}
       </p>
       <button
         type="button"
-        class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+        class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
         :disabled="loading"
         @click="onSave"
       >
@@ -165,14 +165,14 @@ async function onSave() {
       <div
         v-for="key in DAY_KEYS"
         :key="key"
-        class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+        class="rounded-lg border border-ink-200 bg-white p-3 shadow-sm"
       >
-        <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 pb-2 mb-3">
-          <label class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+        <div class="flex flex-wrap items-center gap-3 border-b border-ink-100 pb-2 mb-3">
+          <label class="flex items-center gap-2 text-sm font-semibold text-ink-800">
             <input type="checkbox" :checked="dayOf(key).enabled" @change="setEnabled(key, ($event.target as HTMLInputElement).checked)" />
             {{ dayLabel(key) }}
           </label>
-          <div class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+          <div class="flex flex-wrap items-center gap-2 text-sm text-ink-600">
             <span>{{ t('dashboard.workingSlots.slotLength') }}</span>
             <label class="inline-flex items-center gap-1">
               <input
@@ -200,27 +200,27 @@ async function onSave() {
             :key="`${key}-${idx}`"
             class="flex flex-wrap items-end gap-2"
           >
-            <label class="text-xs font-medium text-slate-600">
+            <label class="text-xs font-medium text-ink-600">
               {{ t('common.start') }}
               <input
                 type="time"
-                class="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                class="mt-1 block w-full rounded-md border border-ink-300 px-2 py-1 text-sm"
                 :value="win.start"
                 @input="setWindowField(key, idx, 'start', ($event.target as HTMLInputElement).value)"
               />
             </label>
-            <label class="text-xs font-medium text-slate-600">
+            <label class="text-xs font-medium text-ink-600">
               {{ t('common.end') }}
               <input
                 type="time"
-                class="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                class="mt-1 block w-full rounded-md border border-ink-300 px-2 py-1 text-sm"
                 :value="win.end"
                 @input="setWindowField(key, idx, 'end', ($event.target as HTMLInputElement).value)"
               />
             </label>
             <button
               type="button"
-              class="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              class="rounded-md border border-ink-300 px-2 py-1 text-xs font-semibold text-ink-700 hover:bg-ink-50"
               @click="addWindow(key)"
             >
               {{ t('dashboard.workingSlots.addWindow') }}
@@ -235,20 +235,20 @@ async function onSave() {
             </button>
           </div>
         </div>
-        <p v-else class="text-xs text-slate-500">{{ t('dashboard.workingSlots.dayOffNotBookable') }}</p>
-        <details class="mt-3 border-t border-slate-100 pt-2">
-          <summary class="cursor-pointer select-none text-xs font-semibold text-emerald-700 hover:underline">
+        <p v-else class="text-xs text-ink-500">{{ t('dashboard.workingSlots.dayOffNotBookable') }}</p>
+        <details class="mt-3 border-t border-ink-100 pt-2">
+          <summary class="cursor-pointer select-none text-xs font-semibold text-brand-700 hover:underline">
             {{ t('dashboard.workingSlots.copyThisDay') }}
           </summary>
-          <div class="mt-2 space-y-2 rounded-md border border-slate-100 bg-slate-50/90 p-2">
-            <p class="text-xs text-slate-600">
+          <div class="mt-2 space-y-2 rounded-md border border-ink-100 bg-ink-50/90 p-2">
+            <p class="text-xs text-ink-600">
               {{ t('dashboard.workingSlots.copyHint') }}
             </p>
             <div class="flex flex-wrap gap-2">
               <button
                 type="button"
                 :title="t('dashboard.workingSlots.copyMonFriTitle')"
-                class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40"
+                class="rounded-md border border-ink-200 bg-white px-2 py-1 text-xs font-semibold text-ink-800 hover:bg-ink-50 disabled:opacity-40"
                 :disabled="loading"
                 @click="copyDayToTargets(key, weekdayOthers(key))"
               >
@@ -257,7 +257,7 @@ async function onSave() {
               <button
                 type="button"
                 :title="t('dashboard.workingSlots.copySatSunTitle')"
-                class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40"
+                class="rounded-md border border-ink-200 bg-white px-2 py-1 text-xs font-semibold text-ink-800 hover:bg-ink-50 disabled:opacity-40"
                 :disabled="loading"
                 @click="copyDayToTargets(key, weekendOthers(key))"
               >
@@ -266,7 +266,7 @@ async function onSave() {
               <button
                 type="button"
                 :title="t('dashboard.workingSlots.copyAllOtherTitle')"
-                class="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40"
+                class="rounded-md border border-ink-200 bg-white px-2 py-1 text-xs font-semibold text-ink-800 hover:bg-ink-50 disabled:opacity-40"
                 :disabled="loading"
                 @click="copyDayToTargets(key, otherDayKeys(key))"
               >
@@ -277,15 +277,15 @@ async function onSave() {
               <label
                 v-for="t in otherDayKeys(key)"
                 :key="`${key}-copy-${t}`"
-                class="inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-700"
+                class="inline-flex cursor-pointer items-center gap-1.5 text-xs text-ink-700"
               >
-                <input v-model="copyTargets[key][t]" type="checkbox" class="rounded border-slate-300 text-emerald-600" />
+                <input v-model="copyTargets[key][t]" type="checkbox" class="rounded border-ink-300 text-brand-600" />
                 {{ dayLabel(t) }}
               </label>
             </div>
             <button
               type="button"
-              class="rounded-md border border-emerald-200 bg-white px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
+              class="rounded-md border border-brand-200 bg-white px-2 py-1 text-xs font-semibold text-brand-800 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-40"
               :disabled="!otherDayKeys(key).some((t) => copyTargets[key][t])"
               @click="copyDayToSelected(key)"
             >

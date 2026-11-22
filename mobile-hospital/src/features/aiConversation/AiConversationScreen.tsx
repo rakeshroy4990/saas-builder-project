@@ -5,6 +5,9 @@ import {
   Alert,
   AppState,
   type AppStateStatus,
+  Linking,
+  PermissionsAndroid,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,8 +16,9 @@ import {
   View
 } from 'react-native';
 import {
-  AudioModule,
+  getRecordingPermissionsAsync,
   RecordingPresets,
+  requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
   useAudioRecorderState
@@ -43,8 +47,7 @@ import {
   withRetries,
   type AiConversationMedicine,
   type AiConversationPrescription,
-  type AiConversationSession,
-  type AppointmentOption
+  type AiConversationSession
 } from '@/features/aiConversation/aiConversationApi';
 import { useNetworkStore } from '@/network/networkStore';
 import { colors } from '@/theme/colors';
@@ -97,7 +100,6 @@ export function AiConversationScreen() {
   const [starting, setStarting] = useState(false);
   const [consent, setConsent] = useState(false);
   const [languageHint, setLanguageHint] = useState('mixed');
-  const [appointments, setAppointments] = useState<AppointmentOption[]>([]);
   const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -175,7 +177,7 @@ export function AiConversationScreen() {
       try {
         const rows = await loadDoctorAppointmentsForAiConversation();
         if (cancelled) return;
-        setAppointments(rows);
+        // Match web: pick first appointment silently — no appointment picker in UI.
         if (rows[0]?.value) setSelectedAppointmentId(rows[0].value);
       } catch (err) {
         if (!cancelled) setError(apiErrorMessage(err, t('aiConversation.errors.startFailed')));
@@ -216,24 +218,81 @@ export function AiConversationScreen() {
     };
   }, [phase]);
 
-  async function ensureMicPermission(): Promise<boolean> {
-    const status = await AudioModule.requestRecordingPermissionsAsync();
-    return Boolean(status.granted);
+  function showMicDeniedHelp(blocked: boolean) {
+    setError(t('aiConversation.errors.micDenied'));
+    if (!blocked) return;
+    Alert.alert(t('aiConversation.errors.micDenied'), t('aiConversation.errors.micSettingsHint'), [
+      { text: t('common.back'), style: 'cancel' },
+      {
+        text: t('aiConversation.openSettings'),
+        onPress: () => {
+          void Linking.openSettings();
+        }
+      }
+    ]);
   }
 
-  async function beginRecording() {
-    setError('');
-    const granted = await ensureMicPermission();
-    if (!granted) {
+  /** @returns true when RECORD_AUDIO / mic access is granted */
+  async function ensureMicPermission(): Promise<boolean> {
+    try {
+      if (Platform.OS === 'android') {
+        const already = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+        if (!already) {
+          const androidResult = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+            {
+              title: t('aiConversation.micPermissionTitle'),
+              message: t('aiConversation.micPermissionMessage'),
+              buttonPositive: 'OK',
+              buttonNegative: 'Cancel'
+            }
+          );
+          if (androidResult !== PermissionsAndroid.RESULTS.GRANTED) {
+            showMicDeniedHelp(androidResult === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN);
+            return false;
+          }
+        }
+      }
+
+      const existing = await getRecordingPermissionsAsync();
+      if (existing.granted || existing.status === 'granted') {
+        return true;
+      }
+      const requested = await requestRecordingPermissionsAsync();
+      if (requested.granted || requested.status === 'granted') {
+        return true;
+      }
+      showMicDeniedHelp(requested.canAskAgain === false);
+      return false;
+    } catch {
       setError(t('aiConversation.errors.micDenied'));
-      return;
+      return false;
     }
+  }
+
+  async function configureAudioMode() {
+    // Background recording needs a native rebuild with expo-audio plugin; fall back if unsupported.
     try {
       await setAudioModeAsync({
         allowsRecording: true,
         playsInSilentMode: true,
         allowsBackgroundRecording: true
       });
+    } catch {
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true
+      });
+    }
+  }
+
+  async function beginRecording(): Promise<boolean> {
+    setError('');
+    if (!(await ensureMicPermission())) {
+      return false;
+    }
+    try {
+      await configureAudioMode();
       await recorder.prepareToRecordAsync();
       recorder.record();
       elapsedRef.current = 0;
@@ -246,8 +305,16 @@ export function AiConversationScreen() {
         setElapsedSec(elapsedRef.current);
       }, 1000);
       setPhase('recording');
-    } catch {
-      setError(t('aiConversation.errors.micDenied'));
+      return true;
+    } catch (err) {
+      const detail = err instanceof Error ? err.message.trim() : String(err ?? '').trim();
+      setError(
+        detail
+          ? `${t('aiConversation.errors.recordingFailed')} (${detail})`
+          : t('aiConversation.errors.recordingFailed')
+      );
+      setPhase('idle');
+      return false;
     }
   }
 
@@ -270,6 +337,10 @@ export function AiConversationScreen() {
     }
     if (!consent) {
       setError(t('aiConversation.errors.consentRequired'));
+      return;
+    }
+    // Ask for mic before creating a server session (avoids orphan sessions on mic failure).
+    if (!(await ensureMicPermission())) {
       return;
     }
     setStarting(true);
@@ -584,31 +655,7 @@ export function AiConversationScreen() {
             <Text style={styles.body}>{t('aiConversation.languages')}</Text>
             <Text style={[styles.body, styles.gap]}>{t('aiConversation.notice')}</Text>
 
-            <Text style={sharedStyles.label}>{t('aiConversation.appointment')}</Text>
-            {appointmentsLoading ? (
-              <ActivityIndicator color={colors.primary} />
-            ) : appointments.length ? (
-              <View style={styles.chipRow}>
-                {appointments.slice(0, 8).map((opt) => (
-                  <Pressable
-                    key={opt.id}
-                    style={[styles.chip, selectedAppointmentId === opt.value && styles.chipActive]}
-                    onPress={() => setSelectedAppointmentId(opt.value)}
-                  >
-                    <Text
-                      style={[styles.chipText, selectedAppointmentId === opt.value && styles.chipTextActive]}
-                      numberOfLines={2}
-                    >
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : (
-              <Text style={styles.muted}>{t('aiConversation.errors.selectAppointment')}</Text>
-            )}
-
-            <Text style={[sharedStyles.label, styles.gapTop]}>{t('aiConversation.languageHint')}</Text>
+            <Text style={sharedStyles.label}>{t('aiConversation.languageHint')}</Text>
             <View style={styles.chipRow}>
               {LANGUAGE_OPTIONS.map((opt) => (
                 <Pressable
@@ -627,6 +674,10 @@ export function AiConversationScreen() {
               <View style={[styles.checkbox, consent && styles.checkboxOn]} />
               <Text style={styles.consentText}>{t('aiConversation.consent')}</Text>
             </Pressable>
+
+            {appointmentsLoading ? (
+              <ActivityIndicator color={colors.primary} style={styles.gapTop} />
+            ) : null}
 
             <Pressable
               style={[sharedStyles.button, (starting || appointmentsLoading) && styles.disabled]}

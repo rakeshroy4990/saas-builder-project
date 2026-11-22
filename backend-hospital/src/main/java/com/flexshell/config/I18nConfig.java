@@ -21,8 +21,10 @@ public class I18nConfig {
         hospital.setDefaultEncoding("UTF-8");
         hospital.setFallbackToSystemLocale(false);
 
+        // Distinct basename — hospital also ships classpath:messages_*.properties, which would
+        // otherwise shadow backend-auth-lib bundles and return raw keys like error.auth.invalid_credentials.
         ReloadableResourceBundleMessageSource auth = new ReloadableResourceBundleMessageSource();
-        auth.setBasename("classpath:messages");
+        auth.setBasename("classpath:auth-messages");
         auth.setDefaultEncoding("UTF-8");
         auth.setFallbackToSystemLocale(false);
 

@@ -85,7 +85,7 @@ const handleKeydown = (event: KeyboardEvent) => {
       class="absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-white/75"
       aria-hidden="true"
     >
-      <component :is="busyIndicator" class="text-emerald-700" />
+      <component :is="busyIndicator" class="text-brand-700" />
     </div>
     <template v-for="child in config.children" :key="child.id">
       <DynamicComponent

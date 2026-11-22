@@ -42,20 +42,20 @@ const badgeClass = computed(() => {
   const level = (triage.value?.urgencyLevel ?? '').toUpperCase();
   if (level === 'EMERGENCY') return 'bg-red-100 text-red-800';
   if (level === 'CLINIC_VISIT') return 'bg-amber-100 text-amber-900';
-  if (level === 'HOME_CARE') return 'bg-emerald-100 text-emerald-900';
-  return 'bg-gray-100 text-gray-700';
+  if (level === 'HOME_CARE') return 'bg-trust-100 text-trust-900';
+  return 'bg-ink-100 text-ink-700';
 });
 </script>
 
 <template>
-  <div v-if="triage" class="rounded border border-gray-200 bg-white p-3 text-sm">
+  <div v-if="triage" class="rounded-2xl border border-line bg-surface p-4 shadow-tile text-sm">
     <div class="flex flex-wrap items-center gap-2">
       <span :class="['rounded px-2 py-0.5 text-xs font-semibold uppercase', badgeClass]">
         {{ triage.urgencyLevel.replace('_', ' ') }}
       </span>
-      <span v-if="triage.childDisplayName" class="font-medium text-gray-800">{{ triage.childDisplayName }}</span>
-      <span class="text-xs text-gray-500">{{ minutesAgo }}</span>
-      <button class="ml-auto text-xs text-teal-700 underline" type="button" @click="expanded = !expanded">
+      <span v-if="triage.childDisplayName" class="font-medium text-ink-800">{{ triage.childDisplayName }}</span>
+      <span class="text-xs text-ink-500">{{ minutesAgo }}</span>
+      <button class="ml-auto text-xs text-trust-700 underline" type="button" @click="expanded = !expanded">
         {{ expanded ? 'Hide note' : 'View note' }}
       </button>
     </div>
@@ -68,6 +68,6 @@ const badgeClass = computed(() => {
         {{ flag }}
       </span>
     </div>
-    <p v-if="expanded" class="mt-2 whitespace-pre-wrap text-gray-700">{{ triage.doctorNote }}</p>
+    <p v-if="expanded" class="mt-2 whitespace-pre-wrap text-ink-700">{{ triage.doctorNote }}</p>
   </div>
 </template>

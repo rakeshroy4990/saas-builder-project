@@ -942,7 +942,7 @@ export const chatHospitalServices: ServiceDefinition[] = [
                 content: msg.body
               }));
               const baseReply = normalizedAiReply(
-                data.reply ?? data.message,
+                data.Reply ?? data.reply ?? data.Message ?? data.message ?? (acc.trim() || undefined),
                 body,
                 conversationHistory
               );

@@ -40,6 +40,7 @@ export const router = createRouter({
       redirect: '/dashboard'
     },
     {
+      path: '/_telemetry/session',
       component: SessionTelemetryDebug
     },
     {

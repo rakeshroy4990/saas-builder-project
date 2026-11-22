@@ -13,7 +13,7 @@ export function legalSection(id: string, titleKey: string, bodyKey: string): Com
           type: 'text',
           config: {
             i18nKey: titleKey,
-            styles: { utilityClasses: 'block w-full text-base font-semibold text-slate-900' }
+            styles: { utilityClasses: 'block w-full text-base font-semibold text-ink-900' }
           }
         },
         {

@@ -892,7 +892,9 @@
       "selectAppointment": "Select an appointment to continue.",
       "consentRequired": "Consent is required before recording.",
       "startFailed": "Could not start the recording session.",
-      "offlineOrSleep": "Connection was lost (offline or phone sleep). Tap Retry when you are back online."
+      "offlineOrSleep": "Connection was lost (offline or phone sleep). Tap Retry when you are back online.",
+      "recordingFailed": "Could not start the microphone recorder.",
+      "micSettingsHint": "Microphone access is blocked. Enable it in Settings, then try again."
     },
     "languageOptions": {
       "mixed": "Mixed language",
@@ -901,6 +903,9 @@
       "kn": "Kannada"
     },
     "retry": "Retry processing",
-    "discardSession": "Start over"
+    "discardSession": "Start over",
+    "openSettings": "Open Settings",
+    "micPermissionTitle": "Microphone permission",
+    "micPermissionMessage": "Agastya Healthcare needs the microphone to record doctor–patient consultations."
   }
 }

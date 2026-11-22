@@ -910,11 +910,11 @@ onBeforeUnmount(() => {
 <template>
   <section class="flex w-full min-w-0 flex-1 flex-col gap-4">
     <header class="flex flex-col gap-1">
-      <h1 class="text-2xl font-semibold tracking-tight text-[var(--brand-primary,#0f766e)]">
+      <h1 class="text-2xl font-semibold tracking-tight text-brand-700">
         {{ t('aiConversation.title') }}
       </h1>
-      <p class="text-sm text-slate-600">{{ t('aiConversation.subtitle') }}</p>
-      <p class="text-xs text-slate-500">{{ t('aiConversation.disclaimer') }}</p>
+      <p class="text-sm text-ink-600">{{ t('aiConversation.subtitle') }}</p>
+      <p class="text-xs text-ink-500">{{ t('aiConversation.disclaimer') }}</p>
     </header>
 
     <p v-if="!isDoctor" class="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -923,20 +923,20 @@ onBeforeUnmount(() => {
 
     <template v-else>
       <p v-if="error" class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ error }}</p>
-      <p v-if="statusLine" class="text-sm text-slate-600">{{ statusLine }}</p>
+      <p v-if="statusLine" class="text-sm text-ink-600">{{ statusLine }}</p>
 
       <div
         v-if="phase === 'idle'"
-        class="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white/80 px-5 py-6"
+        class="flex flex-col gap-5 rounded-xl border border-ink-200 bg-white/80 px-5 py-6"
       >
-        <p class="text-sm text-slate-600">{{ t('aiConversation.languages') }}</p>
-        <p class="text-sm text-slate-600">{{ t('aiConversation.notice') }}</p>
+        <p class="text-sm text-ink-600">{{ t('aiConversation.languages') }}</p>
+        <p class="text-sm text-ink-600">{{ t('aiConversation.notice') }}</p>
 
-        <label class="flex flex-col gap-1 text-sm text-slate-700">
+        <label class="flex flex-col gap-1 text-sm text-ink-700">
           <span class="font-medium">{{ t('aiConversation.languageHint') }}</span>
           <select
             v-model="languageHint"
-            class="h-11 max-w-xl rounded-lg border border-slate-200 bg-white px-3"
+            class="h-11 max-w-xl rounded-lg border border-ink-200 bg-white px-3"
             :disabled="starting"
           >
             <option v-for="opt in languageOptions" :key="opt.value" :value="opt.value">
@@ -945,7 +945,7 @@ onBeforeUnmount(() => {
           </select>
         </label>
 
-        <label class="flex items-start gap-2 text-sm text-slate-700">
+        <label class="flex items-start gap-2 text-sm text-ink-700">
           <input v-model="consent" type="checkbox" class="mt-1 rounded" :disabled="starting" />
           <span>{{ t('aiConversation.consent') }}</span>
         </label>
@@ -953,7 +953,7 @@ onBeforeUnmount(() => {
         <div class="flex flex-wrap gap-3 pt-1">
           <button
             type="button"
-            class="inline-flex min-w-40 h-12 items-center justify-center rounded-lg bg-[var(--brand-primary,#0f766e)] px-4 text-sm font-medium text-white disabled:opacity-60"
+            class="inline-flex min-w-40 h-12 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white disabled:opacity-60"
             :disabled="starting || appointmentsLoading"
             @click="startRecordingSession"
           >
@@ -970,16 +970,16 @@ onBeforeUnmount(() => {
           <span v-if="phase === 'recording'">🔴 {{ t('aiConversation.recording') }}</span>
           <span v-else>⏸ {{ t('aiConversation.paused') }}</span>
         </p>
-        <p class="font-mono text-3xl tabular-nums text-slate-800">{{ timerLabel }}</p>
-        <p class="text-sm text-slate-600">{{ t('aiConversation.doctorConsultation') }}</p>
-        <p class="max-w-md text-center text-xs text-slate-500">
+        <p class="font-mono text-3xl tabular-nums text-ink-800">{{ timerLabel }}</p>
+        <p class="text-sm text-ink-600">{{ t('aiConversation.doctorConsultation') }}</p>
+        <p class="max-w-md text-center text-xs text-ink-500">
           {{ t('aiConversation.status.backgroundRecordingHint') }}
         </p>
         <div class="flex flex-wrap justify-center gap-3">
           <button
             v-if="phase === 'recording'"
             type="button"
-            class="inline-flex min-w-32 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium text-slate-800 shadow-sm ring-1 ring-slate-200"
+            class="inline-flex min-w-32 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium text-ink-800 shadow-sm ring-1 ring-ink-200"
             @click="pauseRecording"
           >
             {{ t('aiConversation.pause') }}
@@ -987,14 +987,14 @@ onBeforeUnmount(() => {
           <button
             v-else
             type="button"
-            class="inline-flex min-w-32 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium text-slate-800 shadow-sm ring-1 ring-slate-200"
+            class="inline-flex min-w-32 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium text-ink-800 shadow-sm ring-1 ring-ink-200"
             @click="resumeRecording"
           >
             {{ t('aiConversation.resume') }}
           </button>
           <button
             type="button"
-            class="inline-flex min-w-32 h-11 items-center justify-center rounded-lg bg-[var(--brand-primary,#0f766e)] px-4 text-sm font-medium text-white"
+            class="inline-flex min-w-32 h-11 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white"
             @click="stopAndProcess"
           >
             {{ t('aiConversation.stop') }}
@@ -1004,20 +1004,20 @@ onBeforeUnmount(() => {
 
       <div
         v-else-if="phase === 'processing'"
-        class="rounded-xl border border-slate-200 bg-white/80 px-5 py-10 text-center"
+        class="rounded-xl border border-ink-200 bg-white/80 px-5 py-10 text-center"
       >
-        <p class="text-base font-medium text-slate-800">{{ t('aiConversation.processing') }}</p>
-        <p class="mt-2 text-sm text-slate-600">{{ statusLine }}</p>
+        <p class="text-base font-medium text-ink-800">{{ t('aiConversation.processing') }}</p>
+        <p class="mt-2 text-sm text-ink-600">{{ statusLine }}</p>
       </div>
 
       <div v-else class="flex flex-col gap-4">
-        <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
+        <div class="flex flex-wrap gap-2 border-b border-ink-200 pb-2">
           <button
             v-for="id in (['transcript', 'summary', 'soap', 'diagnosis', 'prescription'] as TabId[])"
             :key="id"
             type="button"
             class="rounded-lg px-3 py-2 text-sm font-medium"
-            :class="tab === id ? 'bg-[var(--brand-primary,#0f766e)] text-white' : 'bg-slate-100 text-slate-700'"
+            :class="tab === id ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-700'"
             @click="tab = id"
           >
             {{ t(`aiConversation.tabs.${id}`) }}
@@ -1025,13 +1025,13 @@ onBeforeUnmount(() => {
         </div>
 
         <div v-if="tab === 'transcript'" class="flex flex-col gap-3">
-          <label class="flex items-center gap-2 text-sm text-slate-700">
+          <label class="flex items-center gap-2 text-sm text-ink-700">
             <input v-model="swapSpeakers" type="checkbox" class="rounded" />
             {{ t('aiConversation.swapSpeakers') }}
           </label>
           <button
             type="button"
-            class="self-start text-sm font-medium text-[var(--brand-primary,#0f766e)] underline"
+            class="self-start text-sm font-medium text-brand-700 underline"
             @click="swapAndRetranscribe"
           >
             {{ t('aiConversation.applySpeakerSwap') }}
@@ -1039,7 +1039,7 @@ onBeforeUnmount(() => {
           <textarea
             v-model="transcriptText"
             rows="12"
-            class="w-full rounded-lg border border-slate-200 bg-white p-3 font-noto text-sm leading-relaxed text-slate-800"
+            class="w-full rounded-lg border border-ink-200 bg-white p-3 font-noto text-sm leading-relaxed text-ink-800"
           />
         </div>
 
@@ -1047,44 +1047,44 @@ onBeforeUnmount(() => {
           <textarea
             v-model="patientSummary"
             rows="10"
-            class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-800"
+            class="w-full rounded-lg border border-ink-200 bg-white p-3 text-sm leading-relaxed text-ink-800"
           />
         </div>
 
         <div v-else-if="tab === 'soap'" class="grid gap-3 sm:grid-cols-2">
           <label class="flex flex-col gap-1 text-sm">
             <span class="font-medium">S</span>
-            <textarea v-model="soapSubjective" rows="4" class="rounded-lg border border-slate-200 p-2" />
+            <textarea v-model="soapSubjective" rows="4" class="rounded-lg border border-ink-200 p-2" />
           </label>
           <label class="flex flex-col gap-1 text-sm">
             <span class="font-medium">O</span>
-            <textarea v-model="soapObjective" rows="4" class="rounded-lg border border-slate-200 p-2" />
+            <textarea v-model="soapObjective" rows="4" class="rounded-lg border border-ink-200 p-2" />
           </label>
           <label class="flex flex-col gap-1 text-sm">
             <span class="font-medium">A</span>
-            <textarea v-model="soapAssessment" rows="4" class="rounded-lg border border-slate-200 p-2" />
+            <textarea v-model="soapAssessment" rows="4" class="rounded-lg border border-ink-200 p-2" />
           </label>
           <label class="flex flex-col gap-1 text-sm">
             <span class="font-medium">P</span>
-            <textarea v-model="soapPlan" rows="4" class="rounded-lg border border-slate-200 p-2" />
+            <textarea v-model="soapPlan" rows="4" class="rounded-lg border border-ink-200 p-2" />
           </label>
         </div>
 
-        <ul v-else-if="tab === 'diagnosis'" class="list-disc space-y-1 pl-5 text-sm text-slate-800">
+        <ul v-else-if="tab === 'diagnosis'" class="list-disc space-y-1 pl-5 text-sm text-ink-800">
           <li v-for="(dx, i) in possibleDiagnosis" :key="i">{{ dx }}</li>
-          <li v-if="!possibleDiagnosis.length" class="list-none text-slate-500">
+          <li v-if="!possibleDiagnosis.length" class="list-none text-ink-500">
             {{ t('aiConversation.noDiagnosis') }}
           </li>
         </ul>
 
         <div v-else-if="tab === 'prescription'" class="flex flex-col gap-4">
-          <p class="text-xs text-slate-500">{{ t('aiConversation.prescription.hint') }}</p>
+          <p class="text-xs text-ink-500">{{ t('aiConversation.prescription.hint') }}</p>
           <label class="flex flex-col gap-1 text-sm">
             <span class="font-medium">{{ t('aiConversation.prescription.complaint') }}</span>
             <textarea
               v-model="prescription.Complaint"
               rows="2"
-              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+              class="w-full rounded-lg border border-ink-200 bg-white p-3 text-sm"
             />
           </label>
           <label class="flex flex-col gap-1 text-sm">
@@ -1092,7 +1092,7 @@ onBeforeUnmount(() => {
             <textarea
               v-model="prescription.History"
               rows="3"
-              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+              class="w-full rounded-lg border border-ink-200 bg-white p-3 text-sm"
             />
           </label>
           <label class="flex flex-col gap-1 text-sm">
@@ -1100,7 +1100,7 @@ onBeforeUnmount(() => {
             <input
               v-model="prescription.Allergies"
               type="text"
-              class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+              class="h-11 w-full rounded-lg border border-ink-200 bg-white px-3 text-sm"
             />
           </label>
           <label class="flex flex-col gap-1 text-sm">
@@ -1108,7 +1108,7 @@ onBeforeUnmount(() => {
             <textarea
               v-model="prescription.Diagnosis"
               rows="2"
-              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+              class="w-full rounded-lg border border-ink-200 bg-white p-3 text-sm"
             />
           </label>
 
@@ -1117,80 +1117,80 @@ onBeforeUnmount(() => {
               <span class="text-sm font-medium">{{ t('aiConversation.prescription.medicines') }}</span>
               <button
                 type="button"
-                class="text-sm font-medium text-[var(--brand-primary,#0f766e)] underline"
+                class="text-sm font-medium text-brand-700 underline"
                 @click="addMedicineRow"
               >
                 {{ t('aiConversation.prescription.addMedicine') }}
               </button>
             </div>
-            <p v-if="!prescription.Medicines.length" class="text-sm text-slate-500">
+            <p v-if="!prescription.Medicines.length" class="text-sm text-ink-500">
               {{ t('aiConversation.prescription.noMedicines') }}
             </p>
             <div
               v-for="(med, idx) in prescription.Medicines"
               :key="idx"
-              class="grid gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3 sm:grid-cols-2"
+              class="grid gap-2 rounded-lg border border-ink-200 bg-ink-50/60 p-3 sm:grid-cols-2"
             >
               <label class="flex flex-col gap-1 text-xs sm:col-span-2">
-                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.medName') }}</span>
+                <span class="font-medium text-ink-600">{{ t('aiConversation.prescription.medName') }}</span>
                 <input
                   :value="med.Name"
                   type="text"
-                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  class="h-10 rounded-lg border border-ink-200 bg-white px-3 text-sm"
                   @input="updateMedicineField(idx, 'Name', ($event.target as HTMLInputElement).value)"
                 />
               </label>
               <label class="flex flex-col gap-1 text-xs">
-                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.strength') }}</span>
+                <span class="font-medium text-ink-600">{{ t('aiConversation.prescription.strength') }}</span>
                 <input
                   :value="med.Strength"
                   type="text"
-                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  class="h-10 rounded-lg border border-ink-200 bg-white px-3 text-sm"
                   @input="updateMedicineField(idx, 'Strength', ($event.target as HTMLInputElement).value)"
                 />
               </label>
               <label class="flex flex-col gap-1 text-xs">
-                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.dose') }}</span>
+                <span class="font-medium text-ink-600">{{ t('aiConversation.prescription.dose') }}</span>
                 <input
                   :value="med.Dose"
                   type="text"
-                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  class="h-10 rounded-lg border border-ink-200 bg-white px-3 text-sm"
                   @input="updateMedicineField(idx, 'Dose', ($event.target as HTMLInputElement).value)"
                 />
               </label>
               <label class="flex flex-col gap-1 text-xs">
-                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.frequency') }}</span>
+                <span class="font-medium text-ink-600">{{ t('aiConversation.prescription.frequency') }}</span>
                 <input
                   :value="med.Frequency"
                   type="text"
-                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  class="h-10 rounded-lg border border-ink-200 bg-white px-3 text-sm"
                   @input="updateMedicineField(idx, 'Frequency', ($event.target as HTMLInputElement).value)"
                 />
               </label>
               <label class="flex flex-col gap-1 text-xs">
-                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.route') }}</span>
+                <span class="font-medium text-ink-600">{{ t('aiConversation.prescription.route') }}</span>
                 <input
                   :value="med.Route"
                   type="text"
-                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  class="h-10 rounded-lg border border-ink-200 bg-white px-3 text-sm"
                   @input="updateMedicineField(idx, 'Route', ($event.target as HTMLInputElement).value)"
                 />
               </label>
               <label class="flex flex-col gap-1 text-xs">
-                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.durationDays') }}</span>
+                <span class="font-medium text-ink-600">{{ t('aiConversation.prescription.durationDays') }}</span>
                 <input
                   :value="med.DurationDays"
                   type="text"
-                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  class="h-10 rounded-lg border border-ink-200 bg-white px-3 text-sm"
                   @input="updateMedicineField(idx, 'DurationDays', ($event.target as HTMLInputElement).value)"
                 />
               </label>
               <label class="flex flex-col gap-1 text-xs sm:col-span-2">
-                <span class="font-medium text-slate-600">{{ t('aiConversation.prescription.instructions') }}</span>
+                <span class="font-medium text-ink-600">{{ t('aiConversation.prescription.instructions') }}</span>
                 <input
                   :value="med.Instructions"
                   type="text"
-                  class="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                  class="h-10 rounded-lg border border-ink-200 bg-white px-3 text-sm"
                   @input="updateMedicineField(idx, 'Instructions', ($event.target as HTMLInputElement).value)"
                 />
               </label>
@@ -1209,7 +1209,7 @@ onBeforeUnmount(() => {
             <textarea
               v-model="prescriptionInvestigationsText"
               rows="3"
-              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+              class="w-full rounded-lg border border-ink-200 bg-white p-3 text-sm"
               :placeholder="t('aiConversation.prescription.investigationsHint')"
             />
           </label>
@@ -1218,7 +1218,7 @@ onBeforeUnmount(() => {
             <textarea
               v-model="prescription.Advice"
               rows="3"
-              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+              class="w-full rounded-lg border border-ink-200 bg-white p-3 text-sm"
             />
           </label>
           <label class="flex flex-col gap-1 text-sm">
@@ -1226,7 +1226,7 @@ onBeforeUnmount(() => {
             <textarea
               v-model="prescription.FollowUpAdvice"
               rows="2"
-              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+              class="w-full rounded-lg border border-ink-200 bg-white p-3 text-sm"
             />
           </label>
           <label class="flex flex-col gap-1 text-sm">
@@ -1234,21 +1234,21 @@ onBeforeUnmount(() => {
             <textarea
               v-model="prescription.ClinicalNotes"
               rows="2"
-              class="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm"
+              class="w-full rounded-lg border border-ink-200 bg-white p-3 text-sm"
             />
           </label>
 
           <div class="flex flex-wrap gap-3">
             <button
               type="button"
-              class="inline-flex min-w-36 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-slate-200"
+              class="inline-flex min-w-36 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-ink-200"
               @click="regeneratePrescription"
             >
               {{ t('aiConversation.prescription.regenerate') }}
             </button>
             <button
               type="button"
-              class="inline-flex min-w-36 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-slate-200 disabled:opacity-60"
+              class="inline-flex min-w-36 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-ink-200 disabled:opacity-60"
               :disabled="applyingEprescription"
               @click="applyToEprescription"
             >
@@ -1264,14 +1264,14 @@ onBeforeUnmount(() => {
         <div class="flex flex-wrap gap-3 pt-2">
           <button
             type="button"
-            class="inline-flex min-w-28 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-slate-200"
+            class="inline-flex min-w-28 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-ink-200"
             @click="copyActive"
           >
             {{ t('aiConversation.copy') }}
           </button>
           <button
             type="button"
-            class="inline-flex min-w-28 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-slate-200"
+            class="inline-flex min-w-28 h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium ring-1 ring-ink-200"
             @click="downloadActive"
           >
             {{ t('aiConversation.download') }}
@@ -1287,12 +1287,12 @@ onBeforeUnmount(() => {
           <button
             v-if="phase !== 'saved'"
             type="button"
-            class="inline-flex min-w-28 h-11 items-center justify-center rounded-lg bg-[var(--brand-primary,#0f766e)] px-4 text-sm font-medium text-white"
+            class="inline-flex min-w-28 h-11 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white"
             @click="save"
           >
             {{ t('aiConversation.save') }}
           </button>
-          <p v-else class="self-center text-sm font-medium text-emerald-700">✔ {{ t('aiConversation.saved') }}</p>
+          <p v-else class="self-center text-sm font-medium text-brand-700">✔ {{ t('aiConversation.saved') }}</p>
         </div>
       </div>
     </template>

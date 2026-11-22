@@ -19,5 +19,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="p-6 text-center text-sm text-slate-600" role="status">{{ t('locale.setTitle') }}</div>
+  <div class="p-6 text-center text-sm text-ink-600" role="status">{{ t('locale.setTitle') }}</div>
 </template>

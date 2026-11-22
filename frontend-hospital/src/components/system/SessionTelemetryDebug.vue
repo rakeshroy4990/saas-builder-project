@@ -69,27 +69,27 @@ onMounted(load);
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl p-6 font-sans text-sm text-slate-800">
+  <div class="mx-auto max-w-5xl p-6 font-sans text-sm text-ink-800">
     <h1 class="mb-2 text-lg font-semibold">Session telemetry (this tab)</h1>
-    <p class="mb-4 text-slate-600">
-      Trace <code class="rounded bg-slate-100 px-1">{{ traceId }}</code> —
+    <p class="mb-4 text-ink-600">
+      Trace <code class="rounded bg-ink-100 px-1">{{ traceId }}</code> —
       <button type="button" class="text-blue-600 underline" @click="load">Refresh</button>
     </p>
-    <p v-if="loading" class="text-slate-500">Loading…</p>
+    <p v-if="loading" class="text-ink-500">Loading…</p>
     <p v-else-if="errorText" class="text-red-600">{{ errorText }}</p>
     <div v-else-if="snapshot" class="space-y-4">
       <dl class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <div><dt class="text-slate-500">Session key</dt><dd class="font-mono text-xs">{{ snapshot.sessionKey }}</dd></div>
-        <div><dt class="text-slate-500">User</dt><dd class="font-mono text-xs">{{ snapshot.userId }}</dd></div>
-        <div><dt class="text-slate-500">Total events</dt><dd>{{ snapshot.totalEvents }}</dd></div>
-        <div><dt class="text-slate-500">Updated</dt><dd>{{ snapshot.updatedAt }}</dd></div>
+        <div><dt class="text-ink-500">Session key</dt><dd class="font-mono text-xs">{{ snapshot.sessionKey }}</dd></div>
+        <div><dt class="text-ink-500">User</dt><dd class="font-mono text-xs">{{ snapshot.userId }}</dd></div>
+        <div><dt class="text-ink-500">Total events</dt><dd>{{ snapshot.totalEvents }}</dd></div>
+        <div><dt class="text-ink-500">Updated</dt><dd>{{ snapshot.updatedAt }}</dd></div>
       </dl>
       <div>
         <h2 class="mb-2 font-medium">Session summary (login → logout)</h2>
-        <p v-if="summaryRows.length === 0" class="mb-2 text-slate-600">0 records</p>
-        <div v-else class="overflow-x-auto rounded border border-slate-200">
-          <table class="min-w-full divide-y divide-slate-200 text-left text-xs">
-            <thead class="bg-slate-50">
+        <p v-if="summaryRows.length === 0" class="mb-2 text-ink-600">0 records</p>
+        <div v-else class="overflow-x-auto rounded border border-ink-200">
+          <table class="min-w-full divide-y divide-ink-200 text-left text-xs">
+            <thead class="bg-ink-50">
               <tr>
                 <th class="px-2 py-2">Time</th>
                 <th class="px-2 py-2">Kind</th>
@@ -98,13 +98,13 @@ onMounted(load);
                 <th class="px-2 py-2">API / detail</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-ink-100">
               <tr v-for="(row, i) in summaryRows" :key="i">
-                <td class="px-2 py-1 align-top font-mono text-[11px] text-slate-600">
+                <td class="px-2 py-1 align-top font-mono text-[11px] text-ink-600">
                   {{ pick(row, 'occurredAt') }}
                 </td>
                 <td class="px-2 py-1 align-top">{{ pick(row, 'kind') }}</td>
-                <td class="max-w-[14rem] truncate px-2 py-1 align-top text-[11px] text-slate-700" :title="pick(row, 'userEmail')">
+                <td class="max-w-[14rem] truncate px-2 py-1 align-top text-[11px] text-ink-700" :title="pick(row, 'userEmail')">
                   {{ pick(row, 'userEmail') }}
                 </td>
                 <td class="px-2 py-1 align-top font-mono text-[11px]">
@@ -112,7 +112,7 @@ onMounted(load);
                   <span v-if="pick(row, 'componentId')">btn={{ pick(row, 'componentId') }} </span>
                   <span v-if="pick(row, 'popupPageId')">popup={{ pick(row, 'popupPageId') }}</span>
                 </td>
-                <td class="max-w-md px-2 py-1 align-top font-mono text-[11px] text-slate-700 break-all">
+                <td class="max-w-md px-2 py-1 align-top font-mono text-[11px] text-ink-700 break-all">
                   <template v-if="pick(row, 'apiPath')">
                     {{ pick(row, 'httpMethod') }} {{ pick(row, 'apiPath') }}
                     <span v-if="num(pick(row, 'durationMs')) != null"> ({{ num(pick(row, 'durationMs')) }} ms)</span>

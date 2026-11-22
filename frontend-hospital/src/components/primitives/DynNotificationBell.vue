@@ -292,13 +292,13 @@ onUnmounted(() => {
   <div ref="rootRef" class="relative shrink-0" data-notification-bell-root>
     <button
       type="button"
-      class="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-0 p-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+      class="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-0 p-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
       :class="
         panelOpen
-          ? 'bg-emerald-100 text-emerald-700'
+          ? 'bg-brand-100 text-brand-700'
           : hasUnread
-            ? 'text-emerald-700 hover:bg-emerald-50'
-            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+            ? 'text-brand-700 hover:bg-brand-50'
+            : 'text-ink-600 hover:bg-ink-100 hover:text-ink-800'
       "
       :aria-expanded="panelOpen"
       :aria-label="hasUnread ? t('notifications.bellAriaWithCount', { count: unreadCount }) : t('notifications.bellAria')"
@@ -332,28 +332,28 @@ onUnmounted(() => {
       <div
         v-if="panelOpen"
         ref="panelRef"
-        class="fixed z-[1000] w-[min(92vw,380px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+        class="fixed z-[1000] w-[min(92vw,380px)] overflow-hidden rounded-xl border border-ink-200 bg-white shadow-2xl"
         :class="panelPositioned ? '' : 'invisible'"
         :style="panelStyle"
       >
-      <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h3 class="text-sm font-semibold text-slate-900">{{ t('notifications.title') }}</h3>
+      <div class="flex items-center justify-between border-b border-ink-100 px-4 py-3">
+        <h3 class="text-sm font-semibold text-ink-900">{{ t('notifications.title') }}</h3>
         <button
           v-if="hasUnread"
           type="button"
-          class="text-xs font-medium text-sky-700 hover:text-sky-900"
+          class="text-xs font-medium text-trust-700 hover:text-trust-900"
           @click="markAllRead"
         >
           {{ t('notifications.markAllRead') }}
         </button>
       </div>
 
-      <div v-if="isLoading" class="px-4 py-8 text-center text-sm text-slate-500">
+      <div v-if="isLoading" class="px-4 py-8 text-center text-sm text-ink-500">
         {{ t('notifications.loading') }}
       </div>
 
-      <div v-else-if="items.length === 0" class="flex flex-col items-center px-4 py-10 text-slate-400">
-        <svg viewBox="0 0 24 24" class="mb-2 h-8 w-8 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <div v-else-if="items.length === 0" class="flex flex-col items-center px-4 py-10 text-ink-400">
+        <svg viewBox="0 0 24 24" class="mb-2 h-8 w-8 text-ink-300" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -370,25 +370,25 @@ onUnmounted(() => {
           { key: 'earlier', label: t('notifications.groups.earlier') }
         ] as const)" :key="group.key">
           <template v-if="groupedItems[group.key].length">
-            <div class="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <div class="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-ink-500">
               {{ group.label }}
             </div>
             <button
               v-for="notification in groupedItems[group.key]"
               :key="notification.externalId"
               type="button"
-              class="flex w-full items-start gap-3 border-b border-slate-50 px-4 py-3 text-left transition hover:bg-slate-50"
-              :class="notification.isRead ? '' : 'border-l-[3px] border-l-sky-700 bg-sky-50/70'"
+              class="flex w-full items-start gap-3 border-b border-ink-50 px-4 py-3 text-left transition hover:bg-ink-50"
+              :class="notification.isRead ? '' : 'border-l-[3px] border-l-trust-700 bg-trust-50/70'"
               @click="navigateForNotification(notification)"
             >
               <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-semibold text-slate-900">{{ notification.title }}</p>
-                <p class="mt-0.5 line-clamp-2 text-xs text-slate-600">{{ notification.message }}</p>
-                <span class="mt-1 block text-[11px] text-slate-400">{{ formatTimeAgo(notification.createdAt) }}</span>
+                <p class="truncate text-sm font-semibold text-ink-900">{{ notification.title }}</p>
+                <p class="mt-0.5 line-clamp-2 text-xs text-ink-600">{{ notification.message }}</p>
+                <span class="mt-1 block text-[11px] text-ink-400">{{ formatTimeAgo(notification.createdAt) }}</span>
               </div>
               <span
                 v-if="!notification.isRead"
-                class="mt-1 h-2 w-2 shrink-0 rounded-full bg-sky-700"
+                class="mt-1 h-2 w-2 shrink-0 rounded-full bg-trust-700"
                 aria-hidden="true"
               />
             </button>

@@ -66,7 +66,7 @@ function readBufferedPaintAndNav(): void {
 }
 
 function durationClass(ms: number): string {
-  if (ms < 200) return 'text-emerald-400';
+  if (ms < 200) return 'text-brand-400';
   if (ms < 1000) return 'text-amber-300';
   return 'text-red-400';
 }

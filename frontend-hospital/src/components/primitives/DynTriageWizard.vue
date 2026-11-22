@@ -21,7 +21,7 @@ const frequencyOptions = TRIAGE_FREQUENCY_VALUES.map((value) => ({
 }));
 
 const formFieldClass = resolveStyle({ styleTemplate: 'form.label.stack' });
-const fieldLabelClass = 'text-sm font-medium text-slate-800';
+const fieldLabelClass = 'text-sm font-medium text-ink-800';
 const inputClass = resolveStyle({ styleTemplate: 'hosp.form.input' });
 const textareaClass = resolveStyle({ styleTemplate: 'hosp.form.textarea' });
 const formActionsClass = 'flex flex-wrap items-center justify-end gap-3 pt-2';
@@ -125,7 +125,7 @@ const urgencyClass = computed(() => {
   const level = session.value.urgencyLevel.toUpperCase();
   if (level === 'EMERGENCY') return 'bg-red-100 text-red-800 border-red-300';
   if (level === 'CLINIC_VISIT') return 'bg-amber-100 text-amber-900 border-amber-300';
-  return 'bg-emerald-100 text-emerald-900 border-emerald-300';
+  return 'bg-brand-100 text-brand-900 border-brand-300';
 });
 
 function patch(data: Record<string, unknown>) {
@@ -218,7 +218,7 @@ async function runEngineAction(event: { action?: { actionId?: string } }) {
       <div :class="formFieldClass">
         <label :class="fieldLabelClass" for="triage-symptom-brief">
           {{ t('triage.symptomBrief.label') }}
-          <span class="font-normal text-slate-500">{{ t('triage.symptomBrief.optional') }}</span>
+          <span class="font-normal text-ink-500">{{ t('triage.symptomBrief.optional') }}</span>
         </label>
         <textarea
           id="triage-symptom-brief"
@@ -235,19 +235,19 @@ async function runEngineAction(event: { action?: { actionId?: string } }) {
     </template>
 
     <template v-else-if="session.step === 'loading'">
-      <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4">
+      <div class="rounded-lg border border-ink-200 bg-ink-50 px-4 py-4">
         <div class="flex items-center gap-3">
           <div
-            class="h-6 w-6 shrink-0 animate-spin rounded-full border-2 border-teal-200 border-t-teal-700"
+            class="h-6 w-6 shrink-0 animate-spin rounded-full border-2 border-trust-200 border-t-trust-700"
             aria-hidden="true"
           />
-          <p class="text-sm font-medium text-slate-800">{{ streamStatusText }}</p>
+          <p class="text-sm font-medium text-ink-800">{{ streamStatusText }}</p>
         </div>
-        <div class="mt-3 min-h-24 text-left text-sm leading-relaxed text-slate-700">
+        <div class="mt-3 min-h-24 text-left text-sm leading-relaxed text-ink-700">
           <p v-if="streamPreviewText" class="whitespace-pre-wrap">
-            {{ streamPreviewText }}<span class="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-teal-600 align-middle" />
+            {{ streamPreviewText }}<span class="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-trust-600 align-middle" />
           </p>
-          <p v-else-if="showStreamWaitingHint" class="text-slate-500">{{ t('triage.streamWaiting') }}</p>
+          <p v-else-if="showStreamWaitingHint" class="text-ink-500">{{ t('triage.streamWaiting') }}</p>
         </div>
       </div>
     </template>
@@ -266,7 +266,7 @@ async function runEngineAction(event: { action?: { actionId?: string } }) {
           {{ flag }}
         </span>
       </div>
-      <p class="text-xs text-gray-500">{{ t('triage.resultDisclaimer') }}</p>
+      <p class="text-xs text-ink-500">{{ t('triage.resultDisclaimer') }}</p>
       <div :class="resultActionsClass">
         <DynButton :config="bookButtonConfig" @action="runEngineAction" />
         <DynButton :config="symptomCheckerButtonConfig" @action="runEngineAction" />

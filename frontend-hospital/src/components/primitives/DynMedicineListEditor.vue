@@ -34,7 +34,7 @@ const emit = defineEmits<{
 const rootClass = computed(() =>
   resolveStyle(
     props.config?.styles ?? {
-      utilityClasses: 'md:col-span-2 rounded-lg border border-slate-200 bg-white p-2 sm:p-3 space-y-3'
+      utilityClasses: 'md:col-span-2 rounded-lg border border-ink-200 bg-white p-2 sm:p-3 space-y-3'
     }
   )
 );
@@ -311,10 +311,10 @@ onBeforeUnmount(() => {
 <template>
   <div :id="htmlId" :class="rootClass">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <p class="text-sm font-semibold text-slate-800">Medicines *</p>
+      <p class="text-sm font-semibold text-ink-800">Medicines *</p>
       <button
         type="button"
-        class="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        class="rounded-md border border-ink-300 px-2 py-1 text-xs font-semibold text-ink-700 hover:bg-ink-50"
         @click="appendNextRowFrom(rows.length - 1)"
       >
         + Add medicine
@@ -324,15 +324,15 @@ onBeforeUnmount(() => {
     <div
       v-for="(row, index) in rows"
       :key="row.id"
-      class="mb-3 rounded-md border border-slate-200 bg-slate-50/40 p-2 space-y-2 last:mb-0"
+      class="mb-3 rounded-md border border-ink-200 bg-ink-50/40 p-2 space-y-2 last:mb-0"
     >
       <div class="flex items-center justify-between">
-        <p class="text-xs font-semibold text-slate-700">Rx {{ index + 1 }}</p>
+        <p class="text-xs font-semibold text-ink-700">Rx {{ index + 1 }}</p>
         <div class="flex items-center gap-2">
           <button
             v-if="editingRowId !== row.id"
             type="button"
-            class="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            class="rounded-md border border-ink-300 px-2 py-1 text-xs font-semibold text-ink-700 hover:bg-ink-50"
             @click="beginEdit(index)"
           >
             Edit
@@ -349,37 +349,37 @@ onBeforeUnmount(() => {
 
       <template v-if="editingRowId === row.id">
         <div class="relative" @keydown="onRowKeyDown($event, index, row)">
-          <label class="block text-[11px] font-semibold text-slate-700">Medicine</label>
+          <label class="block text-[11px] font-semibold text-ink-700">Medicine</label>
           <input
             :value="row.query"
             type="text"
-            class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            class="w-full rounded-md border border-ink-300 px-2 py-1.5 text-sm"
             placeholder="Type at least 2 letters (e.g. Para...)"
             @focus="focusRow(row.id)"
             @input="updateQuery(row, ($event.target as HTMLInputElement).value)"
           />
-          <div v-if="isLoading && activeRowId === row.id" class="mt-1 text-[11px] text-slate-500">Searching...</div>
+          <div v-if="isLoading && activeRowId === row.id" class="mt-1 text-[11px] text-ink-500">Searching...</div>
           <div
             v-if="activeRowId === row.id && searchQuery.trim().length >= 2"
-            class="absolute z-20 mt-1 max-h-44 w-full overflow-y-auto rounded-md border border-slate-200 bg-white p-1 shadow-lg"
+            class="absolute z-20 mt-1 max-h-44 w-full overflow-y-auto rounded-md border border-ink-200 bg-white p-1 shadow-lg"
           >
             <button
               v-for="entry in visibleResults"
               :key="entry.id"
               type="button"
-              class="block w-full rounded px-2 py-1 text-left text-[11px] hover:bg-slate-50"
+              class="block w-full rounded px-2 py-1 text-left text-[11px] hover:bg-ink-50"
               @mousedown.prevent="pickSuggestion(row, entry)"
             >
               <span class="font-semibold">{{ entry.name }}</span>
-              <span class="text-slate-500"> · {{ entry.composition }} · {{ entry.manufacturer }}</span>
+              <span class="text-ink-500"> · {{ entry.composition }} · {{ entry.manufacturer }}</span>
             </button>
-            <p v-if="visibleResults.length === 0" class="px-2 py-1 text-[11px] text-slate-500">No medicines found.</p>
+            <p v-if="visibleResults.length === 0" class="px-2 py-1 text-[11px] text-ink-500">No medicines found.</p>
           </div>
         </div>
         <div class="pt-1">
           <button
             type="button"
-            class="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            class="rounded-md border border-ink-300 px-2 py-1 text-xs font-semibold text-ink-700 hover:bg-ink-50"
             @click="appendNextRowFrom(index)"
           >
             + Add Medicine
@@ -388,22 +388,22 @@ onBeforeUnmount(() => {
 
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <div @keydown="onRowKeyDown($event, index, row)">
-            <label class="block text-[11px] font-semibold text-slate-700">Dose</label>
+            <label class="block text-[11px] font-semibold text-ink-700">Dose</label>
             <input
               v-model="row.dose"
               list="medicine-dose-options"
               type="text"
-              class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              class="w-full rounded-md border border-ink-300 px-2 py-1.5 text-sm"
               placeholder="500 mg"
               @input="emitChange"
             />
           </div>
 
           <div @keydown="onRowKeyDown($event, index, row)">
-            <label class="block text-[11px] font-semibold text-slate-700">Frequency</label>
+            <label class="block text-[11px] font-semibold text-ink-700">Frequency</label>
             <select
               v-model="row.frequency"
-              class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              class="w-full rounded-md border border-ink-300 px-2 py-1.5 text-sm"
               @change="emitChange"
             >
               <option value="">Select</option>
@@ -412,20 +412,20 @@ onBeforeUnmount(() => {
           </div>
 
           <div @keydown="onRowKeyDown($event, index, row)">
-            <label class="block text-[11px] font-semibold text-slate-700">Duration</label>
+            <label class="block text-[11px] font-semibold text-ink-700">Duration</label>
             <input
               v-model="row.durationDays"
               type="number"
               min="1"
-              class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              class="w-full rounded-md border border-ink-300 px-2 py-1.5 text-sm"
               placeholder="days"
               @input="emitChange"
             />
           </div>
 
           <div @keydown="onRowKeyDown($event, index, row)">
-            <label class="block text-[11px] font-semibold text-slate-700">Route</label>
-            <select v-model="row.route" class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" @change="emitChange">
+            <label class="block text-[11px] font-semibold text-ink-700">Route</label>
+            <select v-model="row.route" class="w-full rounded-md border border-ink-300 px-2 py-1.5 text-sm" @change="emitChange">
               <option value="">Select</option>
               <option v-for="option in routeOptions" :key="option" :value="option">{{ option }}</option>
             </select>
@@ -433,25 +433,25 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="flex flex-wrap items-center gap-1">
-          <span class="text-[11px] text-slate-500">Quick frequency:</span>
+          <span class="text-[11px] text-ink-500">Quick frequency:</span>
           <button
             v-for="option in ['OD', 'BD', 'TDS']"
             :key="`freq-${option}`"
             type="button"
             class="rounded border px-1.5 py-0.5 text-[11px]"
-            :class="row.frequency === option ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-300 text-slate-700'"
+            :class="row.frequency === option ? 'border-trust-300 bg-trust-50 text-trust-700' : 'border-ink-300 text-ink-700'"
             @click="setQuickFrequency(row, option)"
           >
             {{ option }}
           </button>
-          <span class="ml-1 text-[11px] text-slate-500">days:</span>
+          <span class="ml-1 text-[11px] text-ink-500">days:</span>
           <button
             v-for="days in quickDurationOptions"
             :key="`dur-${days}`"
             type="button"
             class="rounded border px-1.5 py-0.5 text-[11px]"
             :class="
-              row.durationDays === days ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-300 text-slate-700'
+              row.durationDays === days ? 'border-trust-300 bg-trust-50 text-trust-700' : 'border-ink-300 text-ink-700'
             "
             @click="setQuickDuration(row, days)"
           >
@@ -462,7 +462,7 @@ onBeforeUnmount(() => {
         <div>
           <button
             type="button"
-            class="text-[11px] font-semibold text-indigo-700 hover:text-indigo-800"
+            class="text-[11px] font-semibold text-trust-700 hover:text-trust-800"
             @click="showInstructionsForRowId = showInstructionsForRowId === row.id ? '' : row.id"
           >
             {{ showInstructionsForRowId === row.id ? 'Hide instructions' : '+ Add instructions' }}
@@ -473,7 +473,7 @@ onBeforeUnmount(() => {
               v-model="row.instructions"
               data-last-field="true"
               rows="2"
-              class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              class="w-full rounded-md border border-ink-300 px-2 py-1.5 text-sm"
               placeholder="After food / Before bed"
               @input="emitChange"
             />
@@ -484,7 +484,7 @@ onBeforeUnmount(() => {
           <p v-if="row.isDiscontinued" class="text-[11px] font-semibold text-amber-700">
             Warning: selected medicine may be discontinued.
           </p>
-          <p v-if="summary(row)" class="text-[11px] text-slate-500">{{ summary(row) }}</p>
+          <p v-if="summary(row)" class="text-[11px] text-ink-500">{{ summary(row) }}</p>
         </div>
 
         <ul
@@ -495,11 +495,11 @@ onBeforeUnmount(() => {
         </ul>
       </template>
 
-      <p v-else-if="summary(row)" class="text-xs text-slate-600">{{ summary(row) }}</p>
-      <p v-else class="text-xs text-slate-500">No details entered yet.</p>
+      <p v-else-if="summary(row)" class="text-xs text-ink-600">{{ summary(row) }}</p>
+      <p v-else class="text-xs text-ink-500">No details entered yet.</p>
     </div>
 
-    <p class="text-[11px] text-slate-500">
+    <p class="text-[11px] text-ink-500">
       Shortcuts: Ctrl/Cmd + Enter add row · Ctrl/Cmd + D duplicate row · Tab from last field adds next row
     </p>
     <datalist id="medicine-dose-options">

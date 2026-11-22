@@ -13,7 +13,7 @@ import {
   recordLogoutTelemetry,
   recordSuccessfulLoginTelemetry
 } from '@/analytics/sessionTelemetry';
-import { toUserFacingApiError } from '@/api/apiErrors';
+import { looksLikeUnresolvedServerMessageKey, toUserFacingApiError } from '@/api/apiErrors';
 import { apiClient } from '@/api/client';
 import { AUTH_API_TIMEOUT_MS } from '@/api/timeouts';
 import { clearSecureAuth, persistSessionSecrets } from '@/auth/secureTokens';
@@ -75,12 +75,17 @@ export async function logout(): Promise<void> {
   }
 }
 
-export function getLoginErrorMessage(error: unknown): string {
+export function getLoginErrorMessage(
+  error: unknown,
+  invalidCredentialsFallback = 'Invalid email or password'
+): string {
   if (isAxiosError(error)) {
     const payload = (error.response?.data ?? {}) as Record<string, unknown>;
     const message = pickString(payload, ['Message', 'message']);
+    const resolved =
+      message && !looksLikeUnresolvedServerMessageKey(message) ? message : '';
     if (error.response?.status === 401 || error.response?.status === 403) {
-      return message || 'Invalid email or password';
+      return resolved || invalidCredentialsFallback;
     }
   }
   return toUserFacingApiError(error, 'Unable to sign in right now.');
